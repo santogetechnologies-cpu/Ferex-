@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Snowflake, LayoutDashboard, Users, ShoppingCart,
   Package, Boxes, Warehouse, Truck, DollarSign,
-  Navigation, BarChart3, Mail,
+  BarChart3, Mail,
   Bell, User, LogOut, Search, Menu, ChevronRight, ChevronDown, X, Plus, CheckCircle2, Shield, Sparkles, Clock
 } from 'lucide-react';
 
@@ -132,14 +132,6 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
         { label: 'Products Catalog', path: '/rimi/products', icon: Package },
         { label: 'Batches & Expiry', path: '/rimi/inventory', icon: Boxes },
         { label: 'Cold Storage Hubs', path: '/rimi/warehouses', icon: Warehouse }
-      ]
-    },
-    {
-      title: 'Logistics & Fleet',
-      items: [
-        { label: 'Deliveries & Dispatch', path: '/rimi/deliveries', icon: Truck },
-        { label: 'Reefer Fleet', path: '/rimi/vehicles', icon: Truck },
-        { label: 'Delivery Routes', path: '/rimi/delivery-routes', icon: Navigation }
       ]
     },
     {
