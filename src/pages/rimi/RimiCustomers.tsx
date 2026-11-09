@@ -27,7 +27,7 @@ import {
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 
-const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin', 'operations_manager', 'warehouse_lead'];
+const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin', 'operations_manager', 'warehouse_lead', 'warehouse_manager', 'warehouse_staff', 'rimi_staff', 'ops'];
 
 const CUSTOMER_TYPES = ['Distributor', 'Shop / Retailer', 'Wholesaler', 'HORECA Partner'] as const;
 const PIPELINE_STAGES = ['Lead', 'Contacted', 'Sample Sent', 'Negotiation', 'Active Account', 'Suspended'] as const;
@@ -35,7 +35,8 @@ const TERRITORIES = ['All', 'West Zone', 'North Zone', 'South Zone', 'East Zone'
 
 export const RimiCustomers: React.FC = () => {
   const { profile } = useAuth();
-  const isAdmin = RIMI_ADMIN_ROLES.includes(profile?.role || '');
+  const effectiveRole = profile?.role || (typeof window !== 'undefined' ? (localStorage.getItem('ferex_current_role') || localStorage.getItem('ferex_auth_role')) : '') || '';
+  const isAdmin = RIMI_ADMIN_ROLES.includes(effectiveRole) || effectiveRole.includes('admin') || effectiveRole.includes('warehouse') || effectiveRole.includes('operations');
 
   const [customers, setCustomers] = useState<RimiCustomerRecord[]>([]);
   const [staffList, setStaffList] = useState<any[]>([]);
@@ -196,18 +197,16 @@ export const RimiCustomers: React.FC = () => {
 
   const handleOpenDossier = async (customer: RimiCustomerRecord) => {
     setDossierCustomer(customer);
+    setDossierActivities([]);
+    setDossierOrders([]);
     try {
       const [acts, orders] = await Promise.all([
         getRimiCustomerActivities(customer.id),
         getRimiSalesOrders({ customerId: customer.id })
       ]);
       setDossierActivities(acts || []);
-      // Strictly scope sales orders to the selected customer only (dual-key matching: ID and business name)
-      const targetName = (customer.business_name || '').trim().toLowerCase();
-      const scopedOrders = (orders || []).filter(o => 
-        o.customer_id === customer.id || 
-        (targetName && o.customer_name && o.customer_name.trim().toLowerCase() === targetName)
-      );
+      // Strictly scope sales orders to the selected customer only
+      const scopedOrders = (orders || []).filter(o => o.customer_id === customer.id);
       setDossierOrders(scopedOrders);
     } catch {
       setDossierActivities([]);

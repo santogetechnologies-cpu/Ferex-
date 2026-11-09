@@ -196,9 +196,15 @@ export const RimiWarehouses: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredFacilities.map(f => {
-            const utilPct = f.total_capacity_pallets > 0
-              ? Math.round((f.utilized_pallets / f.total_capacity_pallets) * 100)
-              : 0;
+            const facilityBatches = batches.filter(b =>
+              b.warehouse_id === f.id ||
+              (b.warehouse_name && f.name && b.warehouse_name.toLowerCase().trim() === f.name.toLowerCase().trim())
+            );
+            const batchStock = facilityBatches.reduce((acc, b) => acc + (Number(b.quantity) || 0), 0);
+            const calculatedPallets = Math.ceil(batchStock / 500);
+            const effectivePallets = Math.max(calculatedPallets, Number(f.utilized_pallets) || 0);
+            const totalCap = f.total_capacity_pallets > 0 ? f.total_capacity_pallets : 1000;
+            const utilPct = Math.min(100, Math.round((effectivePallets / totalCap) * 100));
 
             return (
               <Card key={f.id} className="p-5 border border-slate-200/80 shadow-xs space-y-3.5 hover:border-slate-300 transition-all flex flex-col justify-between">
@@ -221,7 +227,7 @@ export const RimiWarehouses: React.FC = () => {
                   <div className="p-3 bg-slate-50 rounded-xl space-y-1.5 text-xs text-slate-600">
                     <div className="flex justify-between font-bold text-slate-800">
                       <span>Pallet Occupancy:</span>
-                      <span>{f.utilized_pallets} / {f.total_capacity_pallets} Pallets ({utilPct}%)</span>
+                      <span>{effectivePallets} / {totalCap} Pallets ({utilPct}%)</span>
                     </div>
                     <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                       <div
@@ -320,8 +326,7 @@ export const RimiWarehouses: React.FC = () => {
               {(() => {
                 const hubBatches = batches.filter(b =>
                   b.warehouse_id === selectedFacility.id ||
-                  (b.warehouse_name && selectedFacility.name && b.warehouse_name.toLowerCase().includes(selectedFacility.name.toLowerCase())) ||
-                  (b.warehouse_name && selectedFacility.city && b.warehouse_name.toLowerCase().includes(selectedFacility.city.toLowerCase()))
+                  (b.warehouse_name && selectedFacility.name && b.warehouse_name.toLowerCase().trim() === selectedFacility.name.toLowerCase().trim())
                 );
                 const totalUnits = hubBatches.reduce((acc, b) => acc + Number(b.quantity || 0), 0);
                 const uniqueSkus = new Set(hubBatches.map(b => b.product_name || b.product_id)).size;

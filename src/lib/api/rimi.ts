@@ -115,6 +115,7 @@ export interface RimiProductRecord {
   description?: string;
   is_active: boolean;
   total_stock?: number;
+  available_stock?: number;
   created_at: string;
   updated_at: string;
 }
@@ -490,35 +491,39 @@ export async function getRimiCustomers(filters?: {
     }
 
     let supabaseCustomers: RimiCustomerRecord[] = [];
+    let fetchSucceeded = false;
     try {
       const { data, error } = await query;
       if (!error && Array.isArray(data)) {
         supabaseCustomers = data as RimiCustomerRecord[];
+        fetchSucceeded = true;
       }
     } catch {}
 
     const deletedIds = getDeletedRimiCustomerIds();
 
-    // Merge Supabase records with local storage cache (excluding deleted accounts)
-    const local = getLocalRimiCustomers().filter(c => !deletedIds.has(c.id));
-    const map = new Map<string, RimiCustomerRecord>();
-    local.forEach(c => map.set(c.id, c));
-    supabaseCustomers
-      .filter(c => !deletedIds.has(c.id))
-      .forEach(c => {
-        const localCust = map.get(c.id);
-        if (localCust && localCust.updated_at && c.updated_at) {
-          if (new Date(localCust.updated_at).getTime() > new Date(c.updated_at).getTime()) {
-            map.set(c.id, { ...c, ...localCust });
-            return;
-          }
-        }
-        map.set(c.id, { ...localCust, ...c });
-      });
+    let result: RimiCustomerRecord[] = [];
+    if (fetchSucceeded) {
+      // Supabase is authoritative. Exclude tombstoned IDs and only preserve offline items created within last 2 mins
+      const now = Date.now();
+      const recentLocalOnly = getLocalRimiCustomers().filter(c =>
+        !deletedIds.has(c.id) &&
+        !supabaseCustomers.some(sc => sc.id === c.id) &&
+        c.created_at && (now - new Date(c.created_at).getTime() < 120000)
+      );
 
-    let result = Array.from(map.values()).sort(
-      (a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime()
-    );
+      const map = new Map<string, RimiCustomerRecord>();
+      supabaseCustomers.filter(c => !deletedIds.has(c.id)).forEach(c => map.set(c.id, c));
+      recentLocalOnly.forEach(c => map.set(c.id, c));
+      result = Array.from(map.values()).sort(
+        (a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime()
+      );
+    } else {
+      const local = getLocalRimiCustomers().filter(c => !deletedIds.has(c.id));
+      result = local.sort(
+        (a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime()
+      );
+    }
 
     saveLocalRimiCustomers(result);
 
@@ -690,7 +695,11 @@ export async function deleteRimiCustomer(id: string): Promise<boolean> {
 
   // 2. Remove from local storage cache immediately
   const local = getLocalRimiCustomers();
-  const filtered = local.filter(c => c.id !== id);
+  const target = local.find(c => c.id === id);
+  if (target?.business_name) {
+    addDeletedRimiCustomerId(target.business_name);
+  }
+  const filtered = local.filter(c => c.id !== id && (!target?.business_name || c.business_name !== target.business_name));
   saveLocalRimiCustomers(filtered);
 
   // 3. Delete from Supabase
@@ -893,7 +902,14 @@ export async function getRimiProducts(): Promise<RimiProductRecord[]> {
   }
 }
 
-export async function createRimiProduct(product: Partial<RimiProductRecord> & { quantity?: number; opening_stock?: number }): Promise<RimiProductRecord> {
+export async function createRimiProduct(product: Partial<RimiProductRecord> & {
+  quantity?: number;
+  opening_stock?: number;
+  warehouse_id?: string;
+  warehouse_name?: string;
+  batch_no?: string;
+  expiry_date?: string;
+}): Promise<RimiProductRecord> {
   const newId = generateUUID();
   const payload: RimiProductRecord = {
     id: newId,
@@ -938,9 +954,9 @@ export async function createRimiProduct(product: Partial<RimiProductRecord> & { 
     try {
       const batchId = generateUUID();
       const mfgDate = new Date().toISOString().slice(0, 10);
-      const expDate = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const expDate = product.expiry_date || new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
       const cleanSkuSuffix = payload.sku.replace(/[^A-Za-z0-9]/g, '').slice(-4).toUpperCase();
-      const batchNo = `LOT-${cleanSkuSuffix || 'STK'}-01`;
+      const batchNo = product.batch_no?.trim() || `LOT-${cleanSkuSuffix || 'STK'}-01`;
 
       const initialBatch: RimiInventoryBatchRecord = {
         id: batchId,
@@ -953,7 +969,8 @@ export async function createRimiProduct(product: Partial<RimiProductRecord> & { 
         quantity: openingQty,
         initial_quantity: openingQty,
         unit: payload.unit,
-        warehouse_name: 'Central Cold Hub Mumbai',
+        warehouse_id: product.warehouse_id || undefined,
+        warehouse_name: product.warehouse_name || 'Central Cold Hub Mumbai',
         storage_temp: payload.storage_temp,
         status: 'Active',
         notes: `Opening inventory stock established upon SKU creation (${openingQty} ${payload.unit})`,
@@ -1422,7 +1439,10 @@ export async function getRimiSalesOrders(filters?: {
 
     const deletedOrderIds = getDeletedRimiOrderIds();
 
-    const local = getLocalRimiSalesOrders().filter(o => !deletedOrderIds.has(o.id) && (!o.order_no || !deletedOrderIds.has(o.order_no)));
+    let local = getLocalRimiSalesOrders().filter(o => !deletedOrderIds.has(o.id) && (!o.order_no || !deletedOrderIds.has(o.order_no)));
+    if (filters?.customerId) {
+      local = local.filter(o => o.customer_id === filters.customerId);
+    }
     const map = new Map<string, RimiSalesOrderRecord>();
     local.forEach(o => map.set(o.id, o));
     orders
@@ -1804,6 +1824,88 @@ export async function updateRimiSalesOrderStatus(
       updated_at: nowIso
     };
     saveLocalRimiSalesOrders([cancelledCopy, ...localOrders.filter(o => o.id !== orderId && (!targetOrderNo || o.order_no !== targetOrderNo))]);
+  }
+
+  // If order is confirmed, automatically deduct sold product quantity from corresponding batch and update product stock
+  if (status === 'Confirmed') {
+    try {
+      let orderItems: Array<{ product_id: string; batch_id?: string; product_name?: string; quantity: number }> = (targetOrder?.items as any) || [];
+      if (orderItems.length === 0) {
+        const { data: dbItems } = await supabase
+          .from('rimi_order_items')
+          .select('product_id, batch_id, product_name, quantity')
+          .eq('order_id', orderId);
+        if (Array.isArray(dbItems)) orderItems = dbItems;
+      }
+
+      if (orderItems.length > 0) {
+        const currentBatches = getLocalRimiBatches();
+        let batchesDeducted = false;
+
+        for (const item of orderItems) {
+          const qty = Number(item.quantity) || 0;
+          if (qty <= 0) continue;
+
+          let targetBatch = currentBatches.find(b => (item.batch_id && b.id === item.batch_id) || (!item.batch_id && b.product_id === item.product_id && Number(b.quantity) > 0));
+          if (!targetBatch && item.product_name) {
+            targetBatch = currentBatches.find(b => b.product_name && b.product_name.toLowerCase().trim() === item.product_name!.toLowerCase().trim() && Number(b.quantity) > 0);
+          }
+
+          if (targetBatch) {
+            batchesDeducted = true;
+            const newQty = Math.max(0, Number(targetBatch.quantity) - qty);
+            const newStatus = newQty <= 0 ? 'Depleted' : newQty <= 20 ? 'Low Stock' : 'Active';
+            targetBatch.quantity = newQty;
+            targetBatch.status = newStatus as any;
+            targetBatch.updated_at = nowIso;
+
+            // Deduct in Supabase
+            Promise.resolve(
+              supabase.from('rimi_inventory_batches').update({
+                quantity: newQty,
+                status: newStatus,
+                updated_at: nowIso
+              }).eq('id', targetBatch.id)
+            ).catch(() => {});
+
+            // Record stock movement audit
+            recordRimiStockMovement({
+              batch_id: targetBatch.id,
+              product_id: item.product_id || targetBatch.product_id,
+              movement_type: 'Dispatch',
+              quantity_change: -qty,
+              resulting_quantity: newQty,
+              order_id: orderId,
+              reference_no: targetOrderNo || orderId,
+              notes: `Stock deducted on confirmed Sales Order ${targetOrderNo || orderId}`
+            }).catch(() => {});
+          }
+
+          // Deduct from product available_stock
+          const currentProducts = getLocalRimiProducts();
+          const targetProduct = currentProducts.find(p => p.id === item.product_id || (item.product_name && p.name.toLowerCase().trim() === item.product_name.toLowerCase().trim()));
+          if (targetProduct) {
+            const currentStock = Number(targetProduct.available_stock ?? targetProduct.min_stock_alert ?? 100);
+            const newProdStock = Math.max(0, currentStock - qty);
+            targetProduct.available_stock = newProdStock;
+            saveLocalRimiProducts(currentProducts);
+            Promise.resolve(
+              supabase.from('rimi_products').update({
+                updated_at: nowIso
+              }).eq('id', targetProduct.id)
+            ).catch(() => {});
+          }
+        }
+
+        if (batchesDeducted) {
+          saveLocalRimiBatches(currentBatches);
+          triggerLocalSync('ferex_rimi_batches_change');
+          triggerLocalSync('ferex_rimi_products_change');
+        }
+      }
+    } catch (batchDeductErr) {
+      console.warn('[RimiAPI] Batch deduction on confirmation error:', batchDeductErr);
+    }
   }
 
   // If order is cancelled, revoke and purge payment records AND restore inventory batches
@@ -2669,14 +2771,19 @@ export async function getRimiWarehouses(): Promise<RimiWarehouseRecord[]> {
     try {
       const { data: batches } = await supabase
         .from('rimi_inventory_batches')
-        .select('warehouse_id, quantity');
+        .select('warehouse_id, warehouse_name, quantity');
 
       if (Array.isArray(batches)) {
         for (const b of batches) {
+          const qty = Number(b.quantity || 0);
+          if (qty <= 0) continue;
+          const pallets = Math.ceil(qty / 500);
           if (b.warehouse_id) {
-            // Approx 1 pallet = 500 KG
-            const pallets = Math.ceil(Number(b.quantity || 0) / 500);
             palletUsageMap.set(b.warehouse_id, (palletUsageMap.get(b.warehouse_id) || 0) + pallets);
+          }
+          if (b.warehouse_name) {
+            const keyName = b.warehouse_name.toLowerCase().trim();
+            palletUsageMap.set(keyName, (palletUsageMap.get(keyName) || 0) + pallets);
           }
         }
       }
@@ -2685,16 +2792,27 @@ export async function getRimiWarehouses(): Promise<RimiWarehouseRecord[]> {
     // Also factor local batches
     const localBatches = getLocalRimiBatches();
     for (const b of localBatches) {
+      const qty = Number(b.quantity || 0);
+      if (qty <= 0) continue;
+      const pallets = Math.ceil(qty / 500);
       if (b.warehouse_id && !palletUsageMap.has(b.warehouse_id)) {
-        const pallets = Math.ceil(Number(b.quantity || 0) / 500);
         palletUsageMap.set(b.warehouse_id, (palletUsageMap.get(b.warehouse_id) || 0) + pallets);
+      }
+      if (b.warehouse_name && !palletUsageMap.has(b.warehouse_name.toLowerCase().trim())) {
+        const keyName = b.warehouse_name.toLowerCase().trim();
+        palletUsageMap.set(keyName, (palletUsageMap.get(keyName) || 0) + pallets);
       }
     }
 
-    return merged.map(w => ({
-      ...w,
-      utilized_pallets: palletUsageMap.get(w.id) || w.utilized_pallets || 0
-    })) as RimiWarehouseRecord[];
+    return merged.map(w => {
+      const byId = palletUsageMap.get(w.id) || 0;
+      const byName = palletUsageMap.get((w.name || '').toLowerCase().trim()) || 0;
+      const calculated = Math.max(byId, byName);
+      return {
+        ...w,
+        utilized_pallets: calculated > 0 ? calculated : (w.utilized_pallets || 0)
+      };
+    }) as RimiWarehouseRecord[];
   } catch {
     const deletedIds = getDeletedRimiWarehouseIds();
     return getLocalRimiWarehouses().filter(w => !deletedIds.has(w.id));
@@ -2738,9 +2856,11 @@ export async function updateRimiWarehouse(id: string, updates: Partial<RimiWareh
   const payload = { ...existing, ...updates, updated_at: new Date().toISOString() };
 
   try {
+    const dbPayload: any = { ...payload };
+    delete dbPayload.id;
     await supabase
       .from('rimi_warehouses')
-      .update(payload)
+      .update(dbPayload)
       .eq('id', id);
   } catch (err) {
     console.warn('[RimiAPI] Supabase warehouse update notice:', err);

@@ -41,56 +41,60 @@ const COUNTRY_FLAGS: Record<string, string> = {
 export function matchesDegreeLevel(prog: any, degree: string): boolean {
   if (!degree) return true;
   const dNorm = degree.toLowerCase();
-  const isBach = dNorm.includes('bachelor') || dNorm.includes('ba') || dNorm.includes('bsc') || dNorm.includes('undergrad');
-  const isMast = dNorm.includes('master') || dNorm.includes('ma') || dNorm.includes('msc') || dNorm.includes('mba') || dNorm.includes('postgrad');
-  const isDoc = dNorm.includes('phd') || dNorm.includes('doctor');
-  const isDip = dNorm.includes('diploma') || dNorm.includes('pathway') || dNorm.includes('certificate');
+  const isBach = dNorm.includes('bachelor') || /\bundergrad/i.test(dNorm);
+  const isMast = dNorm.includes('master') || /\bpostgrad/i.test(dNorm);
+  const isDoc = dNorm.includes('doctor') || dNorm.includes('phd');
+  const isDip = dNorm.includes('diploma') || dNorm.includes('certificate') || dNorm.includes('foundation') || dNorm.includes('pathway');
 
   const pLevel = ((typeof prog === 'string' ? '' : prog?.degree_level) || '').toLowerCase();
   const pName = ((typeof prog === 'string' ? prog : prog?.name) || '').toLowerCase();
   const pCategory = ((typeof prog === 'string' ? '' : prog?.category) || '').toLowerCase();
   const combined = `${pLevel} ${pName} ${pCategory}`;
 
+  const hasMasterKeywords = /\b(master|masters|msc|m\.sc|ma|m\.a|meng|m\.eng|mba|magister|postgrad|postgraduate)\b/i.test(combined);
+  const hasBachelorKeywords = /\b(bachelor|bachelors|bsc|b\.sc|ba|b\.a|beng|b\.eng|bba|b\.tech|licencjat|inżynier|undergrad|undergraduate)\b/i.test(combined);
+  const hasDoctorKeywords = /\b(phd|doctor|doctorate|doctoral)\b/i.test(combined);
+  const hasDiplomaKeywords = /\b(diploma|certificate|foundation|pathway)\b/i.test(combined);
+  const isIntegrated = combined.includes('integrated') || pLevel.includes('integrated');
+
   if (isBach) {
-    if (pLevel.includes('master') || pLevel.includes('msc') || pLevel.includes('ma') || pLevel.includes('magister') || pLevel.includes('mba') || pLevel.includes('postgrad') || pLevel.includes('phd') || pLevel.includes('doctor')) {
+    if (pLevel.includes('master') || pLevel.includes('postgrad') || pLevel.includes('phd') || pLevel.includes('doctor')) {
       return false;
     }
-    if (pLevel.includes('bachelor') || pLevel.includes('bsc') || pLevel.includes('ba') || pLevel.includes('beng') || pLevel.includes('bba') || pLevel.includes('undergrad') || pLevel.includes('licencjat') || pLevel.includes('inżynier') || pLevel.includes('integrated')) {
-      return true;
-    }
-    if (combined.includes('bachelor') || combined.includes('(bsc)') || combined.includes('(ba)') || combined.includes('(beng)') || combined.includes('(bba)') || combined.includes('licencjat') || combined.includes('b.tech') || combined.includes('b.sc')) {
-      return true;
-    }
-    if (combined.includes('master') || combined.includes('(msc)') || combined.includes('(ma)') || combined.includes('magister') || combined.includes('m.tech') || combined.includes('mba')) {
+    if (hasMasterKeywords || hasDoctorKeywords) {
       return false;
     }
-    return !pLevel;
+    if (pLevel.includes('bachelor') || pLevel.includes('undergrad') || isIntegrated) {
+      return true;
+    }
+    if (hasBachelorKeywords || isIntegrated) {
+      return true;
+    }
+    return !pLevel && !hasMasterKeywords && !hasDoctorKeywords && !hasDiplomaKeywords;
   }
 
   if (isMast) {
-    if (pLevel.includes('bachelor') || pLevel.includes('bsc') || pLevel.includes('ba') || pLevel.includes('beng') || pLevel.includes('bba') || pLevel.includes('undergrad') || pLevel.includes('licencjat') || pLevel.includes('inżynier')) {
-      if (!pLevel.includes('master') && !pLevel.includes('msc') && !pLevel.includes('magister')) {
-        return false;
-      }
+    if (pLevel.includes('bachelor') || pLevel.includes('undergrad') || pLevel.includes('licencjat')) {
+      if (!isIntegrated) return false;
     }
-    if (pLevel.includes('master') || pLevel.includes('msc') || pLevel.includes('ma') || pLevel.includes('meng') || pLevel.includes('magister') || pLevel.includes('mba') || pLevel.includes('postgrad') || pLevel.includes('integrated')) {
-      return true;
-    }
-    if (combined.includes('master') || combined.includes('(msc)') || combined.includes('(ma)') || combined.includes('(meng)') || combined.includes('(mba)') || combined.includes('magister') || combined.includes('m.tech') || combined.includes('m.sc')) {
-      return true;
-    }
-    if (combined.includes('bachelor') || combined.includes('(bsc)') || combined.includes('(ba)') || combined.includes('(beng)') || combined.includes('(bba)') || combined.includes('licencjat')) {
+    if (hasBachelorKeywords && !hasMasterKeywords && !isIntegrated) {
       return false;
     }
-    return !pLevel;
+    if (pLevel.includes('master') || pLevel.includes('postgrad') || isIntegrated) {
+      return true;
+    }
+    if (hasMasterKeywords || isIntegrated) {
+      return true;
+    }
+    return false;
   }
 
   if (isDoc) {
-    return combined.includes('phd') || combined.includes('doctor') || combined.includes('doctoral');
+    return hasDoctorKeywords || pLevel.includes('doctor') || pLevel.includes('phd');
   }
 
   if (isDip) {
-    return combined.includes('diploma') || combined.includes('pathway') || combined.includes('foundation') || combined.includes('certificate');
+    return hasDiplomaKeywords || pLevel.includes('diploma') || pLevel.includes('certificate');
   }
 
   return true;
@@ -99,14 +103,10 @@ export function matchesDegreeLevel(prog: any, degree: string): boolean {
 export function getFilteredCourses(uni: any, degree: string): any[] {
   if (!uni) return [];
   if (uni.course_programs && Array.isArray(uni.course_programs) && uni.course_programs.length > 0) {
-    const matched = uni.course_programs.filter((p: any) => matchesDegreeLevel(p, degree));
-    if (matched.length > 0) return matched;
-    return uni.course_programs;
+    return uni.course_programs.filter((p: any) => matchesDegreeLevel(p, degree));
   }
   if (uni.programs && Array.isArray(uni.programs) && uni.programs.length > 0) {
-    const matched = uni.programs.filter((p: string) => matchesDegreeLevel(p, degree));
-    if (matched.length > 0) return matched;
-    return uni.programs;
+    return uni.programs.filter((p: string) => matchesDegreeLevel(p, degree));
   }
   return [];
 }
@@ -244,7 +244,7 @@ export const SelectUniversity: React.FC = () => {
     const initialLevel = degreeLevel || "Bachelor's Degree";
     const available = getFilteredCourses(uni, initialLevel);
     const firstCourse = available[0];
-    const initialName = typeof firstCourse === 'object' ? firstCourse?.name : (firstCourse || uni.programs?.[0] || 'Higher Studies');
+    const initialName = typeof firstCourse === 'object' ? firstCourse?.name : (firstCourse || '');
     setSelectedCourse(initialName);
   };
 
@@ -253,10 +253,8 @@ export const SelectUniversity: React.FC = () => {
     if (applyUni) {
       const available = getFilteredCourses(applyUni, newLevel);
       const firstCourse = available[0];
-      const nextName = typeof firstCourse === 'object' ? firstCourse?.name : (firstCourse || applyUni.programs?.[0] || '');
-      if (nextName) {
-        setSelectedCourse(nextName);
-      }
+      const nextName = typeof firstCourse === 'object' ? firstCourse?.name : (firstCourse || '');
+      setSelectedCourse(nextName);
     }
   };
 

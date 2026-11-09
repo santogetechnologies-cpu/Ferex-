@@ -33,7 +33,8 @@ const ORDER_STATUSES = ['Received', 'Confirmed', 'Cold Storage Picking', 'Dispat
 
 export const RimiSalesOrders: React.FC = () => {
   const { profile } = useAuth();
-  const isAdmin = RIMI_ADMIN_ROLES.includes(profile?.role || '');
+  const effectiveRole = profile?.role || (typeof window !== 'undefined' ? (localStorage.getItem('ferex_current_role') || localStorage.getItem('ferex_auth_role')) : '') || '';
+  const isAdmin = RIMI_ADMIN_ROLES.includes(effectiveRole) || effectiveRole.includes('admin') || effectiveRole.includes('warehouse') || effectiveRole.includes('operations');
 
   const [orders, setOrders] = useState<RimiSalesOrderRecord[]>([]);
   const [customers, setCustomers] = useState<RimiCustomerRecord[]>([]);
@@ -213,6 +214,15 @@ export const RimiSalesOrders: React.FC = () => {
     }
   };
 
+  const handleOpenCreateModal = () => {
+    setOrderItems([]);
+    setSelectedCustomer(activeCustomers[0]?.id || '');
+    setDeliveryDate(new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0]);
+    setDeliveryAddress(activeCustomers[0]?.address || activeCustomers[0]?.city || '');
+    setOrderNotes('');
+    setShowAddModal(true);
+  };
+
   const handleCancelOrderFromPaymentModal = async (orderId: string) => {
     try {
       await handleUpdateStatus(orderId, 'Cancelled', selectedOrder?.order_no);
@@ -326,7 +336,7 @@ export const RimiSalesOrders: React.FC = () => {
 
         <Button
           size="sm"
-          onClick={() => setShowAddModal(true)}
+          onClick={handleOpenCreateModal}
           className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
         >
           <Plus className="w-4 h-4" /> Create Sales Order
@@ -582,7 +592,7 @@ export const RimiSalesOrders: React.FC = () => {
                       ) : (
                         activeCustomers.map(c => (
                           <option key={c.id} value={c.id}>
-                            [{c.customer_type}] {c.business_name} ({c.city})
+                            {c.business_name} – {c.customer_type} – {c.city || c.territory || 'Central Hub'}
                           </option>
                         ))
                       )}
@@ -631,7 +641,9 @@ export const RimiSalesOrders: React.FC = () => {
                             className="w-full h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold"
                           >
                             {products.map(p => (
-                              <option key={p.id} value={p.id}>{p.name} (₹{p.unit_price}/{p.unit})</option>
+                              <option key={p.id} value={p.id}>
+                                [{p.sku || 'SKU'}] {p.name} • {p.category || 'Frozen'} • ₹{p.unit_price} / {p.unit || 'KG'}
+                              </option>
                             ))}
                           </select>
                         </div>

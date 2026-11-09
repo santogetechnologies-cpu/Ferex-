@@ -11,7 +11,8 @@ import {
   deleteRimiProduct,
   getRimiProductCategories,
   createRimiProductCategory,
-  deleteRimiProductCategory
+  deleteRimiProductCategory,
+  getRimiWarehouses
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 
@@ -26,17 +27,20 @@ export const RimiProducts: React.FC = () => {
   const [newCatInput, setNewCatInput] = useState('');
   const [toast, setToast] = useState('');
   const [products, setProducts] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [prodData, catData] = await Promise.all([
+      const [prodData, catData, whData] = await Promise.all([
         getRimiProducts(),
-        getRimiProductCategories()
+        getRimiProductCategories(),
+        getRimiWarehouses()
       ]);
 
       setCategories(catData || []);
+      setWarehouses(whData || []);
 
       if (Array.isArray(prodData)) {
         const formatted = prodData.map((d: any) => ({
@@ -90,7 +94,10 @@ export const RimiProducts: React.FC = () => {
     price: '₹450',
     temp: '-18°C',
     minStock: 50,
-    quantity: 100
+    quantity: 100,
+    warehouse_id: '',
+    batch_no: '',
+    expiry_date: ''
   });
 
   const showToastMsg = (msg: string) => {
@@ -122,6 +129,7 @@ export const RimiProducts: React.FC = () => {
       const cleanPrice = parseFloat(newProd.price.replace(/[^0-9.]/g, '')) || 450;
       const cleanCatPrefix = chosenCategory.replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() || 'CAT';
       const newSku = `RIMI-${cleanCatPrefix}-${Math.floor(100 + Math.random() * 900)}`;
+      const selectedWh = warehouses.find(w => w.id === newProd.warehouse_id);
 
       const created = await createRimiProduct({
         sku: newSku,
@@ -131,12 +139,27 @@ export const RimiProducts: React.FC = () => {
         unit_price: cleanPrice,
         storage_temp: newProd.temp || '-18°C',
         min_stock_alert: Number(newProd.minStock) || 50,
-        quantity: Number(newProd.quantity) || 0
+        quantity: Number(newProd.quantity) || 0,
+        warehouse_id: newProd.warehouse_id || (warehouses[0]?.id || undefined),
+        warehouse_name: selectedWh?.name || warehouses[0]?.name || 'Central Cold Hub Mumbai',
+        batch_no: newProd.batch_no.trim() || undefined,
+        expiry_date: newProd.expiry_date || undefined
       });
 
       setShowAddModal(false);
       showToastMsg(`Added frozen SKU ${created?.sku || newSku} (Opening Stock: ${newProd.quantity} ${newProd.unit})`);
-      setNewProd({ name: '', category: categories[0] || '', unit: 'KG', price: '₹450', temp: '-18°C', minStock: 50, quantity: 100 });
+      setNewProd({
+        name: '',
+        category: categories[0] || '',
+        unit: 'KG',
+        price: '₹450',
+        temp: '-18°C',
+        minStock: 50,
+        quantity: 100,
+        warehouse_id: '',
+        batch_no: '',
+        expiry_date: ''
+      });
       await loadData();
     } catch (err: any) {
       console.error('[RimiProducts] Error saving product SKU:', err);
@@ -197,7 +220,18 @@ export const RimiProducts: React.FC = () => {
             <Layers className="w-3.5 h-3.5 mr-1.5 text-[#58051E]" /> Manage Categories
           </Button>
           <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => {
-            setNewProd({ name: '', category: categories[0] || 'Frozen Seafood', unit: 'KG', price: '₹450', temp: '-18°C', minStock: 50, quantity: 100 });
+            setNewProd({
+              name: '',
+              category: categories[0] || 'Frozen Seafood',
+              unit: 'KG',
+              price: '₹450',
+              temp: '-18°C',
+              minStock: 50,
+              quantity: 100,
+              warehouse_id: warehouses[0]?.id || '',
+              batch_no: '',
+              expiry_date: ''
+            });
             setShowAddModal(true);
           }}>
             <Plus className="w-4 h-4 mr-1.5" /> Add Master SKU
@@ -377,6 +411,42 @@ export const RimiProducts: React.FC = () => {
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Min Stock Reorder Alert</label>
                     <input type="number" required value={newProd.minStock} onChange={(e) => setNewProd({ ...newProd, minStock: Number(e.target.value) || 50 })} placeholder="50" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Cold Storage Hub / Facility Assignment *</label>
+                  <select
+                    value={newProd.warehouse_id}
+                    onChange={(e) => setNewProd({ ...newProd, warehouse_id: e.target.value })}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
+                  >
+                    <option value="">Select Cold Storage Hub</option>
+                    {warehouses.map((w) => (
+                      <option key={w.id} value={w.id}>{w.name} ({w.city}) • {w.cold_room_temp_celsius}°C</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Batch / Lot Number</label>
+                    <input
+                      type="text"
+                      value={newProd.batch_no}
+                      onChange={(e) => setNewProd({ ...newProd, batch_no: e.target.value })}
+                      placeholder="Auto-generate or enter Lot #"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Batch Expiry Date</label>
+                    <input
+                      type="date"
+                      value={newProd.expiry_date}
+                      onChange={(e) => setNewProd({ ...newProd, expiry_date: e.target.value })}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
+                    />
                   </div>
                 </div>
                 <div className="pt-3 flex gap-2">
