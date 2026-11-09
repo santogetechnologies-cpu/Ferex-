@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -60,8 +60,8 @@ export default async function handler(req: any, res: any) {
       order_id: razorpay_order_id,
       payment_id: razorpay_payment_id,
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error('Unhandled error in /api/verify-payment:', err);
-    return res.status(500).json({ error: err.message || 'Internal Server Error' });
+    return res.status(500).json({ error: err?.message || 'Internal Server Error' });
   }
 }

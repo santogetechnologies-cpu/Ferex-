@@ -1,4 +1,4 @@
-export default async function handler(req: any, res: any) {
+export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -62,8 +62,8 @@ export default async function handler(req: any, res: any) {
       currency: data.currency,
       key_id,
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error('Unhandled error in /api/create-order:', err);
-    return res.status(500).json({ error: err.message || 'Internal Server Error' });
+    return res.status(500).json({ error: err?.message || 'Internal Server Error' });
   }
 }
