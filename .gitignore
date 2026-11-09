@@ -1,4 +1,7 @@
-# Dependencies
+# Local scratch & extraction scripts
+scripts/*.py
+!scripts/seed.ts
+scripts/*.txt
 node_modules/
 .pnpm-store/
 
