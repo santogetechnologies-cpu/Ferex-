@@ -40,15 +40,16 @@ const COUNTRY_FLAGS: Record<string, string> = {
 
 export function matchesDegreeLevel(prog: any, degree: string): boolean {
   if (!degree) return true;
-  const dNorm = degree.toLowerCase();
-  const isBach = dNorm.includes('bachelor') || /\bundergrad/i.test(dNorm);
-  const isMast = dNorm.includes('master') || /\bpostgrad/i.test(dNorm);
+  const dNorm = degree.toLowerCase().trim();
+  const isBach = dNorm.includes('bachelor') || /\b(ba|b\.a|bsc|b\.sc|beng|bba|btech|undergrad|undergraduate)\b/i.test(dNorm);
+  const isMast = dNorm.includes('master') || /\b(ma|m\.a|msc|m\.sc|meng|mba|mtech|postgrad|postgraduate)\b/i.test(dNorm);
   const isDoc = dNorm.includes('doctor') || dNorm.includes('phd');
   const isDip = dNorm.includes('diploma') || dNorm.includes('certificate') || dNorm.includes('foundation') || dNorm.includes('pathway');
+  const isTargetIntegrated = dNorm.includes('integrated');
 
-  const pLevel = ((typeof prog === 'string' ? '' : prog?.degree_level) || '').toLowerCase();
-  const pName = ((typeof prog === 'string' ? prog : prog?.name) || '').toLowerCase();
-  const pCategory = ((typeof prog === 'string' ? '' : prog?.category) || '').toLowerCase();
+  const pLevel = ((typeof prog === 'string' ? '' : (prog?.degree_level || prog?.degree)) || '').toLowerCase().trim();
+  const pName = ((typeof prog === 'string' ? prog : prog?.name) || '').toLowerCase().trim();
+  const pCategory = ((typeof prog === 'string' ? '' : prog?.category) || '').toLowerCase().trim();
   const combined = `${pLevel} ${pName} ${pCategory}`;
 
   const hasMasterKeywords = /\b(master|masters|msc|m\.sc|ma|m\.a|meng|m\.eng|mba|magister|postgrad|postgraduate)\b/i.test(combined);
@@ -87,6 +88,10 @@ export function matchesDegreeLevel(prog: any, degree: string): boolean {
       return true;
     }
     return false;
+  }
+
+  if (isTargetIntegrated) {
+    return isIntegrated;
   }
 
   if (isDoc) {
@@ -755,6 +760,7 @@ export const SelectUniversity: React.FC = () => {
                       >
                         <option value="Bachelor's Degree">Bachelor's Degree (3-4 Yrs)</option>
                         <option value="Master's Degree">Master's Degree (1.5-2 Yrs)</option>
+                        <option value="Integrated Degree">Integrated Degree (5-6 Yrs - Medicine/Dentistry)</option>
                         <option value="Doctorate / PhD">Doctorate / PhD (3-4 Yrs)</option>
                         <option value="Undergraduate Diploma">Undergraduate Diploma (1-2 Yrs)</option>
                       </select>
