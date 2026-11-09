@@ -114,24 +114,53 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
   const configuredKey = options.keyId || (typeof import.meta !== 'undefined' ? import.meta.env?.VITE_RAZORPAY_KEY_ID : undefined);
   const keyId = (configuredKey && configuredKey !== 'rzp_test_default') ? configuredKey : 'rzp_test_TvtcmQYBnXjb9R';
 
-  // Step 1: Create Order via backend API
+  // Step 1: Create Order via backend API (with auto-fallback to education API if current origin returns 404)
   let orderData: { order_id: string; amount: number; currency: string; key_id?: string };
   try {
-    const res = await fetch('/api/create-order', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        amount: amountInPaise,
-        currency,
-        receipt: receipt || `rcpt_${Date.now()}`,
-        notes: notes || {},
-      }),
-    });
+    const candidateEndpoints = [
+      '/api/create-order',
+      'https://education.ferexventures.com/api/create-order',
+    ];
+
+    let res: Response | null = null;
+    let resText = '';
+
+    for (let i = 0; i < candidateEndpoints.length; i++) {
+      const endpoint = candidateEndpoints[i];
+      try {
+        const candidate = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: amountInPaise,
+            currency,
+            receipt: receipt || `rcpt_${Date.now()}`,
+            notes: notes || {},
+          }),
+        });
+
+        // If current host returned 404 and there's a fallback, try the next endpoint
+        if (candidate.status === 404 && i < candidateEndpoints.length - 1) {
+          continue;
+        }
+
+        res = candidate;
+        resText = await candidate.text();
+        break;
+      } catch (networkErr: any) {
+        if (i === candidateEndpoints.length - 1) {
+          throw networkErr;
+        }
+      }
+    }
+
+    if (!res) {
+      throw new Error('Payment server is currently unreachable. Please check your connection.');
+    }
 
     let data: any;
-    const resText = await res.text();
     try {
       data = JSON.parse(resText);
     } catch {
@@ -176,19 +205,52 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
     }) => {
       // Step 3: Backend Verification
       try {
-        const verifyRes = await fetch('/api/verify-payment', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_signature: response.razorpay_signature,
-          }),
-        });
+        const verifyCandidates = [
+          '/api/verify-payment',
+          'https://education.ferexventures.com/api/verify-payment',
+        ];
 
-        const verifyData = await verifyRes.json();
+        let verifyRes: Response | null = null;
+        let verifyText = '';
+
+        for (let j = 0; j < verifyCandidates.length; j++) {
+          const vEndpoint = verifyCandidates[j];
+          try {
+            const vCand = await fetch(vEndpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+
+            if (vCand.status === 404 && j < verifyCandidates.length - 1) {
+              continue;
+            }
+
+            verifyRes = vCand;
+            verifyText = await vCand.text();
+            break;
+          } catch (netErr: any) {
+            if (j === verifyCandidates.length - 1) throw netErr;
+          }
+        }
+
+        if (!verifyRes) {
+          throw new Error('Verification service unreachable');
+        }
+
+        let verifyData: any;
+        try {
+          verifyData = JSON.parse(verifyText);
+        } catch {
+          throw new Error(`Signature verification returned error (${verifyRes.status})`);
+        }
+
         if (!verifyRes.ok || !verifyData.success) {
           throw new Error(verifyData.error || 'Payment signature verification failed');
         }
