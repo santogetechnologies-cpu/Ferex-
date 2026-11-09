@@ -1,23 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Edit3, Save, X, CheckCircle2, Camera, Eye, Trash2, Upload, Download,
-  Shield, Smartphone, Monitor, Globe, Lock, Mail, Phone, MapPin,
-  User, GraduationCap, AlertTriangle, FileText, RefreshCw,
-  ToggleLeft, ToggleRight, Plus, Clock, Info
+  Edit3, Save, X, CheckCircle2, Camera, Eye, Trash2, Upload,
+  Shield, Lock, Mail, Phone, MapPin,
+  User, GraduationCap, AlertTriangle, FileText,
+  Calendar, Globe, ArrowRight, MessageSquare, ExternalLink,
+  KeyRound, ShieldCheck
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { ToastNotification } from '../components/ToastNotification';
 import { useAuth } from '../contexts/AuthContext';
-import { updateStudent } from '../lib/api/students';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useDocuments } from '../hooks/useDocuments';
 import { useApplications } from '../hooks/useApplications';
-import { ChangePasswordForm } from '../components/ChangePasswordForm';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Interfaces ──────────────────────────────────────────────────────────────
 interface PersonalInfo {
   firstName: string;
   lastName: string;
@@ -33,18 +32,6 @@ interface PersonalInfo {
   postalCode: string;
 }
 
-interface EducationInfo {
-  studyCountry: string;
-  university: string;
-  course: string;
-  intake: string;
-  campus: string;
-  studentNumber: string;
-  applicationStatus: string;
-  visaStatus: string;
-  counselor: string;
-}
-
 interface EmergencyInfo {
   guardianName: string;
   relationship: string;
@@ -53,496 +40,344 @@ interface EmergencyInfo {
   address: string;
 }
 
-interface Document {
-  id: number;
-  dbId?: string;
-  name: string;
-  type: string;
-  status: 'Verified' | 'Pending' | 'Missing';
-  size: string;
-  uploaded: string;
-  fileUrl?: string;
-}
-
-// ─── Helper Components ────────────────────────────────────────────────────────
-const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.12em] mb-4 flex items-center gap-2">
-    <span className="w-4 h-[2px] bg-[#58051E]/30 rounded-full" />
-    {children}
-  </h3>
-);
-
-const FieldGroup: React.FC<{
-  label: string;
-  value: string;
-  editing: boolean;
-  type?: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-}> = ({ label, value, editing, type = 'text', onChange, placeholder }) => (
-  <div>
-    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">{label}</label>
-    {editing ? (
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/50 focus:ring-4 focus:ring-[#58051E]/5 transition-all placeholder-slate-300"
-      />
-    ) : (
-      <div className="w-full h-10 px-3.5 bg-slate-50/70 border border-slate-100 rounded-lg text-sm font-semibold text-slate-700 flex items-center">
-        {value || <span className="text-slate-300 italic font-normal text-xs">Not provided</span>}
-      </div>
-    )}
-  </div>
-);
-
-const SelectGroup: React.FC<{
-  label: string;
-  value: string;
-  editing: boolean;
-  options: string[];
-  onChange: (v: string) => void;
-}> = ({ label, value, editing, options, onChange }) => (
-  <div>
-    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">{label}</label>
-    {editing ? (
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/50 focus:ring-4 focus:ring-[#58051E]/5 transition-all cursor-pointer appearance-none"
-      >
-        {options.map((o) => <option key={o} value={o}>{o}</option>)}
-      </select>
-    ) : (
-      <div className="w-full h-10 px-3.5 bg-slate-50/70 border border-slate-100 rounded-lg text-sm font-semibold text-slate-700 flex items-center">
-        {value || <span className="text-slate-300 italic font-normal text-xs">Not selected</span>}
-      </div>
-    )}
-  </div>
-);
-
-const StatusBadge: React.FC<{ status: 'Verified' | 'Pending' | 'Missing' }> = ({ status }) => {
-  const map = {
-    Verified: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-    Pending: 'bg-amber-50 text-amber-700 border-amber-100',
-    Missing: 'bg-red-50 text-red-600 border-red-100',
-  };
-  return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${map[status]}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${status === 'Verified' ? 'bg-emerald-500' : status === 'Pending' ? 'bg-amber-500' : 'bg-red-500'}`} />
-      {status}
-    </span>
-  );
-};
-
-const Toggle: React.FC<{ checked: boolean; onChange: () => void }> = ({ checked, onChange }) => (
-  <button type="button" onClick={onChange} className="focus:outline-none">
-    {checked
-      ? <ToggleRight className="w-10 h-10 text-[#58051E]" />
-      : <ToggleLeft className="w-10 h-10 text-slate-300" />}
-  </button>
-);
-
-// ─── Main Component ───────────────────────────────────────────────────────────
 export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => {
   const navigate = useNavigate();
-  const { user, profile, updatePassword } = useAuth();
+  const { user, profile } = useAuth();
   const photoInputRef = useRef<HTMLInputElement>(null);
-  const docInputRef = useRef<HTMLInputElement>(null);
   const { documents: dbDocs } = useDocuments(user?.id);
   const { applications } = useApplications(user?.id);
 
-  // ── State ──────────────────────────────────────────────────────────────────
+  // ── States ──────────────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState(defaultTab || 'Personal Information');
+  const [toast, setToast] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Avatar Photo
   const [profilePhoto, setProfilePhoto] = useState<string | null>(() => {
     const key = user?.id ? `ferex_student_profile_photo_${user.id}` : 'ferex_student_profile_photo';
     return localStorage.getItem(key) || profile?.avatar_url || null;
   });
-  const [toast, setToast] = useState('');
-  const [activeTab, setActiveTab] = useState(defaultTab || 'Personal Information');
-  const [completionPct] = useState(85);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
 
-  // Editing states
-  const [editingPersonal, setEditingPersonal] = useState(false);
-  const [editingEmergency, setEditingEmergency] = useState(false);
-
+  // Personal Info State
   const fullNameParts = (profile?.full_name || '').split(' ');
   const defaultFirstName = fullNameParts[0] || user?.email?.split('@')[0] || 'Student';
   const defaultLastName = fullNameParts.slice(1).join(' ') || '';
 
-  // Personal Information
   const [personal, setPersonal] = useState<PersonalInfo>({
     firstName: defaultFirstName,
     lastName: defaultLastName,
     gender: (profile as any)?.gender || 'Not Specified',
-    dob: (profile as any)?.dob || '2000-01-01',
+    dob: (profile as any)?.dob || '2001-01-01',
     nationality: (profile as any)?.nationality || 'Indian',
     passportNo: (profile as any)?.passport_no || '',
     phone: (profile as any)?.phone || '',
     email: user?.email || profile?.email || '',
     address: (profile as any)?.address || '',
     city: (profile as any)?.city || '',
-    country: (profile as any)?.country || '',
+    country: (profile as any)?.country || 'India',
     postalCode: (profile as any)?.postal_code || '',
   });
 
+  const [editingPersonal, setEditingPersonal] = useState(false);
+  const [tempPersonal, setTempPersonal] = useState<PersonalInfo>({ ...personal });
+
+  // Emergency Contact State
+  const [emergency, setEmergency] = useState<EmergencyInfo>(() => {
+    const saved = user?.id ? localStorage.getItem(`ferex_student_emergency_${user.id}`) : null;
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return {
+      guardianName: (profile as any)?.guardian_name || '',
+      relationship: (profile as any)?.guardian_relationship || 'Parent / Guardian',
+      phone: (profile as any)?.guardian_phone || '',
+      email: (profile as any)?.guardian_email || '',
+      address: (profile as any)?.guardian_address || '',
+    };
+  });
+  const [editingEmergency, setEditingEmergency] = useState(false);
+  const [tempEmergency, setTempEmergency] = useState<EmergencyInfo>({ ...emergency });
+
+  // Password Change State
+  const [passwordForm, setPasswordForm] = useState({ newPwd: '', confirmPwd: '' });
+  const [passwordMsg, setPasswordMsg] = useState({ text: '', isError: false });
+  const [isUpdatingPwd, setIsUpdatingPwd] = useState(false);
+
+  // ── Sync Profile from Database ──────────────────────────────────────────────
   useEffect(() => {
-    const fetchDbProfile = async () => {
-      let searchId = user?.id || profile?.id;
-      let searchEmail = user?.email || profile?.email;
-
-      if (!searchId && !searchEmail) {
-        try {
-          const raw = localStorage.getItem('ferex_user');
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (parsed) {
-              searchId = parsed.id;
-              searchEmail = parsed.email;
-            }
-          }
-        } catch (e) {}
-      }
-
-      if (!searchId && !searchEmail) return;
+    const fetchProfile = async () => {
+      const activeId = user?.id || profile?.id;
+      const activeEmail = user?.email || profile?.email;
+      if (!activeId && !activeEmail) return;
 
       try {
         let query = supabase.from('users').select('*');
-        if (searchId) {
-          query = query.eq('id', searchId);
-        } else if (searchEmail) {
-          query = query.ilike('email', searchEmail);
+        if (activeId) query = query.eq('id', activeId);
+        else if (activeEmail) query = query.ilike('email', activeEmail);
+
+        const { data: dbUser } = await query.maybeSingle();
+        const active = dbUser || profile;
+
+        if (active) {
+          const names = (active.full_name || '').split(' ');
+          const fName = names[0] || active.email?.split('@')[0] || 'Student';
+          const lName = names.slice(1).join(' ') || '';
+
+          const pInfo: PersonalInfo = {
+            firstName: fName,
+            lastName: lName,
+            email: active.email || user?.email || '',
+            phone: active.phone || active.mobile_number || (profile as any)?.phone || '',
+            passportNo: active.passport_no || (profile as any)?.passport_no || '',
+            address: active.address || (profile as any)?.address || '',
+            city: active.city || (profile as any)?.city || '',
+            country: active.country || (profile as any)?.country || 'India',
+            gender: active.gender || 'Not Specified',
+            dob: active.dob || '2001-01-01',
+            nationality: active.nationality || 'Indian',
+            postalCode: active.postal_code || '',
+          };
+          setPersonal(pInfo);
+          setTempPersonal(pInfo);
         }
-
-        const { data: dbData } = await query.maybeSingle();
-        const activeData = dbData || profile;
-
-        if (activeData) {
-          const parts = (activeData.full_name || '').split(' ');
-          setPersonal({
-            firstName: parts[0] || activeData.email?.split('@')[0] || 'Student',
-            lastName: parts.slice(1).join(' ') || '',
-            email: activeData.email || user?.email || '',
-            phone: activeData.phone || activeData.mobile_number || (profile as any)?.phone || '',
-            passportNo: activeData.passport_no || (profile as any)?.passport_no || '',
-            address: activeData.address || (profile as any)?.address || '',
-            city: activeData.city || (profile as any)?.city || '',
-            country: activeData.country || (profile as any)?.country || '',
-            gender: activeData.gender || 'Not Specified',
-            dob: activeData.dob || '2000-01-01',
-            nationality: activeData.nationality || 'Indian',
-            postalCode: activeData.postal_code || '',
-          });
-        }
-      } catch (e) {}
-
-      const activeUserId = searchId || user?.id;
-      if (activeUserId) {
-        const photoKey = `ferex_student_profile_photo_${activeUserId}`;
-        const savedPhoto = localStorage.getItem(photoKey);
-        if (savedPhoto) setProfilePhoto(savedPhoto);
+      } catch (err) {
+        console.warn('[MyProfile] Sync error:', err);
       }
     };
 
-    fetchDbProfile();
-    window.addEventListener('ferex_auth_change', fetchDbProfile);
-    return () => window.removeEventListener('ferex_auth_change', fetchDbProfile);
-  }, [profile, user]);
+    fetchProfile();
+    window.addEventListener('ferex_auth_change', fetchProfile);
+    return () => window.removeEventListener('ferex_auth_change', fetchProfile);
+  }, [user, profile]);
 
-  const [tempPersonal, setTempPersonal] = useState<PersonalInfo>({ ...personal });
+  // Derived Active Education Application
+  const activeApp = applications?.[0];
+  const targetCountry = activeApp?.universities?.country || (activeApp as any)?.country || (profile as any)?.target_country || 'Not Set';
+  const targetUniversity = activeApp?.universities?.name || activeApp?.university_name || (profile as any)?.target_university || 'Pending Selection';
+  const targetProgram = (activeApp as any)?.program_name || (activeApp as any)?.program || (activeApp as any)?.course || (profile as any)?.desired_program || 'Higher Studies';
+  const targetIntake = activeApp?.intake || 'Upcoming Intake';
+  const appStatus = activeApp?.status || 'In Progress';
+  const counselor = (profile as any)?.assigned_counselor || (profile as any)?.counselor_name || 'Assigned Admissions Desk';
 
-  // Dynamic Education Details derived from active application & profile
-  const activeApp = applications[0];
-  const education: EducationInfo = {
-    studyCountry: activeApp?.universities?.country || (activeApp as any)?.country || (profile as any)?.target_country || 'Not Set',
-    university: activeApp?.universities?.name || activeApp?.university_name || (profile as any)?.target_university || 'Pending Selection',
-    course: (activeApp as any)?.program || (activeApp as any)?.course || (profile as any)?.desired_program || 'Higher Studies',
-    intake: activeApp?.intake || 'Upcoming Intake',
-    campus: 'Main Campus',
-    studentNumber: `STU-${user?.id?.slice(0, 6).toUpperCase() || '1001'}`,
-    applicationStatus: activeApp?.status || 'In Progress',
-    visaStatus: (profile as any)?.visa_status || 'Active',
-    counselor: (profile as any)?.assigned_counselor || '--',
+  // ── Dynamic Profile Completeness ───────────────────────────────────────────
+  const calculateCompleteness = () => {
+    let score = 0;
+    if (personal.firstName && personal.lastName) score += 20;
+    if (personal.phone) score += 15;
+    if (personal.passportNo) score += 15;
+    if (personal.address && personal.city) score += 15;
+    if (emergency.guardianName && emergency.phone) score += 15;
+    if (dbDocs && dbDocs.length > 0) score += 20;
+    return Math.min(score, 100);
   };
 
-  // Emergency Contact
-  const [emergency, setEmergency] = useState<EmergencyInfo>({
-    guardianName: '',
-    relationship: 'Parent / Guardian',
-    phone: '',
-    email: '',
-    address: '',
-  });
-  const [tempEmergency, setTempEmergency] = useState<EmergencyInfo>({ ...emergency });
+  const completeness = calculateCompleteness();
 
-  // Live Documents derived from Supabase storage
-  const documents: Document[] = (dbDocs || []).map((d, idx) => ({
-    id: idx + 1,
-    dbId: d.id,
-    name: d.file_name || d.doc_type || 'Document File',
-    type: d.doc_type || 'Academic File',
-    status: (d.status === 'Approved' ? 'Verified' : d.status === 'Rejected' ? 'Missing' : 'Pending') as any,
-    size: d.file_size || '1.2 MB',
-    uploaded: d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—',
-    fileUrl: d.file_url,
-  }));
-  const [docToDelete, setDocToDelete] = useState<number | null>(null);
-  const [docToReplace, setDocToReplace] = useState<number | null>(null);
-  const [docToPreview, setDocToPreview] = useState<Document | null>(null);
-
-  // Account & Security
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [passwordForm, setPasswordForm] = useState({ current: '', newPwd: '', confirm: '' });
-  const [passwordError, setPasswordError] = useState('');
-  const [twoFaEnabled, setTwoFaEnabled] = useState(false);
-  const [showTwoFaModal, setShowTwoFaModal] = useState(false);
-
-  // Preferences
-  const [prefs, setPrefs] = useState({
-    language: 'English',
-    theme: 'Light',
-    emailNotif: true,
-    smsNotif: false,
-    timezone: 'Asia/Kolkata (IST, UTC+5:30)',
-  });
-
-  // Photo modals
-  const [showPhotoModal, setShowPhotoModal] = useState(false);
-  const [showDeletePhotoModal, setShowDeletePhotoModal] = useState(false);
-  const [showViewPhotoModal, setShowViewPhotoModal] = useState(false);
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
-  const showToast = (msg: string) => {
+  const showToastMsg = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const photoData = ev.target?.result as string;
-      setProfilePhoto(photoData);
-      localStorage.setItem(user?.id ? `ferex_student_profile_photo_${user.id}` : 'ferex_student_profile_photo', photoData);
-      window.dispatchEvent(new Event('ferex_avatar_change'));
-      setShowPhotoModal(false);
-      showToast('Profile photo updated successfully!');
-    };
-    reader.readAsDataURL(file);
-    if (photoInputRef.current) photoInputRef.current.value = '';
-  };
+  // ── Save Personal Info ─────────────────────────────────────────────────────
+  const handleSavePersonal = async () => {
+    setIsSaving(true);
+    try {
+      const activeId = user?.id || profile?.id;
+      const fullName = `${tempPersonal.firstName.trim()} ${tempPersonal.lastName.trim()}`.trim();
 
-  const handleDeletePhoto = () => {
-    setProfilePhoto(null);
-    localStorage.removeItem('ferex_student_profile_photo');
-    window.dispatchEvent(new Event('ferex_avatar_change'));
-    setShowDeletePhotoModal(false);
-    showToast('Profile photo removed.');
-  };
+      if (activeId) {
+        await supabase.from('users').update({
+          full_name: fullName,
+          phone: tempPersonal.phone.trim(),
+          passport_no: tempPersonal.passportNo.trim(),
+          address: tempPersonal.address.trim(),
+          city: tempPersonal.city.trim(),
+          country: tempPersonal.country.trim(),
+          postal_code: tempPersonal.postalCode.trim(),
+          gender: tempPersonal.gender,
+          dob: tempPersonal.dob,
+          nationality: tempPersonal.nationality.trim(),
+          updated_at: new Date().toISOString()
+        }).eq('id', activeId);
+      }
 
-  const handleSavePersonal = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPersonal({ ...tempPersonal });
-    setEditingPersonal(false);
-
-    if (user?.id) {
-      try {
-        await updateStudent(user.id, {
-          full_name: `${tempPersonal.firstName} ${tempPersonal.lastName}`.trim(),
-          phone: tempPersonal.phone,
-          passport_no: tempPersonal.passportNo,
-          city: tempPersonal.city,
-          country: tempPersonal.country,
-        } as any);
-      } catch (err) { }
+      setPersonal({ ...tempPersonal });
+      setEditingPersonal(false);
+      showToastMsg('Personal profile saved successfully!');
+      window.dispatchEvent(new Event('ferex_auth_change'));
+    } catch (e: any) {
+      showToastMsg(`Failed to save: ${e?.message || 'Error occurred'}`);
+    } finally {
+      setIsSaving(false);
     }
-
-    showToast('Personal information saved successfully!');
   };
 
-  const handleSaveEmergency = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // ── Save Emergency Info ────────────────────────────────────────────────────
+  const handleSaveEmergency = () => {
     setEmergency({ ...tempEmergency });
     setEditingEmergency(false);
     if (user?.id) {
-      try {
-        await updateStudent(user.id, { emergency_contact: tempEmergency } as any);
-      } catch (err) {}
+      localStorage.setItem(`ferex_student_emergency_${user.id}`, JSON.stringify(tempEmergency));
     }
-    showToast('Emergency contact updated and saved to database!');
+    showToastMsg('Emergency contact details saved!');
   };
 
-  const handlePasswordChange = async (e: React.FormEvent) => {
+  // ── Avatar Photo Handler ───────────────────────────────────────────────────
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      showToastMsg('Image must be under 2MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setProfilePhoto(dataUrl);
+      const activeId = user?.id || profile?.id;
+      if (activeId) {
+        localStorage.setItem(`ferex_student_profile_photo_${activeId}`, dataUrl);
+      }
+      setShowPhotoModal(false);
+      showToastMsg('Profile photo updated!');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setProfilePhoto(null);
+    const activeId = user?.id || profile?.id;
+    if (activeId) {
+      localStorage.removeItem(`ferex_student_profile_photo_${activeId}`);
+    }
+    setShowPhotoModal(false);
+    showToastMsg('Profile photo removed.');
+  };
+
+  // ── Password Update Handler ────────────────────────────────────────────────
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPasswordError('');
-    if (passwordForm.newPwd !== passwordForm.confirm) {
-      setPasswordError('New passwords do not match.');
+    if (!passwordForm.newPwd || passwordForm.newPwd.length < 6) {
+      setPasswordMsg({ text: 'Password must be at least 6 characters long.', isError: true });
       return;
     }
-    if (passwordForm.newPwd.length < 8) {
-      setPasswordError('Password must be at least 8 characters.');
+    if (passwordForm.newPwd !== passwordForm.confirmPwd) {
+      setPasswordMsg({ text: 'Passwords do not match.', isError: true });
       return;
     }
-    const res = await updatePassword(passwordForm.newPwd);
-    if (res.error) {
-      setPasswordError(res.error);
-      return;
+
+    setIsUpdatingPwd(true);
+    setPasswordMsg({ text: '', isError: false });
+
+    try {
+      const { error } = await supabase.auth.updateUser({ password: passwordForm.newPwd });
+      if (error) throw error;
+      setPasswordForm({ newPwd: '', confirmPwd: '' });
+      setPasswordMsg({ text: 'Password successfully updated!', isError: false });
+      showToastMsg('Password changed successfully.');
+    } catch (err: any) {
+      setPasswordMsg({ text: err.message || 'Failed to update password.', isError: true });
+    } finally {
+      setIsUpdatingPwd(false);
     }
-    setPasswordForm({ current: '', newPwd: '', confirm: '' });
-    setShowPasswordModal(false);
-    showToast('Password updated securely in Supabase!');
   };
 
-  const handleDocReplace = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setDocToReplace(null);
-    navigate('/student/documents');
-  };
+  const initials = `${personal.firstName[0] || 'S'}${personal.lastName[0] || ''}`.toUpperCase();
 
-  const handleDocDelete = () => {
-    setDocToDelete(null);
-    navigate('/student/documents');
-  };
-
-  // ── Config ─────────────────────────────────────────────────────────────────
   const TABS = [
     'Personal Information',
-    'Education Details',
-    'Documents',
+    'Education & Roadmap',
     'Emergency Contact',
+    'Uploaded Documents',
     'Account & Security',
-    'Preferences',
-  ];
-
-  const appStatusColor: Record<string, string> = {
-    'Offer Letter Received': 'bg-emerald-50 text-emerald-700 border-emerald-100',
-    'Under Review': 'bg-blue-50 text-blue-700 border-blue-100',
-    'Pending Documents': 'bg-amber-50 text-amber-700 border-amber-100',
-  };
-  const visaStatusColor: Record<string, string> = {
-    'Visa Processing': 'bg-violet-50 text-violet-700 border-violet-100',
-    'Visa Approved': 'bg-emerald-50 text-emerald-700 border-emerald-100',
-    'Not Started': 'bg-slate-50 text-slate-600 border-slate-200',
-  };
-
-  // ── Initials ───────────────────────────────────────────────────────────────
-  const initials = `${personal.firstName[0]}${personal.lastName[0]}`.toUpperCase();
-
-  // ── Timeline for Education tab ─────────────────────────────────────────────
-  const timeline = [
-    { label: 'Application Submitted', date: 'Nov 15, 2025', done: true },
-    { label: 'Documents Verified', date: 'Dec 3, 2025', done: true },
-    { label: 'Offer Letter Issued', date: 'Jan 20, 2026', done: true },
-    { label: 'Visa Application Filed', date: 'Feb 5, 2026', done: true },
-    { label: 'Visa Decision', date: 'Pending', done: false },
-    { label: 'Pre-Departure Briefing', date: 'Pending', done: false },
-  ];
-
-  const recentLogins = [
-    { device: 'MacBook Pro', location: 'Kochi, India', time: 'Just now', icon: Monitor },
-    { device: 'iPhone 15 Pro', location: 'Kochi, India', time: '2 hours ago', icon: Smartphone },
-    { device: 'Chrome / Windows', location: 'Kochi, India', time: 'Yesterday 10:32 AM', icon: Globe },
   ];
 
   return (
-    <div className="space-y-0 text-left relative min-h-screen">
+    <div className="space-y-6 text-left max-w-7xl mx-auto pb-12">
+      {/* Toast */}
+      {toast && <ToastNotification message={toast} onClose={() => setToast('')} />}
 
-      {/* ── Hidden Inputs ─────────────────────────────────────────────────── */}
-      <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-      <input ref={docInputRef} type="file" className="hidden" onChange={handleDocReplace} />
-
-      {/* ── Toast ─────────────────────────────────────────────────────────── */}
-      <ToastNotification message={toast} onClose={() => setToast('')} />
-
-      {/* ── Profile Hero Header ───────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-        className="rounded-2xl overflow-hidden border border-slate-100 shadow-sm mb-6 bg-white"
-      >
+      {/* ── Executive Hero Card ─────────────────────────────────────────── */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden relative">
         {/* Banner */}
-        <div className="h-40 bg-gradient-to-br from-[#58051E] via-[#430316] to-[#2E030F] relative overflow-hidden">
-          {/* decorative circles */}
-          <div className="absolute -top-10 -right-10 w-52 h-52 rounded-full bg-white/5" />
-          <div className="absolute top-8 -right-4 w-32 h-32 rounded-full bg-white/5" />
-          <div className="absolute -bottom-6 left-32 w-24 h-24 rounded-full bg-white/5" />
-
-          {/* Student ID chip */}
-          <div className="absolute top-4 left-6 flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-3 py-1.5">
-            <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-            <span className="text-white text-[11px] font-bold tracking-wide">FX-2026-001 · Active Student</span>
-          </div>
-
-          {/* Completion indicator */}
-          <div className="absolute top-4 right-6 flex flex-col items-end gap-1">
-            <span className="text-white/60 text-[10px] font-bold">Profile Completion</span>
-            <div className="flex items-center gap-2">
-              <div className="w-28 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-400 rounded-full transition-all" style={{ width: `${completionPct}%` }} />
-              </div>
-              <span className="text-white text-xs font-extrabold">{completionPct}%</span>
-            </div>
+        <div className="h-32 md:h-40 bg-linear-to-r from-[#58051E] via-[#7a0d2e] to-slate-900 relative overflow-hidden">
+          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
+          <div className="absolute right-6 top-6 flex items-center gap-2">
+            <span className="px-3 py-1 bg-white/15 backdrop-blur-md text-white rounded-full text-[11px] font-bold tracking-wide border border-white/20">
+              Student ID: STU-{user?.id?.slice(0, 6).toUpperCase() || '1001'}
+            </span>
           </div>
         </div>
 
-        {/* Profile row */}
-        <div className="px-6 pb-6 -mt-14 relative z-10 flex flex-col sm:flex-row items-start sm:items-end gap-4">
-          {/* Avatar */}
-          <div className="relative shrink-0 group">
-            <div className="w-[88px] h-[88px] rounded-2xl border-4 border-white shadow-lg overflow-hidden bg-[#58051E] flex items-center justify-center">
-              {profilePhoto
-                ? <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
-                : <span className="text-white font-extrabold text-3xl select-none">{initials}</span>
-              }
+        {/* Profile Content Bar */}
+        <div className="px-6 md:px-8 pb-6 pt-0 relative flex flex-col md:flex-row md:items-end justify-between gap-6 -mt-14">
+          <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5">
+            {/* Avatar */}
+            <div className="relative group shrink-0">
+              <div className="w-26 h-26 rounded-2xl bg-white p-1.5 shadow-md border border-slate-100">
+                {profilePhoto ? (
+                  <img
+                    src={profilePhoto}
+                    alt="Profile"
+                    className="w-full h-full rounded-xl object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full rounded-xl bg-linear-to-br from-[#58051E] to-[#800a2d] text-white flex items-center justify-center text-2xl font-black shadow-inner">
+                    {initials}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setShowPhotoModal(true)}
+                className="absolute -bottom-1.5 -right-1.5 w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-700 shadow-sm flex items-center justify-center hover:bg-slate-50 cursor-pointer transition-all hover:scale-105"
+                title="Change Photo"
+              >
+                <Camera className="w-4 h-4 text-[#58051E]" />
+              </button>
             </div>
-            <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-2 border-white rounded-full" />
 
-            {/* hover overlay */}
-            <button
-              onClick={() => setShowPhotoModal(true)}
-              className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-            >
-              <Camera className="w-5 h-5 text-white" />
-            </button>
+            {/* Profile Identity Details */}
+            <div className="text-center sm:text-left space-y-1">
+              <div className="flex items-center justify-center sm:justify-start gap-2.5 flex-wrap">
+                <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+                  {personal.firstName} {personal.lastName}
+                </h1>
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Active Student
+                </span>
+              </div>
+              <p className="text-xs md:text-sm font-semibold text-slate-500 flex items-center justify-center sm:justify-start gap-3 flex-wrap">
+                <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5 text-slate-400" /> {personal.email}</span>
+                {personal.phone && (
+                  <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5 text-slate-400" /> {personal.phone}</span>
+                )}
+                <span className="flex items-center gap-1"><Globe className="w-3.5 h-3.5 text-slate-400" /> {targetCountry !== 'Not Set' ? targetCountry : 'Global Admission'}</span>
+              </p>
+            </div>
           </div>
 
-          {/* Info */}
-          <div className="flex-1 space-y-1 pb-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-xl font-extrabold text-slate-900">
-                {personal.firstName} {personal.lastName}
-              </h2>
+          {/* Quick Metrics & Actions */}
+          <div className="flex items-center justify-center sm:justify-end gap-3 shrink-0">
+            {/* Completeness Meter */}
+            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 px-4 min-w-[170px] text-left">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 mb-1.5">
+                <span>Profile Completion</span>
+                <span className="font-extrabold text-[#58051E]">{completeness}%</span>
+              </div>
+              <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-linear-to-r from-[#58051E] to-rose-600 rounded-full transition-all duration-500"
+                  style={{ width: `${completeness}%` }}
+                />
+              </div>
             </div>
-            <p className="text-sm font-semibold text-slate-500">{education.course} · {education.university}</p>
-            <div className="flex items-center gap-2 flex-wrap mt-2">
-              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border ${appStatusColor[education.applicationStatus] ?? 'bg-slate-100 text-slate-600 border-slate-200'}`}>
-                <CheckCircle2 className="w-3 h-3" />
-                {education.applicationStatus}
-              </span>
-              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border ${visaStatusColor[education.visaStatus] ?? 'bg-slate-100 text-slate-600 border-slate-200'}`}>
-                <Globe className="w-3 h-3" />
-                {education.visaStatus}
-              </span>
-              <span className="text-[10px] font-bold text-slate-400">Counselor: {education.counselor}</span>
-            </div>
-          </div>
 
-          {/* Header actions */}
-          <div className="flex items-center gap-2 shrink-0 pb-1">
             <Button
               size="sm"
-              variant="outline"
-              className="text-xs font-bold h-9 flex items-center gap-1.5"
-              onClick={() => setShowPhotoModal(true)}
-            >
-              <Camera className="w-4 h-4" />
-              Photo
-            </Button>
-            <Button
-              size="sm"
-              className="text-xs font-bold h-9 flex items-center gap-1.5"
+              className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold h-10 px-4 rounded-xl flex items-center gap-2 shrink-0 cursor-pointer shadow-xs"
               onClick={() => {
                 setActiveTab('Personal Information');
                 setEditingPersonal(true);
@@ -554,810 +389,737 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
             </Button>
           </div>
         </div>
-      </motion.div>
-
-      {/* ── Tab Bar ───────────────────────────────────────────────────────── */}
-      <div className="mb-6 bg-white border border-slate-100 rounded-xl p-1.5 shadow-sm flex items-center gap-1 overflow-x-auto scrollbar-hide select-none">
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => {
-              setActiveTab(tab);
-              setEditingPersonal(false);
-              setEditingEmergency(false);
-            }}
-            className={`shrink-0 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap
-              ${activeTab === tab
-                ? 'bg-[#58051E] text-white shadow-sm'
-                : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
-              }`}
-          >
-            {tab}
-          </button>
-        ))}
       </div>
 
-      {/* ── Tab Content ───────────────────────────────────────────────────── */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.2 }}
-        >
+      {/* ── Modern Navigation Tabs ────────────────────────────────────────── */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-1.5 shadow-xs flex items-center gap-1.5 overflow-x-auto scrollbar-hide select-none">
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab;
+          return (
+            <button
+              key={tab}
+              onClick={() => {
+                setActiveTab(tab);
+                setEditingPersonal(false);
+                setEditingEmergency(false);
+              }}
+              className={`shrink-0 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer whitespace-nowrap flex items-center gap-2
+                ${isActive
+                  ? 'bg-[#58051E] text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                }`}
+            >
+              {tab === 'Personal Information' && <User className="w-3.5 h-3.5" />}
+              {tab === 'Education & Roadmap' && <GraduationCap className="w-3.5 h-3.5" />}
+              {tab === 'Emergency Contact' && <Phone className="w-3.5 h-3.5" />}
+              {tab === 'Uploaded Documents' && <FileText className="w-3.5 h-3.5" />}
+              {tab === 'Account & Security' && <Shield className="w-3.5 h-3.5" />}
+              {tab}
+            </button>
+          );
+        })}
+      </div>
 
-          {/* ══════ PERSONAL INFORMATION ══════════════════════════════════ */}
-          {activeTab === 'Personal Information' && (
-            <form onSubmit={handleSavePersonal}>
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="text-base font-extrabold text-slate-900">Personal Information</h3>
-                    <p className="text-xs text-slate-400 font-semibold mt-0.5">Manage your identity and contact details</p>
-                  </div>
-                  {!editingPersonal ? (
+      {/* ── Tab Content Panels ────────────────────────────────────────────── */}
+      <div className="space-y-6">
+        {/* TAB 1: Personal Information */}
+        {activeTab === 'Personal Information' && (
+          <Card className="p-6 md:p-8 bg-white border border-slate-200/80 rounded-3xl shadow-xs">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-5 mb-6">
+              <div>
+                <h3 className="text-base font-black text-slate-900">Personal & Identity Details</h3>
+                <p className="text-xs font-semibold text-slate-500 mt-0.5">Your official verified details used for university dossiers and visa filing.</p>
+              </div>
+              <div>
+                {editingPersonal ? (
+                  <div className="flex items-center gap-2">
                     <Button
-                      type="button"
                       size="sm"
                       variant="outline"
-                      className="text-xs font-bold flex items-center gap-1.5"
-                      onClick={() => { setEditingPersonal(true); setTempPersonal({ ...personal }); }}
+                      className="text-xs font-bold h-9 px-3.5 rounded-xl"
+                      onClick={() => setEditingPersonal(false)}
+                      disabled={isSaving}
                     >
-                      <Edit3 className="w-3.5 h-3.5" />
-                      Edit
+                      <X className="w-3.5 h-3.5 mr-1" /> Cancel
                     </Button>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Button type="button" size="sm" variant="outline" className="text-xs font-bold flex items-center gap-1.5" onClick={() => setEditingPersonal(false)}>
-                        <X className="w-3.5 h-3.5" />
-                        Cancel
-                      </Button>
-                      <Button type="submit" size="sm" className="text-xs font-bold flex items-center gap-1.5">
-                        <Save className="w-3.5 h-3.5" />
-                        Save
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-8">
-                  {/* Identity */}
-                  <div>
-                    <SectionLabel>Identity Details</SectionLabel>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      <FieldGroup label="First Name" value={editingPersonal ? tempPersonal.firstName : personal.firstName}
-                        editing={editingPersonal} onChange={(v) => setTempPersonal(p => ({ ...p, firstName: v }))} />
-                      <FieldGroup label="Last Name" value={editingPersonal ? tempPersonal.lastName : personal.lastName}
-                        editing={editingPersonal} onChange={(v) => setTempPersonal(p => ({ ...p, lastName: v }))} />
-                      <SelectGroup label="Gender" value={editingPersonal ? tempPersonal.gender : personal.gender}
-                        editing={editingPersonal} options={['Female', 'Male', 'Non-binary', 'Prefer not to say']}
-                        onChange={(v) => setTempPersonal(p => ({ ...p, gender: v }))} />
-                      <FieldGroup label="Date of Birth" value={editingPersonal ? tempPersonal.dob : personal.dob}
-                        editing={editingPersonal} type="date" onChange={(v) => setTempPersonal(p => ({ ...p, dob: v }))} />
-                      <FieldGroup label="Nationality" value={editingPersonal ? tempPersonal.nationality : personal.nationality}
-                        editing={editingPersonal} onChange={(v) => setTempPersonal(p => ({ ...p, nationality: v }))} />
-                      <FieldGroup label="Passport Number" value={editingPersonal ? tempPersonal.passportNo : personal.passportNo}
-                        editing={editingPersonal} onChange={(v) => setTempPersonal(p => ({ ...p, passportNo: v }))} />
-                    </div>
-                  </div>
-
-                  <div className="border-t border-slate-50" />
-
-                  {/* Contact */}
-                  <div>
-                    <SectionLabel>Contact Information</SectionLabel>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <FieldGroup label="Email Address" value={editingPersonal ? tempPersonal.email : personal.email}
-                        editing={editingPersonal} type="email" onChange={(v) => setTempPersonal(p => ({ ...p, email: v }))} />
-                      <FieldGroup label="Phone Number" value={editingPersonal ? tempPersonal.phone : personal.phone}
-                        editing={editingPersonal} type="tel" onChange={(v) => setTempPersonal(p => ({ ...p, phone: v }))} />
-                    </div>
-                  </div>
-
-                  <div className="border-t border-slate-50" />
-
-                  {/* Address */}
-                  <div>
-                    <SectionLabel>Residential Address</SectionLabel>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div className="sm:col-span-2 lg:col-span-4">
-                        <FieldGroup label="Street Address" value={editingPersonal ? tempPersonal.address : personal.address}
-                          editing={editingPersonal} onChange={(v) => setTempPersonal(p => ({ ...p, address: v }))} />
-                      </div>
-                      <FieldGroup label="City" value={editingPersonal ? tempPersonal.city : personal.city}
-                        editing={editingPersonal} onChange={(v) => setTempPersonal(p => ({ ...p, city: v }))} />
-                      <FieldGroup label="Country" value={editingPersonal ? tempPersonal.country : personal.country}
-                        editing={editingPersonal} onChange={(v) => setTempPersonal(p => ({ ...p, country: v }))} />
-                      <FieldGroup label="Postal Code" value={editingPersonal ? tempPersonal.postalCode : personal.postalCode}
-                        editing={editingPersonal} onChange={(v) => setTempPersonal(p => ({ ...p, postalCode: v }))} />
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </form>
-          )}
-
-          {/* ══════ EDUCATION DETAILS ═════════════════════════════════════ */}
-          {activeTab === 'Education Details' && (
-            <div className="space-y-5">
-              {/* Top info cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                  { label: 'Country', value: education.studyCountry, icon: Globe, color: 'text-blue-600 bg-blue-50' },
-                  { label: 'Intake', value: education.intake, icon: Clock, color: 'text-violet-600 bg-violet-50' },
-                  { label: 'Student Number', value: education.studentNumber, icon: User, color: 'text-amber-600 bg-amber-50' },
-                  { label: 'Counselor', value: education.counselor, icon: Info, color: 'text-[#58051E] bg-[#58051E]/10' },
-                ].map(({ label, value, icon: Icon, color }) => (
-                  <Card key={label} className="p-4">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${color} mb-3`}>
-                      <Icon className="w-4.5 h-4.5" />
-                    </div>
-                    <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">{label}</p>
-                    <p className="text-sm font-bold text-slate-900 mt-0.5">{value}</p>
-                  </Card>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                {/* Program details */}
-                <Card className="lg:col-span-2 p-6">
-                  <SectionLabel>Program Details</SectionLabel>
-                  <div className="space-y-3">
-                    {[
-                      { label: 'University', value: education.university, icon: GraduationCap },
-                      { label: 'Course', value: education.course, icon: FileText },
-                      { label: 'Campus', value: education.campus, icon: MapPin },
-                    ].map(({ label, value, icon: Icon }) => (
-                      <div key={label} className="flex items-center gap-3 p-3 bg-slate-50/50 border border-slate-100 rounded-xl">
-                        <div className="w-9 h-9 rounded-lg bg-[#58051E]/10 flex items-center justify-center shrink-0">
-                          <Icon className="w-4 h-4 text-[#58051E]" />
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">{label}</p>
-                          <p className="text-sm font-bold text-slate-900">{value}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-5 grid grid-cols-2 gap-4 pt-5 border-t border-slate-100">
-                    <div>
-                      <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">Application Status</p>
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border ${appStatusColor[education.applicationStatus] ?? 'bg-slate-50 text-slate-700 border-slate-200'}`}>
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        {education.applicationStatus}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">Visa Status</p>
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border ${visaStatusColor[education.visaStatus] ?? 'bg-slate-50 text-slate-700 border-slate-200'}`}>
-                        <Globe className="w-3.5 h-3.5" />
-                        {education.visaStatus}
-                      </span>
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Timeline */}
-                <Card className="p-6">
-                  <SectionLabel>Application Timeline</SectionLabel>
-                  <div className="space-y-0">
-                    {timeline.map((step, idx) => (
-                      <div key={idx} className="flex gap-3">
-                        <div className="flex flex-col items-center">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${step.done ? 'bg-emerald-100 border-2 border-emerald-500' : 'bg-slate-100 border-2 border-slate-300'}`}>
-                            {step.done
-                              ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                              : <span className="w-2 h-2 rounded-full bg-slate-400" />
-                            }
-                          </div>
-                          {idx < timeline.length - 1 && (
-                            <div className={`w-0.5 h-8 ${step.done ? 'bg-emerald-200' : 'bg-slate-100'}`} />
-                          )}
-                        </div>
-                        <div className="pb-4">
-                          <p className={`text-xs font-bold ${step.done ? 'text-slate-900' : 'text-slate-400'}`}>{step.label}</p>
-                          <p className="text-[10px] font-semibold text-slate-400">{step.date}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              </div>
-            </div>
-          )}
-
-          {/* ══════ DOCUMENTS ═════════════════════════════════════════════ */}
-          {activeTab === 'Documents' && (
-            <div className="space-y-4">
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-5">
-                  <div>
-                    <h3 className="text-base font-extrabold text-slate-900">My Documents</h3>
-                    <p className="text-xs text-slate-400 font-semibold mt-0.5">{documents.filter(d => d.status === 'Verified').length} of {documents.length} verified</p>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="text-xs font-bold flex items-center gap-1.5"
-                    onClick={() => { setDocToReplace(-1); docInputRef.current?.click(); }}
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Upload New
-                  </Button>
-                </div>
-
-                {documents.length === 0 ? (
-                  <div className="py-14 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl p-6">
-                    <FileText className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                    <p className="text-sm font-bold text-slate-700">No documents uploaded yet</p>
-                    <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">Upload your academic degrees, transcripts, and passport in the Documents hub.</p>
-                    <Button variant="outline" size="sm" className="mt-4" onClick={() => navigate('/student/documents')}>
-                      Go to Documents Hub
+                    <Button
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold h-9 px-4 rounded-xl flex items-center gap-1.5 shadow-xs"
+                      onClick={handleSavePersonal}
+                      disabled={isSaving}
+                    >
+                      <Save className="w-3.5 h-3.5" /> {isSaving ? 'Saving...' : 'Save Changes'}
                     </Button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {documents.map((doc) => (
-                      <div
-                        key={doc.id}
-                        className="border border-slate-100 rounded-xl p-4 bg-slate-50/40 hover:border-slate-200 hover:bg-white transition-all group"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 flex items-center justify-center">
-                            <FileText className="w-5 h-5 text-[#58051E]" />
-                          </div>
-                          <StatusBadge status={doc.status} />
-                        </div>
-
-                        <h4 className="text-sm font-extrabold text-slate-900 mb-0.5 truncate" title={doc.name}>{doc.name}</h4>
-                        <p className="text-[10px] font-semibold text-slate-400">{doc.type} · {doc.size}</p>
-                        <p className="text-[10px] font-semibold text-slate-400 mt-0.5">Uploaded: {doc.uploaded}</p>
-
-                        <div className="flex items-center gap-1.5 mt-4 pt-3 border-t border-slate-100">
-                          <button
-                            onClick={() => {
-                              if (doc.fileUrl) {
-                                window.open(doc.fileUrl, '_blank');
-                              } else {
-                                setDocToPreview(doc);
-                              }
-                            }}
-                            className="flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[10px] font-bold text-slate-600 bg-white border border-slate-200 hover:border-[#58051E]/30 hover:text-[#58051E] transition-all cursor-pointer"
-                          >
-                            <Eye className="w-3 h-3" /> Preview
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (doc.fileUrl) {
-                                const a = document.createElement('a');
-                                a.href = doc.fileUrl;
-                                a.download = doc.name;
-                                a.target = '_blank';
-                                a.click();
-                              } else {
-                                setToast('Document file link pending.');
-                              }
-                            }}
-                            className="flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[10px] font-bold text-slate-600 bg-white border border-slate-200 hover:border-[#58051E]/30 hover:text-[#58051E] transition-all cursor-pointer"
-                          >
-                            <Download className="w-3 h-3" /> Download
-                          </button>
-                          <button
-                            onClick={() => navigate('/student/documents')}
-                            className="flex-1 flex items-center justify-center gap-1 h-7 rounded-lg text-[10px] font-bold text-slate-600 bg-white border border-slate-200 hover:border-amber-400/40 hover:text-amber-600 transition-all cursor-pointer"
-                          >
-                            <RefreshCw className="w-3 h-3" /> Manage
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
-            </div>
-          )}
-
-          {/* ══════ EMERGENCY CONTACT ═════════════════════════════════════ */}
-          {activeTab === 'Emergency Contact' && (
-            <form onSubmit={handleSaveEmergency}>
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="text-base font-extrabold text-slate-900">Emergency Contact</h3>
-                    <p className="text-xs text-slate-400 font-semibold mt-0.5">Person to contact in case of emergency</p>
-                  </div>
-                  {!editingEmergency ? (
-                    <Button type="button" size="sm" variant="outline" className="text-xs font-bold flex items-center gap-1.5"
-                      onClick={() => { setEditingEmergency(true); setTempEmergency({ ...emergency }); }}>
-                      <Edit3 className="w-3.5 h-3.5" /> Edit
-                    </Button>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Button type="button" size="sm" variant="outline" className="text-xs font-bold flex items-center gap-1.5" onClick={() => setEditingEmergency(false)}>
-                        <X className="w-3.5 h-3.5" /> Cancel
-                      </Button>
-                      <Button type="submit" size="sm" className="text-xs font-bold flex items-center gap-1.5">
-                        <Save className="w-3.5 h-3.5" /> Save
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Guardian card */}
-                {!editingEmergency && (
-                  <div className="flex items-center gap-4 p-4 bg-slate-50 border border-slate-100 rounded-xl mb-6">
-                    <div className="w-14 h-14 rounded-xl bg-[#58051E] flex items-center justify-center">
-                      <span className="text-white font-extrabold text-xl">{emergency.guardianName[0]}</span>
-                    </div>
-                    <div>
-                      <h4 className="font-extrabold text-slate-900">{emergency.guardianName}</h4>
-                      <p className="text-xs font-bold text-slate-500">{emergency.relationship}</p>
-                      <p className="text-xs font-semibold text-slate-400 mt-0.5">{emergency.phone}</p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-5">
-                  <SectionLabel>Guardian Details</SectionLabel>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FieldGroup label="Guardian Name" value={editingEmergency ? tempEmergency.guardianName : emergency.guardianName}
-                      editing={editingEmergency} onChange={(v) => setTempEmergency(p => ({ ...p, guardianName: v }))} />
-                    <SelectGroup label="Relationship" value={editingEmergency ? tempEmergency.relationship : emergency.relationship}
-                      editing={editingEmergency} options={['Mother', 'Father', 'Sibling', 'Spouse', 'Guardian', 'Other']}
-                      onChange={(v) => setTempEmergency(p => ({ ...p, relationship: v }))} />
-                    <FieldGroup label="Phone Number" value={editingEmergency ? tempEmergency.phone : emergency.phone}
-                      editing={editingEmergency} type="tel" onChange={(v) => setTempEmergency(p => ({ ...p, phone: v }))} />
-                    <FieldGroup label="Email Address" value={editingEmergency ? tempEmergency.email : emergency.email}
-                      editing={editingEmergency} type="email" onChange={(v) => setTempEmergency(p => ({ ...p, email: v }))} />
-                    <div className="sm:col-span-2">
-                      <FieldGroup label="Address" value={editingEmergency ? tempEmergency.address : emergency.address}
-                        editing={editingEmergency} onChange={(v) => setTempEmergency(p => ({ ...p, address: v }))} />
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </form>
-          )}
-
-          {/* ══════ ACCOUNT & SECURITY ════════════════════════════════════ */}
-          {activeTab === 'Account & Security' && (
-            <div className="space-y-5">
-              {/* Account info + password */}
-              <Card className="p-6">
-                <h3 className="text-base font-extrabold text-slate-900 mb-5">Account & Security</h3>
-
-                <div className="space-y-3">
-                  {/* Email */}
-                  <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                        <Mail className="w-4.5 h-4.5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-extrabold text-slate-900">Email Address</p>
-                        <p className="text-[11px] font-semibold text-slate-500">{personal.email}</p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-extrabold px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100">Verified</span>
-                  </div>
-
-                  {/* Password */}
-                  <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 flex items-center justify-center">
-                        <Lock className="w-4.5 h-4.5 text-[#58051E]" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-extrabold text-slate-900">Password</p>
-                        <p className="text-[11px] font-semibold text-slate-500">Last changed 3 months ago</p>
-                      </div>
-                    </div>
-                    <Button size="sm" variant="outline" className="text-xs font-bold flex items-center gap-1.5" onClick={() => setShowPasswordModal(true)}>
-                      <RefreshCw className="w-3.5 h-3.5" /> Change
-                    </Button>
-                  </div>
-
-                  {/* 2FA */}
-                  <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${twoFaEnabled ? 'bg-emerald-50' : 'bg-slate-100'}`}>
-                        <Shield className={`w-4.5 h-4.5 ${twoFaEnabled ? 'text-emerald-600' : 'text-slate-400'}`} />
-                      </div>
-                      <div>
-                        <p className="text-xs font-extrabold text-slate-900">Two-Factor Authentication</p>
-                        <p className="text-[11px] font-semibold text-slate-500">{twoFaEnabled ? 'Enabled — extra secure' : 'Disabled — click to enable'}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {twoFaEnabled && (
-                        <span className="text-[10px] font-extrabold px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100">Active</span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setShowTwoFaModal(true)}
-                        className="focus:outline-none"
-                      >
-                        {twoFaEnabled
-                          ? <ToggleRight className="w-10 h-10 text-emerald-500" />
-                          : <ToggleLeft className="w-10 h-10 text-slate-300" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Recent Login Activity */}
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-5">
-                  <div>
-                    <h3 className="text-base font-extrabold text-slate-900">Recent Login Activity</h3>
-                    <p className="text-xs font-semibold text-slate-400 mt-0.5">Devices and sessions for your account</p>
-                  </div>
-                  <span className="text-[10px] font-bold text-[#58051E] bg-[#58051E]/10 px-2.5 py-1 rounded-full">{recentLogins.length} Sessions</span>
-                </div>
-                <div className="space-y-3">
-                  {recentLogins.map((log, idx) => {
-                    const Icon = log.icon;
-                    return (
-                      <div key={idx} className="flex items-center gap-3 p-3.5 border border-slate-100 rounded-xl hover:border-slate-200 hover:bg-slate-50/50 transition-all group">
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                          <Icon className="w-4.5 h-4.5 text-slate-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-extrabold text-slate-900">{log.device}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                            <p className="text-[10px] font-semibold text-slate-400">{log.location} · {log.time}</p>
-                          </div>
-                        </div>
-                        {idx === 0 && (
-                          <span className="text-[10px] font-extrabold px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100 shrink-0">Current</span>
-                        )}
-                        {idx !== 0 && (
-                          <button
-                            type="button"
-                            onClick={() => showToast('Session terminated securely.')}
-                            className="opacity-0 group-hover:opacity-100 text-[10px] font-bold text-red-500 hover:underline transition-opacity shrink-0"
-                          >
-                            Sign Out
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
-            </div>
-          )}
-
-          {/* ══════ PREFERENCES ════════════════════════════════════════════ */}
-          {activeTab === 'Preferences' && (
-            <Card className="p-6">
-              <h3 className="text-base font-extrabold text-slate-900 mb-5">Preferences</h3>
-
-              <div className="space-y-8 max-w-2xl">
-                {/* Display preferences */}
-                <div>
-                  <SectionLabel>Display & Locale</SectionLabel>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <SelectGroup label="Language" value={prefs.language} editing={true}
-                      options={['English', 'Hindi', 'Malayalam', 'Polish', 'German', 'French']}
-                      onChange={(v) => setPrefs(p => ({ ...p, language: v }))} />
-                    <SelectGroup label="Theme" value={prefs.theme} editing={true}
-                      options={['Light', 'Dark', 'System Default']}
-                      onChange={(v) => setPrefs(p => ({ ...p, theme: v }))} />
-                    <div className="sm:col-span-2">
-                      <SelectGroup label="Timezone" value={prefs.timezone} editing={true}
-                        options={[
-                          'Asia/Kolkata (IST, UTC+5:30)',
-                          'Europe/Warsaw (CET, UTC+1)',
-                          'America/New_York (EST, UTC-5)',
-                          'UTC',
-                        ]}
-                        onChange={(v) => setPrefs(p => ({ ...p, timezone: v }))} />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-t border-slate-50" />
-
-                {/* Notifications */}
-                <div>
-                  <SectionLabel>Notification Preferences</SectionLabel>
-                  <div className="space-y-3">
-                    {[
-                      {
-                        label: 'Email Notifications',
-                        desc: 'Receive updates, reminders and alerts via email',
-                        value: prefs.emailNotif,
-                        icon: Mail,
-                        toggle: () => setPrefs(p => ({ ...p, emailNotif: !p.emailNotif })),
-                      },
-                      {
-                        label: 'SMS Notifications',
-                        desc: 'Receive urgent alerts and deadline reminders via SMS',
-                        value: prefs.smsNotif,
-                        icon: Phone,
-                        toggle: () => setPrefs(p => ({ ...p, smsNotif: !p.smsNotif })),
-                      },
-                    ].map(({ label, desc, value, icon: Icon, toggle }) => (
-                      <div key={label} className="flex items-center justify-between gap-4 p-4 bg-slate-50/50 border border-slate-100 rounded-xl">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center">
-                            <Icon className="w-4 h-4 text-slate-500" />
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-extrabold text-slate-900">{label}</h4>
-                            <p className="text-[10px] font-semibold text-slate-400 mt-0.5">{desc}</p>
-                          </div>
-                        </div>
-                        <Toggle checked={value} onChange={toggle} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <Button className="text-xs font-bold flex items-center gap-2" onClick={() => showToast('Preferences saved successfully!')}>
-                    <Save className="w-4 h-4" />
-                    Save Preferences
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs font-bold h-9 px-3.5 rounded-xl flex items-center gap-1.5"
+                    onClick={() => {
+                      setEditingPersonal(true);
+                      setTempPersonal({ ...personal });
+                    }}
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-[#58051E]" /> Edit
                   </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+              <div>
+                <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">First Name</label>
+                {editingPersonal ? (
+                  <input
+                    type="text"
+                    value={tempPersonal.firstName}
+                    onChange={(e) => setTempPersonal({ ...tempPersonal, firstName: e.target.value })}
+                    className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  />
+                ) : (
+                  <div className="h-10 px-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-800 flex items-center">
+                    {personal.firstName || '—'}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Last Name</label>
+                {editingPersonal ? (
+                  <input
+                    type="text"
+                    value={tempPersonal.lastName}
+                    onChange={(e) => setTempPersonal({ ...tempPersonal, lastName: e.target.value })}
+                    className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  />
+                ) : (
+                  <div className="h-10 px-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-800 flex items-center">
+                    {personal.lastName || '—'}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Email Address</label>
+                <div className="h-10 px-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-600 flex items-center justify-between">
+                  <span>{personal.email}</span>
+                  <span className="text-[10px] font-extrabold text-slate-400 bg-slate-200/60 px-2 py-0.5 rounded">Primary</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Phone / WhatsApp</label>
+                {editingPersonal ? (
+                  <input
+                    type="text"
+                    value={tempPersonal.phone}
+                    onChange={(e) => setTempPersonal({ ...tempPersonal, phone: e.target.value })}
+                    placeholder="+91 98765 43210"
+                    className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  />
+                ) : (
+                  <div className="h-10 px-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-800 flex items-center">
+                    {personal.phone || <span className="text-slate-400 font-normal italic">Not provided</span>}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Passport Number</label>
+                {editingPersonal ? (
+                  <input
+                    type="text"
+                    value={tempPersonal.passportNo}
+                    onChange={(e) => setTempPersonal({ ...tempPersonal, passportNo: e.target.value.toUpperCase() })}
+                    placeholder="e.g. Z1234567"
+                    className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 uppercase focus:outline-none focus:border-[#58051E]"
+                  />
+                ) : (
+                  <div className="h-10 px-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-800 flex items-center font-mono">
+                    {personal.passportNo || <span className="text-slate-400 font-sans font-normal italic">Not provided</span>}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Nationality</label>
+                {editingPersonal ? (
+                  <input
+                    type="text"
+                    value={tempPersonal.nationality}
+                    onChange={(e) => setTempPersonal({ ...tempPersonal, nationality: e.target.value })}
+                    className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  />
+                ) : (
+                  <div className="h-10 px-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-800 flex items-center">
+                    {personal.nationality}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Date of Birth</label>
+                {editingPersonal ? (
+                  <input
+                    type="date"
+                    value={tempPersonal.dob}
+                    onChange={(e) => setTempPersonal({ ...tempPersonal, dob: e.target.value })}
+                    className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  />
+                ) : (
+                  <div className="h-10 px-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-800 flex items-center">
+                    {personal.dob}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Gender</label>
+                {editingPersonal ? (
+                  <select
+                    value={tempPersonal.gender}
+                    onChange={(e) => setTempPersonal({ ...tempPersonal, gender: e.target.value })}
+                    className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                    <option value="Not Specified">Not Specified</option>
+                  </select>
+                ) : (
+                  <div className="h-10 px-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-800 flex items-center">
+                    {personal.gender}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">City / Town</label>
+                {editingPersonal ? (
+                  <input
+                    type="text"
+                    value={tempPersonal.city}
+                    onChange={(e) => setTempPersonal({ ...tempPersonal, city: e.target.value })}
+                    placeholder="e.g. Kochi"
+                    className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  />
+                ) : (
+                  <div className="h-10 px-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-800 flex items-center">
+                    {personal.city || '—'}
+                  </div>
+                )}
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Residential Street Address</label>
+                {editingPersonal ? (
+                  <input
+                    type="text"
+                    value={tempPersonal.address}
+                    onChange={(e) => setTempPersonal({ ...tempPersonal, address: e.target.value })}
+                    placeholder="House / Apartment name, Street"
+                    className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  />
+                ) : (
+                  <div className="h-10 px-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-800 flex items-center">
+                    {personal.address || <span className="text-slate-400 font-normal italic">Not provided</span>}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Postal Code</label>
+                {editingPersonal ? (
+                  <input
+                    type="text"
+                    value={tempPersonal.postalCode}
+                    onChange={(e) => setTempPersonal({ ...tempPersonal, postalCode: e.target.value })}
+                    placeholder="682001"
+                    className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  />
+                ) : (
+                  <div className="h-10 px-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-800 flex items-center">
+                    {personal.postalCode || '—'}
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* TAB 2: Education & Target Roadmap */}
+        {activeTab === 'Education & Roadmap' && (
+          <div className="space-y-6">
+            <Card className="p-6 md:p-8 bg-white border border-slate-200/80 rounded-3xl shadow-xs">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-5 mb-6">
+                <div>
+                  <h3 className="text-base font-black text-slate-900">Academic Destination & Enrolled Program</h3>
+                  <p className="text-xs font-semibold text-slate-500 mt-0.5">Your chosen university, admission track, and intake status.</p>
+                </div>
+                <Button
+                  size="sm"
+                  className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold h-9 px-3.5 rounded-xl flex items-center gap-1.5"
+                  onClick={() => navigate('/student/select-university')}
+                >
+                  <GraduationCap className="w-3.5 h-3.5" /> Explore Universities
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="p-4 bg-slate-50 border border-slate-200/70 rounded-2xl">
+                  <span className="text-[10.5px] font-extrabold text-slate-400 uppercase tracking-wider">Target Country</span>
+                  <p className="text-lg font-black text-slate-900 mt-1 flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-[#58051E]" />
+                    {targetCountry}
+                  </p>
+                </div>
+
+                <div className="p-4 bg-slate-50 border border-slate-200/70 rounded-2xl">
+                  <span className="text-[10.5px] font-extrabold text-slate-400 uppercase tracking-wider">Selected University</span>
+                  <p className="text-base font-black text-slate-900 mt-1 truncate" title={targetUniversity}>
+                    {targetUniversity}
+                  </p>
+                </div>
+
+                <div className="p-4 bg-slate-50 border border-slate-200/70 rounded-2xl">
+                  <span className="text-[10.5px] font-extrabold text-slate-400 uppercase tracking-wider">Course / Degree Program</span>
+                  <p className="text-base font-bold text-slate-800 mt-1 truncate" title={targetProgram}>
+                    {targetProgram}
+                  </p>
+                </div>
+
+                <div className="p-4 bg-slate-50 border border-slate-200/70 rounded-2xl">
+                  <span className="text-[10.5px] font-extrabold text-slate-400 uppercase tracking-wider">Intake Term</span>
+                  <p className="text-base font-bold text-slate-800 mt-1 flex items-center gap-1.5">
+                    <Calendar className="w-4 h-4 text-slate-500" />
+                    {targetIntake}
+                  </p>
+                </div>
+
+                <div className="p-4 bg-slate-50 border border-slate-200/70 rounded-2xl">
+                  <span className="text-[10.5px] font-extrabold text-slate-400 uppercase tracking-wider">Application Status</span>
+                  <div className="mt-1.5">
+                    <span className="px-2.5 py-1 rounded-full text-xs font-black bg-blue-50 text-blue-700 border border-blue-200 inline-flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" /> {appStatus}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-slate-50 border border-slate-200/70 rounded-2xl">
+                  <span className="text-[10.5px] font-extrabold text-slate-400 uppercase tracking-wider">Admissions Counselor</span>
+                  <p className="text-sm font-black text-slate-800 mt-1 flex items-center justify-between">
+                    <span>{counselor}</span>
+                    <button
+                      onClick={() => navigate('/student/chat')}
+                      className="text-[10px] font-bold text-[#58051E] hover:underline flex items-center gap-0.5 cursor-pointer"
+                    >
+                      <MessageSquare className="w-3 h-3" /> Chat
+                    </button>
+                  </p>
+                </div>
+              </div>
+
+              {/* Action shortcuts */}
+              <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between flex-wrap gap-3">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs font-bold h-9 px-4 rounded-xl flex items-center gap-1.5"
+                  onClick={() => navigate('/student/journey-tracker')}
+                >
+                  <ArrowRight className="w-3.5 h-3.5" /> View Admission Roadmap
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs font-bold h-9 px-4 rounded-xl flex items-center gap-1.5"
+                  onClick={() => navigate('/student/offers')}
+                >
+                  <FileText className="w-3.5 h-3.5" /> My Offer Letters
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* TAB 3: Emergency & Guardian Contact */}
+        {activeTab === 'Emergency Contact' && (
+          <Card className="p-6 md:p-8 bg-white border border-slate-200/80 rounded-3xl shadow-xs">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-5 mb-6">
+              <div>
+                <h3 className="text-base font-black text-slate-900">Emergency & Guardian Contacts</h3>
+                <p className="text-xs font-semibold text-slate-500 mt-0.5">Primary contact person in case of urgent admission, travel, or medical communication.</p>
+              </div>
+              <div>
+                {editingEmergency ? (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs font-bold h-9 px-3.5 rounded-xl"
+                      onClick={() => setEditingEmergency(false)}
+                    >
+                      <X className="w-3.5 h-3.5 mr-1" /> Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold h-9 px-4 rounded-xl flex items-center gap-1.5 shadow-xs"
+                      onClick={handleSaveEmergency}
+                    >
+                      <Save className="w-3.5 h-3.5" /> Save Contact
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs font-bold h-9 px-3.5 rounded-xl flex items-center gap-1.5"
+                    onClick={() => {
+                      setEditingEmergency(true);
+                      setTempEmergency({ ...emergency });
+                    }}
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-[#58051E]" /> Edit
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+              <div>
+                <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Guardian / Parent Full Name</label>
+                {editingEmergency ? (
+                  <input
+                    type="text"
+                    value={tempEmergency.guardianName}
+                    onChange={(e) => setTempEmergency({ ...tempEmergency, guardianName: e.target.value })}
+                    placeholder="e.g. John Doe"
+                    className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  />
+                ) : (
+                  <div className="h-10 px-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-800 flex items-center">
+                    {emergency.guardianName || <span className="text-slate-400 font-normal italic">Not provided</span>}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Relationship</label>
+                {editingEmergency ? (
+                  <select
+                    value={tempEmergency.relationship}
+                    onChange={(e) => setTempEmergency({ ...tempEmergency, relationship: e.target.value })}
+                    className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  >
+                    <option value="Father">Father</option>
+                    <option value="Mother">Mother</option>
+                    <option value="Parent / Guardian">Parent / Guardian</option>
+                    <option value="Sibling">Sibling</option>
+                    <option value="Spouse">Spouse</option>
+                    <option value="Legal Guardian">Legal Guardian</option>
+                  </select>
+                ) : (
+                  <div className="h-10 px-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-800 flex items-center">
+                    {emergency.relationship}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Emergency Phone</label>
+                {editingEmergency ? (
+                  <input
+                    type="text"
+                    value={tempEmergency.phone}
+                    onChange={(e) => setTempEmergency({ ...tempEmergency, phone: e.target.value })}
+                    placeholder="+91 98765 43210"
+                    className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  />
+                ) : (
+                  <div className="h-10 px-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-800 flex items-center">
+                    {emergency.phone || <span className="text-slate-400 font-normal italic">Not provided</span>}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Emergency Email</label>
+                {editingEmergency ? (
+                  <input
+                    type="email"
+                    value={tempEmergency.email}
+                    onChange={(e) => setTempEmergency({ ...tempEmergency, email: e.target.value })}
+                    placeholder="guardian@example.com"
+                    className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  />
+                ) : (
+                  <div className="h-10 px-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-800 flex items-center">
+                    {emergency.email || <span className="text-slate-400 font-normal italic">Not provided</span>}
+                  </div>
+                )}
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Residential Address</label>
+                {editingEmergency ? (
+                  <input
+                    type="text"
+                    value={tempEmergency.address}
+                    onChange={(e) => setTempEmergency({ ...tempEmergency, address: e.target.value })}
+                    placeholder="Permanent family address"
+                    className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  />
+                ) : (
+                  <div className="h-10 px-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-800 flex items-center">
+                    {emergency.address || <span className="text-slate-400 font-normal italic">Not provided</span>}
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* TAB 4: Uploaded Documents */}
+        {activeTab === 'Uploaded Documents' && (
+          <Card className="p-6 md:p-8 bg-white border border-slate-200/80 rounded-3xl shadow-xs">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-5 mb-6">
+              <div>
+                <h3 className="text-base font-black text-slate-900">Academic & KYC Documents</h3>
+                <p className="text-xs font-semibold text-slate-500 mt-0.5">Documents uploaded for university review and consular visa validation.</p>
+              </div>
+              <Button
+                size="sm"
+                className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold h-9 px-3.5 rounded-xl flex items-center gap-1.5 cursor-pointer"
+                onClick={() => navigate('/student/documents')}
+              >
+                <Upload className="w-3.5 h-3.5" /> Upload Document
+              </Button>
+            </div>
+
+            {dbDocs && dbDocs.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {dbDocs.map((doc: any) => (
+                  <div
+                    key={doc.id}
+                    className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl flex items-center justify-between gap-4 hover:border-slate-300 transition-all"
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-[#58051E] flex items-center justify-center shrink-0 shadow-xs">
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-900 truncate" title={doc.file_name || doc.doc_type}>
+                          {doc.file_name || doc.doc_type || 'Document File'}
+                        </p>
+                        <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
+                          {doc.doc_type || 'Academic File'} • {doc.file_size || 'PDF'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold border ${
+                        doc.status === 'Approved'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : doc.status === 'Rejected'
+                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                          : 'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}>
+                        {doc.status || 'Under Review'}
+                      </span>
+                      {doc.file_url && (
+                        <a
+                          href={doc.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-600 transition-colors"
+                          title="View Document"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <FileText className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm font-bold text-slate-700">No documents uploaded yet</p>
+                <p className="text-xs font-semibold text-slate-400 mt-0.5">Upload your 10th, 12th, degree marksheets, and passport to start applications.</p>
+                <Button
+                  size="sm"
+                  className="mt-4 bg-[#58051E] text-white text-xs font-bold"
+                  onClick={() => navigate('/student/documents')}
+                >
+                  Go to Documents Page
+                </Button>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* TAB 5: Account & Security */}
+        {activeTab === 'Account & Security' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Change Password Card */}
+            <Card className="p-6 md:p-8 bg-white border border-slate-200/80 rounded-3xl shadow-xs">
+              <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">Change Account Password</h3>
+                  <p className="text-xs font-semibold text-slate-500">Update your student authentication password.</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleUpdatePassword} className="space-y-4">
+                <div>
+                  <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">New Password</label>
+                  <input
+                    type="password"
+                    value={passwordForm.newPwd}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, newPwd: e.target.value })}
+                    placeholder="Minimum 6 characters"
+                    className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Confirm New Password</label>
+                  <input
+                    type="password"
+                    value={passwordForm.confirmPwd}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmPwd: e.target.value })}
+                    placeholder="Repeat new password"
+                    className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  />
+                </div>
+
+                {passwordMsg.text && (
+                  <div className={`p-3 rounded-xl text-xs font-bold ${passwordMsg.isError ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+                    {passwordMsg.text}
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={isUpdatingPwd}
+                  className="w-full bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold h-10 rounded-xl mt-2 cursor-pointer shadow-xs"
+                >
+                  {isUpdatingPwd ? 'Updating Password...' : 'Update Password'}
+                </Button>
+              </form>
+            </Card>
+
+            {/* Session & Security Details */}
+            <Card className="p-6 md:p-8 bg-white border border-slate-200/80 rounded-3xl shadow-xs">
+              <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">Account Security Overview</h3>
+                  <p className="text-xs font-semibold text-slate-500">Authentication state and security safeguards.</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10.5px] font-extrabold text-slate-400 uppercase">Registered Email</span>
+                    <p className="text-sm font-bold text-slate-900 mt-0.5">{user?.email || 'Student Account'}</p>
+                  </div>
+                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded-md">Verified</span>
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10.5px] font-extrabold text-slate-400 uppercase">Security Role</span>
+                    <p className="text-sm font-bold text-slate-900 mt-0.5">Enrolled Student</p>
+                  </div>
+                  <span className="px-2 py-0.5 bg-slate-200 text-slate-700 text-[10px] font-extrabold rounded-md">Active</span>
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <span className="text-[10.5px] font-extrabold text-slate-400 uppercase">Protection Recommendations</span>
+                  <ul className="text-xs font-medium text-slate-600 space-y-1.5 mt-2">
+                    <li className="flex items-start gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <span>Never share admission portal credentials with unverified agents.</span>
+                    </li>
+                    <li className="flex items-start gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <span>Always ensure tuition fee payments are made to official university accounts.</span>
+                    </li>
+                  </ul>
                 </div>
               </div>
             </Card>
-          )}
+          </div>
+        )}
+      </div>
 
-        </motion.div>
-      </AnimatePresence>
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          MODALS
-      ═══════════════════════════════════════════════════════════════════════ */}
-
-      {/* ── Photo Action Modal ──────────────────────────────────────────── */}
+      {/* ── Photo Modal ─────────────────────────────────────────────────── */}
       <AnimatePresence>
         {showPhotoModal && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowPhotoModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-                <h3 className="text-sm font-extrabold text-slate-900">Profile Photo</h3>
-                <button onClick={() => setShowPhotoModal(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 space-y-4"
+            >
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                <h4 className="text-sm font-black text-slate-900">Profile Photo</h4>
+                <button onClick={() => setShowPhotoModal(false)} className="text-slate-400 hover:text-slate-600">
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Preview */}
-              <div className="p-5 flex flex-col items-center gap-4">
-                <div className="w-24 h-24 rounded-2xl border-4 border-slate-100 shadow overflow-hidden bg-[#58051E] flex items-center justify-center">
-                  {profilePhoto
-                    ? <img src={profilePhoto} alt="Preview" className="w-full h-full object-cover" />
-                    : <span className="text-white font-extrabold text-3xl">{initials}</span>}
+              <div className="flex justify-center py-2">
+                <div className="w-24 h-24 rounded-2xl overflow-hidden border border-slate-200 shadow-xs">
+                  {profilePhoto ? (
+                    <img src={profilePhoto} alt="Current" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-[#58051E] text-white flex items-center justify-center text-xl font-black">
+                      {initials}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="px-5 pb-5 space-y-2">
-                <button
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoUpload}
+              />
+
+              <div className="space-y-2 pt-2">
+                <Button
+                  className="w-full bg-[#58051E] text-white text-xs font-bold h-9.5 rounded-xl cursor-pointer"
                   onClick={() => photoInputRef.current?.click()}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 hover:border-[#58051E]/30 hover:bg-[#58051E]/5 text-sm font-bold text-slate-700 hover:text-[#58051E] transition-all"
                 >
-                  <Upload className="w-4 h-4" />
-                  {profilePhoto ? 'Replace Photo' : 'Upload Photo'}
-                </button>
+                  <Upload className="w-3.5 h-3.5 mr-1.5" /> Upload New Photo
+                </Button>
                 {profilePhoto && (
-                  <>
-                    <button
-                      onClick={() => { setShowPhotoModal(false); setShowViewPhotoModal(true); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 hover:border-blue-200 hover:bg-blue-50 text-sm font-bold text-slate-700 hover:text-blue-700 transition-all"
-                    >
-                      <Eye className="w-4 h-4" />
-                      View Full Photo
-                    </button>
-                    <button
-                      onClick={() => { setShowPhotoModal(false); setShowDeletePhotoModal(true); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-red-100 hover:bg-red-50 text-sm font-bold text-red-600 transition-all"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Remove Photo
-                    </button>
-                  </>
+                  <Button
+                    variant="outline"
+                    className="w-full text-rose-600 border-rose-200 hover:bg-rose-50 text-xs font-bold h-9.5 rounded-xl cursor-pointer"
+                    onClick={handleRemovePhoto}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Remove Current Photo
+                  </Button>
                 )}
               </div>
             </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
-
-      {/* ── View Photo Modal ────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {showViewPhotoModal && profilePhoto && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/70 backdrop-blur-md z-50" onClick={() => setShowViewPhotoModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 rounded-2xl overflow-hidden shadow-2xl">
-              <img src={profilePhoto} alt="Full profile" className="max-w-sm max-h-[70vh] object-contain rounded-2xl" />
-              <button onClick={() => setShowViewPhotoModal(false)}
-                className="absolute top-3 right-3 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors">
-                <X className="w-4 h-4" />
-              </button>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* ── Delete Photo Confirmation ───────────────────────────────────── */}
-      <AnimatePresence>
-        {showDeletePhotoModal && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowDeletePhotoModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center shrink-0">
-                  <AlertTriangle className="w-6 h-6 text-red-500" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-extrabold text-slate-900 mb-1">Remove Profile Photo?</h3>
-                  <p className="text-xs font-semibold text-slate-500">Your photo will be removed and your initials will be shown instead. This action can be undone by uploading a new photo.</p>
-                </div>
-              </div>
-              <div className="flex gap-3 mt-5">
-                <Button variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowDeletePhotoModal(false)}>Cancel</Button>
-                <Button size="sm" className="flex-1 text-xs font-bold bg-red-600 hover:bg-red-700" onClick={handleDeletePhoto}>Remove</Button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* ── Change Password Modal ───────────────────────────────────────── */}
-      <AnimatePresence>
-        {showPasswordModal && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowPasswordModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <button onClick={() => setShowPasswordModal(false)}
-                  className="ml-auto p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <ChangePasswordForm
-                title="Change Student Password"
-                subtitle="Update your student portal login password across Supabase"
-                variant="plain"
-                onSuccess={() => {
-                  setShowPasswordModal(false);
-                  showToast('Password updated securely in Supabase!');
-                }}
-              />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* ── 2FA Modal ───────────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {showTwoFaModal && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowTwoFaModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-emerald-600" />
-                  </div>
-                  <h3 className="text-sm font-extrabold text-slate-900">
-                    {twoFaEnabled ? 'Disable 2FA' : 'Enable 2FA'}
-                  </h3>
-                </div>
-                <button onClick={() => setShowTwoFaModal(false)}
-                  className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <p className="text-xs font-semibold text-slate-500 mb-5">
-                {twoFaEnabled
-                  ? 'Disabling two-factor authentication will reduce the security of your account. Are you sure?'
-                  : 'Two-factor authentication adds an extra layer of security. An OTP will be sent to your phone each time you log in.'}
-              </p>
-              <div className="flex gap-3">
-                <Button variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowTwoFaModal(false)}>Cancel</Button>
-                <Button size="sm" className={`flex-1 text-xs font-bold ${twoFaEnabled ? 'bg-red-600 hover:bg-red-700' : ''}`}
-                  onClick={() => {
-                    setTwoFaEnabled(!twoFaEnabled);
-                    setShowTwoFaModal(false);
-                    showToast(twoFaEnabled ? '2FA disabled for this account.' : '2FA enabled! Your account is more secure.');
-                  }}>
-                  {twoFaEnabled ? 'Disable 2FA' : 'Enable 2FA'}
-                </Button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* ── Document Preview Modal ──────────────────────────────────────── */}
-      <AnimatePresence>
-        {docToPreview && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setDocToPreview(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-                <h3 className="text-sm font-extrabold text-slate-900">{docToPreview.name}</h3>
-                <button onClick={() => setDocToPreview(null)}
-                  className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="p-6 flex flex-col items-center gap-4">
-                <div className="w-full h-40 bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-xl flex flex-col items-center justify-center gap-3">
-                  <FileText className="w-12 h-12 text-[#58051E]/30" />
-                  <p className="text-xs font-bold text-slate-400">Preview Simulation</p>
-                </div>
-                <div className="w-full space-y-2 text-xs font-semibold text-slate-600">
-                  <div className="flex justify-between"><span className="text-slate-400">Document</span><span>{docToPreview.name}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-400">Type</span><span>{docToPreview.type}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-400">Size</span><span>{docToPreview.size}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-400">Uploaded</span><span>{docToPreview.uploaded}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-400">Status</span><StatusBadge status={docToPreview.status} /></div>
-                </div>
-              </div>
-              <div className="px-5 pb-5">
-                <Button className="w-full text-xs font-bold flex items-center gap-2"
-                  onClick={() => {
-                    const a = document.createElement('a');
-                    a.href = 'data:text/plain,Ferex Document Download Simulation';
-                    a.download = `${docToPreview.name.replace(/\s+/g, '_')}.pdf`;
-                    a.click();
-                    setDocToPreview(null);
-                  }}>
-                  <Download className="w-4 h-4" /> Download Document
-                </Button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* ── Document Delete Confirmation ────────────────────────────────── */}
-      <AnimatePresence>
-        {docToDelete !== null && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setDocToDelete(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
-              <div className="flex items-start gap-4 mb-5">
-                <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center shrink-0">
-                  <Trash2 className="w-6 h-6 text-red-500" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-extrabold text-slate-900 mb-1">Remove Document?</h3>
-                  <p className="text-xs font-semibold text-slate-500">This document will be marked as missing. You can replace it by uploading a new one.</p>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <Button variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setDocToDelete(null)}>Cancel</Button>
-                <Button size="sm" className="flex-1 text-xs font-bold bg-red-600 hover:bg-red-700" onClick={handleDocDelete}>Remove</Button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
     </div>
   );
 };

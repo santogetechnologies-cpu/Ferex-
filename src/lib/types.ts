@@ -48,6 +48,10 @@ export interface CourseProgram {
   duration?: string;
   intake?: string;
   language?: string;
+  application_fee?: string;
+  service_charge?: string;
+  link?: string;
+  notes?: string;
 }
 
 export interface University {

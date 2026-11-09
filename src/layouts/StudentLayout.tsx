@@ -209,7 +209,6 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
     { name: 'Invoices', path: '/student/invoices', icon: FileSpreadsheet, badge: null, hasUpdate: false },
     { name: 'Meetings', path: '/student/meetings', icon: Calendar, badge: null, hasUpdate: false },
     { name: 'Support Tickets', path: '/student/support', icon: LifeBuoy, badge: null, hasUpdate: false },
-    { name: 'Notifications', path: '/student/notifications', icon: Bell, badge: unreadCount > 0 ? String(unreadCount) : null, hasUpdate: unreadCount > 0 },
     { name: 'My Profile', path: '/student/profile', icon: User, badge: null, hasUpdate: false },
   ];
 
@@ -371,102 +370,6 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
 
             {/* Dark Mode / Light Mode Switcher */}
             <ThemeToggle size="sm" />
-
-            {/* Notification Bell */}
-            <div className="relative" onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => {
-                  setShowNotifications(!showNotifications);
-                  setShowProfileDropdown(false);
-                }}
-                className="relative p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl transition-colors cursor-pointer"
-                aria-label="View notifications"
-              >
-                <Bell size={16} />
-                {notifications.some((n: any) => !n.is_read) && (
-                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#58051E] rounded-full ring-2 ring-white" />
-                )}
-              </button>
-
-              {/* Notification Popover Dropdown */}
-              <AnimatePresence>
-                {showNotifications && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6, scale: 0.97 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                    transition={{ duration: 0.12 }}
-                    className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-card p-3 text-left z-50"
-                  >
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-2 select-none px-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-xs font-extrabold text-slate-900">Notifications</h4>
-                        {notifications.filter((n: any) => !n.is_read).length > 0 && (
-                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-[#58051E] text-white">
-                            {notifications.filter((n: any) => !n.is_read).length} New
-                          </span>
-                        )}
-                      </div>
-                      <button onClick={() => { setShowNotifications(false); navigate('/student/notifications'); }} className="text-[10px] font-bold text-[#58051E] hover:underline">View All</button>
-                    </div>
-                    <div className="space-y-1.5 max-h-72 overflow-y-auto">
-                      {notifications.length === 0 ? (
-                        <div className="py-8 text-center text-xs font-semibold text-slate-400">
-                          No notifications right now.
-                        </div>
-                      ) : (
-                        notifications.slice(0, 6).map((n: any) => {
-                          const routes: Record<string, string> = {
-                            'Offer Letter': '/student/offers',
-                            'Application': '/student/journey-tracker',
-                            'Payment': '/student/payments',
-                            'VFS Visa': '/student/visa-tracker',
-                            'Counselor Session': '/student/meetings',
-                            'Document': '/student/documents',
-                            'Pre-Departure': '/student/pre-departure',
-                            'Support': '/student/support',
-                          };
-                          const targetRoute = routes[n.category] || '/student/notifications';
-
-                          return (
-                            <div
-                              key={n.id}
-                              onClick={() => {
-                                if (!n.is_read) markRead(n.id);
-                                setShowNotifications(false);
-                                navigate(targetRoute);
-                              }}
-                              className={`p-2.5 rounded-xl transition-all cursor-pointer border group ${
-                                !n.is_read ? 'bg-amber-50/60 border-amber-200/80 hover:bg-amber-100/60' : 'bg-white hover:bg-slate-50 border-slate-100'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                  <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 bg-slate-100 text-slate-700 rounded border border-slate-200 shrink-0">
-                                    {n.category || 'Alert'}
-                                  </span>
-                                  <p className="text-xs font-bold text-slate-900 truncate">{n.title}</p>
-                                </div>
-                                {!n.is_read && <span className="w-2 h-2 rounded-full bg-[#58051E] shrink-0" />}
-                              </div>
-                              <p className="text-[10.5px] font-semibold text-slate-500 mt-1 line-clamp-2">{n.body}</p>
-                              <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-slate-100/60">
-                                <span className="text-[9px] font-bold text-slate-400">
-                                  {new Date(n.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                                <span className="text-[9.5px] font-extrabold text-[#58051E] group-hover:underline flex items-center gap-0.5">
-                                  Open →
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
 
             {/* Profile Dropdown Trigger */}
             <div className="relative" onClick={(e) => e.stopPropagation()}>

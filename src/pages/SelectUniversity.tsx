@@ -558,14 +558,44 @@ export const SelectUniversity: React.FC = () => {
                     <p className="text-xs p-3 bg-blue-50 rounded-lg">Tuition is paid directly to the university. See Payments &amp; billing for the configured Ferex fees.</p>
 
                     <div>
-                      <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider mb-2">Degree Programs</h4>
-                      <div className="space-y-1.5">
-                        {drawerUni.programs?.map((p: string) => (
-                          <div key={p} className="p-2.5 bg-slate-50 border border-slate-100 rounded-lg text-xs font-bold text-slate-800 flex items-center justify-between">
-                            <span>{p}</span>
-                            <span className="text-[10px] font-black text-[#6A1B2E] bg-[#6A1B2E]/5 px-2 py-0.5 rounded-md border border-[#6A1B2E]/20">Master / Bachelor</span>
-                          </div>
-                        ))}
+                      <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider mb-2">Degree Programs &amp; Tuition</h4>
+                      <div className="space-y-2">
+                        {(drawerUni.course_programs && drawerUni.course_programs.length > 0) ? (
+                          drawerUni.course_programs.map((cp: any) => (
+                            <div key={cp.id || cp.name} className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs space-y-1">
+                              <div className="flex items-center justify-between font-bold text-slate-900">
+                                <span className="font-extrabold">{cp.name}</span>
+                                <span className="text-[#58051E] font-black">{cp.tuition_fee}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-[10.5px] text-slate-500 font-medium flex-wrap">
+                                {cp.degree_level && <span className="bg-slate-200/70 text-slate-700 px-1.5 py-0.5 rounded font-bold">{cp.degree_level}</span>}
+                                {cp.duration && <span>Duration: {cp.duration}</span>}
+                                {cp.language && <span>Lang: {cp.language}</span>}
+                                {cp.application_fee && <span>App Fee: {cp.application_fee}</span>}
+                                {cp.service_charge && <span>Agency Fee: {cp.service_charge}</span>}
+                              </div>
+                              {cp.intake && (
+                                <p className="text-[10px] text-amber-800 font-bold bg-amber-50/80 px-2 py-0.5 rounded border border-amber-200/60 inline-block">
+                                  {cp.intake}
+                                </p>
+                              )}
+                              {cp.link && (
+                                <div className="pt-0.5">
+                                  <a href={cp.link} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#58051E] hover:underline font-bold inline-flex items-center gap-0.5">
+                                    Official Course Portal ↗
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          drawerUni.programs?.map((p: string) => (
+                            <div key={p} className="p-2.5 bg-slate-50 border border-slate-100 rounded-lg text-xs font-bold text-slate-800 flex items-center justify-between">
+                              <span>{p}</span>
+                              <span className="text-[10px] font-black text-[#6A1B2E] bg-[#6A1B2E]/5 px-2 py-0.5 rounded-md border border-[#6A1B2E]/20">Master / Bachelor</span>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
 
@@ -669,9 +699,17 @@ export const SelectUniversity: React.FC = () => {
                       onChange={(e) => setSelectedCourse(e.target.value)}
                       className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer"
                     >
-                      {applyUni.programs?.map((prog: string) => (
-                        <option key={prog} value={prog}>{prog}</option>
-                      ))}
+                      {(applyUni.course_programs && applyUni.course_programs.length > 0) ? (
+                        applyUni.course_programs.map((prog: any) => (
+                          <option key={prog.id || prog.name} value={prog.name}>
+                            {prog.name} ({prog.tuition_fee}{prog.degree_level ? ` • ${prog.degree_level}` : ''})
+                          </option>
+                        ))
+                      ) : (
+                        applyUni.programs?.map((prog: string) => (
+                          <option key={prog} value={prog}>{prog}</option>
+                        ))
+                      )}
                     </select>
                   </div>
 
