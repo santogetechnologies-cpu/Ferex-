@@ -21,3 +21,4 @@ function searchIn(dir) {
   }
 }
 searchIn('src/pages/rimi');
+

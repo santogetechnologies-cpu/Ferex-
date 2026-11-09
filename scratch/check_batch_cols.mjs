@@ -9,3 +9,4 @@ async function checkBatchCols() {
   console.log('rimi_batches query:', data, 'error:', error);
 }
 checkBatchCols();
+
