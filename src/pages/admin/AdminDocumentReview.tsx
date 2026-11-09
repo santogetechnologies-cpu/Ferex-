@@ -131,7 +131,7 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
     if (dbDocs.length > 0) {
       const mapped = dbDocs.map(d => {
         const dbStudent = studentsMap[d.student_id] || (d as any).users;
-        const resolvedName = dbStudent?.full_name || (d as any).student_name || dbStudent?.email?.split('@')[0] || 'Student';
+        const resolvedName = dbStudent?.full_name || (d as any).student_name || dbStudent?.email?.split('@')[0] || (d.student_id ? `Student (${d.student_id.slice(0, 8)})` : 'Student');
 
         return {
           id: d.id,

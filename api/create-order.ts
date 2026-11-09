@@ -1,5 +1,3 @@
-import { createOrder } from '../server/razorpay.ts';
-
 export default async function handler(req: any, res: any) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -25,11 +23,47 @@ export default async function handler(req: any, res: any) {
       }
     }
 
-    const result = await createOrder(body);
-    return res.status(result.status).json(result.data);
+    const { amount, currency = 'INR', receipt, notes } = body || {};
+
+    const numericAmount = Number(amount);
+    if (typeof amount === 'undefined' || isNaN(numericAmount) || numericAmount < 100) {
+      return res.status(400).json({ error: 'Amount must be at least 100 paise' });
+    }
+
+    const key_id = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TvtcmQYBnXjb9R';
+    const key_secret = process.env.RAZORPAY_KEY_SECRET || 'NAZPT9NfBVhwGTH0ms3jXl4f';
+
+    const authHeader = 'Basic ' + Buffer.from(`${key_id}:${key_secret}`).toString('base64');
+
+    const response = await fetch('https://api.razorpay.com/v1/orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader,
+      },
+      body: JSON.stringify({
+        amount: Math.round(numericAmount),
+        currency: (currency || 'INR').toUpperCase(),
+        receipt: receipt || `rcpt_${Date.now()}`,
+        notes: notes || {},
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      const errMsg = data?.error?.description || data?.error?.message || 'Failed to create Razorpay order';
+      return res.status(response.status).json({ error: errMsg });
+    }
+
+    return res.status(200).json({
+      order_id: data.id,
+      amount: data.amount,
+      currency: data.currency,
+      key_id,
+    });
   } catch (err: any) {
     console.error('Unhandled error in /api/create-order:', err);
     return res.status(500).json({ error: err.message || 'Internal Server Error' });
   }
 }
-

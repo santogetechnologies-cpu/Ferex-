@@ -205,10 +205,14 @@ export const Documents: React.FC = () => {
 
   // Search & Filter
   const filteredDocs = documents.filter((doc) => {
+    const docName = (doc.name || doc.file_name || '').toLowerCase();
+    const docType = (doc.type || doc.doc_type || '').toLowerCase();
+    const docStatus = (doc.status || '').toLowerCase();
+
     const matchesSearch =
-      doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doc.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doc.status.toLowerCase().includes(searchQuery.toLowerCase());
+      docName.includes(searchQuery.toLowerCase()) ||
+      docType.includes(searchQuery.toLowerCase()) ||
+      docStatus.includes(searchQuery.toLowerCase());
 
     const normStatus = 
       (doc.status as string) === 'Pending Verification' || (doc.status as string) === 'Pending' ? 'Submitted' :

@@ -1,4 +1,3 @@
-import Razorpay from 'razorpay';
 import crypto from 'node:crypto';
 
 // Ensure .env is loaded if running in bare Node (e.g. tests or server scripts)
@@ -29,23 +28,6 @@ export interface ServiceResponse<T = any> {
 }
 
 /**
- * Returns a configured Razorpay instance using environment credentials.
- */
-export function getRazorpayClient(): Razorpay {
-  const key_id = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TvtcmQYBnXjb9R';
-  const key_secret = process.env.RAZORPAY_KEY_SECRET || 'NAZPT9NfBVhwGTH0ms3jXl4f';
-
-  if (!key_id || !key_secret) {
-    throw new Error('Razorpay credentials are not configured in environment variables');
-  }
-
-  return new Razorpay({
-    key_id,
-    key_secret,
-  });
-}
-
-/**
  * Step 1: Create Order
  * Endpoint logic for POST /api/create-order
  * Minimum amount: 100 paise
@@ -66,41 +48,58 @@ export async function createOrder(params: CreateOrderParams): Promise<ServiceRes
 
   try {
     const key_id = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TvtcmQYBnXjb9R';
-    const razorpay = getRazorpayClient();
-    const order = await razorpay.orders.create({
-      amount: Math.round(numericAmount),
-      currency: (currency || 'INR').toUpperCase(),
-      receipt: receipt || `rcpt_${Date.now()}`,
-      notes: notes || {},
+    const key_secret = process.env.RAZORPAY_KEY_SECRET || 'NAZPT9NfBVhwGTH0ms3jXl4f';
+
+    const authHeader = 'Basic ' + Buffer.from(`${key_id}:${key_secret}`).toString('base64');
+
+    const response = await fetch('https://api.razorpay.com/v1/orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader,
+      },
+      body: JSON.stringify({
+        amount: Math.round(numericAmount),
+        currency: (currency || 'INR').toUpperCase(),
+        receipt: receipt || `rcpt_${Date.now()}`,
+        notes: notes || {},
+      }),
     });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        return {
+          status: 401,
+          data: {
+            error: 'Razorpay authentication failed: Invalid Key ID or Key Secret',
+          },
+        };
+      }
+      return {
+        status: response.status,
+        data: {
+          error: data?.error?.description || data?.error?.message || 'Failed to create Razorpay order',
+        },
+      };
+    }
 
     return {
       status: 200,
       data: {
-        order_id: order.id,
-        amount: order.amount,
-        currency: order.currency,
+        order_id: data.id,
+        amount: data.amount,
+        currency: data.currency,
         key_id,
       },
     };
   } catch (error: any) {
     console.error('Razorpay order creation error:', error);
-
-    // Auth failures (401)
-    if (error?.statusCode === 401 || (error?.error?.code === 'BAD_REQUEST_ERROR' && error?.message?.toLowerCase().includes('auth'))) {
-      return {
-        status: 401,
-        data: {
-          error: 'Razorpay authentication failed: Invalid Key ID or Key Secret',
-        },
-      };
-    }
-
-    // Generic Razorpay API errors (500)
     return {
       status: 500,
       data: {
-        error: error?.error?.description || error?.message || 'Failed to create Razorpay order',
+        error: error?.message || 'Failed to create Razorpay order',
       },
     };
   }

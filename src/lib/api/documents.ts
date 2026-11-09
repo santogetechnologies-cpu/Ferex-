@@ -157,16 +157,12 @@ export async function uploadDocument(payload: {
     id: newId,
     student_id: validStudentId,
     file_name: payload.file_name,
-    name: payload.file_name,
     file_url: payload.file_url,
-    type: payload.doc_type || 'Document',
-    doc_type: payload.doc_type,
-    document_type: payload.doc_type,
+    doc_type: payload.doc_type || 'General',
+    document_type: payload.doc_type || 'General',
     file_size: payload.file_size || '1.2 MB',
     status: 'Submitted',
     uploaded_at: now,
-    created_at: now,
-    updated_at: now,
   });
 
   if (error) {
@@ -208,11 +204,8 @@ export async function updateDocumentStatus(
     .update({
       status,
       reviewer_notes: notesText,
-      rejection_reason: status === 'Rejected' ? notesText : null,
       reviewer_id: reviewerId || null,
       reviewed_at: now,
-      verified_at: (status === 'Approved') ? now : null,
-      updated_at: now,
     })
     .eq('id', id)
     .select();
