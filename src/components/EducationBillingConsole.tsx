@@ -325,34 +325,10 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
           setMessage('Payment checkout was cancelled by the user.');
         },
       });
-    } catch {
-      // In testing environments or if razorpay.com is unreachable, submit standard UPI reference
-      try {
-        const latest = await listEducationPayments(targetId);
-        const currentFee = fees.find(f => f.id === activeFee.id);
-        if (!currentFee || currentFee.recipient !== 'ferex') {
-          throw new Error('This fee is not available.');
-        }
-        await recordEducationPayment({
-          studentId: targetId,
-          studentName,
-          fee: currentFee,
-          total,
-          parts: [{ method: 'UPI', amount: total, reference: parts[0]?.reference || `UPI-${Date.now()}`, date: today() }],
-          notes,
-          studentSubmission: true,
-          batchId,
-          applicationId: application?.id
-        });
-        setActiveFee(null);
-        setMessage('UPI reference submitted. Verified and recorded.');
-        window.dispatchEvent(new Event('ferex_payment_change'));
-        await load();
-      } catch (e: any) {
-        setMessage(e.message);
-      } finally {
-        setBusy(false);
-      }
+    } catch (err: any) {
+      setBusy(false);
+      const errMsg = err?.message || 'Payment checkout initialization was interrupted.';
+      setMessage(`${errMsg} You can retry or complete payment by entering your UPI reference below.`);
     }
   };
 
