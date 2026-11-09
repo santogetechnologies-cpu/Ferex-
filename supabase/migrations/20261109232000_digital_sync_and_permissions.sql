@@ -191,3 +191,4 @@ DROP POLICY IF EXISTS "permit_all_digital_meetings" ON public.digital_meetings;
 CREATE POLICY "permit_all_digital_meetings" ON public.digital_meetings FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
 COMMIT;
+
