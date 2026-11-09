@@ -52,6 +52,7 @@ export const DigitalClients: React.FC = () => {
   const [clientInvoices, setClientInvoices] = useState<any[]>([]);
 
   const [clientTypeFilter, setClientTypeFilter] = useState<'All' | 'Internal' | 'External'>('All');
+  const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Lead' | 'Inactive'>('All');
   
   // Detailed Add Client Form State
   const [newClient, setNewClient] = useState({
@@ -80,10 +81,9 @@ export const DigitalClients: React.FC = () => {
     try {
       const data = await getDigitalClients();
       if (Array.isArray(data) && data.length > 0) {
-        // Only active/closed clients are shown in Digital Agency Clients Directory.
-        // Unconverted leads (status === 'Lead') remain in Opportunity Leads until converted.
-        const activeClients = data.filter(d => !d.is_deleted && d.status !== 'Lead');
-        setClients(activeClients.map(d => ({
+        // Show all active accounts, including Lead status accounts created from Add Enterprise Client
+        const validClients = data.filter(d => !d.is_deleted);
+        setClients(validClients.map(d => ({
           id: d.id,
           name: d.company_name || d.name || 'Enterprise Account',
           contact: d.contact_person || 'Point of Contact',
@@ -230,12 +230,13 @@ export const DigitalClients: React.FC = () => {
 
   const filteredClients = clients.filter(c => {
     const matchType = clientTypeFilter === 'All' || c.client_type?.toLowerCase() === clientTypeFilter.toLowerCase();
+    const matchStatus = statusFilter === 'All' || c.status?.toLowerCase() === statusFilter.toLowerCase();
     const matchSearch =
       (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (c.contact || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (c.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (c.type || '').toLowerCase().includes(searchQuery.toLowerCase());
-    return matchType && matchSearch;
+    return matchType && matchStatus && matchSearch;
   });
 
   const totalPages = Math.ceil(filteredClients.length / pageSize) || 1;
@@ -251,7 +252,7 @@ export const DigitalClients: React.FC = () => {
             <Users className="w-5 h-5 text-[#58051E]" /> Digital Agency Clients Directory
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Ferex Digital ERP • Centralized directory of Internal Subsidiaries & External Direct Enterprise Accounts.
+            Ferex Digital ERP • Centralized directory of Internal Subsidiaries, External Accounts & Leads.
           </p>
         </div>
         <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
@@ -259,7 +260,7 @@ export const DigitalClients: React.FC = () => {
         </Button>
       </div>
 
-      <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+      <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3 flex-wrap">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
@@ -271,7 +272,7 @@ export const DigitalClients: React.FC = () => {
           />
         </div>
 
-        {/* Client Type Filter Tabs (Only All / Internal / External) */}
+        {/* Client Type Filter Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
           {(['All', 'Internal', 'External'] as const).map((tab) => (
             <button
@@ -283,7 +284,24 @@ export const DigitalClients: React.FC = () => {
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
-              {tab === 'All' ? 'All Clients' : tab === 'Internal' ? 'Internal Subsidiaries' : 'External Accounts'}
+              {tab === 'All' ? 'All Types' : tab === 'Internal' ? 'Internal Subsidiaries' : 'External Accounts'}
+            </button>
+          ))}
+        </div>
+
+        {/* Status Filter Tabs (All / Active / Lead / Inactive) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+          {(['All', 'Active', 'Lead', 'Inactive'] as const).map((st) => (
+            <button
+              key={st}
+              onClick={() => { setStatusFilter(st); setCurrentPage(1); }}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                statusFilter === st
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 border border-slate-200/70 hover:bg-slate-200'
+              }`}
+            >
+              {st === 'All' ? 'All Statuses' : st}
             </button>
           ))}
         </div>
@@ -314,7 +332,11 @@ export const DigitalClients: React.FC = () => {
                     )}
                   </div>
                   <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
-                    c.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200'
+                    c.status === 'Active'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : c.status === 'Lead'
+                      ? 'bg-amber-50 text-amber-700 border-amber-300'
+                      : 'bg-slate-50 text-slate-700 border-slate-200'
                   }`}>
                     {c.status}
                   </span>

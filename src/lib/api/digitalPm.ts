@@ -88,7 +88,9 @@ async function resolvePMIdentity(pm?: DigitalPMIdentity): Promise<{ id?: string;
   let id = pm?.id;
   let email = pm?.email;
   let name = pm?.full_name || pm?.name;
-  let role = '';
+  let role = (typeof window !== 'undefined' ? (localStorage.getItem('ferex_current_role') || '') : '').toLowerCase();
+  if (!email && typeof window !== 'undefined') email = localStorage.getItem('ferex_current_email') || undefined;
+  if (!name && typeof window !== 'undefined') name = localStorage.getItem('ferex_current_name') || undefined;
 
   if (!id && !email && !name) {
     const { data: authData } = await supabase.auth.getUser();

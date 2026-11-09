@@ -4,7 +4,7 @@ import {
   CreditCard, Search, Plus, CheckCircle2, Download, Trash2, X, Printer,
   Receipt, Eye, FolderKanban, Building2, ChevronDown, ChevronUp, Clock, Filter,
   DollarSign, Shield, AlertCircle, ArrowUpRight, FileText, Check, Layers,
-  Calendar, RefreshCw, User, Tag, Split
+  Calendar, RefreshCw, User, Tag, Split, Sliders
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -17,11 +17,15 @@ import {
   recordPaymentTransaction,
   getBillingDocuments,
   issueCreditNote,
+  updateCentralizedBillingScope,
   type CentralizedProjectBilling,
   type PaymentPart,
   type ActualPaymentTransaction,
   type PaymentMethodEntry,
-  type BillingDocument
+  type BillingDocument,
+  type ScopeItem,
+  type MilestoneSplitType,
+  type CustomMilestonePart
 } from '../../lib/api/digitalBilling';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDigitalPermissions } from '../../hooks/usePermissions';
@@ -76,6 +80,23 @@ function printReceiptPDF(receipt: BillingDocument, transaction?: ActualPaymentTr
   </div>
 
   <div class="divider"></div>
+
+  ${(receipt.doc_number.includes('COMPLETED') || receipt.part_number === 99) ? `
+  <div style="padding:14px 20px;background:#ecfdf5;border-radius:10px;border:2px solid #059669;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <div style="font-size:15px;font-weight:900;color:#065f46;text-transform:uppercase">FINAL SETTLEMENT TAX INVOICE — 100% PAID</div>
+      <div style="font-size:11px;font-weight:600;color:#047857;margin-top:2px">All milestones fully completed and settled in full. No dues pending.</div>
+    </div>
+    <div style="padding:6px 14px;background:#059669;color:#fff;border-radius:20px;font-size:11px;font-weight:900;letter-spacing:1px">COMPLETED</div>
+  </div>
+  ` : ''}
+
+  ${receipt.notes?.includes('Partial payment') ? `
+  <div style="padding:10px 16px;background:#eff6ff;border-radius:8px;border:1px solid #bfdbfe;margin-bottom:16px">
+    <div style="font-size:11px;font-weight:800;color:#1e40af;text-transform:uppercase">PARTIAL MILESTONE SETTLEMENT INVOICE</div>
+    <div style="font-size:11px;color:#3b82f6;margin-top:2px">Partial settlement credited. The remaining milestone balance remains open as per schedule.</div>
+  </div>
+  ` : ''}
 
   <div style="display:flex;justify-content:space-between;margin-bottom:24px">
     <div>
@@ -194,6 +215,81 @@ export const DigitalPayments: React.FC = () => {
     amount: 0,
     reason: ''
   });
+
+  // Scope and Milestone Customization Modal
+  const [showCustomizeModal, setShowCustomizeModal] = useState(false);
+  const [customizingBilling, setCustomizingBilling] = useState<CentralizedProjectBilling | null>(null);
+  const [customScopeItems, setCustomScopeItems] = useState<ScopeItem[]>([]);
+  const [customMilestoneType, setCustomMilestoneType] = useState<MilestoneSplitType>('advance_30');
+  const [customSplitNumber, setCustomSplitNumber] = useState<1 | 2 | 3>(2);
+  const [customPartsList, setCustomPartsList] = useState<CustomMilestonePart[]>([
+    { id: '1', label: 'Milestone 1: 30% Advance Deposit', percentage: 30, amount: 0 },
+    { id: '2', label: 'Milestone 2: 70% Final Delivery', percentage: 70, amount: 0 },
+  ]);
+  const [customReason, setCustomReason] = useState('Payment split & scope customization');
+
+  const openCustomizeModal = (b: CentralizedProjectBilling) => {
+    setCustomizingBilling(b);
+    setCustomScopeItems(b.scope_items && b.scope_items.length > 0 ? [...b.scope_items] : [
+      { id: '1', title: 'Core Digital Deliverables', description: '', amount: b.total_agreed_amount, type: 'base' }
+    ]);
+    const mType = b.milestone_split_type || (b.payment_split === 1 ? 'full' : b.payment_split === 3 ? 'three_milestones' : 'advance_30');
+    setCustomMilestoneType(mType as any);
+    setCustomSplitNumber(b.payment_split as 1 | 2 | 3);
+    if (b.custom_milestone_parts && b.custom_milestone_parts.length > 0) {
+      setCustomPartsList(b.custom_milestone_parts.map((p, idx) => ({ id: String(idx + 1), label: p.label, percentage: p.percentage })));
+    } else {
+      setCustomPartsList([
+        { id: '1', label: 'Milestone 1: 30% Advance Deposit', percentage: 30, amount: Math.round(b.total_agreed_amount * 0.3) },
+        { id: '2', label: 'Milestone 2: 70% Final Delivery', percentage: 70, amount: Math.round(b.total_agreed_amount * 0.7) },
+      ]);
+    }
+    setCustomReason('Milestone schedule & add-on scope customization');
+    setShowCustomizeModal(true);
+  };
+
+  const handleSaveCustomization = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customizingBilling) return;
+
+    const newTotal = customScopeItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    if (newTotal <= 0) {
+      showToast('Total project value must be greater than zero');
+      return;
+    }
+
+    if (customMilestoneType === 'custom') {
+      const sumPct = customPartsList.reduce((s, p) => s + Number(p.percentage || 0), 0);
+      if (Math.abs(sumPct - 100) > 0.5) {
+        showToast(`Custom milestone percentages must sum exactly to 100% (currently ${sumPct}%)`);
+        return;
+      }
+    }
+
+    const effectiveSplit: 1 | 2 | 3 = customMilestoneType === 'custom'
+      ? (customPartsList.length === 1 ? 1 : customPartsList.length >= 3 ? 3 : 2)
+      : customSplitNumber;
+
+    try {
+      await updateCentralizedBillingScope({
+        billingId: customizingBilling.id,
+        newScopeItems: customScopeItems,
+        newPaymentSplit: effectiveSplit,
+        newMilestoneSplitType: customMilestoneType,
+        newAdvancePercentage: customMilestoneType === 'advance_30' ? 30 : customMilestoneType === 'advance_50' ? 50 : undefined,
+        newCustomParts: customMilestoneType === 'custom' ? customPartsList : undefined,
+        reason: customReason.trim() || 'Milestone and scope customization',
+        userName: profile?.full_name || 'Digital Admin',
+        userEmail: profile?.email || ''
+      });
+
+      setShowCustomizeModal(false);
+      showToast(`✅ Updated payment milestones & scope for "${customizingBilling.project_title}" (Total: ₹${newTotal.toLocaleString('en-IN')})`);
+      await loadData();
+    } catch (err: any) {
+      showToast(`Error: ${err.message}`);
+    }
+  };
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -607,6 +703,15 @@ export const DigitalPayments: React.FC = () => {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-100"
+                        onClick={() => openCustomizeModal(billing)}
+                        title="Customize split percentage and add extra scope amounts"
+                      >
+                        <Sliders className="w-3.5 h-3.5 mr-1 text-[#58051E]" /> Customize Split & Scope
+                      </Button>
                       <Button
                         size="sm"
                         className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold"
@@ -1295,6 +1400,256 @@ export const DigitalPayments: React.FC = () => {
               </form>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* ── CUSTOMIZE MILESTONES & SCOPE MODAL ── */}
+      <AnimatePresence>
+        {showCustomizeModal && customizingBilling && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-5 border border-slate-200 shadow-2xl my-8 max-h-[90vh] overflow-y-auto text-left"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <Sliders className="w-5 h-5 text-[#58051E]" /> Customize Milestones & Commercial Scope
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {customizingBilling.project_title} • {customizingBilling.client_name}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowCustomizeModal(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveCustomization} className="space-y-4">
+                {/* 1. Scope Items & Extra Amount */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <label className="text-[10px] font-extrabold uppercase text-slate-400 block">Deliverables & Extra Amounts</label>
+                      <p className="text-[11px] text-slate-500 font-medium">Add base scope items or extra amounts (extensions, add-on deliverables, server costs)</p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCustomScopeItems(prev => [
+                        ...prev,
+                        { id: Date.now().toString(), title: 'Add-on Scope / Extra Deliverable', description: '', amount: 0, type: 'extra' }
+                      ])}
+                      className="text-[10px] h-7 font-bold border-slate-300"
+                    >
+                      <Plus className="w-3 h-3 mr-1 text-[#58051E]" /> Add Extra Amount
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {customScopeItems.map((item, idx) => (
+                      <div key={item.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-center gap-2">
+                        <div className="flex-1 w-full">
+                          <label className="block text-[9px] font-bold uppercase text-slate-400 mb-0.5">
+                            {item.type === 'extra' ? 'Scope Extension / Extra' : 'Deliverable Item'} #{idx + 1}
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={item.title}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setCustomScopeItems(prev => prev.map(i => i.id === item.id ? { ...i, title: val } : i));
+                            }}
+                            className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
+                          />
+                        </div>
+                        <div className="w-full sm:w-36">
+                          <label className="block text-[9px] font-bold uppercase text-slate-400 mb-0.5">Amount (₹)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            required
+                            value={item.amount || ''}
+                            onChange={e => {
+                              const val = Number(e.target.value);
+                              setCustomScopeItems(prev => prev.map(i => i.id === item.id ? { ...i, amount: val } : i));
+                            }}
+                            className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-black text-emerald-700"
+                          />
+                        </div>
+                        {customScopeItems.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setCustomScopeItems(prev => prev.filter(i => i.id !== item.id))}
+                            className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 mt-4 sm:mt-0 cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Total Scope Calculation */}
+                  {(() => {
+                    const totalCalc = customScopeItems.reduce((s, i) => s + Number(i.amount || 0), 0);
+                    return (
+                      <div className="mt-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs font-bold text-emerald-800">
+                        <span>New Agreed Project Total</span>
+                        <span className="text-sm font-black">₹{totalCalc.toLocaleString('en-IN')}</span>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* 2. Milestone Split Selection */}
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1.5">
+                    Milestone Split Structure (Must Match 100% of Total)
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                    {([
+                      { id: 'advance_30', label: '30% Advance', desc: '30% / 70%', split: 2 as const },
+                      { id: 'advance_50', label: '50% Advance', desc: '50% / 50%', split: 2 as const },
+                      { id: 'three_milestones', label: '3-Part Split', desc: '40% / 30% / 30%', split: 3 as const },
+                      { id: 'custom', label: 'Custom Split', desc: 'Custom % Parts', split: 2 as const },
+                    ] as const).map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          setCustomMilestoneType(opt.id as any);
+                          setCustomSplitNumber(opt.id === 'custom' ? (customPartsList.length >= 3 ? 3 : 2) : opt.split);
+                        }}
+                        className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
+                          customMilestoneType === opt.id
+                            ? 'bg-[#58051E] text-white border-[#58051E] shadow-xs'
+                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <div className="text-xs font-black">{opt.label}</div>
+                        <div className={`text-[10px] ${customMilestoneType === opt.id ? 'text-white/80' : 'text-slate-400'}`}>{opt.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Custom Parts Builder */}
+                  {customMilestoneType === 'custom' && (
+                    <div className="p-3 bg-purple-50/60 border border-purple-200 rounded-xl space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-purple-900">Custom Milestone Breakdown</span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const partNum = customPartsList.length + 1;
+                            setCustomPartsList(prev => [
+                              ...prev,
+                              { id: Date.now().toString(), label: `Milestone ${partNum}: Project Stage`, percentage: 0, amount: 0 }
+                            ]);
+                          }}
+                          className="text-[10px] h-7 border-purple-300 text-purple-800"
+                        >
+                          <Plus className="w-3 h-3 mr-1" /> Add Milestone
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        {customPartsList.map((cp, idx) => {
+                          const totalVal = customScopeItems.reduce((s, i) => s + Number(i.amount || 0), 0);
+                          const calculatedAmt = Math.round((totalVal * (cp.percentage || 0)) / 100);
+                          return (
+                            <div key={cp.id} className="p-2.5 bg-white rounded-lg border border-purple-100 flex items-center gap-2">
+                              <input
+                                type="text"
+                                required
+                                value={cp.label}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setCustomPartsList(prev => prev.map(p => p.id === cp.id ? { ...p, label: val } : p));
+                                }}
+                                className="flex-1 h-8 px-2 bg-slate-50 border border-slate-200 rounded text-xs font-semibold"
+                                placeholder={`Milestone ${idx + 1}`}
+                              />
+                              <div className="flex items-center gap-1 w-24">
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={100}
+                                  required
+                                  value={cp.percentage || ''}
+                                  onChange={e => {
+                                    const val = Number(e.target.value);
+                                    setCustomPartsList(prev => prev.map(p => p.id === cp.id ? { ...p, percentage: val } : p));
+                                  }}
+                                  className="w-16 h-8 px-2 bg-slate-50 border border-slate-200 rounded text-xs font-bold text-center"
+                                />
+                                <span className="text-xs font-bold text-slate-500">%</span>
+                              </div>
+                              <span className="text-xs font-black text-purple-900 w-28 text-right">
+                                ₹{calculatedAmt.toLocaleString('en-IN')}
+                              </span>
+                              {customPartsList.length > 2 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomPartsList(prev => prev.filter(p => p.id !== cp.id))}
+                                  className="p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {(() => {
+                        const sumPct = customPartsList.reduce((s, p) => s + Number(p.percentage || 0), 0);
+                        const isSum100 = Math.abs(sumPct - 100) < 0.5;
+                        return (
+                          <div className={`p-2 rounded-lg text-xs font-bold flex items-center justify-between ${
+                            isSum100 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            <span>Total Custom Percentages:</span>
+                            <span className="font-black">{sumPct}% {isSum100 ? '✓ Matches 100%' : '⚠ Must equal exactly 100%'}</span>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+
+                {/* Reason for change */}
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Reason / Change Notes</label>
+                  <input
+                    type="text"
+                    value={customReason}
+                    onChange={e => setCustomReason(e.target.value)}
+                    placeholder="e.g. Scope extension approved by client with milestone adjustment"
+                    className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2 border-t border-slate-100">
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs" onClick={() => setShowCustomizeModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs bg-[#58051E] hover:bg-[#430316]">
+                    Save Custom Milestones & Scope
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

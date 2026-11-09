@@ -7,9 +7,16 @@ import { getDigitalProjects, getDigitalClients, type DigitalProjectRecord } from
 export interface ScopeItem {
   id: string;
   title: string;
-  description: string;
+  description?: string;
   amount: number;
   type: 'base' | 'extra' | 'special_charge';
+}
+
+export interface CustomMilestonePart {
+  id?: string;
+  label: string;
+  percentage: number;
+  amount?: number;
 }
 
 export interface PaymentPart {
@@ -794,10 +801,15 @@ export async function recordPaymentTransaction(payload: {
   } catch {}
 
   // 6. Automatic Document Generation (Receipt / Invoice)
+  const isMilestonePartial = newPartRemaining > 0;
+  const docNotes = payload.notes || (isMilestonePartial
+    ? `Partial payment of ₹${totalFromMethods.toLocaleString('en-IN')} received towards ${targetPart.label} (Agreed Milestone Total: ₹${targetPart.configured_amount.toLocaleString('en-IN')}). Milestone balance due: ₹${newPartRemaining.toLocaleString('en-IN')}. Overall project balance: ₹${overallRemaining.toLocaleString('en-IN')}.`
+    : `Payment of ₹${totalFromMethods.toLocaleString('en-IN')} received. Milestone "${targetPart.label}" is settled in full.`);
+
   const billingDoc: BillingDocument = {
     id: generateUUID(),
     doc_number: receiptNo,
-    doc_type: docType,
+    doc_type: isMilestonePartial ? 'Tax Invoice' : docType,
     project_id: payload.project_id,
     project_title: payload.project_title || billing.project_title,
     client_id: payload.client_id || billing.client_id,
@@ -812,15 +824,45 @@ export async function recordPaymentTransaction(payload: {
     issued_date: payload.payment_date,
     status: 'Settled',
     balance_remaining: overallRemaining,
-    notes: payload.notes || `Received towards ${targetPart.label}`,
+    notes: docNotes,
     created_at: new Date().toISOString(),
     created_by: payload.recorded_by
   };
 
+  // 6b. If 100% full project payment is achieved across all milestones, auto-generate Final Completed Tax Invoice!
+  const generatedDocs: BillingDocument[] = [billingDoc];
+  if (overallRemaining <= 0) {
+    const finalSuffix = Math.floor(1000 + Math.random() * 9000);
+    const finalDocNo = `INV-DIG-COMPLETED-${year}-${finalSuffix}`;
+    const finalSettlementDoc: BillingDocument = {
+      id: generateUUID(),
+      doc_number: finalDocNo,
+      doc_type: 'Tax Invoice',
+      project_id: payload.project_id,
+      project_title: payload.project_title || billing.project_title,
+      client_id: payload.client_id || billing.client_id,
+      client_name: payload.client_name || billing.client_name,
+      payment_part_label: '100% Contract Settlement (All Milestones Settled)',
+      part_number: 99,
+      transaction_id: transaction.id,
+      amount: billing.total_agreed_amount,
+      tax_amount: 0,
+      total_settled: billing.total_agreed_amount,
+      payment_methods: payload.payment_methods,
+      issued_date: payload.payment_date,
+      status: 'Settled',
+      balance_remaining: 0,
+      notes: `FULL CONTRACT SETTLEMENT COMPLETE — All ${billing.payment_parts.length} milestones paid in full. Total project value of ₹${billing.total_agreed_amount.toLocaleString('en-IN')} fully settled. Dues cleared.`,
+      created_at: new Date().toISOString(),
+      created_by: payload.recorded_by
+    };
+    generatedDocs.unshift(finalSettlementDoc);
+  }
+
   try {
     const rawDocs = localStorage.getItem('ferex_digital_billing_documents');
     const docs: BillingDocument[] = rawDocs ? JSON.parse(rawDocs) : [];
-    localStorage.setItem('ferex_digital_billing_documents', JSON.stringify([billingDoc, ...docs]));
+    localStorage.setItem('ferex_digital_billing_documents', JSON.stringify([...generatedDocs, ...docs]));
   } catch {}
 
   // Sync payment and invoice to Supabase database
@@ -829,6 +871,7 @@ export async function recordPaymentTransaction(payload: {
     const isFullyPaid = overallRemaining <= 0;
     const updateProjectPayload: Record<string, any> = {
       payment_status: isFullyPaid ? 'Paid' : 'Partially Paid',
+      balance_amount: overallRemaining,
       updated_at: new Date().toISOString()
     };
     if (targetPart.part_number === 1) {
@@ -838,7 +881,7 @@ export async function recordPaymentTransaction(payload: {
     }
     await supabase.from('digital_projects').update(updateProjectPayload).eq('id', payload.project_id);
 
-    // 2. Insert into digital_invoices
+    // 2. Insert interim receipt / milestone invoice into digital_invoices
     await supabase.from('digital_invoices').upsert({
       id: generateUUID(),
       client_id: payload.client_id || null,
@@ -848,9 +891,28 @@ export async function recordPaymentTransaction(payload: {
       tax_amount: 0,
       status: 'Paid',
       currency: 'INR',
+      notes: docNotes,
       paid_at: new Date(payload.payment_date).toISOString(),
       created_at: new Date().toISOString()
     }, { onConflict: 'invoice_no' });
+
+    // 2b. If project 100% complete, also insert the Final Completed Tax Invoice into digital_invoices
+    if (overallRemaining <= 0 && generatedDocs.length > 1) {
+      const finalDoc = generatedDocs[0];
+      await supabase.from('digital_invoices').upsert({
+        id: generateUUID(),
+        client_id: payload.client_id || null,
+        project_id: payload.project_id || null,
+        invoice_no: finalDoc.doc_number,
+        amount: billing.total_agreed_amount,
+        tax_amount: 0,
+        status: 'Paid',
+        currency: 'INR',
+        notes: finalDoc.notes,
+        paid_at: new Date(payload.payment_date).toISOString(),
+        created_at: new Date().toISOString()
+      }, { onConflict: 'invoice_no' });
+    }
 
     // 3. Insert into digital_payments / digital_collections if available
     try {

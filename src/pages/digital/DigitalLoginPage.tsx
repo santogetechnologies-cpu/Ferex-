@@ -40,6 +40,9 @@ export const DigitalLoginPage: React.FC = () => {
 
       // 2. Fallback demo session credentials for digital agency admin, manager & clients
       if (cleanEmail === 'digital@ferex.com' && (password === 'digital123' || password === 'admin123')) {
+        localStorage.setItem('ferex_current_email', cleanEmail);
+        localStorage.setItem('ferex_current_role', 'digital_admin');
+        localStorage.setItem('ferex_current_name', 'Ferex Digital Director');
         localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
           email: cleanEmail,
           role: 'digital_admin',
@@ -65,6 +68,9 @@ export const DigitalLoginPage: React.FC = () => {
       }
 
       if (cleanEmail === 'pm@ferex.com' || cleanEmail === 'digimanager@ferex.com' || cleanEmail.includes('pm') || cleanEmail.includes('manager')) {
+        localStorage.setItem('ferex_current_email', cleanEmail);
+        localStorage.setItem('ferex_current_role', 'digital_manager');
+        localStorage.setItem('ferex_current_name', 'Digital Project Manager');
         localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
           email: cleanEmail,
           role: 'project_manager',
@@ -91,6 +97,9 @@ export const DigitalLoginPage: React.FC = () => {
       }
 
       if (cleanEmail === 'client@ferex.com' || cleanEmail.includes('client') || cleanEmail.includes('nexus')) {
+        localStorage.setItem('ferex_current_email', cleanEmail);
+        localStorage.setItem('ferex_current_role', 'digital_client');
+        localStorage.setItem('ferex_current_name', 'Nexus FinTech Representative');
         localStorage.setItem(`ferex_admin_cred_${cleanEmail}`, JSON.stringify({
           email: cleanEmail,
           role: 'digital_client',
