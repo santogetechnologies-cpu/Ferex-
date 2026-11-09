@@ -115,7 +115,7 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
   const keyId = (configuredKey && configuredKey !== 'rzp_test_default') ? configuredKey : 'rzp_test_TvtcmQYBnXjb9R';
 
   // Step 1: Create Order via backend API
-  let orderData: { order_id: string; amount: number; currency: string };
+  let orderData: { order_id: string; amount: number; currency: string; key_id?: string };
   try {
     const res = await fetch('/api/create-order', {
       method: 'POST',
@@ -143,7 +143,7 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
 
   // Step 2: Open Razorpay modal with order_id
   const rzpOptions = {
-    key: keyId,
+    key: orderData.key_id || keyId,
     amount: orderData.amount,
     currency: orderData.currency,
     name,
@@ -152,7 +152,7 @@ export async function openRazorpayCheckout(options: RazorpayCheckoutOptions): Pr
     prefill: {
       name: prefill?.name || '',
       email: prefill?.email || '',
-      contact: prefill?.contact || '',
+      contact: prefill?.contact?.trim() || '+919876543210',
     },
     notes: notes || {},
     theme: {

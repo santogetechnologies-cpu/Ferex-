@@ -255,10 +255,21 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
         ? gateway.razorpay.keyId
         : ((typeof import.meta !== 'undefined' && import.meta.env?.VITE_RAZORPAY_KEY_ID) || 'rzp_test_TvtcmQYBnXjb9R');
 
+      // For Razorpay UPI gateway in India, convert foreign amounts to INR
+      const feeCur = (activeFee.currency || 'INR').toUpperCase();
+      let rzpAmount = total;
+      if (feeCur === 'EUR') {
+        rzpAmount = Math.round(total * 90);
+      } else if (feeCur === 'USD') {
+        rzpAmount = Math.round(total * 84);
+      } else if (feeCur === 'PLN') {
+        rzpAmount = Math.round(total * 21);
+      }
+
       await openRazorpayCheckout({
         keyId: resolvedKeyId,
-        amount: total,
-        currency: activeFee.currency || 'INR',
+        amount: rzpAmount,
+        currency: 'INR',
         name: 'FEREX HIGHER EDUCATION',
         description: activeFee.title,
         receipt: `EDU-${batchId}-${Date.now().toString().slice(-4)}`,
@@ -270,7 +281,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
         prefill: {
           name: studentName,
           email: user?.email || '',
-          contact: profile?.phone || '',
+          contact: profile?.phone?.trim() || '+919876543210',
         },
         onSuccess: async (verified) => {
           try {
@@ -306,7 +317,8 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
         },
         onError: (err) => {
           setBusy(false);
-          setMessage(err.description || err.message || 'Razorpay payment was declined or verification failed.');
+          const msg = err.description || err.message || 'Payment attempt was not completed.';
+          setMessage(`${msg} You can retry or complete payment using the UPI QR / manual reference below.`);
         },
         onDismiss: () => {
           setBusy(false);
@@ -987,7 +999,9 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
               <div className="space-y-4 text-center">
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 inline-block">
                   <span className="text-2xl font-black text-[#58051E]">
-                    {money(total, 'INR')}
+                    {activeFee?.currency && activeFee.currency !== 'INR'
+                      ? `${money(total, activeFee.currency)} (~${money(activeFee.currency === 'EUR' ? Math.round(total * 90) : activeFee.currency === 'USD' ? Math.round(total * 84) : activeFee.currency === 'PLN' ? Math.round(total * 21) : total, 'INR')})`
+                      : money(total, 'INR')}
                   </span>
                 </div>
 

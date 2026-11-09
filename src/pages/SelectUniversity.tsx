@@ -38,6 +38,79 @@ const COUNTRY_FLAGS: Record<string, string> = {
   Lithuania: '🇱🇹'
 };
 
+export function matchesDegreeLevel(prog: any, degree: string): boolean {
+  if (!degree) return true;
+  const dNorm = degree.toLowerCase();
+  const isBach = dNorm.includes('bachelor') || dNorm.includes('ba') || dNorm.includes('bsc') || dNorm.includes('undergrad');
+  const isMast = dNorm.includes('master') || dNorm.includes('ma') || dNorm.includes('msc') || dNorm.includes('mba') || dNorm.includes('postgrad');
+  const isDoc = dNorm.includes('phd') || dNorm.includes('doctor');
+  const isDip = dNorm.includes('diploma') || dNorm.includes('pathway') || dNorm.includes('certificate');
+
+  const pLevel = ((typeof prog === 'string' ? '' : prog?.degree_level) || '').toLowerCase();
+  const pName = ((typeof prog === 'string' ? prog : prog?.name) || '').toLowerCase();
+  const pCategory = ((typeof prog === 'string' ? '' : prog?.category) || '').toLowerCase();
+  const combined = `${pLevel} ${pName} ${pCategory}`;
+
+  if (isBach) {
+    if (pLevel.includes('master') || pLevel.includes('msc') || pLevel.includes('ma') || pLevel.includes('magister') || pLevel.includes('mba') || pLevel.includes('postgrad') || pLevel.includes('phd') || pLevel.includes('doctor')) {
+      return false;
+    }
+    if (pLevel.includes('bachelor') || pLevel.includes('bsc') || pLevel.includes('ba') || pLevel.includes('beng') || pLevel.includes('bba') || pLevel.includes('undergrad') || pLevel.includes('licencjat') || pLevel.includes('inżynier') || pLevel.includes('integrated')) {
+      return true;
+    }
+    if (combined.includes('bachelor') || combined.includes('(bsc)') || combined.includes('(ba)') || combined.includes('(beng)') || combined.includes('(bba)') || combined.includes('licencjat') || combined.includes('b.tech') || combined.includes('b.sc')) {
+      return true;
+    }
+    if (combined.includes('master') || combined.includes('(msc)') || combined.includes('(ma)') || combined.includes('magister') || combined.includes('m.tech') || combined.includes('mba')) {
+      return false;
+    }
+    return !pLevel;
+  }
+
+  if (isMast) {
+    if (pLevel.includes('bachelor') || pLevel.includes('bsc') || pLevel.includes('ba') || pLevel.includes('beng') || pLevel.includes('bba') || pLevel.includes('undergrad') || pLevel.includes('licencjat') || pLevel.includes('inżynier')) {
+      if (!pLevel.includes('master') && !pLevel.includes('msc') && !pLevel.includes('magister')) {
+        return false;
+      }
+    }
+    if (pLevel.includes('master') || pLevel.includes('msc') || pLevel.includes('ma') || pLevel.includes('meng') || pLevel.includes('magister') || pLevel.includes('mba') || pLevel.includes('postgrad') || pLevel.includes('integrated')) {
+      return true;
+    }
+    if (combined.includes('master') || combined.includes('(msc)') || combined.includes('(ma)') || combined.includes('(meng)') || combined.includes('(mba)') || combined.includes('magister') || combined.includes('m.tech') || combined.includes('m.sc')) {
+      return true;
+    }
+    if (combined.includes('bachelor') || combined.includes('(bsc)') || combined.includes('(ba)') || combined.includes('(beng)') || combined.includes('(bba)') || combined.includes('licencjat')) {
+      return false;
+    }
+    return !pLevel;
+  }
+
+  if (isDoc) {
+    return combined.includes('phd') || combined.includes('doctor') || combined.includes('doctoral');
+  }
+
+  if (isDip) {
+    return combined.includes('diploma') || combined.includes('pathway') || combined.includes('foundation') || combined.includes('certificate');
+  }
+
+  return true;
+}
+
+export function getFilteredCourses(uni: any, degree: string): any[] {
+  if (!uni) return [];
+  if (uni.course_programs && Array.isArray(uni.course_programs) && uni.course_programs.length > 0) {
+    const matched = uni.course_programs.filter((p: any) => matchesDegreeLevel(p, degree));
+    if (matched.length > 0) return matched;
+    return uni.course_programs;
+  }
+  if (uni.programs && Array.isArray(uni.programs) && uni.programs.length > 0) {
+    const matched = uni.programs.filter((p: string) => matchesDegreeLevel(p, degree));
+    if (matched.length > 0) return matched;
+    return uni.programs;
+  }
+  return [];
+}
+
 export const SelectUniversity: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
@@ -168,7 +241,23 @@ export const SelectUniversity: React.FC = () => {
 
   const handleOpenApply = (uni: any) => {
     setApplyUni(uni);
-    setSelectedCourse(uni.programs?.[0] || 'Computer Science & Engineering');
+    const initialLevel = degreeLevel || "Bachelor's Degree";
+    const available = getFilteredCourses(uni, initialLevel);
+    const firstCourse = available[0];
+    const initialName = typeof firstCourse === 'object' ? firstCourse?.name : (firstCourse || uni.programs?.[0] || 'Higher Studies');
+    setSelectedCourse(initialName);
+  };
+
+  const handleDegreeLevelChange = (newLevel: string) => {
+    setDegreeLevel(newLevel);
+    if (applyUni) {
+      const available = getFilteredCourses(applyUni, newLevel);
+      const firstCourse = available[0];
+      const nextName = typeof firstCourse === 'object' ? firstCourse?.name : (firstCourse || applyUni.programs?.[0] || '');
+      if (nextName) {
+        setSelectedCourse(nextName);
+      }
+    }
   };
 
   const handleApplySubmit = async (e: React.FormEvent) => {
@@ -663,7 +752,7 @@ export const SelectUniversity: React.FC = () => {
                       <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Degree Level</label>
                       <select
                         value={degreeLevel}
-                        onChange={(e) => setDegreeLevel(e.target.value)}
+                        onChange={(e) => handleDegreeLevelChange(e.target.value)}
                         className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer"
                       >
                         <option value="Bachelor's Degree">Bachelor's Degree (3-4 Yrs)</option>
@@ -694,23 +783,32 @@ export const SelectUniversity: React.FC = () => {
 
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Select Program / Major</label>
-                    <select
-                      value={selectedCourse}
-                      onChange={(e) => setSelectedCourse(e.target.value)}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer"
-                    >
-                      {(applyUni.course_programs && applyUni.course_programs.length > 0) ? (
-                        applyUni.course_programs.map((prog: any) => (
-                          <option key={prog.id || prog.name} value={prog.name}>
-                            {prog.name} ({prog.tuition_fee}{prog.degree_level ? ` • ${prog.degree_level}` : ''})
-                          </option>
-                        ))
-                      ) : (
-                        applyUni.programs?.map((prog: string) => (
-                          <option key={prog} value={prog}>{prog}</option>
-                        ))
-                      )}
-                    </select>
+                    {(() => {
+                      const filteredPrograms = getFilteredCourses(applyUni, degreeLevel);
+                      return (
+                        <select
+                          value={selectedCourse}
+                          onChange={(e) => setSelectedCourse(e.target.value)}
+                          className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer"
+                        >
+                          {filteredPrograms.length > 0 ? (
+                            filteredPrograms.map((prog: any) => {
+                              const isObj = typeof prog === 'object';
+                              const name = isObj ? prog.name : prog;
+                              const fee = isObj ? prog.tuition_fee : '';
+                              const level = isObj ? prog.degree_level : '';
+                              return (
+                                <option key={isObj ? (prog.id || name) : prog} value={name}>
+                                  {name} {fee ? `(${fee}${level ? ` • ${level}` : ''})` : ''}
+                                </option>
+                              );
+                            })
+                          ) : (
+                            <option value="">No {degreeLevel} programs available</option>
+                          )}
+                        </select>
+                      );
+                    })()}
                   </div>
 
                   <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1 text-xs">

@@ -65,6 +65,7 @@ export async function createOrder(params: CreateOrderParams): Promise<ServiceRes
   }
 
   try {
+    const key_id = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TvtcmQYBnXjb9R';
     const razorpay = getRazorpayClient();
     const order = await razorpay.orders.create({
       amount: Math.round(numericAmount),
@@ -79,6 +80,7 @@ export async function createOrder(params: CreateOrderParams): Promise<ServiceRes
         order_id: order.id,
         amount: order.amount,
         currency: order.currency,
+        key_id,
       },
     };
   } catch (error: any) {
