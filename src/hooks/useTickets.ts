@@ -60,6 +60,7 @@ export function useTickets(studentId?: string) {
     description: string;
     category: string;
     priority: SupportTicket['priority'];
+    assigned_to?: string;
   }) => {
     const created = await createTicket(payload);
     setTickets(prev => [created, ...prev]);

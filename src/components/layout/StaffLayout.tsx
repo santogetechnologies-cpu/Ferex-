@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Users, ClipboardList, FileCheck, FolderOpen,
   Headphones, GraduationCap, Bell, LogOut, Menu, X, ChevronRight,
-  Search, Building2, ShieldCheck, Calendar, Plane, FileText, Clock, MessageSquare
+  Search, Building2, ShieldCheck, Calendar, Plane, FileText, Clock, MessageSquare, Globe
 } from 'lucide-react';
 import { Logo } from '../Logo';
 import { useAuth } from '../../contexts/AuthContext';
@@ -21,6 +21,7 @@ const baseStaffMenuItems = [
   { name: 'Student Enquiries', path: '/staff/enquiries', icon: Users },
   { name: 'Students', path: '/staff/students', icon: GraduationCap },
   { name: 'Universities', path: '/staff/universities', icon: Building2 },
+  { name: 'Destination Desks', path: '/staff/destinations', icon: Globe },
   { name: 'Status Tracker', path: '/staff/tasks', icon: ClipboardList },
   { name: 'Applications', path: '/staff/applications', icon: FileCheck },
   { name: 'Offer Letters', path: '/staff/offers', icon: FileText },

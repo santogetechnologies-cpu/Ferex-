@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Search, MessageSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { getConversations, getChatMessages, sendChatMessage } from '../lib/api/chat';
 
 interface ConversationUI {
@@ -22,6 +23,7 @@ interface MessageUI {
 
 export const Chat: React.FC = () => {
   const { user } = useAuth();
+  const { activeStudentId, activeStudentName } = useActiveStudentScope();
   const [conversations, setConversations] = useState<ConversationUI[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageUI[]>([]);
@@ -30,22 +32,27 @@ export const Chat: React.FC = () => {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (user?.id) {
-      getConversations(user.id).then(list => {
-        const mapped = list.map(c => ({
-          id: c.id,
-          name: c.name || 'Admissions Counselor',
-          role: 'Education Support Advisor',
-          avatar: c.name?.[0]?.toUpperCase() || 'A',
-          online: true,
-          lastMsg: c.last_message || 'No messages yet',
-          time: new Date(c.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        }));
+    if (activeStudentId) {
+      getConversations(activeStudentId).then(list => {
+        const mapped = list.map(c => {
+          // If conversation name is set to the student's own name, show advisor label for student
+          const isStudentName = c.name?.toLowerCase() === activeStudentName.toLowerCase();
+          const displayName = isStudentName ? 'Admissions Counselor' : (c.name || 'Admissions Counselor');
+          return {
+            id: c.id,
+            name: displayName,
+            role: 'Education Support Advisor',
+            avatar: displayName[0]?.toUpperCase() || 'A',
+            online: true,
+            lastMsg: c.last_message || 'No messages yet',
+            time: new Date(c.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          };
+        });
         setConversations(mapped);
         if (mapped.length > 0) setActiveId(mapped[0].id);
       }).catch(() => {});
     }
-  }, [user]);
+  }, [activeStudentId, activeStudentName]);
 
   useEffect(() => {
     if (!activeId) return;
@@ -55,7 +62,7 @@ export const Chat: React.FC = () => {
       const mapped = msgs.map(m => ({
         id: m.id,
         text: m.content,
-        self: m.sender_id === user?.id,
+        self: m.sender_id === activeStudentId || m.sender_id === user?.id,
         time: new Date(m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }));
       setMessages(mapped);
@@ -73,7 +80,7 @@ export const Chat: React.FC = () => {
           filter: `conversation_id=eq.${activeId}`,
         }, (payload: any) => {
           const newMsg = payload.new;
-          if (newMsg && newMsg.sender_id !== user?.id) {
+          if (newMsg && newMsg.sender_id !== activeStudentId && newMsg.sender_id !== user?.id) {
             setMessages(prev => {
               if (prev.some(m => m.id === newMsg.id)) return prev;
               return [...prev, {
@@ -95,14 +102,14 @@ export const Chat: React.FC = () => {
         });
       }
     };
-  }, [activeId, user?.id]);
+  }, [activeId, activeStudentId, user?.id]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleStartChat = async () => {
-    if (!user) return;
+    if (!activeStudentId) return;
     try {
       const { getStaffMembers } = await import('../lib/api/students');
       const staffList = await getStaffMembers();
@@ -119,7 +126,7 @@ export const Chat: React.FC = () => {
         const { data: existing } = await supabase
           .from('conversations')
           .select('*')
-          .contains('participant_ids', [user.id, advisor.id]);
+          .contains('participant_ids', [activeStudentId, advisor.id]);
 
         if (existing && existing.length > 0) {
           existingId = existing[0].id;
@@ -128,12 +135,12 @@ export const Chat: React.FC = () => {
 
       if (existingId) {
         setActiveId(existingId);
-        getConversations(user.id).then(list => {
+        getConversations(activeStudentId).then(list => {
           const mapped = list.map(c => ({
             id: c.id,
-            name: c.name || 'Admissions Counselor',
+            name: advisor.full_name || c.name || 'Admissions Counselor',
             role: 'Education Support Advisor',
-            avatar: c.name?.[0]?.toUpperCase() || 'A',
+            avatar: (advisor.full_name || c.name || 'A')[0]?.toUpperCase() || 'A',
             online: true,
             lastMsg: c.last_message || 'No messages yet',
             time: new Date(c.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -148,8 +155,8 @@ export const Chat: React.FC = () => {
         const { data: created, error } = await supabase
           .from('conversations')
           .insert({
-            participant_ids: [user.id, advisor.id],
-            name: advisor.full_name || 'Academic Counselor',
+            participant_ids: [activeStudentId, advisor.id],
+            name: activeStudentName || 'Student',
             last_message: 'Conversation started',
             last_message_at: new Date().toISOString(),
           })
@@ -163,14 +170,14 @@ export const Chat: React.FC = () => {
 
       const newConv = {
         id: createdId,
-        participant_ids: [user.id, advisor.id],
-        name: advisor.full_name || 'Academic Counselor',
+        participant_ids: [activeStudentId, advisor.id],
+        name: activeStudentName || 'Student',
         last_message: 'Conversation started',
         last_message_at: new Date().toISOString(),
       };
 
       try {
-        const convKey = `ferex_conversations_${user.id}`;
+        const convKey = `ferex_conversations_${activeStudentId}`;
         const raw = localStorage.getItem(convKey);
         const list = raw ? JSON.parse(raw) : [];
         if (!list.some((c: any) => c.id === createdId)) {
@@ -180,7 +187,7 @@ export const Chat: React.FC = () => {
 
       const mappedConv = {
         id: createdId,
-        name: advisor.full_name || 'Academic Counselor',
+        name: advisor.full_name || 'Admissions Counselor',
         role: 'Education Support Advisor',
         avatar: (advisor.full_name || 'A')[0].toUpperCase(),
         online: true,
@@ -199,14 +206,14 @@ export const Chat: React.FC = () => {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || !activeId || !user) return;
+    if (!message.trim() || !activeId || !activeStudentId) return;
     const text = message.trim();
     setMessage('');
 
     try {
       const sent = await sendChatMessage({
         conversation_id: activeId,
-        sender_id: user.id,
+        sender_id: activeStudentId,
         content: text,
       });
 

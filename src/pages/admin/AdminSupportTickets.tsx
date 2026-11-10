@@ -63,7 +63,7 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('All');
+  const [filter, setFilter] = useState(isStaff ? 'My Tickets' : 'All');
   const [replyText, setReplyText] = useState('');
   const [toast, setToast] = useState('');
   const [replies, setReplies] = useState<any[]>([]);

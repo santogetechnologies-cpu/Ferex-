@@ -9,6 +9,7 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Badge } from '../components/Badge';
 import { useAuth } from '../contexts/AuthContext';
+import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useVisa } from '../hooks/useVisa';
 import { useApplications } from '../hooks/useApplications';
 import { usePayments } from '../hooks/usePayments';
@@ -20,22 +21,23 @@ import { motion, AnimatePresence } from 'framer-motion';
 export const VisaTracker: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const { records, saveVisaUpdate, loading: visaLoading } = useVisa(user?.id);
-  const { applications, loading: appsLoading } = useApplications(user?.id);
-  const { payments, loading: paymentsLoading } = usePayments(user?.id);
-  const { documents, loading: docsLoading } = useDocuments(user?.id);
+  const { activeStudentId, activeStudentEmail, activeStudentName } = useActiveStudentScope();
+  const { records, saveVisaUpdate, loading: visaLoading } = useVisa(activeStudentId);
+  const { applications, loading: appsLoading } = useApplications(activeStudentId);
+  const { payments, loading: paymentsLoading } = usePayments(activeStudentId);
+  const { documents, loading: docsLoading } = useDocuments(activeStudentId);
 
   const [reappealLoading, setReappealLoading] = useState(false);
   const [directPayments, setDirectPayments] = useState<any[]>([]);
 
   React.useEffect(() => {
-    if (user?.id) {
-      listDirectPayments(user.id).then(setDirectPayments).catch(() => {});
+    if (activeStudentId) {
+      listDirectPayments(activeStudentId).then(setDirectPayments).catch(() => {});
     }
-  }, [user?.id]);
+  }, [activeStudentId]);
   const [toastMsg, setToastMsg] = useState('');
 
-  const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
+  const studentName = activeStudentName;
 
   // Workflow Gating Checks
   const hasOfferAccepted = applications.some(a => (a.status as string) === 'Accepted' || (a.status as string) === 'Final Acceptance Issued');
@@ -54,7 +56,7 @@ export const VisaTracker: React.FC = () => {
   const hasDirectTuition = directPayments.some(d => d.fee_category === 'university_tuition' && ['Verified', 'Pending Verification'].includes(d.verification_status));
   const inst2Paid = hasDirectTuition || payments.some(p => (checkPaymentStage(p, 2) || p.fee_id === 'tuition' || p.fee_id === 'visa-fee') && (p.status === 'Paid' || p.status === 'Verified'));
 
-  const targetCountry = (profile as any)?.target_country || applications[0]?.universities?.country || (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || '';
+  const targetCountry = (profile as any)?.target_country || applications[0]?.universities?.country || (activeStudentId ? localStorage.getItem(`ferex_student_target_country_${activeStudentId}`) : null) || '';
   const payment2Status = checkPayment(payments, 2, targetCountry);
 
   // Final Acceptance Letter check
@@ -70,9 +72,9 @@ export const VisaTracker: React.FC = () => {
     Boolean(a.final_acceptance_url)
   );
 
-  const myId = (user?.id || profile?.id || '').toLowerCase().trim();
-  const myEmail = (user?.email || profile?.email || '').toLowerCase().trim();
-  const myName = (profile?.full_name || (user as any)?.user_metadata?.full_name || '').toLowerCase().trim();
+  const myId = (activeStudentId || '').toLowerCase().trim();
+  const myEmail = (activeStudentEmail || '').toLowerCase().trim();
+  const myName = activeStudentName.toLowerCase().trim();
 
   const foundRecord = records.find(r =>
     (myId && (r.student_id?.toLowerCase().trim() === myId || r.id?.toLowerCase().trim() === myId)) ||
@@ -85,8 +87,8 @@ export const VisaTracker: React.FC = () => {
   ) || null;
 
   const initialPendingRecord = {
-    id: user?.id || 'vfs-pending',
-    student_id: user?.id || '',
+    id: activeStudentId || 'vfs-pending',
+    student_id: activeStudentId || '',
     student_name: studentName,
     vfs_ref_no: 'Awaiting Counselor Booking',
     embassy_name: 'Consular Department & Embassy',

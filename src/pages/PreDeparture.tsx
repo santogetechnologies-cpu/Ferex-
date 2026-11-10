@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { useAuth } from '../contexts/AuthContext';
+import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useVisa } from '../hooks/useVisa';
 import { useApplications } from '../hooks/useApplications';
 import { usePayments } from '../hooks/usePayments';
@@ -18,22 +19,39 @@ import { useNavigate } from 'react-router-dom';
 export const PreDeparture: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const { records: visaRecords } = useVisa(user?.id);
-  const { applications } = useApplications(user?.id);
-  const { payments } = usePayments(user?.id);
+  const { activeStudentId, activeStudentEmail, activeStudentName } = useActiveStudentScope();
+  const { records: visaRecords } = useVisa(activeStudentId);
+  const { applications } = useApplications(activeStudentId);
+  const { payments } = usePayments(activeStudentId);
 
   const [depRecord, setDepRecord] = useState<PreDepartureRecord | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'checklist' | 'dorm' | 'contacts'>('overview');
-  const [checkedMap, setCheckedMap] = useState<Record<string, boolean>>({});
+  const [checkedMap, setCheckedMap] = useState<Record<string, boolean>>(() => {
+    if (!activeStudentId) return {};
+    try {
+      const saved = localStorage.getItem(`ferex_student_predeparture_checklist_${activeStudentId}`);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
 
-  const targetCountry = (profile as any)?.target_country || applications[0]?.universities?.country || (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || '';
+  useEffect(() => {
+    if (!activeStudentId) return;
+    try {
+      const saved = localStorage.getItem(`ferex_student_predeparture_checklist_${activeStudentId}`);
+      if (saved) setCheckedMap(JSON.parse(saved));
+    } catch {}
+  }, [activeStudentId]);
+
+  const targetCountry = (profile as any)?.target_country || applications[0]?.universities?.country || (activeStudentId ? localStorage.getItem(`ferex_student_target_country_${activeStudentId}`) : null) || '';
   const payment3Status = checkPaymentStage(payments, 3, targetCountry);
 
   const activeApp = applications[0];
   const targetUniversity = activeApp?.university_name || 'European Partner University';
 
-  const visaRecord = visaRecords.find(r => r.student_id === user?.id || r.id === user?.id) || null;
+  const visaRecord = visaRecords.find(r => r.student_id === activeStudentId || r.id === activeStudentId) || null;
   const isVisaApproved = Boolean(
     visaRecord?.decision_outcome === 'Approved' ||
     String(visaRecord?.status_label).toLowerCase().includes('approved') ||
@@ -46,9 +64,9 @@ export const PreDeparture: React.FC = () => {
       setLoading(true);
       try {
         const recs = await getPreDepartureRecords();
-        const myEmail = (user?.email || profile?.email || '').toLowerCase().trim();
-        const myId = (user?.id || profile?.id || '').toLowerCase().trim();
-        const myName = (profile?.full_name || (user as any)?.user_metadata?.full_name || '').toLowerCase().trim();
+        const myEmail = (activeStudentEmail || '').toLowerCase().trim();
+        const myId = (activeStudentId || '').toLowerCase().trim();
+        const myName = activeStudentName.toLowerCase().trim();
 
         const found = recs.find(r =>
           (myId && (r.student_id?.toLowerCase().trim() === myId || r.id?.toLowerCase().trim() === myId)) ||
@@ -79,12 +97,12 @@ export const PreDeparture: React.FC = () => {
       window.removeEventListener('ferex_pre_departure_change', fetchRecord);
       window.removeEventListener('ferex_predeparture_change', fetchRecord);
     };
-  }, [user?.id, user?.email, profile?.full_name, profile?.email]);
+  }, [activeStudentId, activeStudentEmail, activeStudentName]);
 
   const activeDepRecord = depRecord || {
-    student_id: user?.id || 'student',
-    student_name: profile?.full_name || user?.email?.split('@')[0] || 'Student',
-    student_email: user?.email || '',
+    student_id: activeStudentId || 'student',
+    student_name: activeStudentName,
+    student_email: activeStudentEmail,
     university_name: targetUniversity,
     airline: 'Awaiting Counselor Allocation',
     flight_no: 'Awaiting Flight Ticket',
@@ -114,7 +132,16 @@ export const PreDeparture: React.FC = () => {
   ];
 
   const toggleCheck = (id: string) => {
-    setCheckedMap(prev => ({ ...prev, [id]: !prev[id] }));
+    setCheckedMap(prev => {
+      const next = { ...prev, [id]: !prev[id] };
+      if (activeStudentId) {
+        try {
+          localStorage.setItem(`ferex_student_predeparture_checklist_${activeStudentId}`, JSON.stringify(next));
+          window.dispatchEvent(new Event('ferex_predeparture_change'));
+        } catch {}
+      }
+      return next;
+    });
   };
 
   const isItemDone = (item: typeof checklistItems[0]) => {

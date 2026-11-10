@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { useAuth } from '../contexts/AuthContext';
+import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useNotifications } from '../hooks/useNotifications';
 import type { Notification } from '../lib/types';
 
@@ -110,6 +111,7 @@ const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
 
 export const Notifications: React.FC = () => {
   const { user } = useAuth();
+  const { activeStudentId } = useActiveStudentScope();
   const navigate = useNavigate();
   const {
     notifications: dbNotifications,
@@ -119,7 +121,7 @@ export const Notifications: React.FC = () => {
     clearAllNotifs,
     refresh,
     loading
-  } = useNotifications(user?.id);
+  } = useNotifications(activeStudentId);
 
   const [filter, setFilter] = useState<'All' | 'Unread' | 'Read'>('All');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');

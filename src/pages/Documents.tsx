@@ -9,6 +9,7 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Badge } from '../components/Badge';
 import { useAuth } from '../contexts/AuthContext';
+import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useDocuments } from '../hooks/useDocuments';
 import { useApplications } from '../hooks/useApplications';
 import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
@@ -17,34 +18,22 @@ import { sendStudentDocumentUploadedEmail } from '../lib/api/email';
 
 export const Documents: React.FC = () => {
   const { user, profile } = useAuth();
-  const { applications } = useApplications(user?.id);
+  const { activeStudentId, activeStudentEmail, activeStudentName, isImpersonating } = useActiveStudentScope();
+  const { applications } = useApplications(activeStudentId);
   const { getWorkflowForCountry } = useCountryWorkflows();
 
-  // Check if user is admin/staff to show all documents
   const userRole = profile?.role || 'student';
   const isAdminOrStaff = ['admin', 'super_admin', 'staff', 'counselor'].includes(userRole.toLowerCase());
 
-  const activeStudentId = (() => {
-    // If admin/staff, don't filter by student - show all documents
-    if (isAdminOrStaff) return undefined;
-    
-    if (user?.id) return user.id;
-    try {
-      const raw = localStorage.getItem('ferex_user');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && parsed.id) return parsed.id;
-      }
-    } catch (e) {}
-    return 'STUDENT_PENDING_AUTH';
-  })();
+  // If not impersonating and is admin/staff visiting /student/documents, fallback to first student or undefined
+  const effectiveStudentId = activeStudentId || (isAdminOrStaff ? undefined : 'STUDENT_PENDING_AUTH');
 
-  const { documents: dbDocs, loading, addDoc, replaceDoc } = useDocuments(activeStudentId);
+  const { documents: dbDocs, loading, addDoc, replaceDoc } = useDocuments(effectiveStudentId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [configuredReqs, setConfiguredReqs] = useState<DocumentRequirement[]>([]);
   const [selectedCountryOverride, setSelectedCountryOverride] = useState<string>(() => {
-    const perKey = user?.id ? `ferex_student_target_country_${user.id}` : 'ferex_student_target_country';
-    return (user?.id ? localStorage.getItem(perKey) : null) || 'Poland';
+    const perKey = activeStudentId ? `ferex_student_target_country_${activeStudentId}` : 'ferex_student_target_country';
+    return (activeStudentId ? localStorage.getItem(perKey) : null) || 'Poland';
   });
 
   // Target country resolution - dynamically bound to selected destination university & country
@@ -56,13 +45,13 @@ export const Documents: React.FC = () => {
     }
 
     try {
-      const storedCourse = (user?.id ? localStorage.getItem(`ferex_selected_course_${user.id}`) : null) || null;
+      const storedCourse = (activeStudentId ? localStorage.getItem(`ferex_selected_course_${activeStudentId}`) : null) || null;
       if (storedCourse) {
         const parsed = JSON.parse(storedCourse);
         if (parsed?.country && !isInvalid(parsed.country)) return parsed.country.trim();
         if (parsed?.university?.country && !isInvalid(parsed.university.country)) return parsed.university.country.trim();
       }
-      const storedUni = (user?.id ? localStorage.getItem(`ferex_student_selected_uni_${user.id}`) : null) || null;
+      const storedUni = (activeStudentId ? localStorage.getItem(`ferex_student_selected_uni_${activeStudentId}`) : null) || null;
       if (storedUni) {
         const parsed = JSON.parse(storedUni);
         if (parsed?.country && !isInvalid(parsed.country)) return parsed.country.trim();
@@ -75,11 +64,11 @@ export const Documents: React.FC = () => {
     const profileTarget = (profile as any)?.target_country;
     if (profileTarget && !isInvalid(profileTarget)) return profileTarget.trim();
 
-    const localTarget = (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || null;
+    const localTarget = (activeStudentId ? localStorage.getItem(`ferex_student_target_country_${activeStudentId}`) : null) || null;
     if (localTarget && !isInvalid(localTarget)) return localTarget.trim();
 
     return 'Poland';
-  }, [selectedCountryOverride, profile, applications]);
+  }, [selectedCountryOverride, profile, applications, activeStudentId]);
 
   const loadRequirements = React.useCallback(() => {
     const c = targetCountry || 'Poland';
@@ -89,7 +78,7 @@ export const Documents: React.FC = () => {
   useEffect(() => {
     loadRequirements();
     const handleCountryUpdate = () => {
-      const stored = (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || null;
+      const stored = (activeStudentId ? localStorage.getItem(`ferex_student_target_country_${activeStudentId}`) : null) || null;
       if (stored) setSelectedCountryOverride(stored);
       loadRequirements();
     };
@@ -99,7 +88,7 @@ export const Documents: React.FC = () => {
       window.removeEventListener('ferex_doc_requirements_change', loadRequirements);
       window.removeEventListener('ferex_country_change', handleCountryUpdate);
     };
-  }, [loadRequirements]);
+  }, [loadRequirements, activeStudentId]);
 
   const targetWf = useMemo(() => {
     if (!targetCountry) return null;

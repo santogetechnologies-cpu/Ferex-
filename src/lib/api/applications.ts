@@ -56,7 +56,7 @@ export async function getApplications(studentId?: string): Promise<Application[]
         applied_date,
         created_at,
         updated_at,
-        users:student_id ( id, full_name, email )
+        users:student_id ( id, full_name, email, assigned_counselor )
       `)
       .order('created_at', { ascending: false });
 
@@ -84,10 +84,13 @@ export async function getApplications(studentId?: string): Promise<Application[]
       const mapped: Application[] = data.map((app: any) => {
         const u = app.users;
         const studentName = u?.full_name || u?.email?.split('@')[0] || app.student_name || 'Student';
+        const assignedCounselor = app.counselor || app.assigned_counselor || u?.assigned_counselor || '';
         return {
           id: app.id,
           student_id: app.student_id,
           student_name: studentName,
+          counselor: assignedCounselor,
+          assigned_counselor: assignedCounselor,
           university_id: app.university_id || '',
           university_name: app.university_name || 'Partner University',
           program_name: app.program_name || app.course || 'Degree Program',

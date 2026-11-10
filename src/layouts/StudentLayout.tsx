@@ -55,7 +55,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   const handleExitImpersonation = () => {
     const returnRole = impersonated?.originalAdminRole;
     stopImpersonatingStudent();
-    if (returnRole === 'counselor') {
+    if (returnRole === 'counselor' || returnRole === 'staff') {
       navigate('/staff/students');
     } else {
       navigate('/admin/students');
@@ -229,6 +229,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
     { name: 'Pre-Departure', path: '/student/pre-departure', icon: Plane, badge: null, hasUpdate: false },
     { name: 'Invoices', path: '/student/invoices', icon: FileSpreadsheet, badge: null, hasUpdate: false },
     { name: 'Meetings', path: '/student/meetings', icon: Calendar, badge: null, hasUpdate: false },
+    { name: 'Counselor Chat', path: '/student/chat', icon: MessageCircle, badge: null, hasUpdate: false },
     { name: 'Support Tickets', path: '/student/support', icon: LifeBuoy, badge: null, hasUpdate: false },
     { name: 'My Profile', path: '/student/profile', icon: User, badge: null, hasUpdate: false },
   ];

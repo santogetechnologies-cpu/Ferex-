@@ -555,7 +555,7 @@ function App() {
           <Route path="/staff/tasks" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffTasks /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/students" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffStudents /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/universities" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffUniversities /></StaffLayout></ProtectedRoute>} />
-          <Route path="/staff/destinations" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffUniversities /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/destinations" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffDestinations /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/applications" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffApplications /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/offers" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminApplications initialFilter="Offer Issued" /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/documents" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffDocuments /></StaffLayout></ProtectedRoute>} />

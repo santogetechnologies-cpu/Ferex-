@@ -11,6 +11,7 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { ToastNotification } from '../components/ToastNotification';
 import { useAuth } from '../contexts/AuthContext';
+import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useDocuments } from '../hooks/useDocuments';
@@ -43,9 +44,10 @@ interface EmergencyInfo {
 export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const { activeStudentId, activeStudentEmail, activeStudentName, isImpersonating, impersonatedStudent } = useActiveStudentScope();
   const photoInputRef = useRef<HTMLInputElement>(null);
-  const { documents: dbDocs } = useDocuments(user?.id);
-  const { applications } = useApplications(user?.id);
+  const { documents: dbDocs } = useDocuments(activeStudentId);
+  const { applications } = useApplications(activeStudentId);
 
   // ── States ──────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState(defaultTab || 'Personal Information');
@@ -54,29 +56,29 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
 
   // Avatar Photo
   const [profilePhoto, setProfilePhoto] = useState<string | null>(() => {
-    const key = user?.id ? `ferex_student_profile_photo_${user.id}` : 'ferex_student_profile_photo';
+    const key = activeStudentId ? `ferex_student_profile_photo_${activeStudentId}` : 'ferex_student_profile_photo';
     return localStorage.getItem(key) || profile?.avatar_url || null;
   });
   const [showPhotoModal, setShowPhotoModal] = useState(false);
 
   // Personal Info State
-  const fullNameParts = (profile?.full_name || '').split(' ');
-  const defaultFirstName = fullNameParts[0] || user?.email?.split('@')[0] || 'Student';
+  const fullNameParts = (activeStudentName || '').split(' ');
+  const defaultFirstName = fullNameParts[0] || activeStudentEmail?.split('@')[0] || 'Student';
   const defaultLastName = fullNameParts.slice(1).join(' ') || '';
 
   const [personal, setPersonal] = useState<PersonalInfo>({
     firstName: defaultFirstName,
     lastName: defaultLastName,
-    gender: (profile as any)?.gender || 'Not Specified',
-    dob: (profile as any)?.dob || '2001-01-01',
-    nationality: (profile as any)?.nationality || 'Indian',
-    passportNo: (profile as any)?.passport_no || '',
-    phone: (profile as any)?.phone || '',
-    email: user?.email || profile?.email || '',
-    address: (profile as any)?.address || '',
-    city: (profile as any)?.city || '',
-    country: (profile as any)?.country || 'India',
-    postalCode: (profile as any)?.postal_code || '',
+    gender: (impersonatedStudent as any)?.gender || (profile as any)?.gender || 'Not Specified',
+    dob: (impersonatedStudent as any)?.dob || (profile as any)?.dob || '2001-01-01',
+    nationality: (impersonatedStudent as any)?.nationality || (profile as any)?.nationality || 'Indian',
+    passportNo: (impersonatedStudent as any)?.passport_no || (profile as any)?.passport_no || '',
+    phone: (impersonatedStudent as any)?.phone || (profile as any)?.phone || '',
+    email: activeStudentEmail || profile?.email || '',
+    address: (impersonatedStudent as any)?.address || (profile as any)?.address || '',
+    city: (impersonatedStudent as any)?.city || (profile as any)?.city || '',
+    country: (impersonatedStudent as any)?.country || (profile as any)?.country || 'India',
+    postalCode: (impersonatedStudent as any)?.postal_code || (profile as any)?.postal_code || '',
   });
 
   const [editingPersonal, setEditingPersonal] = useState(false);
@@ -84,16 +86,16 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
 
   // Emergency Contact State
   const [emergency, setEmergency] = useState<EmergencyInfo>(() => {
-    const saved = user?.id ? localStorage.getItem(`ferex_student_emergency_${user.id}`) : null;
+    const saved = activeStudentId ? localStorage.getItem(`ferex_student_emergency_${activeStudentId}`) : null;
     if (saved) {
       try { return JSON.parse(saved); } catch {}
     }
     return {
-      guardianName: (profile as any)?.guardian_name || '',
-      relationship: (profile as any)?.guardian_relationship || 'Parent / Guardian',
-      phone: (profile as any)?.guardian_phone || '',
-      email: (profile as any)?.guardian_email || '',
-      address: (profile as any)?.guardian_address || '',
+      guardianName: (impersonatedStudent as any)?.guardian_name || (profile as any)?.guardian_name || '',
+      relationship: (impersonatedStudent as any)?.guardian_relationship || (profile as any)?.guardian_relationship || 'Parent / Guardian',
+      phone: (impersonatedStudent as any)?.guardian_phone || (profile as any)?.guardian_phone || '',
+      email: (impersonatedStudent as any)?.guardian_email || (profile as any)?.guardian_email || '',
+      address: (impersonatedStudent as any)?.guardian_address || (profile as any)?.guardian_address || '',
     };
   });
   const [editingEmergency, setEditingEmergency] = useState(false);
@@ -107,8 +109,8 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
   // ── Sync Profile from Database ──────────────────────────────────────────────
   useEffect(() => {
     const fetchProfile = async () => {
-      const activeId = user?.id || profile?.id;
-      const activeEmail = user?.email || profile?.email;
+      const activeId = activeStudentId;
+      const activeEmail = activeStudentEmail;
       if (!activeId && !activeEmail) return;
 
       try {
@@ -183,7 +185,7 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
   const handleSavePersonal = async () => {
     setIsSaving(true);
     try {
-      const activeId = user?.id || profile?.id;
+      const activeId = activeStudentId;
       const fullName = `${tempPersonal.firstName.trim()} ${tempPersonal.lastName.trim()}`.trim();
 
       if (activeId) {
@@ -217,8 +219,8 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
   const handleSaveEmergency = () => {
     setEmergency({ ...tempEmergency });
     setEditingEmergency(false);
-    if (user?.id) {
-      localStorage.setItem(`ferex_student_emergency_${user.id}`, JSON.stringify(tempEmergency));
+    if (activeStudentId) {
+      localStorage.setItem(`ferex_student_emergency_${activeStudentId}`, JSON.stringify(tempEmergency));
     }
     showToastMsg('Emergency contact details saved!');
   };
@@ -237,7 +239,7 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string;
       setProfilePhoto(dataUrl);
-      const activeId = user?.id || profile?.id;
+      const activeId = activeStudentId;
       if (activeId) {
         localStorage.setItem(`ferex_student_profile_photo_${activeId}`, dataUrl);
       }
@@ -249,7 +251,7 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
 
   const handleRemovePhoto = () => {
     setProfilePhoto(null);
-    const activeId = user?.id || profile?.id;
+    const activeId = activeStudentId;
     if (activeId) {
       localStorage.removeItem(`ferex_student_profile_photo_${activeId}`);
     }
@@ -307,7 +309,7 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
           <div className="absolute right-6 top-6 flex items-center gap-2">
             <span className="px-3 py-1 bg-white/15 backdrop-blur-md text-white rounded-full text-[11px] font-bold tracking-wide border border-white/20">
-              Student ID: STU-{user?.id?.slice(0, 6).toUpperCase() || '1001'}
+              Student ID: STU-{activeStudentId?.slice(0, 6).toUpperCase() || '1001'}
             </span>
           </div>
         </div>

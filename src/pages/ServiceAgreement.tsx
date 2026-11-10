@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useFeeConfig } from '../hooks/useFeeConfig';
 import {
   fetchStudentAgreement,
@@ -18,11 +19,12 @@ import {
 export const ServiceAgreement: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const { activeStudentId, activeStudentEmail, activeStudentName } = useActiveStudentScope();
   const { config: feeConfig } = useFeeConfig();
 
-  const studentId = user?.id || profile?.id || '';
-  const studentEmail = profile?.email || user?.email || '';
-  const studentNameFromProfile = profile?.full_name || user?.email?.split('@')[0] || '';
+  const studentId = activeStudentId;
+  const studentEmail = activeStudentEmail;
+  const studentNameFromProfile = activeStudentName;
 
   const [studentName, setStudentName] = useState(studentNameFromProfile);
   const [agreement, setAgreement] = useState<ServiceAgreementData | null>(null);

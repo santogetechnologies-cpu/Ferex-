@@ -79,3 +79,4 @@ CREATE INDEX IF NOT EXISTS idx_education_leads_assigned ON public.education_lead
 CREATE INDEX IF NOT EXISTS idx_education_leads_phone ON public.education_leads(phone);
 CREATE INDEX IF NOT EXISTS idx_education_leads_created ON public.education_leads(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_education_lead_acts_lead ON public.education_lead_activities(lead_id);
+

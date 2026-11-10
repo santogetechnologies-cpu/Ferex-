@@ -12,6 +12,7 @@ import { Card } from '../components/Card';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
+import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useApplications } from '../hooks/useApplications';
 import { useDocuments } from '../hooks/useDocuments';
 import { useVisa } from '../hooks/useVisa';
@@ -27,17 +28,18 @@ import { supabase } from '../lib/supabase';
 export const JourneyTracker: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const { applications } = useApplications(user?.id);
-  const { documents } = useDocuments(user?.id);
-  const { records: visaRecords } = useVisa(user?.id);
-  const { meetings } = useMeetings(user?.id);
-  const { payments } = usePayments(user?.id);
+  const { activeStudentId, activeStudentEmail, activeStudentName } = useActiveStudentScope();
+  const { applications } = useApplications(activeStudentId);
+  const { documents } = useDocuments(activeStudentId);
+  const { records: visaRecords } = useVisa(activeStudentId);
+  const { meetings } = useMeetings(activeStudentId);
+  const { payments } = usePayments(activeStudentId);
   const { config: feeConfig } = useFeeConfig();
 
   // Active tracker tab: 'university', 'visa', 'travel'
   const [activeTracker, setActiveTracker] = useState<'university' | 'visa' | 'travel'>('university');
 
-  const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
+  const studentName = activeStudentName;
   const [dbStages, setDbStages] = useState<any[]>([]);
   const [directPayments, setDirectPayments] = useState<any[]>([]);
   const [depRecord, setDepRecord] = useState<PreDepartureRecord | null>(null);
@@ -46,8 +48,8 @@ export const JourneyTracker: React.FC = () => {
     const fetchDep = async () => {
       try {
         const recs = await getPreDepartureRecords();
-        const myId = user?.id?.toLowerCase().trim();
-        const myEmail = user?.email?.toLowerCase().trim();
+        const myId = activeStudentId?.toLowerCase().trim();
+        const myEmail = activeStudentEmail?.toLowerCase().trim();
         const found = recs.find(r =>
           (myId && (r.student_id?.toLowerCase().trim() === myId || r.id?.toLowerCase().trim() === myId)) ||
           (myEmail && (r.student_email?.toLowerCase().trim() === myEmail || r.student_id?.toLowerCase().trim() === myEmail))
@@ -62,32 +64,32 @@ export const JourneyTracker: React.FC = () => {
       window.removeEventListener('ferex_predeparture_change', fetchDep);
       window.removeEventListener('ferex_pre_departure_change', fetchDep);
     };
-  }, [user?.id, user?.email]);
+  }, [activeStudentId, activeStudentEmail]);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!activeStudentId) return;
     const loadWorkflow = () => {
-      getJourneyStages(user.id).then(setDbStages).catch(() => {});
-      listDirectPayments(user.id).then(setDirectPayments).catch(() => {});
+      getJourneyStages(activeStudentId).then(setDbStages).catch(() => {});
+      listDirectPayments(activeStudentId).then(setDirectPayments).catch(() => {});
     };
     loadWorkflow();
     window.addEventListener('ferex_payment_change', loadWorkflow);
     window.addEventListener('ferex_direct_payment_change', loadWorkflow);
     const ch = supabase.channel('student-journey-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'education_workflow_progress', filter: `student_id=eq.${user.id}` }, loadWorkflow)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'education_workflow_progress', filter: `student_id=eq.${activeStudentId}` }, loadWorkflow)
       .subscribe();
     return () => {
       window.removeEventListener('ferex_payment_change', loadWorkflow);
       window.removeEventListener('ferex_direct_payment_change', loadWorkflow);
       void supabase.removeChannel(ch);
     };
-  }, [user?.id]);
+  }, [activeStudentId]);
 
   const isStageDone = (n: number) => dbStages.some(s => s.stage_number === n && s.status === 'Completed');
   const isProfileDone = Boolean(profile?.full_name);
 
   // Agreement and Registration states
-  const isAgreementDone = useStudentAgreement(user?.id);
+  const isAgreementDone = useStudentAgreement(activeStudentId);
   const isRegPaid = registrationSettled(feeConfig, payments, applications[0]?.universities?.country);
 
   // Meeting verification states for Counselling stage
@@ -100,7 +102,7 @@ export const JourneyTracker: React.FC = () => {
 
   const realApps = applications.filter(isRealApplication);
   const activeApp = realApps[0];
-  const targetCountry = (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || activeApp?.universities?.country || (activeApp as any)?.country || (profile as any)?.target_country || '';
+  const targetCountry = (activeStudentId ? localStorage.getItem(`ferex_student_target_country_${activeStudentId}`) : null) || activeApp?.universities?.country || (activeApp as any)?.country || (profile as any)?.target_country || '';
   const targetUniversity = activeApp?.university_name || 
     activeApp?.universities?.name || 
     (targetCountry && targetCountry !== '' ? `${targetCountry} Partner University` : 'No University Selected');
@@ -124,7 +126,7 @@ export const JourneyTracker: React.FC = () => {
   );
 
   const visaRecord = visaRecords.find(r =>
-    (user?.id && r.student_id === user.id) ||
+    (activeStudentId && r.student_id === activeStudentId) ||
     (r.student_name && studentName.toLowerCase().includes(r.student_name.toLowerCase()))
   );
 

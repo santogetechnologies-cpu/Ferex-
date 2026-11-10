@@ -111,6 +111,8 @@ export interface Application {
   university_name?: string;
   program_name?: string;
   intake?: string;
+  counselor?: string;
+  assigned_counselor?: string;
   // joined
   universities?: University;
   users?: UserProfile;

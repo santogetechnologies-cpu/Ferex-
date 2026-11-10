@@ -11,6 +11,7 @@ import { useApplications } from '../hooks/useApplications';
 import { usePayments } from '../hooks/usePayments';
 import { useDocuments } from '../hooks/useDocuments';
 import { useAuth } from '../contexts/AuthContext';
+import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
 import { useFeeConfig } from '../hooks/useFeeConfig';
 import { Card } from '../components/Card';
@@ -119,11 +120,12 @@ export function getFilteredCourses(uni: any, degree: string): any[] {
 export const SelectUniversity: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const { activeStudentId, activeStudentEmail, activeStudentName, impersonatedStudent } = useActiveStudentScope();
   const { universities } = useUniversities();
   const { destinations } = useDestinations();
-  const { addApp } = useApplications(user?.id);
-  const { payments, refresh: refreshPayments } = usePayments(user?.id);
-  const { documents } = useDocuments(user?.id);
+  const { addApp } = useApplications(activeStudentId);
+  const { payments, refresh: refreshPayments } = usePayments(activeStudentId);
+  const { documents } = useDocuments(activeStudentId);
   const { getWorkflowForCountry } = useCountryWorkflows();
   const { config } = useFeeConfig();
 
@@ -214,10 +216,11 @@ export const SelectUniversity: React.FC = () => {
   const payment1Status = checkPaymentStage(payments, 1, effectiveCountryKey);
 
   // Dedicated counselor - strictly from admin assignment, NO country defaults
-  const assignedCounselorName = (profile as any)?.assigned_counselor && 
-                                 (profile as any)?.assigned_counselor !== 'Admin' &&
-                                 (profile as any)?.assigned_counselor !== '--'
-    ? (profile as any).assigned_counselor
+  const counselorVal = (impersonatedStudent as any)?.assigned_counselor || (profile as any)?.assigned_counselor;
+  const assignedCounselorName = counselorVal && 
+                                 counselorVal !== 'Admin' &&
+                                 counselorVal !== '--'
+    ? counselorVal
     : 'Admissions Counselor (Pending Assignment)';
 
   const hasCounselorAssigned = assignedCounselorName !== 'Admissions Counselor (Pending Assignment)';
@@ -225,9 +228,9 @@ export const SelectUniversity: React.FC = () => {
   const handleCountrySelect = (c: string) => {
     setSelectedCountry(c);
     if (c !== 'All') {
-      if (user?.id) {
-        void saveEducationCountry(user.id, c).catch(error => setSuccessToast(`Country selection could not be saved: ${error.message}`));
-        localStorage.setItem(`ferex_student_target_country_${user.id}`, c);
+      if (activeStudentId) {
+        void saveEducationCountry(activeStudentId, c).catch(error => setSuccessToast(`Country selection could not be saved: ${error.message}`));
+        localStorage.setItem(`ferex_student_target_country_${activeStudentId}`, c);
       }
       window.dispatchEvent(new Event('ferex_country_change'));
     }
@@ -265,17 +268,17 @@ export const SelectUniversity: React.FC = () => {
 
   const handleApplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!applyUni || !user) return;
+    if (!applyUni || !activeStudentId) return;
 
     try {
       setIsSubmitting(true);
-      const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
+      const studentName = activeStudentName;
 
       const matchedProg = applyUni.course_programs?.find((p: any) => p.name === selectedCourse);
       const rawTuition = matchedProg?.tuition_fee || applyUni.university_fee || applyUni.tuition_range || '€3,500 / yr';
 
       await addApp({
-        student_id: user.id,
+        student_id: activeStudentId,
         student_name: studentName,
         university_id: applyUni.id,
         university_name: applyUni.name,
@@ -288,11 +291,11 @@ export const SelectUniversity: React.FC = () => {
 
       // Save target country & selected course for Documents and Counselor flows
       if (applyUni.country) {
-        void saveEducationCountry(user.id, applyUni.country).catch(() => {});
-        localStorage.setItem(`ferex_student_target_country_${user.id}`, applyUni.country);
+        void saveEducationCountry(activeStudentId, applyUni.country).catch(() => {});
+        localStorage.setItem(`ferex_student_target_country_${activeStudentId}`, applyUni.country);
       }
-      const scopedUniKey = user?.id ? `ferex_student_selected_uni_${user.id}` : 'ferex_student_selected_uni';
-      const scopedCourseKey = user?.id ? `ferex_selected_course_${user.id}` : 'ferex_selected_course';
+      const scopedUniKey = activeStudentId ? `ferex_student_selected_uni_${activeStudentId}` : 'ferex_student_selected_uni';
+      const scopedCourseKey = activeStudentId ? `ferex_selected_course_${activeStudentId}` : 'ferex_selected_course';
       const uniPayload = JSON.stringify({
         id: applyUni.id,
         name: applyUni.name,
@@ -312,9 +315,9 @@ export const SelectUniversity: React.FC = () => {
       window.dispatchEvent(new Event('ferex_application_change'));
 
       // Dispatch automated Resend Application Email to student
-      if (user.email) {
+      if (activeStudentEmail) {
         sendStudentApplicationEmail({
-          studentEmail: user.email,
+          studentEmail: activeStudentEmail,
           studentName,
           universityName: applyUni.name,
           programName: `${degreeLevel} - ${selectedCourse || 'Higher Studies'}`,

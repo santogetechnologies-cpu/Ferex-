@@ -5,7 +5,7 @@ import {
   LayoutDashboard, CreditCard, BarChart3, ShieldCheck, UserCheck,
   CheckSquare, Activity, Bell, Settings, Mail, BookOpen,
   Search, Menu, ChevronDown, ChevronRight, LogOut, X, Crown,
-  Globe, Snowflake, Monitor, GraduationCap, ArrowUpRight, Sparkles, Clock
+  Globe, Snowflake, Monitor, GraduationCap, ArrowUpRight, Sparkles, Clock, Building2
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
@@ -59,6 +59,7 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
       title: 'SUBSIDIARIES',
       items: [
         { name: 'Ferex Education', path: '/central/education', icon: GraduationCap },
+        { name: 'Universities Catalog', path: '/central/universities', icon: Building2 },
         { name: 'Global Trade ERP', path: '/central/trade', icon: Globe },
         { name: 'Rimi Frozen FMCG', path: '/central/rimi', icon: Snowflake },
         { name: 'Ferex Digital Agency', path: '/central/digital', icon: Monitor },

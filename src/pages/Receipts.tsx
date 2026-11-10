@@ -6,17 +6,19 @@ import { FileCheck, Download, Sparkles, Search } from 'lucide-react';
 import { Card } from '../components/Card';
 import { ToastNotification } from '../components/ToastNotification';
 import { useAuth } from '../contexts/AuthContext';
+import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { usePayments } from '../hooks/usePayments';
 import { createReceiptPdfBlob } from '../lib/api/payments';
 import type { Receipt } from '../lib/types';
 
 export const Receipts: React.FC = () => {
   const { user, profile } = useAuth();
-  const { payments, receipts: dbReceipts, error: billingError } = usePayments(user?.id);
+  const { activeStudentId, activeStudentName } = useActiveStudentScope();
+  const { payments, receipts: dbReceipts, error: billingError } = usePayments(activeStudentId);
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState('');
 
-  const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
+  const studentName = activeStudentName;
 
   // Merge DB receipts with paid payments for full coverage
   const receipts: (Receipt & { payment_method?: string; student_name?: string })[] = ([

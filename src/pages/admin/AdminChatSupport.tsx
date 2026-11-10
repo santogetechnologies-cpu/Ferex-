@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Search, Send } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getConversations, getChatMessages, sendChatMessage } from '../../lib/api/chat';
+import { getStudents } from '../../lib/api/students';
 
 interface ConversationUI {
   id: string; name: string; role: string; avatar: string; online: boolean;
@@ -29,26 +30,33 @@ export const AdminChatSupport: React.FC<AdminChatSupportProps> = ({ isStaff = fa
 
   useEffect(() => {
     if (user?.id) {
-      getConversations(user.id).then(list => {
-        const mapped = list.map(c => ({
-          id: c.id,
-          name: c.name || 'Chat Thread',
-          role: 'Education Support',
-          avatar: c.name?.[0]?.toUpperCase() || 'C',
-          online: true,
-          lastMsg: c.last_message || 'No messages yet',
-          time: new Date(c.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          unread: 0,
-        }));
-        const filtered = isStaff ? mapped.filter(c => {
-            const cName = (c.name || '').toLowerCase().trim();
-            return !counselorName || cName.includes(counselorName) || c.role === 'Education Support';
-          }) : mapped;
-          setConversations(filtered);
+      Promise.all([
+        getConversations(user.id),
+        getStudents().catch(() => [])
+      ]).then(([list, students]) => {
+        const studentMap = new Map(students.map(s => [s.id, s.full_name || s.email?.split('@')[0] || 'Student']));
+        const mapped = list.map(c => {
+          const otherId = (c.participant_ids || []).find((p: string) => p !== user.id);
+          const studentName = otherId ? studentMap.get(otherId) : null;
+          const displayName = studentName || (c.name && (!counselorName || !c.name.toLowerCase().includes(counselorName)) ? c.name : 'Student Inquiry');
+
+          return {
+            id: c.id,
+            name: displayName,
+            role: 'Student Candidate',
+            avatar: displayName[0]?.toUpperCase() || 'S',
+            online: true,
+            lastMsg: c.last_message || 'No messages yet',
+            time: new Date(c.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            unread: 0,
+          };
+        });
+
+        setConversations(mapped);
         if (mapped.length > 0) setActiveId(mapped[0].id);
       }).catch(() => {});
     }
-  }, [user]);
+  }, [user?.id, counselorName]);
 
   useEffect(() => {
     if (!activeId) return;

@@ -10,6 +10,7 @@ import {
   Tag, Percent, Award, UploadCloud
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useFeeConfig } from '../hooks/useFeeConfig';
 import { useUniversities } from '../hooks/useUniversities';
 import { useDestinations } from '../hooks/useDestinations';
@@ -46,6 +47,7 @@ const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata',
 
 export function EducationBillingConsole({ admin = false }: { admin?: boolean }) {
   const { user, profile } = useAuth();
+  const { activeStudentId } = useActiveStudentScope();
   const { config, ready: configReady } = useFeeConfig();
   const { universities } = useUniversities();
   const { destinations } = useDestinations();
@@ -54,7 +56,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   const [feeOverrides, setFeeOverrides] = useState<Record<string, StudentFeeOverride>>({});
   const [students, setStudents] = useState<UserProfile[]>([]);
   const [studentId, setStudentId] = useState('');
-  const targetId = admin ? studentId : user?.id || '';
+  const targetId = admin ? studentId : activeStudentId;
   const [applications, setApplications] = useState<Application[]>([]);
   const [appId, setAppId] = useState('');
   const [payments, setPayments] = useState<Payment[]>([]);

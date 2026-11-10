@@ -6,6 +6,7 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { ToastNotification } from '../components/ToastNotification';
 import { useAuth } from '../contexts/AuthContext';
+import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useApplications } from '../hooks/useApplications';
 import { isRealApplication } from '../lib/api/applications';
 import { usePayments } from '../hooks/usePayments';
@@ -118,14 +119,15 @@ startxref
 export const OfferLetters: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const { applications, changeStatus, loading } = useApplications(user?.id);
-  const { payments } = usePayments(user?.id);
+  const { activeStudentId, activeStudentEmail, activeStudentName } = useActiveStudentScope();
+  const { applications, changeStatus, loading } = useApplications(activeStudentId);
+  const { payments } = usePayments(activeStudentId);
   const [toastMessage, setToastMessage] = useState('');
 
   // Modal preview target: { app, docType: 'offer' | 'final', url, name }
   const [previewDoc, setPreviewDoc] = useState<{ app: any; type: 'offer' | 'final'; url: string; name: string } | null>(null);
 
-  const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
+  const studentName = activeStudentName;
   const validApplications = applications.filter(isRealApplication);
   const offerApps = validApplications.filter(a =>
     a.status === 'Offer Issued' ||
@@ -140,7 +142,7 @@ export const OfferLetters: React.FC = () => {
   );
 
   // Check payment status for offer acceptance
-  const targetCountry = (profile as any)?.target_country || applications[0]?.universities?.country || (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || 'Poland';
+  const targetCountry = (profile as any)?.target_country || applications[0]?.universities?.country || (activeStudentId ? localStorage.getItem(`ferex_student_target_country_${activeStudentId}`) : null) || 'Poland';
   const payment2Status = checkPaymentStage(payments, 2, targetCountry);
 
   const inst2Paid = payments.some(p =>
@@ -160,7 +162,7 @@ export const OfferLetters: React.FC = () => {
       // Trigger offer acceptance workflow with sync events
       triggerOfferAcceptanceWorkflow({
         applicationId: app.id,
-        studentId: user?.id || '',
+        studentId: activeStudentId || '',
         studentName: studentName,
         universityName: app.university_name || app.universities?.name || 'University'
       });
@@ -270,7 +272,7 @@ export const OfferLetters: React.FC = () => {
 
           <div className="flex items-center justify-center gap-3 pt-2">
             <button
-              onClick={() => navigate(validApplications.length > 0 ? '/student/applications' : '/student/universities')}
+              onClick={() => navigate(validApplications.length > 0 ? '/student/applications' : '/student/select-university')}
               className="inline-flex items-center gap-2 h-9.5 px-5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] transition-all shadow-sm cursor-pointer"
             >
               {validApplications.length > 0 ? 'Track Application Milestones' : 'Browse Accredited Universities'} <ArrowRight className="w-4 h-4" />

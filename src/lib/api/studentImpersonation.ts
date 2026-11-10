@@ -65,3 +65,4 @@ export function stopImpersonatingStudent(): void {
 export function isImpersonatingStudent(): boolean {
   return getImpersonatedStudent() !== null;
 }
+

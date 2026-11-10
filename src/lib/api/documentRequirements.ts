@@ -825,6 +825,9 @@ export async function addDocumentRequirement(
   const updated = [newReq, ...all.filter(r => r.id !== newReq.id)];
   saveStoredRequirements(updated);
   await syncToCloudCatalog(updated);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('ferex_doc_requirements_change'));
+  }
   return newReq;
 }
 
@@ -853,6 +856,9 @@ export async function updateDocumentRequirement(
 
   saveStoredRequirements(updated);
   await syncToCloudCatalog(updated);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('ferex_doc_requirements_change'));
+  }
   return updatedReq;
 }
 
@@ -867,6 +873,9 @@ export async function removeDocumentRequirement(id: string): Promise<boolean> {
   const filtered = all.filter(r => r.id !== id);
   saveStoredRequirements(filtered);
   await syncToCloudCatalog(filtered);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('ferex_doc_requirements_change'));
+  }
   return true;
 }
 

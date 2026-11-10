@@ -1,5 +1,6 @@
 import { useStudentAgreement } from '../hooks/useStudentAgreement';
 import { useFeeConfig } from '../hooks/useFeeConfig';
+import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { registrationSettled } from '../lib/educationBilling';
 import React from 'react';
 import { motion } from 'framer-motion';
@@ -31,18 +32,19 @@ import { supabase } from '../lib/supabase';
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const { activeStudentId, activeStudentEmail, activeStudentName, isImpersonating } = useActiveStudentScope();
   const { config } = useSystemConfig();
   const { config: feeConfig } = useFeeConfig();
 
-  const { applications } = useApplications(user?.id);
-  const { documents } = useDocuments(user?.id);
-  const { payments } = usePayments(user?.id);
-  const { meetings } = useMeetings(user?.id);
-  const { records: visaRecords } = useVisa(user?.id);
+  const { applications } = useApplications(activeStudentId);
+  const { documents } = useDocuments(activeStudentId);
+  const { payments } = usePayments(activeStudentId);
+  const { meetings } = useMeetings(activeStudentId);
+  const { records: visaRecords } = useVisa(activeStudentId);
   const { getWorkflowForCountry } = useCountryWorkflows();
 
-  const perStudentKey = user?.id ? `ferex_student_target_country_${user.id}` : 'ferex_student_target_country';
-  const targetCountry = (user?.id ? localStorage.getItem(perStudentKey) : null) || applications[0]?.universities?.country || (applications[0] as any)?.country || (profile as any)?.target_country || '';
+  const perStudentKey = activeStudentId ? `ferex_student_target_country_${activeStudentId}` : 'ferex_student_target_country';
+  const targetCountry = (activeStudentId ? localStorage.getItem(perStudentKey) : null) || applications[0]?.universities?.country || (applications[0] as any)?.country || (profile as any)?.target_country || '';
   const targetWf = targetCountry ? getWorkflowForCountry(targetCountry) : null;
 
   const [configuredReqs, setConfiguredReqs] = React.useState<any[]>([]);
@@ -61,8 +63,8 @@ export const StudentDashboard: React.FC = () => {
 
   React.useEffect(() => {
     const fetchLegalization = () => {
-      getNawaRecords(user?.id).then(recs => {
-        const myRec = recs.find(r => r.student_id === user?.id || (user?.email && r.student_email === user.email) || r.id === user?.id);
+      getNawaRecords(activeStudentId).then(recs => {
+        const myRec = recs.find(r => r.student_id === activeStudentId || (activeStudentEmail && r.student_email === activeStudentEmail) || r.id === activeStudentId);
         if (myRec) setLegalizationRecord(myRec);
       });
     };
@@ -74,30 +76,30 @@ export const StudentDashboard: React.FC = () => {
       window.removeEventListener('ferex_nawa_change', fetchLegalization);
       window.removeEventListener('ferex_legalization_change', fetchLegalization);
     };
-  }, [user?.id, user?.email]);
+  }, [activeStudentId, activeStudentEmail]);
 
-  const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
+  const studentName = activeStudentName;
   const [dbStages, setDbStages] = React.useState<any[]>([]);
   const [directPayments, setDirectPayments] = React.useState<any[]>([]);
 
   React.useEffect(() => {
-    if (!user?.id) return;
+    if (!activeStudentId) return;
     const loadWf = () => {
-      getJourneyStages(user.id).then(setDbStages).catch(() => {});
-      listDirectPayments(user.id).then(setDirectPayments).catch(() => {});
+      getJourneyStages(activeStudentId).then(setDbStages).catch(() => {});
+      listDirectPayments(activeStudentId).then(setDirectPayments).catch(() => {});
     };
     loadWf();
     window.addEventListener('ferex_payment_change', loadWf);
     window.addEventListener('ferex_direct_payment_change', loadWf);
-    const ch = supabase.channel('student-dash-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'education_workflow_progress', filter: `student_id=eq.${user.id}` }, loadWf)
+    const ch = supabase.channel(`student-dash-sync-${activeStudentId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'education_workflow_progress', filter: `student_id=eq.${activeStudentId}` }, loadWf)
       .subscribe();
     return () => {
       window.removeEventListener('ferex_payment_change', loadWf);
       window.removeEventListener('ferex_direct_payment_change', loadWf);
       void supabase.removeChannel(ch);
     };
-  }, [user?.id]);
+  }, [activeStudentId]);
 
   const isStageDone = (n: number) => dbStages.some(s => s.stage_number === n && s.status === 'Completed');
   const approvedDocs = documents.filter(d => (d.status as string) === 'Approved' || (d.status as string) === 'Verified').length;
@@ -163,7 +165,7 @@ export const StudentDashboard: React.FC = () => {
   );
 
   const visaRecord = visaRecords.find(r =>
-    (user?.id && r.student_id === user.id) ||
+    (activeStudentId && r.student_id === activeStudentId) ||
     (r.student_name && studentName.toLowerCase().includes(r.student_name.toLowerCase()))
   );
   const visaStatusStr = String(visaRecord?.status_label || (visaRecord as any)?.visa_status || '').toLowerCase();
@@ -196,7 +198,7 @@ export const StudentDashboard: React.FC = () => {
   const isLegalizationInReview = applications.some(a => String(a.status || '') === 'Legalization Reviewed' || String(a.status || '') === 'Legalization Review');
 
   // Service Agreement Status
-  const isAgreementDone = useStudentAgreement(user?.id);
+  const isAgreementDone = useStudentAgreement(activeStudentId);
 
   const checklistItems = [
     { title: '1. Lead Inquiry & Student Profile Registration', isDone: isProfileDone || isStageDone(1), path: '/student/profile', tag: (isProfileDone || isStageDone(1)) ? 'Completed' : 'Pending' },

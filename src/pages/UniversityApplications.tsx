@@ -6,6 +6,7 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { ToastNotification } from '../components/ToastNotification';
 import { useAuth } from '../contexts/AuthContext';
+import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useApplications } from '../hooks/useApplications';
 import { isRealApplication } from '../lib/api/applications';
 
@@ -40,7 +41,8 @@ const getStatusStyle = (status: string) => {
 export const UniversityApplications: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { applications, changeStatus, loading } = useApplications(user?.id);
+  const { activeStudentId } = useActiveStudentScope();
+  const { applications, changeStatus, loading } = useApplications(activeStudentId);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState<string | null>(null);
@@ -54,6 +56,20 @@ export const UniversityApplications: React.FC = () => {
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3000);
+  };
+
+  const handleDownloadOffer = async (app: any) => {
+    if (app.offer_letter_url) {
+      try {
+        const { getSignedFileUrl } = await import('../lib/storage');
+        const secureUrl = await getSignedFileUrl('offer-letters', app.offer_letter_url);
+        if (secureUrl) {
+          window.open(secureUrl, '_blank');
+          return;
+        }
+      } catch {}
+    }
+    navigate('/student/offers');
   };
 
   const handleWithdraw = async (appId: string, uniName: string) => {
@@ -313,21 +329,13 @@ export const UniversityApplications: React.FC = () => {
                     <p className="text-[11px] text-emerald-950 font-semibold">
                       Your official admission offer letter for {activeApp.course || activeApp.university_name} is released by the university admissions council.
                     </p>
-                    <a
-                      href={activeApp.offer_letter_url || '#'}
-                      download={`Offer_Letter_${(activeApp.university_name || 'University').replace(/\s+/g, '_')}.pdf`}
-                      onClick={(e) => {
-                        if (!activeApp.offer_letter_url) {
-                          e.preventDefault();
-                          navigate('/student/offers');
-                        }
-                      }}
-                      target="_blank"
-                      rel="noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadOffer(activeApp)}
                       className="w-full h-9.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
                     >
                       <Download className="w-4 h-4" /> Download Official Offer Letter (PDF)
-                    </a>
+                    </button>
                   </div>
                 ) : (
                   <div className="p-3.5 bg-white border border-indigo-100 rounded-xl space-y-2 text-left shadow-xs">

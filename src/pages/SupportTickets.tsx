@@ -7,6 +7,7 @@ import {
 import { useTickets } from '../hooks/useTickets';
 import { getTicketReplies } from '../lib/api/tickets';
 import { useAuth } from '../contexts/AuthContext';
+import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/Button';
 import { ToastNotification } from '../components/ToastNotification';
@@ -49,7 +50,8 @@ const PRIORITY_COLORS: Record<TicketPriority, string> = {
 
 export const SupportTickets: React.FC = () => {
   const { user, profile } = useAuth();
-  const { tickets: dbTickets, reply: sendReplyApi, newTicket, loading, refresh } = useTickets(user?.id);
+  const { activeStudentId, activeStudentEmail, activeStudentName } = useActiveStudentScope();
+  const { tickets: dbTickets, reply: sendReplyApi, newTicket, loading, refresh } = useTickets(activeStudentId);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 
@@ -70,7 +72,7 @@ export const SupportTickets: React.FC = () => {
   useEffect(() => {
     if (dbTickets.length > 0) {
       const mapped = dbTickets.map(t => {
-        const studentDisplayName = t.users?.full_name || (t.users?.email ? t.users.email.split('@')[0] : (t as any).user_name || profile?.full_name || 'Student');
+        const studentDisplayName = t.users?.full_name || (t.users?.email ? t.users.email.split('@')[0] : (t as any).user_name || activeStudentName || 'Student');
         const prio = ((t.priority as string) === 'Normal' ? 'Medium' : (t.priority as string) === 'Urgent' ? 'High' : (t.priority || 'Medium')) as TicketPriority;
         const stat = (t.status || 'Open') as TicketStatus;
 
@@ -93,7 +95,7 @@ export const SupportTickets: React.FC = () => {
     } else {
       setTickets([]);
     }
-  }, [dbTickets, profile?.full_name]);
+  }, [dbTickets, activeStudentName]);
 
   // Sync replies when active ticket changes
   const activeTicket = tickets.find(t => t.id === selectedTicketId);
@@ -111,7 +113,7 @@ export const SupportTickets: React.FC = () => {
         sender: r.sender_name || 'System',
         text: r.message,
         time: new Date(r.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        self: r.sender_id === user?.id || (r.sender_name !== 'Admin' && r.sender_name !== 'Support Staff' && !r.is_staff),
+        self: r.sender_id === activeStudentId || r.sender_id === user?.id || (r.sender_name !== 'Admin' && r.sender_name !== 'Support Staff' && !r.is_staff),
       }));
       setReplies([
         { sender: activeTicket.studentName, text: activeTicket.messages[0]?.text || '', time: 'Initial Request', self: true },
@@ -142,7 +144,7 @@ export const SupportTickets: React.FC = () => {
                 sender: newReply.sender_name || 'System',
                 text: newReply.message,
                 time: new Date(newReply.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                self: newReply.sender_id === user?.id || (!newReply.is_staff && newReply.sender_name !== 'Admin' && newReply.sender_name !== 'Support Staff'),
+                self: newReply.sender_id === activeStudentId || newReply.sender_id === user?.id || (!newReply.is_staff && newReply.sender_name !== 'Admin' && newReply.sender_name !== 'Support Staff'),
               }
             ];
           });
@@ -153,20 +155,20 @@ export const SupportTickets: React.FC = () => {
     return () => {
       channel.unsubscribe();
     };
-  }, [selectedTicketId, tickets, user?.id]);
+  }, [selectedTicketId, tickets, activeStudentId, user?.id]);
 
   // Realtime subscription to tickets queue changes
   useEffect(() => {
-    if (!user?.id) return;
+    if (!activeStudentId) return;
     const channel = supabase
-      .channel(`student_tickets_queue_${user.id}`)
+      .channel(`student_tickets_queue_${activeStudentId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'support_tickets',
-          filter: `student_id=eq.${user.id}`,
+          filter: `student_id=eq.${activeStudentId}`,
         },
         () => {
           refresh();
@@ -177,24 +179,24 @@ export const SupportTickets: React.FC = () => {
     return () => {
       channel.unsubscribe();
     };
-  }, [user?.id, refresh]);
+  }, [activeStudentId, refresh]);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
 
   const handleSendReplyText = async (text: string) => {
-    if (!text.trim() || !activeTicket || !user) return;
+    if (!text.trim() || !activeTicket || !activeStudentId) return;
     try {
       setIsReplying(true);
       await sendReplyApi({
         ticket_id: activeTicket.id,
-        sender_id: user.id,
-        sender_name: profile?.full_name || user.email?.split('@')[0] || 'Student',
+        sender_id: activeStudentId,
+        sender_name: activeStudentName,
         message: text.trim(),
         is_staff: false,
       });
 
       setReplies(prev => [...prev, {
-        sender: profile?.full_name || user.email?.split('@')[0] || 'You',
+        sender: activeStudentName,
         text: text.trim(),
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         self: true
@@ -209,7 +211,7 @@ export const SupportTickets: React.FC = () => {
   };
 
   const handleSendReply = async () => {
-    if (!replyText.trim() || !activeTicket || !user) return;
+    if (!replyText.trim() || !activeTicket || !activeStudentId) return;
     const msgText = replyText.trim();
     setReplyText('');
     await handleSendReplyText(msgText);
@@ -218,25 +220,34 @@ export const SupportTickets: React.FC = () => {
   // Submit new ticket to Supabase DB
   const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newSubject.trim() || !newDesc.trim() || !user) return;
+    if (!newSubject.trim() || !newDesc.trim() || !activeStudentId) return;
 
     const ticketNo = `TC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
     try {
+      let assignedCounselor = (profile as any)?.assigned_counselor || null;
+      if (!assignedCounselor && activeStudentId) {
+        try {
+          const { data: sProf } = await supabase.from('users').select('assigned_counselor').eq('id', activeStudentId).maybeSingle();
+          assignedCounselor = sProf?.assigned_counselor || null;
+        } catch {}
+      }
+
       await newTicket({
-        student_id: user.id,
+        student_id: activeStudentId,
         ticket_no: ticketNo,
         subject: newSubject.trim(),
         description: newDesc.trim(),
         category: newCategory,
         priority: newPriority,
+        assigned_to: assignedCounselor || 'Admissions Counselor',
       });
 
       // Dispatch automated Resend Support Ticket Receipt Email to student
-      if (user.email) {
+      if (activeStudentEmail) {
         sendStudentTicketCreatedEmail({
-          studentEmail: user.email,
-          studentName: profile?.full_name || user.email.split('@')[0],
+          studentEmail: activeStudentEmail,
+          studentName: activeStudentName,
           ticketNo,
           subject: newSubject.trim(),
           category: newCategory,

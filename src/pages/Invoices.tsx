@@ -2,10 +2,12 @@ import { formatAccountingTotals } from '../lib/accountingPdf';
 import { money } from '../lib/educationBilling';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileSpreadsheet, Download, Sparkles, Search, CheckCircle2, RotateCcw, FileText, Eye } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { FileSpreadsheet, Download, Sparkles, Search, CheckCircle2, RotateCcw, FileText, Eye, Clock, AlertCircle, ArrowUpRight } from 'lucide-react';
 import { Card } from '../components/Card';
 import { ToastNotification } from '../components/ToastNotification';
 import { useAuth } from '../contexts/AuthContext';
+import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { usePayments } from '../hooks/usePayments';
 import { createValidInvoicePdfBlob, createCreditNotePdfBlob, getCreditNotes } from '../lib/api/payments';
 import type { Invoice, CreditNote } from '../lib/types';
@@ -13,20 +15,21 @@ import { InvoiceModal, type InvoiceData } from '../components/InvoiceModal';
 
 export const Invoices: React.FC = () => {
   const { user, profile } = useAuth();
-  const { invoices: dbInvoices, payments, error: billingError } = usePayments(user?.id);
+  const { activeStudentId, activeStudentEmail, activeStudentName } = useActiveStudentScope();
+  const { invoices: dbInvoices, payments, error: billingError } = usePayments(activeStudentId);
   const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'invoices' | 'credits'>('invoices');
   const [toastMessage, setToastMessage] = useState('');
   const [viewInvoice, setViewInvoice] = useState<InvoiceData | null>(null);
 
-  const studentName = profile?.full_name || user?.email?.split('@')[0] || 'Student';
+  const studentName = activeStudentName;
 
   useEffect(() => {
-    if (user?.id) {
-      getCreditNotes(user.id).then(res => setCreditNotes(res || [])).catch(() => setCreditNotes([]));
+    if (activeStudentId) {
+      getCreditNotes(activeStudentId).then(res => setCreditNotes(res || [])).catch(() => setCreditNotes([]));
     }
-  }, [user]);
+  }, [activeStudentId]);
 
   // Combine credit notes from API and refunded payments for 100% coverage
   const allCreditNotes: CreditNote[] = ([
@@ -48,31 +51,34 @@ export const Invoices: React.FC = () => {
     index === self.findIndex(t => t.id === cn.id || t.credit_note_no === cn.credit_note_no)
   )) as CreditNote[];
 
-  // Merge DB invoices with paid payments for full coverage
+  // Merge DB invoices with all payments for full coverage (Paid, Pending, or Due)
   const invoices: Invoice[] = ([
     ...dbInvoices,
     ...payments
-      .filter(p => p.status === 'Paid' || p.status === 'Verified')
-      .map(p => ({
-        id: `INV-${p.id.slice(0, 8)}`,
-        student_id: p.student_id,
-        payment_id: p.id,
-        invoice_no: p.ref_no || `INV-${p.id.slice(0, 6)}`,
-        description: p.title || p.description || (p.payment_type ? `${p.payment_type} Clearance` : 'Registration Fee & Legalization Audit Deposit'),
-        amount: Number(p.amount),
-        currency: p.currency || 'INR',
-        tax_rate_percent: p.tax_rate_percent,
-        status: 'Paid' as const,
-        due_date: p.created_at,
-        issued_at: p.paid_at || p.created_at || new Date().toISOString(),
-        created_at: p.created_at || new Date().toISOString(),
-        // extended fields
-        payment_type: p.payment_type,
-        payment_method: p.payment_method,
-        milestone_step: (p as any).milestone_step,
-        utr_number: p.utr_number || (p as any).transaction_id,
-        student_name: p.student_name || studentName,
-      } as any))
+      .map(p => {
+        const isPaid = ['Paid', 'Verified', 'Completed'].includes(p.status as string);
+        const isPending = ['Pending Verification', 'Pending'].includes(p.status as string);
+        return {
+          id: `INV-${p.id.slice(0, 8)}`,
+          student_id: p.student_id,
+          payment_id: p.id,
+          invoice_no: p.ref_no || `INV-${p.id.slice(0, 6)}`,
+          description: p.title || p.description || (p.payment_type ? `${p.payment_type} Clearance` : 'Educational Consultancy & Tuition Fee Invoice'),
+          amount: Number(p.amount),
+          currency: p.currency || 'INR',
+          tax_rate_percent: p.tax_rate_percent,
+          status: (isPaid ? 'Paid' : isPending ? 'Pending' : 'Due') as any,
+          due_date: p.created_at,
+          issued_at: p.paid_at || p.created_at || new Date().toISOString(),
+          created_at: p.created_at || new Date().toISOString(),
+          // extended fields
+          payment_type: p.payment_type,
+          payment_method: p.payment_method,
+          milestone_step: (p as any).milestone_step,
+          utr_number: p.utr_number || (p as any).transaction_id,
+          student_name: p.student_name || studentName,
+        } as any;
+      })
   ].filter((inv, index, self) =>
     index === self.findIndex(t => t.id === inv.id || (inv.payment_id && t.payment_id === inv.payment_id) || t.invoice_no === inv.invoice_no)
   )) as Invoice[];
@@ -209,9 +215,19 @@ export const Invoices: React.FC = () => {
                     <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg border border-slate-200 font-mono">
                       {inv.invoice_no || inv.id}
                     </span>
-                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Paid
-                    </span>
+                    {(inv.status as string) === 'Paid' ? (
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Paid
+                      </span>
+                    ) : (inv.status as string) === 'Pending' ? (
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> Pending Verification
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> Payment Due
+                      </span>
+                    )}
                   </div>
 
                   <h3 className="text-sm font-black text-slate-900 leading-snug mb-1">
@@ -248,31 +264,43 @@ export const Invoices: React.FC = () => {
                 </div>
 
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between mt-3 gap-2">
-                  <button
-                    onClick={() => setViewInvoice({
-                      invoice_no: inv.invoice_no || inv.id,
-                      student_name: (inv as any).student_name || studentName,
-                      amount: Number(inv.amount) || 0,
-      tax_rate_percent: inv.tax_rate_percent,
-                      currency: inv.currency || 'INR',
-                      description: inv.description || 'Registration Fee – Overseas Education Consultancy Services (Study in Poland)',
-                      date: inv.issued_at || (inv as any).created_at || new Date().toISOString(),
-                      payment_method: extInv.payment_method || 'Bank Transfer / UPI',
-                      utr_number: extInv.utr_number,
-                      sac_code: '9983',
-                      place_of_supply: 'Kerala'
-                    })}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#6b0027] transition-all shadow-xs"
-                  >
-                    <Eye className="w-3.5 h-3.5" /> View Invoice
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setViewInvoice({
+                        invoice_no: inv.invoice_no || inv.id,
+                        student_name: (inv as any).student_name || studentName,
+                        amount: Number(inv.amount) || 0,
+                        tax_rate_percent: inv.tax_rate_percent,
+                        currency: inv.currency || 'INR',
+                        description: inv.description || 'Registration Fee – Overseas Education Consultancy Services (Study in Poland)',
+                        date: inv.issued_at || (inv as any).created_at || new Date().toISOString(),
+                        payment_method: extInv.payment_method || 'Bank Transfer / UPI',
+                        utr_number: extInv.utr_number,
+                        sac_code: '9983',
+                        place_of_supply: 'Kerala'
+                      })}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#6b0027] transition-all shadow-xs"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> View
+                    </button>
 
-                  <button
-                    onClick={() => handleDownloadInvoice(extInv)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-all"
-                  >
-                    <Download className="w-3.5 h-3.5" /> PDF
-                  </button>
+                    <button
+                      onClick={() => handleDownloadInvoice(extInv)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-all"
+                    >
+                      <Download className="w-3.5 h-3.5" /> PDF
+                    </button>
+                  </div>
+
+                  {inv.status !== 'Paid' && (
+                    <Link
+                      to="/student/payments"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-xs"
+                    >
+                      <span>Pay Now</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </Link>
+                  )}
                 </div>
               </Card>
             );

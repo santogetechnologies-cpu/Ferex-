@@ -105,11 +105,9 @@ export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFil
       if (a.university_name === 'Pending University Selection') return false;
       if (isStaff && !showAllForStaff && (counselorEmail || counselorName)) {
         const appCounselor = ((a as any).counselor || (a.users as any)?.assigned_counselor || '').toLowerCase().trim();
-        const matchesCounselor = Boolean(
-          appCounselor && (
-            (counselorEmail && appCounselor.includes(counselorEmail)) ||
-            (counselorName && appCounselor.includes(counselorName))
-          )
+        const matchesCounselor = !appCounselor || appCounselor === 'admissions desk' || appCounselor === '--' || Boolean(
+          (counselorEmail && appCounselor.includes(counselorEmail)) ||
+          (counselorName && appCounselor.includes(counselorName))
         );
         return matchesCounselor;
       }
@@ -143,14 +141,14 @@ export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFil
         intake: a.intake || 'October 2026',
         status: (a.status as AppStatus) || 'Submitted',
         date: new Date(a.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        counselor: a.users?.assigned_counselor || 'Admissions Desk',
+        counselor: (a as any).counselor || a.users?.assigned_counselor || 'Admissions Desk',
         offerLetterUrl: a.offer_letter_url,
         finalAcceptanceUrl: a.final_acceptance_url,
         notes: a.notes,
       };
     });
     setApps(mapped);
-  }, [dbApps]);
+  }, [dbApps, isStaff, showAllForStaff, counselorEmail, counselorName]);
 
   const [search, setSearch] = useState('');
   const [viewApp, setViewApp] = useState<ApplicationItem | null>(null);

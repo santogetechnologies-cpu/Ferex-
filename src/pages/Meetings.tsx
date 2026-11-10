@@ -5,6 +5,7 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { ToastNotification } from '../components/ToastNotification';
 import { useAuth } from '../contexts/AuthContext';
+import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useMeetings } from '../hooks/useMeetings';
 import { computeEndTime } from '../lib/api/meetings';
 import { getStaffMembers } from '../lib/api/students';
@@ -12,10 +13,11 @@ import { sendStudentMeetingScheduledEmail } from '../lib/api/email';
 
 export const Meetings: React.FC = () => {
   const { user, profile } = useAuth();
-  const { meetings: dbMeetings, addMeeting, deleteCall, loading } = useMeetings(user?.id);
+  const { activeStudentId, activeStudentEmail, activeStudentName, impersonatedStudent } = useActiveStudentScope();
+  const { meetings: dbMeetings, addMeeting, deleteCall, loading } = useMeetings(activeStudentId);
 
   // Compute student assigned counselor
-  const rawAssigned = (profile as any)?.assigned_counselor?.trim();
+  const rawAssigned = (impersonatedStudent as any)?.assigned_counselor?.trim() || (profile as any)?.assigned_counselor?.trim();
   const hasAssignedCounselor = Boolean(
     rawAssigned &&
     rawAssigned !== 'Admin' &&
@@ -98,14 +100,14 @@ export const Meetings: React.FC = () => {
 
   const handleBookSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!subject.trim() || !user) return;
+    if (!subject.trim() || !activeStudentId) return;
 
     try {
       setIsSubmitting(true);
       const chosenAdvisor = assignedCounselorName || advisorName || 'Admissions Desk';
       const computedEnd = computeEndTime(startTime);
       await addMeeting({
-        student_id: user.id,
+        student_id: activeStudentId,
         subject,
         scheduled_date: scheduledDate,
         start_time: startTime,
@@ -114,10 +116,10 @@ export const Meetings: React.FC = () => {
       });
 
       // Dispatch automated Resend Meeting Confirmation Email to student
-      if (user.email) {
+      if (activeStudentEmail) {
         sendStudentMeetingScheduledEmail({
-          studentEmail: user.email,
-          studentName: profile?.full_name || user.email.split('@')[0],
+          studentEmail: activeStudentEmail,
+          studentName: activeStudentName,
           subject,
           advisorName: chosenAdvisor,
           scheduledDate,

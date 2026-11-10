@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Users, ClipboardList, FileCheck, FolderOpen,
   CreditCard, Headphones, BarChart3, Crown, GraduationCap,
-  Bell, Settings, LogOut, Menu, X, ChevronDown, ChevronRight, Search, Building2, ShieldCheck, Calendar, Plane, FileText, Home, Sparkles, Mail, Award
+  Bell, Settings, LogOut, Menu, X, ChevronDown, ChevronRight, Search, Building2, ShieldCheck, Calendar, Plane, FileText, Home, Sparkles, Mail, Award, MessageSquare, Sliders
 } from 'lucide-react';
 
 import { Logo } from '../components/Logo';
@@ -31,10 +31,12 @@ const baseMenuItems = [
   { name: 'Document Config', path: '/admin/document-config', icon: FileText, badge: null, hasUpdate: false },
   { name: 'Legalization & Workflows', path: '/admin/legalization', icon: FileCheck, badge: null, hasUpdate: false },
   { name: 'Payment & Billing Control', path: '/admin/payment-control', icon: CreditCard, badge: null, hasUpdate: false },
+  { name: 'Fee Governance', path: '/admin/fee-config', icon: Sliders, badge: null, hasUpdate: false },
   { name: 'VFS Visa Tracker', path: '/admin/visa-tracker', icon: ShieldCheck, badge: null, hasUpdate: false },
   { name: 'Pre-Departure', path: '/admin/pre-departure', icon: Plane, badge: null, hasUpdate: false },
   { name: 'Status Tracker', path: '/admin/tasks', icon: ClipboardList, badge: null, hasUpdate: false },
   { name: 'Support Tickets', path: '/admin/support', icon: Headphones, badge: null, hasUpdate: false },
+  { name: 'Advisory Chat', path: '/admin/chat', icon: MessageSquare, badge: null, hasUpdate: false },
   { name: 'Staff Attendance & Hours', path: '/admin/attendance', icon: Clock, badge: null, hasUpdate: false },
   { name: 'Staff Management', path: '/admin/staff', icon: Users, badge: null, hasUpdate: false },
   { name: 'Meetings & Planner', path: '/admin/meetings', icon: Calendar, badge: null, hasUpdate: false },
