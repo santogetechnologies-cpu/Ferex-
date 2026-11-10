@@ -278,6 +278,10 @@ export const Documents: React.FC = () => {
       return;
     }
 
+    const targetStudentId = activeStudentId || user?.id;
+    const targetStudentEmail = activeStudentEmail || user?.email;
+    const targetStudentName = activeStudentName || profile?.full_name || targetStudentEmail?.split('@')[0] || 'Student';
+
     try {
       setIsSubmitting(true);
       if (reuploadTargetDocId) {
@@ -290,7 +294,7 @@ export const Documents: React.FC = () => {
         showToast(`Document "${baseName}" re-uploaded successfully and submitted for review.`);
       } else {
         await addDoc({
-          student_id: user.id,
+          student_id: targetStudentId,
           file_name: baseName,
           file_url: fileUrlStr,
           file_size: fileSizeStr,
@@ -300,10 +304,10 @@ export const Documents: React.FC = () => {
       }
 
       // Dispatch automated Resend Document Receipt Email to student
-      if (user.email) {
+      if (targetStudentEmail) {
         sendStudentDocumentUploadedEmail({
-          studentEmail: user.email,
-          studentName: profile?.full_name || user.email.split('@')[0],
+          studentEmail: targetStudentEmail,
+          studentName: targetStudentName,
           documentName: baseName,
           documentType: uploadType,
           fileSize: fileSizeStr,
@@ -458,7 +462,7 @@ export const Documents: React.FC = () => {
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
           </div>
           <p className="text-2xl font-black text-emerald-600 mt-1">
-            {documents.filter(d => d.status === 'Approved').length}
+            {documents.filter(d => d.status === 'Approved' || (d.status as string) === 'Verified').length}
           </p>
           <span className="text-[10px] font-medium text-emerald-600/80">Compliance verified</span>
         </Card>

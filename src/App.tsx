@@ -557,7 +557,7 @@ function App() {
           <Route path="/staff/universities" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffUniversities /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/destinations" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffDestinations /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/applications" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffApplications /></StaffLayout></ProtectedRoute>} />
-          <Route path="/staff/offers" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminApplications initialFilter="Offer Issued" /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/offers" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminApplications initialFilter="Offer Issued" isStaff={true} /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/documents" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffDocuments /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/legalization" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminNawaTracker isStaff={true} /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/nawa" element={<Navigate to="/staff/legalization" replace />} />
@@ -571,7 +571,7 @@ function App() {
           <Route path="/staff/shift-details" element={<Navigate to="/staff/attendance?tab=shifts" replace />} />
           <Route path="/staff/meetings" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminMeetings isStaff={true} /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/chat" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminChatSupport isStaff={true} /></StaffLayout></ProtectedRoute>} />
-          <Route path="/staff/notifications" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminNotifications /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/notifications" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminNotifications isStaff={true} /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/profile" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffProfile /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/settings" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffProfile /></StaffLayout></ProtectedRoute>} />
 

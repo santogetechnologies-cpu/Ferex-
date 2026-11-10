@@ -151,7 +151,11 @@ export async function createTicket(payload: {
       dbPayload.user_email = payload.user_email;
     }
     if (assignedStaff) {
-      dbPayload.assigned_to = assignedStaff;
+      if (isValidUUID(assignedStaff)) {
+        dbPayload.assigned_to = assignedStaff;
+      } else {
+        dbPayload.assigned_staff_name = assignedStaff;
+      }
     }
 
     let { data, error } = await client
@@ -348,10 +352,21 @@ export async function updateTicketAssignee(id: string, assignedTo: string | null
   const admin = await getAdminSupabaseClient();
   const client = admin || supabase;
   const now = new Date().toISOString();
+  const isValidUUID = (val?: string | null) => Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
+
+  const updatePayload: any = { updated_at: now };
+  if (!assignedTo) {
+    updatePayload.assigned_to = null;
+    updatePayload.assigned_staff_name = null;
+  } else if (isValidUUID(assignedTo)) {
+    updatePayload.assigned_to = assignedTo;
+  } else {
+    updatePayload.assigned_staff_name = assignedTo;
+  }
 
   const { data, error } = await client
     .from('support_tickets')
-    .update({ assigned_to: assignedTo || null, updated_at: now })
+    .update(updatePayload)
     .eq('id', id)
     .select();
 

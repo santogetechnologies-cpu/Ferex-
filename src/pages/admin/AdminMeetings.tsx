@@ -98,8 +98,16 @@ export const AdminMeetings: React.FC<AdminMeetingsProps> = ({ isStaff = false })
 
   React.useEffect(() => {
     getStudents().then(students => {
-      setStudentsList(students);
-      if (students.length > 0 && !selectedStudentId) setSelectedStudentId(students[0].id);
+      const filtered = isStaff
+        ? students.filter(s => {
+            const ac = (s.assigned_counselor || '').toLowerCase();
+            const me = counselorName.toLowerCase();
+            const meEmail = (user?.email || '').toLowerCase();
+            return (me && ac.includes(me)) || (meEmail && ac.includes(meEmail));
+          })
+        : students;
+      setStudentsList(filtered);
+      if (filtered.length > 0 && !selectedStudentId) setSelectedStudentId(filtered[0].id);
     }).catch(() => { });
 
     getStaffMembers().then(staff => {
@@ -195,7 +203,7 @@ export const AdminMeetings: React.FC<AdminMeetingsProps> = ({ isStaff = false })
   };
 
   // Process and filter meetings with rich student resolution
-  const meetings = dbMeetings.map(m => {
+  const rawMeetings = dbMeetings.map(m => {
     const studentObj = studentsList.find(s => s.id === m.student_id) || (m as any).users;
     const rawDate = m.scheduled_date || (m as any).created_at || getLocalDateString();
     // Normalize date to YYYY-MM-DD
@@ -218,6 +226,15 @@ export const AdminMeetings: React.FC<AdminMeetingsProps> = ({ isStaff = false })
       notes: m.notes || (m as any).description || '',
     };
   });
+
+  const meetings = isStaff
+    ? rawMeetings.filter(m => {
+        const adv = (m.advisor || '').toLowerCase();
+        const me = counselorName.toLowerCase();
+        const meEmail = (user?.email || '').toLowerCase();
+        return (me && adv.includes(me)) || (meEmail && adv.includes(meEmail));
+      })
+    : rawMeetings;
 
   const filteredMeetings = meetings.filter(m => {
     const matchesSearch =
@@ -338,14 +355,16 @@ export const AdminMeetings: React.FC<AdminMeetingsProps> = ({ isStaff = false })
           <List className="w-4 h-4" /> Consultation Records
           {activeTab === 'control' && <motion.div layoutId="meetingActiveTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#58051E]" />}
         </button>
-        <button
-          onClick={() => setActiveTab('workload')}
-          className={`pb-3.5 text-xs font-bold transition-all relative px-1 flex items-center gap-1.5 ${activeTab === 'workload' ? 'text-[#58051E]' : 'text-slate-400 hover:text-slate-600'
-            }`}
-        >
-          <BarChart3 className="w-4 h-4" /> Advisor Workloads
-          {activeTab === 'workload' && <motion.div layoutId="meetingActiveTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#58051E]" />}
-        </button>
+        {!isStaff && (
+          <button
+            onClick={() => setActiveTab('workload')}
+            className={`pb-3.5 text-xs font-bold transition-all relative px-1 flex items-center gap-1.5 ${activeTab === 'workload' ? 'text-[#58051E]' : 'text-slate-400 hover:text-slate-600'
+              }`}
+          >
+            <BarChart3 className="w-4 h-4" /> Advisor Workloads
+            {activeTab === 'workload' && <motion.div layoutId="meetingActiveTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#58051E]" />}
+          </button>
+        )}
       </div>
 
       {/* TAB 1: MEET CALENDAR VIEW */}

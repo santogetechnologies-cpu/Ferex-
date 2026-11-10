@@ -69,21 +69,28 @@ export const AdminReports: React.FC = () => {
     : [{ country: 'Poland', count: students.length, pct: 100 }];
 
   const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const nowMonth = new Date().getMonth();
-  const current6Months = monthLabels.slice(Math.max(0, nowMonth - 5), nowMonth + 1);
-  const appData = current6Months.map((_, idx) => {
-    const targetMonthIdx = nowMonth - (current6Months.length - 1 - idx);
-    const count = applications.filter(a => {
-      const d = new Date(a.applied_date || a.created_at || Date.now());
-      return d.getMonth() === targetMonthIdx;
-    }).length;
-    return count;
+  const now = new Date();
+  const rolling6Months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+    return {
+      label: monthLabels[d.getMonth()],
+      monthIdx: d.getMonth(),
+      year: d.getFullYear(),
+    };
   });
-  const paymentData = current6Months.map((_, idx) => {
-    const targetMonthIdx = nowMonth - (current6Months.length - 1 - idx);
+  const chartLabels = rolling6Months.map(m => m.label);
+
+  const appData = rolling6Months.map(({ monthIdx, year }) => {
+    return applications.filter(a => {
+      const d = new Date(a.applied_date || a.created_at || Date.now());
+      return d.getMonth() === monthIdx && d.getFullYear() === year;
+    }).length;
+  });
+
+  const paymentData = rolling6Months.map(({ monthIdx, year }) => {
     const sum = verifiedPayments.filter(p => {
       const d = new Date(p.created_at || Date.now());
-      return d.getMonth() === targetMonthIdx;
+      return d.getMonth() === monthIdx && d.getFullYear() === year;
     }).reduce((acc, p) => acc + Number(p.amount || 0), 0);
     return Math.round(sum / 1000);
   });
@@ -176,7 +183,7 @@ export const AdminReports: React.FC = () => {
               <Download className="w-3 h-3" /> Export
             </button>
           </div>
-          <BarChart data={appData} labels={monthLabels} color="bg-[#58051E]/70" />
+          <BarChart data={appData} labels={chartLabels} color="bg-[#58051E]/70" />
         </div>
 
         {/* Document status donut-style */}
@@ -275,7 +282,7 @@ export const AdminReports: React.FC = () => {
             <Download className="w-3 h-3" /> Export
           </button>
         </div>
-        <BarChart data={paymentData} labels={monthLabels} color="bg-emerald-500/70" unit="₹" />
+        <BarChart data={paymentData} labels={chartLabels} color="bg-emerald-500/70" unit="₹" />
       </div>
     </div>
   );

@@ -22,46 +22,14 @@ export interface VisaTrackingRecord {
 
 const VISA_CATALOG_KEY = 'ferex_visa_records_catalog';
 
-async function fetchVisaCatalog(): Promise<VisaTrackingRecord[]> {
+function cleanDate(d?: string): string {
+  if (!d) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
   try {
-    const admin = await getAdminSupabaseClient();
-    const { data } = await admin
-      .from('system_config')
-      .select('value')
-      .eq('key', VISA_CATALOG_KEY)
-      .maybeSingle();
-    if (data?.value && Array.isArray(data.value)) {
-      return data.value;
-    }
+    const parsed = new Date(d);
+    if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
   } catch {}
-  try {
-    const raw = localStorage.getItem('ferex_visa_cloud_catalog');
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return [];
-}
-
-async function syncVisaToCloudCatalog(record: VisaTrackingRecord) {
-  try {
-    const current = await fetchVisaCatalog();
-    const filtered = current.filter(r =>
-      r.id !== record.id &&
-      r.student_id !== record.student_id &&
-      (!record.student_email || r.student_email?.toLowerCase() !== record.student_email.toLowerCase())
-    );
-    const updated = [record, ...filtered];
-    try {
-      localStorage.setItem('ferex_visa_cloud_catalog', JSON.stringify(updated));
-    } catch {}
-    const admin = await getAdminSupabaseClient();
-    await admin.from('system_config').upsert({
-      key: VISA_CATALOG_KEY,
-      value: updated,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'key' });
-  } catch (e) {
-    console.warn('[syncVisaToCloudCatalog notice]:', e);
-  }
+  return '';
 }
 
 function matchesStudent(r: VisaTrackingRecord, targetId?: string): boolean {
@@ -76,61 +44,76 @@ function matchesStudent(r: VisaTrackingRecord, targetId?: string): boolean {
 }
 
 export async function getVisaRecords(studentIdentifier?: string): Promise<VisaTrackingRecord[]> {
-  const cloudCatalog = await fetchVisaCatalog();
-  const normalized = cloudCatalog.map((r: any) => {
-    const statusLower = String(r.status_label || r.status || '').toLowerCase();
-    const stageNum = Number(r.current_stage) || 1;
-    let outcome = r.decision_outcome;
-    if (!outcome || (outcome === 'Pending' && stageNum === 8)) {
-      if (statusLower.includes('reject') || statusLower.includes('refus')) {
-        outcome = 'Rejected';
-      } else if (stageNum === 8 || statusLower.includes('approv') || statusLower.includes('result confirmed')) {
-        outcome = 'Approved';
-      } else {
-        outcome = 'Pending';
-      }
+  try {
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+
+    let query = client
+      .from('visa_applications')
+      .select('*, users:student_id(full_name, email)')
+      .order('created_at', { ascending: false });
+
+    if (studentIdentifier && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(studentIdentifier)) {
+      query = query.eq('student_id', studentIdentifier);
     }
 
-    return {
-      id: r.id,
-      student_id: r.student_id || r.id,
-      student_name: r.student_name || 'Student',
-      student_email: r.student_email || (r.student_id?.includes('@') ? r.student_id : ''),
-      vfs_ref_no: r.vfs_ref_no || 'VFS-POL-2026',
-      embassy_name: r.embassy_name || 'Embassy of Poland',
-      vfs_center: r.vfs_center || 'VFS Global Center',
-      appointment_date: r.appointment_date || 'Scheduled',
-      passport_no: r.passport_no || 'Verified',
-      courier_tracking_no: r.courier_tracking_no || 'Assigned',
-      current_stage: stageNum,
-      status_label: outcome === 'Approved' && (r.status_label === 'Visa Result Confirmed' || !r.status_label)
-        ? 'Visa Approved & Stamped'
-        : (r.status_label || 'VFS Processing'),
-      decision_outcome: outcome as 'Pending' | 'Approved' | 'Rejected',
-      notes: r.notes || 'VFS tracking updated.',
-      updated_at: r.updated_at || new Date().toISOString()
-    };
-  });
+    const { data, error } = await query;
+    if (!error && Array.isArray(data) && data.length > 0) {
+      const records: VisaTrackingRecord[] = data.map((r: any) => {
+        const studentObj = r.users || {};
+        const outcome = (r.decision_outcome || (r.status === 'Visa Approved' ? 'Approved' : r.status === 'Visa Refused' ? 'Rejected' : 'Pending')) as 'Pending' | 'Approved' | 'Rejected';
+        return {
+          id: r.id,
+          student_id: r.student_id,
+          student_name: studentObj.full_name || r.notes?.match(/Student:\s*([^,\.]+)/)?.[1] || 'Enrolled Student',
+          student_email: studentObj.email || '',
+          vfs_ref_no: r.vfs_ref_no || r.reference_no || 'VFS-POL-2026',
+          embassy_name: r.country ? `Embassy of ${r.country}` : 'Embassy of Poland',
+          vfs_center: r.vfs_center || 'VFS Global Center',
+          appointment_date: r.appointment_date || '',
+          passport_no: r.passport_no || '',
+          courier_tracking_no: r.courier_tracking_no || r.tracking_id || '',
+          current_stage: r.current_stage || (outcome === 'Approved' ? 8 : 1),
+          status_label: r.status_label || r.status || 'VFS Processing',
+          decision_outcome: outcome,
+          notes: r.notes || '',
+          updated_at: r.updated_at || r.created_at || new Date().toISOString()
+        };
+      });
 
-  if (studentIdentifier) {
-    return normalized.filter(r => matchesStudent(r, studentIdentifier));
+      if (studentIdentifier) {
+        return records.filter(r => matchesStudent(r, studentIdentifier));
+      }
+      return records;
+    }
+  } catch (dbErr) {
+    console.warn('[getVisaRecords DB query notice]:', dbErr);
   }
-  return normalized;
-}
 
-function isValidUuid(id?: string): boolean {
-  if (!id) return false;
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
-}
-
-function cleanDate(d?: string): string {
-  if (!d) return '';
-  if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+  // Fallback to system_config or localStorage
   try {
-    const parsed = new Date(d);
-    if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
+    const admin = await getAdminSupabaseClient();
+    const { data } = await admin
+      .from('system_config')
+      .select('value')
+      .eq('key', VISA_CATALOG_KEY)
+      .maybeSingle();
+    if (data?.value && Array.isArray(data.value)) {
+      if (studentIdentifier) return (data.value as VisaTrackingRecord[]).filter(r => matchesStudent(r, studentIdentifier));
+      return data.value as VisaTrackingRecord[];
+    }
   } catch {}
-  return '';
+
+  try {
+    const raw = localStorage.getItem('ferex_visa_cloud_catalog');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (studentIdentifier) return parsed.filter((r: any) => matchesStudent(r, studentIdentifier));
+      return parsed;
+    }
+  } catch {}
+
+  return [];
 }
 
 export async function updateVisaStatus(
@@ -158,6 +141,7 @@ export async function updateVisaStatus(
 
   const validId = id || generateUUID();
   const studentEmail = updates.student_email || (updates.student_id?.includes('@') ? updates.student_id : '');
+  const nowIso = new Date().toISOString();
 
   const upsertPayload: VisaTrackingRecord = {
     id: validId,
@@ -167,28 +151,67 @@ export async function updateVisaStatus(
     vfs_ref_no: updates.vfs_ref_no || 'VFS-POL-2026',
     embassy_name: updates.embassy_name || 'Embassy of Poland',
     vfs_center: updates.vfs_center || 'VFS Global Center',
-    appointment_date: cleanDate(updates.appointment_date) || new Date().toISOString().split('T')[0],
-    passport_no: updates.passport_no || 'Z-9041284',
-    courier_tracking_no: updates.courier_tracking_no || 'BLUEDART-89041256',
+    appointment_date: cleanDate(updates.appointment_date) || nowIso.split('T')[0],
+    passport_no: updates.passport_no || '',
+    courier_tracking_no: updates.courier_tracking_no || '',
     current_stage: Number(updates.current_stage) || (resolvedOutcome === 'Approved' || resolvedOutcome === 'Rejected' ? 8 : 1),
     status_label: finalStatusLabel || (Number(updates.current_stage) === 8 ? 'Visa Approved & Stamped' : 'VFS Processing'),
     decision_outcome: resolvedOutcome || 'Pending',
     notes: updates.notes || 'VFS tracking updated.',
-    updated_at: new Date().toISOString(),
+    updated_at: nowIso,
   };
 
-  await syncVisaToCloudCatalog(upsertPayload);
+  // 1. Persist directly into public.visa_applications
+  if (upsertPayload.student_id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(upsertPayload.student_id)) {
+    try {
+      const admin = await getAdminSupabaseClient();
+      const client = admin || supabase;
 
+      await client.from('visa_applications').upsert({
+        id: validId,
+        student_id: upsertPayload.student_id,
+        vfs_ref_no: upsertPayload.vfs_ref_no,
+        vfs_center: upsertPayload.vfs_center,
+        appointment_date: upsertPayload.appointment_date ? cleanDate(upsertPayload.appointment_date) : null,
+        passport_no: upsertPayload.passport_no,
+        courier_tracking_no: upsertPayload.courier_tracking_no,
+        current_stage: upsertPayload.current_stage,
+        status_label: upsertPayload.status_label,
+        status: resolvedOutcome === 'Approved' ? 'Visa Approved' : resolvedOutcome === 'Rejected' ? 'Visa Refused' : 'Under Embassy Review',
+        decision_outcome: resolvedOutcome,
+        notes: upsertPayload.notes,
+        updated_at: nowIso,
+      }, { onConflict: 'id' });
+    } catch (dbErr) {
+      console.warn('[updateVisaStatus DB write notice]:', dbErr);
+    }
+  }
+
+  // 2. Sync to system_config & localStorage for redundancy
+  try {
+    const admin = await getAdminSupabaseClient();
+    const current = await getVisaRecords();
+    const filtered = current.filter(r => r.id !== upsertPayload.id && r.student_id !== upsertPayload.student_id);
+    const updated = [upsertPayload, ...filtered];
+    try { localStorage.setItem('ferex_visa_cloud_catalog', JSON.stringify(updated)); } catch {}
+    await admin.from('system_config').upsert({
+      key: VISA_CATALOG_KEY,
+      value: updated,
+      updated_at: nowIso,
+    }, { onConflict: 'key' });
+  } catch {}
+
+  // 3. Automated status cascades & notifications
   if (upsertPayload.student_id) {
     try {
       const { createNotification } = await import('./notifications');
       const { updateApplicationStatus, getApplications } = await import('./applications');
-      const { getJourneyStages, updateJourneyStageStatus } = await import('./journey');
+      const { setStudentStageStatus } = await import('./journey');
 
       const isApproved = updates.decision_outcome === 'Approved' || String(upsertPayload.status_label).toLowerCase().includes('approved');
       const isRejected = updates.decision_outcome === 'Rejected' || String(upsertPayload.status_label).toLowerCase().includes('refus');
 
-      // Auto update student application
+      // Update student applications
       try {
         const studentApps = await getApplications(upsertPayload.student_id);
         const activeApp = studentApps[0];
@@ -201,24 +224,24 @@ export async function updateVisaStatus(
         }
       } catch (appErr) {}
 
-      // Auto advance journey stage 12 (Visa Outcome)
-      try {
-        const stages = await getJourneyStages(upsertPayload.student_id);
-        const visaStage = stages.find(s => s.stage_number === 10);
-        if (visaStage && isApproved && visaStage.status !== 'Completed') {
-          await updateJourneyStageStatus(visaStage.id, 'Completed');
-        }
-      } catch (stageErr) {}
+      // Advance journey stages cleanly
+      if (isApproved) {
+        await setStudentStageStatus(upsertPayload.student_id, 9, 'Completed', 'VFS Visa Filing Complete');
+        await setStudentStageStatus(upsertPayload.student_id, 10, 'Completed', 'National Student Visa Approved & Stamped');
+        await setStudentStageStatus(upsertPayload.student_id, 11, 'In Progress', 'Pre-Departure Briefing & Flight Concierge Active');
+      } else if (isRejected) {
+        await setStudentStageStatus(upsertPayload.student_id, 10, 'In Progress', 'Visa Refused by Embassy. Contact Counselor for Appeal.');
+      }
 
       await createNotification({
         user_id: upsertPayload.student_id,
         title: isApproved ? 'Visa Approved & Stamped' : isRejected ? 'Visa Decision Update' : 'VFS Visa Tracking Updated',
         body: isApproved
-          ? 'Your Poland National Student D-Visa has been officially approved & stamped by the Embassy!'
+          ? 'Your National Student D-Visa has been officially approved & stamped by the Embassy!'
           : isRejected
           ? 'Your visa application verdict has been updated to Refused by Embassy.'
           : `Your VFS Visa status: ${upsertPayload.status_label || 'Processing'} (Stage ${upsertPayload.current_stage || 1}).`,
-        category: 'VFS Visa'
+        category: 'Visa'
       });
     } catch (e) {}
   }

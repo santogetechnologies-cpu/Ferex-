@@ -172,8 +172,9 @@ export const OfferLetters: React.FC = () => {
       // Notify staff
       try {
         const { createNotification } = await import('../lib/api/notifications');
+        const assignedCounselorId = (profile as any)?.assigned_counselor_id || (profile as any)?.assigned_counselor;
         await createNotification({
-          user_id: null,
+          user_id: assignedCounselorId || undefined,
           title: 'Admission Offer Accepted by Student',
           body: `${studentName} accepted admission offer for ${app.university_name || 'Partner University'}. Awaiting tuition verification.`,
           category: 'Application',

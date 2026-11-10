@@ -17,6 +17,7 @@ import { useFeeConfig } from '../hooks/useFeeConfig';
 import { Card } from '../components/Card';
 import { canAccessPage, checkPaymentStage } from '../lib/paymentUnlock';
 import { sendStudentApplicationEmail } from '../lib/api/email';
+import { supabase } from '../lib/supabase';
 
 const COUNTRY_FLAGS: Record<string, string> = {
   Poland: '🇵🇱',
@@ -293,6 +294,20 @@ export const SelectUniversity: React.FC = () => {
       if (applyUni.country) {
         void saveEducationCountry(activeStudentId, applyUni.country).catch(() => {});
         localStorage.setItem(`ferex_student_target_country_${activeStudentId}`, applyUni.country);
+        // Persist target_country to users table in DB
+        try {
+          await supabase.from('users').update({ target_country: applyUni.country }).eq('id', activeStudentId);
+        } catch (e) {}
+      }
+
+      // Automatically advance workflow stages: Stage 2 (University Shortlisting) & Stage 3 (Application Preparation)
+      try {
+        const { setStudentStageStatus } = await import('../lib/api/journey');
+        await setStudentStageStatus(activeStudentId, 2, 'Completed', `Selected ${applyUni.name} (${applyUni.country})`);
+        await setStudentStageStatus(activeStudentId, 3, 'Completed', `Applied for ${degreeLevel} - ${selectedCourse || 'Program'}`);
+        await setStudentStageStatus(activeStudentId, 4, 'In Progress', 'Application dossier awaiting institutional review.');
+      } catch (stageErr) {
+        console.warn('Workflow progression notice:', stageErr);
       }
       const scopedUniKey = activeStudentId ? `ferex_student_selected_uni_${activeStudentId}` : 'ferex_student_selected_uni';
       const scopedCourseKey = activeStudentId ? `ferex_selected_course_${activeStudentId}` : 'ferex_selected_course';

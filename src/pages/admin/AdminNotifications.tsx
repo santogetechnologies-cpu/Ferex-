@@ -35,7 +35,11 @@ const CATEGORY_MAP: Record<string, { icon: React.FC<{ className?: string }>; rou
   Staff: { icon: UserCog, route: '/admin/staff', color: 'bg-slate-100 text-slate-700 border-slate-200', label: 'Staff Management' },
 };
 
-export const AdminNotifications: React.FC = () => {
+export interface AdminNotificationsProps {
+  isStaff?: boolean;
+}
+
+export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff = false }) => {
   const navigate = useNavigate();
   const {
     notifications: dbNotifs,

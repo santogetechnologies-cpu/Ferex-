@@ -451,7 +451,9 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
       (filterNorm === 'united states' && (targetNorm === 'usa' || targetNorm === 'united states' || targetNorm === 'us')) ||
       (filterNorm === 'usa' && (targetNorm === 'usa' || targetNorm === 'united states' || targetNorm === 'us'));
       
-    const matchCounselor = counselorFilter === 'All' || s.counselor.toLowerCase().includes(counselorFilter.toLowerCase());
+    const matchCounselor = isStaff
+      ? (staffCounselorName ? s.counselor.toLowerCase().includes(staffCounselorName.toLowerCase()) : true)
+      : (counselorFilter === 'All' || s.counselor.toLowerCase().includes(counselorFilter.toLowerCase()));
     return matchSearch && matchStatus && matchCountry && matchCounselor;
   });
 
@@ -532,43 +534,33 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
         </div>
 
         <div className="sm:col-span-3">
-          <select
-            value={counselorFilter}
-            onChange={(e) => { setCounselorFilter(e.target.value); setCurrentPage(1); }}
-            className="w-full h-10 px-3 bg-white border border-slate-200/90 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
-          >
-            <option value="All">All Counselors</option>
-            {staffMembers.length > 0 ? (
-              staffMembers.map((s: any) => {
-                const name = s.full_name || s.email;
-                return <option key={s.id} value={name}>{name}</option>;
-              })
-            ) : (
-              DEFAULT_COUNSELOR_ROSTER.map((c: any) => (
-                <option key={c.id} value={c.name}>{c.name} ({c.country})</option>
-              ))
-            )}
-          </select>
+          {isStaff ? (
+            <div className="w-full h-10 px-3 bg-slate-50 border border-slate-200/90 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span className="truncate">My Desk: {staffCounselorName || 'Counselor'}</span>
+            </div>
+          ) : (
+            <select
+              value={counselorFilter}
+              onChange={(e) => { setCounselorFilter(e.target.value); setCurrentPage(1); }}
+              className="w-full h-10 px-3 bg-white border border-slate-200/90 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
+            >
+              <option value="All">All Counselors</option>
+              {staffMembers.length > 0 ? (
+                staffMembers.map((s: any) => {
+                  const name = s.full_name || s.email;
+                  return <option key={s.id} value={name}>{name}</option>;
+                })
+              ) : (
+                DEFAULT_COUNSELOR_ROSTER.map((c: any) => (
+                  <option key={c.id} value={c.name}>{c.name} ({c.country})</option>
+                ))
+              )}
+            </select>
+          )}
         </div>
 
         <div className="sm:col-span-3 flex gap-1.5">
-          {isStaff && (
-            <button
-              type="button"
-              onClick={() => {
-                const myName = (profile?.full_name || user?.email?.split('@')[0] || '').toLowerCase();
-                setCounselorFilter(counselorFilter.toLowerCase() === myName ? 'All' : myName);
-                setCurrentPage(1);
-              }}
-              className={`h-10 px-3 rounded-xl text-xs font-bold border transition-all duration-150 shrink-0 ${
-                counselorFilter !== 'All' && counselorFilter.toLowerCase() === (profile?.full_name || user?.email?.split('@')[0] || '').toLowerCase()
-                  ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm'
-                  : 'bg-white text-slate-600 border-slate-200/90 hover:bg-slate-50'
-              }`}
-            >
-              My Students
-            </button>
-          )}
           {['All', 'Active', 'Pending'].map(f => (
             <button key={f} onClick={() => { setStatusFilter(f); setCurrentPage(1); }}
               className={`flex-1 h-10 rounded-xl text-xs font-bold border transition-all duration-150 active:scale-98 ${statusFilter === f ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm shadow-[#58051E]/20' : 'bg-white text-slate-600 border-slate-200/90 hover:bg-slate-50 hover:border-slate-300'}`}>

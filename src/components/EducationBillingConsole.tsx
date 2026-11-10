@@ -85,13 +85,13 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   } | null>(null);
 
   const load = useCallback(async () => {
-    if (!admin && !user?.id) return;
+    if (!admin && !targetId) return;
     setLoading(true);
     setError('');
     try {
       const [records, apps, studentList, gateways] = await Promise.all([
-        listEducationPayments(admin ? undefined : user!.id),
-        getApplications(admin ? undefined : user!.id),
+        listEducationPayments(admin ? undefined : targetId),
+        getApplications(admin ? undefined : targetId),
         admin ? getStudents() : Promise.resolve([]),
         getGlobalPaymentGateways(),
       ]);
@@ -104,19 +104,19 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
     } finally {
       setLoading(false);
     }
-  }, [admin, user?.id]);
+  }, [admin, targetId]);
 
   useEffect(() => {
     void load();
     const refresh = () => { void load(); };
     window.addEventListener('ferex_payment_change', refresh);
     window.addEventListener('ferex_application_change', refresh);
-    const channel = supabase.channel(`education-billing-${admin ? 'admin' : user?.id}`)
+    const channel = supabase.channel(`education-billing-${admin ? 'admin' : targetId}`)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'payments',
-        ...(admin ? {} : { filter: `student_id=eq.${user?.id}` })
+        ...(admin ? {} : { filter: `student_id=eq.${targetId}` })
       }, refresh)
       .subscribe();
     return () => {
@@ -124,7 +124,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
       window.removeEventListener('ferex_application_change', refresh);
       void supabase.removeChannel(channel);
     };
-  }, [load, admin, user?.id]);
+  }, [load, admin, targetId]);
 
   useEffect(() => {
     if (targetId) {

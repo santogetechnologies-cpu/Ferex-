@@ -96,16 +96,16 @@ export async function fetchStudentAgreement(studentId: string, email?: string): 
 }
 
 export async function saveStudentAgreement(agreement: ServiceAgreementData): Promise<ServiceAgreementData> {
-  const { data: existing, error: readError } = await supabase.from('education_service_agreements').select('body').eq('student_id', agreement.student_id).maybeSingle();
-  if (readError) throw readError;
-  const saved = existing?.body || agreement;
-  if (!existing) {
-    const { error } = await supabase.from('education_service_agreements').insert({ student_id: agreement.student_id, body: agreement });
-    if (error) throw error;
-  }
-  localStorage.setItem(`${STORAGE_PREFIX}${agreement.student_id}`, JSON.stringify(saved));
-  window.dispatchEvent(new CustomEvent('ferex_agreement_change', { detail: saved }));
-  return saved as ServiceAgreementData;
+  const { error } = await supabase
+    .from('education_service_agreements')
+    .upsert(
+      { student_id: agreement.student_id, body: agreement },
+      { onConflict: 'student_id' }
+    );
+  if (error) throw error;
+  localStorage.setItem(`${STORAGE_PREFIX}${agreement.student_id}`, JSON.stringify(agreement));
+  window.dispatchEvent(new CustomEvent('ferex_agreement_change', { detail: agreement }));
+  return agreement;
 }
 
 export async function getAllSignedAgreementsAdmin(): Promise<ServiceAgreementData[]> {

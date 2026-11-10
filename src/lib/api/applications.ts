@@ -159,33 +159,43 @@ export async function createApplication(payload: {
   const progName = (payload.program_name || payload.course || 'Degree Program').trim();
   const intakeVal = payload.intake?.trim() || 'October 2026';
 
-  let authUserId = payload.student_id;
-  let authUserName = payload.student_name || 'Student';
-  let authUserEmail = '';
+  // Preserve explicit payload student_id (essential when admin/counselor applies on behalf of student)
+  let targetStudentId = payload.student_id;
+  let targetStudentName = payload.student_name || 'Student';
+  let targetStudentEmail = '';
 
-  try {
-    const { data: authData } = await supabase.auth.getUser();
-    if (authData?.user) {
-      authUserId = authData.user.id;
-      authUserEmail = authData.user.email || '';
-      authUserName = payload.student_name || authData.user.user_metadata?.full_name || authData.user.email?.split('@')[0] || 'Student';
-    }
-  } catch {}
+  if (!targetStudentId || !isValidUuid(targetStudentId)) {
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      if (authData?.user) {
+        targetStudentId = authData.user.id;
+        targetStudentEmail = authData.user.email || '';
+        targetStudentName = payload.student_name || authData.user.user_metadata?.full_name || authData.user.email?.split('@')[0] || 'Student';
+      }
+    } catch {}
+  }
 
-  const targetStudentId = authUserId || (isValidUuid(payload.student_id) ? payload.student_id! : generateUUID());
+  if (!targetStudentId || !isValidUuid(targetStudentId)) {
+    targetStudentId = generateUUID();
+  }
 
-  // Guarantee student row in public.users to satisfy foreign key
+  // Guarantee student row in public.users to satisfy foreign key without overwriting admin roles
   if (targetStudentId && isValidUuid(targetStudentId)) {
     try {
       const admin = await getAdminSupabaseClient();
       const client = admin || supabase;
-      await client.from('users').upsert({
-        id: targetStudentId,
-        email: authUserEmail || `${targetStudentId}@student.ferex.com`,
-        full_name: authUserName,
-        role: 'student',
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'id' });
+      const { data: existingUser } = await client.from('users').select('id, role').eq('id', targetStudentId).maybeSingle();
+      
+      // Only insert if user does not exist, and never downgrade existing admin/staff to student
+      if (!existingUser) {
+        await client.from('users').insert({
+          id: targetStudentId,
+          email: targetStudentEmail || `${targetStudentId}@student.ferex.com`,
+          full_name: targetStudentName,
+          role: 'student',
+          updated_at: new Date().toISOString(),
+        });
+      }
     } catch {}
   }
 
@@ -195,14 +205,14 @@ export async function createApplication(payload: {
   const appRecord: Application = {
     id: newId,
     student_id: targetStudentId,
-    student_name: authUserName,
+    student_name: targetStudentName,
     university_id: payload.university_id || '',
     university_name: univName,
     program_name: progName,
     course: progName,
     intake: intakeVal,
     status: 'Submitted',
-    notes: `Application for ${progName} at ${univName}. Student: ${authUserName}`,
+    notes: `Application for ${progName} at ${univName}. Student: ${targetStudentName}`,
     applied_date: now.split('T')[0],
     created_at: now,
     updated_at: now,
@@ -240,7 +250,7 @@ export async function createApplication(payload: {
     await logActivity('APPLICATION_SUBMITTED', 'application', newId, {
       university: univName,
       program: progName,
-      student: authUserName,
+      student: targetStudentName,
     });
   } catch {}
 

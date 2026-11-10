@@ -654,13 +654,15 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
               </p>
             </div>
 
-            <button
-              onClick={handleOpenNewWorkflowModal}
-              className="h-9 px-4 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition-all cursor-pointer whitespace-nowrap self-start sm:self-auto"
-            >
-              <Plus className="w-4 h-4 text-white" />
-              <span>Add Country Workflow</span>
-            </button>
+            {!isStaff && (
+              <button
+                onClick={handleOpenNewWorkflowModal}
+                className="h-9 px-4 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition-all cursor-pointer whitespace-nowrap self-start sm:self-auto"
+              >
+                <Plus className="w-4 h-4 text-white" />
+                <span>Add Country Workflow</span>
+              </button>
+            )}
           </div>
 
           {/* Workflows Grid */}
@@ -724,30 +726,32 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
                 </div>
 
                 {/* Card Actions */}
-                <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
-                  <button
-                    onClick={() => handleOpenEditWorkflowModal(wf)}
-                    className="flex-1 h-9 bg-[#58051E] hover:bg-[#3D0016] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <Edit2 className="w-3.5 h-3.5 text-amber-300" />
-                    <span>Configure Workflow & Stages</span>
-                  </button>
-
-                  {workflows.length > 1 && (
+                {!isStaff && (
+                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
                     <button
-                      onClick={() => {
-                        if (confirm(`Remove workflow for ${wf.country}?`)) {
-                          removeWorkflow(wf.id);
-                          showToast(`Workflow for ${wf.country} removed.`);
-                        }
-                      }}
-                      title="Delete Workflow"
-                      className="h-9 px-3 border border-slate-200 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                      onClick={() => handleOpenEditWorkflowModal(wf)}
+                      className="flex-1 h-9 bg-[#58051E] hover:bg-[#3D0016] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Edit2 className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Configure Workflow & Stages</span>
                     </button>
-                  )}
-                </div>
+
+                    {workflows.length > 1 && (
+                      <button
+                        onClick={() => {
+                          if (confirm(`Remove workflow for ${wf.country}?`)) {
+                            removeWorkflow(wf.id);
+                            showToast(`Workflow for ${wf.country} removed.`);
+                          }
+                        }}
+                        title="Delete Workflow"
+                        className="h-9 px-3 border border-slate-200 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
               </motion.div>
             ))}
           </div>

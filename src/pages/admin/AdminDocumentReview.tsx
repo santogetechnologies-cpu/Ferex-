@@ -55,7 +55,6 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
   const { profile, user } = useAuth();
   const counselorEmail = (profile?.email || user?.email || '').toLowerCase().trim();
   const counselorName = (profile?.full_name || '').toLowerCase().trim();
-  const [showAllForStaff, setShowAllForStaff] = useState(false);
   const { documents: dbDocs, changeStatus } = useDocuments();
   const [docs, setDocs] = useState<DocItem[]>([]);
   const { applications: allApps } = useApplications();
@@ -246,15 +245,14 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
   };
 
   const scopedDocs = React.useMemo(() => {
-    if (!isStaff || showAllForStaff || (!counselorEmail && !counselorName)) return docs;
+    if (!isStaff || (!counselorEmail && !counselorName)) return docs;
     return docs.filter(d => {
       const student = studentsMap[d.studentId];
       const ac = (student?.assigned_counselor || '').toLowerCase().trim();
       const isAssignedToMe = Boolean(ac && ((counselorEmail && ac.includes(counselorEmail)) || (counselorName && ac.includes(counselorName))));
-      const isUnassigned = !ac || ac === 'admissions desk' || ac === '--';
-      return isAssignedToMe || isUnassigned;
+      return isAssignedToMe;
     });
-  }, [docs, isStaff, showAllForStaff, counselorEmail, counselorName, studentsMap]);
+  }, [docs, isStaff, counselorEmail, counselorName, studentsMap]);
 
   const filtered = scopedDocs.filter(d =>
     (statusFilter === 'All' || d.status === statusFilter) &&
@@ -295,18 +293,10 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
 
         <div className="flex items-center gap-2 flex-wrap">
           {isStaff && (
-            <button
-              type="button"
-              onClick={() => setShowAllForStaff(prev => !prev)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
-                showAllForStaff
-                  ? 'bg-slate-800 text-white border-slate-800'
-                  : 'bg-rose-50 text-[#58051E] border-rose-200 hover:bg-rose-100'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>{showAllForStaff ? 'Showing All Documents' : 'My Assigned Students Only'}</span>
-            </button>
+            <div className="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-200 bg-slate-50 text-slate-700">
+              <Users className="w-3.5 h-3.5 text-[#58051E]" />
+              <span>Assigned Students Only</span>
+            </div>
           )}
           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
           <button

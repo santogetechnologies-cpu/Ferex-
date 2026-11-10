@@ -11,7 +11,7 @@ import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useVisa } from '../hooks/useVisa';
 import { useApplications } from '../hooks/useApplications';
 import { usePayments } from '../hooks/usePayments';
-import { getPreDepartureRecords } from '../lib/api/preDeparture';
+import { getPreDepartureRecords, savePreDepartureRecord } from '../lib/api/preDeparture';
 import type { PreDepartureRecord } from '../lib/api/preDeparture';
 import { canAccessPage, checkPaymentStage } from '../lib/paymentUnlock';
 import { useNavigate } from 'react-router-dom';
@@ -138,6 +138,18 @@ export const PreDeparture: React.FC = () => {
         try {
           localStorage.setItem(`ferex_student_predeparture_checklist_${activeStudentId}`, JSON.stringify(next));
           window.dispatchEvent(new Event('ferex_predeparture_change'));
+
+          // Persist checklist state to pre_departure_checklists table in DB
+          savePreDepartureRecord({
+            student_id: activeStudentId,
+            student_name: activeStudentName,
+            forex_card_ready: Boolean(next['c6']),
+            luggage_packed: Boolean(next['c6']),
+            sim_card_ready: Boolean(next['c9']),
+            emergency_contacts_saved: Boolean(next['c5']),
+            insurance_purchased: Boolean(next['c4']),
+            briefing_attended: Boolean(next['c7'])
+          }).catch((err) => console.warn('Pre-departure DB sync notice:', err));
         } catch {}
       }
       return next;

@@ -264,13 +264,22 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
     setReplyText(text);
   };
 
+  const myId = (user?.id || profile?.id || '').toLowerCase();
+  const myName = (profile?.full_name || '').toLowerCase();
+  const myEmail = (user?.email || profile?.email || '').toLowerCase();
+
+  const isAssignedToMe = (assignee: string) => {
+    const a = (assignee || '').toLowerCase();
+    if (!a) return false;
+    return (myId && a === myId) || (myName && a.includes(myName)) || (myEmail && a.includes(myEmail)) || a === 'unassigned';
+  };
+
   const filtered = tickets.filter(t => {
     const matchesSearch = t.studentName.toLowerCase().includes(search.toLowerCase()) ||
       t.subject.toLowerCase().includes(search.toLowerCase()) ||
       t.id.toLowerCase().includes(search.toLowerCase());
     if (isStaff && filter === 'My Tickets') {
-      const assigned = (t.assignee || '').toLowerCase();
-      return matchesSearch && (assigned.includes(myStaffName) || assigned === 'unassigned');
+      return matchesSearch && isAssignedToMe(t.assignee);
     }
     const matchesFilter = filter === 'All' || t.status === filter;
     return matchesSearch && matchesFilter;
@@ -279,10 +288,7 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
   const counts = [
     ...(isStaff ? [{
       label: 'My Tickets',
-      count: tickets.filter(t => {
-        const assigned = (t.assignee || '').toLowerCase();
-        return assigned.includes(myStaffName) || assigned === 'unassigned';
-      }).length
+      count: tickets.filter(t => isAssignedToMe(t.assignee)).length
     }] : []),
     ...['All', 'Open', 'In Progress', 'Resolved', 'Closed'].map(s => ({
       label: s, count: s === 'All' ? tickets.length : tickets.filter(t => t.status === s).length

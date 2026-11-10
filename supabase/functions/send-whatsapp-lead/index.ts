@@ -2,7 +2,7 @@
 // Dispatches automated welcome messages and European universities advisory to prospective student leads
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,8 +25,9 @@ serve(async (req) => {
       });
     }
 
-    // Clean phone number (digits only, ensure country code)
+    // Clean phone number (digits only, ensure country code, strip trunk zero)
     let cleanPhone = String(phone).replace(/[^\d+]/g, "");
+    cleanPhone = cleanPhone.replace(/^(\+\d{1,4})0(\d+)/, "$1$2");
     if (!cleanPhone.startsWith("+") && cleanPhone.length === 10) {
       cleanPhone = "91" + cleanPhone; // Default India if 10 digits
     }
@@ -78,7 +79,13 @@ serve(async (req) => {
         }),
       });
       const metaData = await metaRes.json();
-      return new Response(JSON.stringify({ success: true, provider: "meta", data: metaData }), {
+      const isOk = metaRes.ok && !metaData.error;
+      return new Response(JSON.stringify({
+        success: isOk,
+        provider: "meta",
+        data: metaData,
+        error: isOk ? undefined : (metaData.error?.message || "Meta WhatsApp delivery rejected"),
+      }), {
         status: metaRes.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -96,7 +103,13 @@ serve(async (req) => {
         }),
       });
       const ultraData = await ultraRes.json();
-      return new Response(JSON.stringify({ success: true, provider: "ultramsg", data: ultraData }), {
+      const isUltraOk = ultraRes.ok && !ultraData.error;
+      return new Response(JSON.stringify({
+        success: isUltraOk,
+        provider: "ultramsg",
+        data: ultraData,
+        error: isUltraOk ? undefined : (ultraData.error || "UltraMsg delivery rejected"),
+      }), {
         status: ultraRes.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

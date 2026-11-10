@@ -463,16 +463,20 @@ export async function bulkAssignLeadsToCounselor(
 
 export async function convertLeadToStudentAccount(
   leadId: string,
-  tempPassword = 'Student@2026',
+  tempPassword?: string,
   performerName = 'Counselor'
 ): Promise<{ success: boolean; studentId?: string; email?: string; tempPassword?: string; error?: string }> {
   const local = getLocalLeads();
   const lead = local.find((l) => l.id === leadId);
   if (!lead) return { success: false, error: 'Lead not found' };
 
+  const finalPassword = tempPassword && tempPassword.trim().length >= 6
+    ? tempPassword.trim()
+    : `Ferex@${Math.floor(100000 + Math.random() * 900000)}`;
+
   const targetEmail = lead.email && lead.email.includes('@')
-    ? lead.email
-    : `student.${lead.phone.replace(/[^\d]/g, '').slice(-6)}@ferexstudent.org`;
+    ? lead.email.trim().toLowerCase()
+    : `student.${lead.phone.replace(/[^\d]/g, '').slice(-6)}_${lead.id.slice(0, 4)}@ferexstudent.org`;
 
   const fullName = lead.name || 'Admitted Student';
   const nowIso = new Date().toISOString();
@@ -480,11 +484,11 @@ export async function convertLeadToStudentAccount(
   let createdStudentId = '';
 
   try {
-    // 1. Try provisioning user account via supabase provision-user function or auth
+    // 1. Provision user account via supabase provision-user edge function
     const { provisionAccount } = await import('./provisionAccount');
     const result = await provisionAccount({
       email: targetEmail,
-      password: tempPassword,
+      password: finalPassword,
       full_name: fullName,
       role: 'student',
       phone: lead.phone,
@@ -497,27 +501,57 @@ export async function convertLeadToStudentAccount(
       createdStudentId = result.id || (result as any).user.id;
     }
   } catch (err) {
-    console.warn('Account provisioning API notice, using direct user registration:', err);
+    console.warn('Account provisioning API notice, trying direct client auth registration:', err);
+  }
+
+  // 1b. Fallback auth signup if edge function was unreachable
+  if (!createdStudentId) {
+    try {
+      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+        email: targetEmail,
+        password: finalPassword,
+        options: {
+          data: {
+            full_name: fullName,
+            role: 'student',
+            phone: lead.phone,
+            department: 'Education',
+            country: lead.preferred_country || 'Poland',
+            assigned_counselor: lead.assigned_counselor_name || 'Senior Admissions Counselor'
+          }
+        }
+      });
+      if (!signUpErr && signUpData?.user?.id) {
+        createdStudentId = signUpData.user.id;
+      }
+    } catch (e) {
+      console.warn('Fallback signup error:', e);
+    }
   }
 
   if (!createdStudentId) {
-    createdStudentId = crypto.randomUUID();
-    try {
-      await supabase.from('users').insert({
-        id: createdStudentId,
-        email: targetEmail,
-        full_name: fullName,
-        role: 'student',
-        phone: lead.phone,
-        department: 'Education',
-        country: lead.preferred_country || 'Poland',
-        assigned_counselor: lead.assigned_counselor_name || 'Senior Admissions Counselor',
-        must_change_password: true,
-        created_at: nowIso,
-      });
-    } catch (insertErr) {
-      console.warn('Direct user insert notice:', insertErr);
-    }
+    return {
+      success: false,
+      error: 'Could not provision student authentication credentials. Please verify Supabase Auth connectivity.'
+    };
+  }
+
+  // Ensure record in public.users has the right metadata
+  try {
+    await supabase.from('users').upsert({
+      id: createdStudentId,
+      email: targetEmail,
+      full_name: fullName,
+      role: 'student',
+      phone: lead.phone,
+      department: 'Education',
+      country: lead.preferred_country || 'Poland',
+      assigned_counselor: lead.assigned_counselor_name || 'Senior Admissions Counselor',
+      must_change_password: true,
+      updated_at: nowIso,
+    });
+  } catch (upsertErr) {
+    console.warn('User table update notice:', upsertErr);
   }
 
   // 2. Mark lead as Enrolled & Converted
@@ -533,18 +567,18 @@ export async function convertLeadToStudentAccount(
     performerName
   );
 
-  // 3. Log Activity
+  // 3. Log Activity (security: do NOT record temporary password in plaintext in description)
   await addEducationLeadActivity({
     lead_id: leadId,
     activity_type: 'Account Created',
     title: 'Student Portal Login Activated',
-    description: `Login account provisioned. Username: ${targetEmail}. Temporary Password: ${tempPassword}. Converted by ${performerName}.`,
+    description: `Login account provisioned. Username: ${targetEmail}. Converted by ${performerName}.`,
     performed_by: performerName,
   });
 
   // 4. Send WhatsApp Notification with Credentials
   try {
-    const credMessage = `🎉 Congratulations ${fullName}! Your official FEREX Student Admissions Portal is activated.\n\n🌐 Login URL: ${window.location.origin}/login\n📧 Username: ${targetEmail}\n🔑 Temporary Password: ${tempPassword}\n\nYou can now log in, select accredited European partner universities, and track your Schengen visa milestones!`;
+    const credMessage = `🎉 Congratulations ${fullName}! Your official FEREX Student Admissions Portal is activated.\n\n🌐 Login URL: ${typeof window !== 'undefined' ? window.location.origin : ''}/login\n📧 Username: ${targetEmail}\n🔑 Temporary Password: ${finalPassword}\n\nYou can now log in, select accredited European partner universities, and track your Schengen visa milestones!`;
     sendLeadWhatsAppWelcome(
       { ...lead, email: targetEmail },
       credMessage
@@ -561,7 +595,7 @@ export async function convertLeadToStudentAccount(
     success: true,
     studentId: createdStudentId,
     email: targetEmail,
-    tempPassword,
+    tempPassword: finalPassword,
   };
 }
 

@@ -19,8 +19,7 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
   const counselorEmail = (profile?.email || user?.email || '').toLowerCase().trim();
   const counselorName = (profile?.full_name || '').toLowerCase().trim();
   const { students: allStudents } = useStudents();
-  const [showAllForStaff, setShowAllForStaff] = useState(false);
-  const dbStudents = (isStaff && !showAllForStaff) ? allStudents.filter(s => {
+  const dbStudents = isStaff ? allStudents.filter(s => {
     const ac = (s.assigned_counselor || '').toLowerCase().trim();
     return Boolean(ac && ((counselorEmail && ac.includes(counselorEmail)) || (counselorName && ac.includes(counselorName))));
   }) : allStudents;
@@ -200,11 +199,11 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
   };
 
   const scopedRecords = React.useMemo(() => {
-    if (!isStaff || showAllForStaff) return records;
+    if (!isStaff) return records;
     const allowedIds = new Set(dbStudents.map(s => s.id));
     const allowedEmails = new Set(dbStudents.map(s => s.email?.toLowerCase()).filter(Boolean));
     return records.filter(r => allowedIds.has(r.student_id) || (r.student_email && allowedEmails.has(r.student_email.toLowerCase())));
-  }, [records, isStaff, showAllForStaff, dbStudents]);
+  }, [records, isStaff, dbStudents]);
 
   const filtered = scopedRecords.filter(r =>
     r.student_name.toLowerCase().includes(search.toLowerCase()) ||

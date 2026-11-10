@@ -80,7 +80,6 @@ export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFil
   const { profile, user } = useAuth();
   const counselorEmail = (profile?.email || user?.email || '').toLowerCase().trim();
   const counselorName = (profile?.full_name || '').toLowerCase().trim();
-  const [showAllForStaff, setShowAllForStaff] = useState(false);
   const [searchParams] = useSearchParams();
   const queryParam = searchParams.get('filter') || searchParams.get('tab');
   const resolvedFilter = queryParam === 'offers' || queryParam === 'offer' ? 'Offer Issued' : (queryParam || initialFilter || 'All');
@@ -103,9 +102,9 @@ export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFil
     const realDbApps = (dbApps || []).filter(a => {
       const sName = (a.student_name || (a.users as any)?.full_name || '').toLowerCase().trim();
       if (a.university_name === 'Pending University Selection') return false;
-      if (isStaff && !showAllForStaff && (counselorEmail || counselorName)) {
+      if (isStaff && (counselorEmail || counselorName)) {
         const appCounselor = ((a as any).counselor || (a.users as any)?.assigned_counselor || '').toLowerCase().trim();
-        const matchesCounselor = !appCounselor || appCounselor === 'admissions desk' || appCounselor === '--' || Boolean(
+        const matchesCounselor = Boolean(
           (counselorEmail && appCounselor.includes(counselorEmail)) ||
           (counselorName && appCounselor.includes(counselorName))
         );
@@ -148,7 +147,7 @@ export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFil
       };
     });
     setApps(mapped);
-  }, [dbApps, isStaff, showAllForStaff, counselorEmail, counselorName]);
+  }, [dbApps, isStaff, counselorEmail, counselorName]);
 
   const [search, setSearch] = useState('');
   const [viewApp, setViewApp] = useState<ApplicationItem | null>(null);
@@ -578,17 +577,10 @@ startxref
 
         <div className="flex items-center gap-2">
           {isStaff && (
-            <button
-              onClick={() => setShowAllForStaff(prev => !prev)}
-              className={`flex items-center gap-1.5 px-3 h-10 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                showAllForStaff
-                  ? 'bg-slate-800 text-white border-slate-800'
-                  : 'bg-rose-50 text-[#58051E] border-rose-200 hover:bg-rose-100'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>{showAllForStaff ? 'Showing All Applications' : 'My Assigned Students Only'}</span>
-            </button>
+            <div className="flex items-center gap-1.5 px-3 h-10 rounded-xl text-xs font-bold border border-slate-200 bg-slate-50 text-slate-700">
+              <Users className="w-3.5 h-3.5 text-[#58051E]" />
+              <span>Assigned Students Only</span>
+            </div>
           )}
           <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-3 h-10 shadow-xs">
             <Globe className="w-4 h-4 text-[#58051E] shrink-0" />

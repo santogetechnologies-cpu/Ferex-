@@ -273,6 +273,14 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
   // ── Password Update Handler ────────────────────────────────────────────────
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isImpersonating) {
+      setPasswordMsg({
+        text: 'Password changes are disabled while impersonating a student to protect your administrator session credentials. To reset student credentials, use the Admissions Counselor or Admin CRM desk.',
+        isError: true
+      });
+      return;
+    }
+
     if (!passwordForm.newPwd || passwordForm.newPwd.length < 6) {
       setPasswordMsg({ text: 'Password must be at least 6 characters long.', isError: true });
       return;

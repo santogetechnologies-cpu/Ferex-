@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Home, Milestone, Target, GraduationCap, FileText, Folder, CreditCard,
   FileSpreadsheet, Calendar, LifeBuoy, Bell, User,
-  Search, Menu, ChevronDown, ChevronRight, LogOut, Settings, X, ShieldCheck, Plane, MessageCircle, FileCheck
+  Search, Menu, ChevronDown, ChevronRight, LogOut, Settings, X, ShieldCheck, Plane, MessageCircle, FileCheck, Receipt
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -25,9 +25,6 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, profile, signOut } = useAuth();
-  const { notifications, markRead } = useNotifications(user?.id);
-  const { config } = useSystemConfig();
-
   const [impersonated, setImpersonated] = useState<ImpersonatedStudent | null>(() => getImpersonatedStudent());
 
   useEffect(() => {
@@ -37,6 +34,10 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
     window.addEventListener('ferex-impersonation-changed', handleImpersonationChange);
     return () => window.removeEventListener('ferex-impersonation-changed', handleImpersonationChange);
   }, []);
+
+  const effectiveStudentId = impersonated?.id || user?.id;
+  const { notifications, markRead } = useNotifications(effectiveStudentId);
+  const { config } = useSystemConfig();
 
   // Authoritative role guard: if non-student is here and NOT impersonating, redirect immediately to their dashboard
   useEffect(() => {
@@ -79,6 +80,14 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
 
   useEffect(() => {
     const loadLiveStudent = async () => {
+      if (impersonated) {
+        setStudentDetail({
+          name: impersonated.name,
+          email: impersonated.email,
+        });
+        return;
+      }
+
       let searchId = user?.id || profile?.id;
       let searchEmail = user?.email || profile?.email;
 
@@ -123,16 +132,16 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
     loadLiveStudent();
     window.addEventListener('ferex_auth_change', loadLiveStudent);
     return () => window.removeEventListener('ferex_auth_change', loadLiveStudent);
-  }, [user, profile]);
+  }, [impersonated, user, profile]);
 
-  const displayName = studentDetail.name || profile?.full_name || user?.email?.split('@')[0] || 'Active Student';
-  const displayEmail = studentDetail.email || profile?.email || user?.email || '';
+  const displayName = impersonated?.name || studentDetail.name || profile?.full_name || user?.email?.split('@')[0] || 'Active Student';
+  const displayEmail = impersonated?.email || studentDetail.email || profile?.email || user?.email || '';
   const initialLetter = displayName.charAt(0).toUpperCase() || 'S';
 
   // Persistent avatar sync
   const [profilePhoto, setProfilePhoto] = useState<string | null>(() => {
-    const key = user?.id ? `ferex_student_profile_photo_${user.id}` : 'ferex_student_profile_photo';
-    return localStorage.getItem(key) || profile?.avatar_url || null;
+    const key = effectiveStudentId ? `ferex_student_profile_photo_${effectiveStudentId}` : 'ferex_student_profile_photo';
+    return localStorage.getItem(key) || (impersonated ? null : profile?.avatar_url) || null;
   });
 
   useEffect(() => {
@@ -141,8 +150,8 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
       setShowNotifications(false);
     };
     const syncPhoto = () => {
-      const key = user?.id ? `ferex_student_profile_photo_${user.id}` : 'ferex_student_profile_photo';
-      setProfilePhoto(localStorage.getItem(key) || profile?.avatar_url || null);
+      const key = effectiveStudentId ? `ferex_student_profile_photo_${effectiveStudentId}` : 'ferex_student_profile_photo';
+      setProfilePhoto(localStorage.getItem(key) || (impersonated ? null : profile?.avatar_url) || null);
     };
 
     window.addEventListener('click', handleOutsideClick);
@@ -154,12 +163,12 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
       window.removeEventListener('ferex_avatar_change', syncPhoto);
       window.removeEventListener('storage', syncPhoto);
     };
-  }, [user?.id, profile?.avatar_url]);
+  }, [effectiveStudentId, impersonated, profile?.avatar_url]);
 
   // Track visited pages to clear notification pointers once viewed
   const [visitedRoutes, setVisitedRoutes] = useState<Record<string, boolean>>(() => {
     try {
-      const key = user?.id ? `ferex_visited_student_routes_${user.id}` : 'ferex_visited_student_routes';
+      const key = effectiveStudentId ? `ferex_visited_student_routes_${effectiveStudentId}` : 'ferex_visited_student_routes';
       const saved = localStorage.getItem(key);
       return saved ? JSON.parse(saved) : {};
     } catch {
@@ -168,8 +177,8 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   });
 
   useEffect(() => {
-    if (location.pathname && user?.id) {
-      const key = `ferex_visited_student_routes_${user.id}`;
+    if (location.pathname && effectiveStudentId) {
+      const key = `ferex_visited_student_routes_${effectiveStudentId}`;
       setVisitedRoutes(prev => {
         if (prev[location.pathname]) return prev;
         const updated = { ...prev, [location.pathname]: true };
@@ -177,9 +186,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
         return updated;
       });
     }
-  }, [location.pathname, user?.id]);
-
-
+  }, [location.pathname, effectiveStudentId]);
 
   const unreadCount = notifications.filter((n: any) => !n.is_read).length;
 
@@ -196,12 +203,12 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
 
   // Track service agreement status
   const [hasSignedAgreement, setHasSignedAgreement] = useState<boolean>(() => {
-    return isAgreementSigned(user?.id || profile?.id || '');
+    return isAgreementSigned(effectiveStudentId || '');
   });
 
   useEffect(() => {
     const checkAgreement = () => {
-      setHasSignedAgreement(isAgreementSigned(user?.id || profile?.id || ''));
+      setHasSignedAgreement(isAgreementSigned(effectiveStudentId || ''));
     };
     checkAgreement();
     window.addEventListener('ferex_agreement_change', checkAgreement);
@@ -210,7 +217,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
       window.removeEventListener('ferex_agreement_change', checkAgreement);
       window.removeEventListener('storage', checkAgreement);
     };
-  }, [user?.id, profile?.id]);
+  }, [effectiveStudentId]);
 
   const menuItems = [
     { name: 'Dashboard', path: '/student/dashboard', icon: Home, badge: null, hasUpdate: false },
@@ -227,11 +234,13 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
     { name: 'Offer Letters', path: '/student/offers', icon: FileText, badge: hasUnreadOffer ? 'OFFER' : null, hasUpdate: hasUnreadOffer },
     { name: 'Documents', path: '/student/documents', icon: Folder, badge: null, hasUpdate: false },
     { name: 'Payments', path: '/student/payments', icon: CreditCard, badge: hasUnreadPayment ? 'DUE' : null, hasUpdate: hasUnreadPayment },
+    { name: 'Receipts', path: '/student/receipts', icon: Receipt, badge: null, hasUpdate: false },
     { name: 'VFS Visa Tracker', path: '/student/visa-tracker', icon: ShieldCheck, badge: hasUnreadVisa ? 'VFS' : null, hasUpdate: hasUnreadVisa },
     { name: 'Pre-Departure', path: '/student/pre-departure', icon: Plane, badge: null, hasUpdate: false },
     { name: 'Invoices', path: '/student/invoices', icon: FileSpreadsheet, badge: null, hasUpdate: false },
     { name: 'Meetings', path: '/student/meetings', icon: Calendar, badge: null, hasUpdate: false },
     { name: 'Counselor Chat', path: '/student/chat', icon: MessageCircle, badge: null, hasUpdate: false },
+    { name: 'Notifications', path: '/student/notifications', icon: Bell, badge: unreadCount > 0 ? String(unreadCount) : null, hasUpdate: unreadCount > 0 },
     { name: 'Support Tickets', path: '/student/support', icon: LifeBuoy, badge: null, hasUpdate: false },
     { name: 'My Profile', path: '/student/profile', icon: User, badge: null, hasUpdate: false },
   ];
@@ -239,6 +248,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   const activeItem = menuItems.find(item => location.pathname === item.path)?.name || 'Dashboard';
 
   const handleSignOut = async () => {
+    stopImpersonatingStudent();
     await signOut();
     try {
       localStorage.removeItem('ferex_user');
@@ -335,8 +345,6 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
             );
           })}
         </nav>
-
-
       </aside>
 
       {/* CONTENT WORKSPACE VIEWPORT */}
@@ -389,7 +397,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                 Portal
               </Link>
               <ChevronRight className="w-3 h-3 text-slate-300 shrink-0" />
-              <span className="text-slate-800 dark:text-white font-bold bg-slate-100/80 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/60 dark:border-slate-700">{activeItem}</span>
+              <span className="text-slate-800 dark:white font-bold bg-slate-100/80 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/60 dark:border-slate-700">{activeItem}</span>
             </div>
           </div>
 
@@ -409,6 +417,68 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
               <kbd className="absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-0.2 text-[9px] font-bold text-slate-400 dark:text-slate-400 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded">
                 ⌘K
               </kbd>
+            </div>
+
+            {/* Notification Bell Button */}
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => {
+                  setShowNotifications(!showNotifications);
+                  setShowProfileDropdown(false);
+                }}
+                className="relative p-2 rounded-xl border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
+                aria-label="Notifications"
+              >
+                <Bell size={18} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-black text-white shadow-xs">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              <AnimatePresence>
+                {showNotifications && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xl p-3 z-50 text-left"
+                  >
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">Notifications ({notifications.length})</span>
+                      <Link
+                        to="/student/notifications"
+                        onClick={() => setShowNotifications(false)}
+                        className="text-[10px] font-bold text-[#58051E] hover:underline"
+                      >
+                        View All
+                      </Link>
+                    </div>
+                    <div className="py-2 max-h-60 overflow-y-auto space-y-2">
+                      {notifications.length === 0 ? (
+                        <p className="text-xs text-slate-400 py-3 text-center">No notifications</p>
+                      ) : (
+                        notifications.slice(0, 5).map((n: any) => (
+                          <div
+                            key={n.id}
+                            onClick={() => {
+                              markRead(n.id);
+                              if (n.link) navigate(n.link);
+                              setShowNotifications(false);
+                            }}
+                            className={`p-2 rounded-xl text-xs cursor-pointer transition-colors ${n.is_read ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-500' : 'bg-[#58051E]/5 text-slate-800 font-semibold'}`}
+                          >
+                            <p className="font-bold text-[11px] truncate">{n.title}</p>
+                            <p className="text-[10px] text-slate-500 line-clamp-2 mt-0.5">{n.body || n.message}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Dark Mode / Light Mode Switcher */}
@@ -505,9 +575,9 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
       <EnterpriseAIChatbot
         role="student"
         studentContext={{
-          studentName: studentDetail.name || profile?.full_name || 'Student',
-          email: studentDetail.email || profile?.email || user?.email,
-          targetCountry: (user?.id ? localStorage.getItem(`ferex_student_target_country_${user.id}`) : null) || 'European Union',
+          studentName: displayName,
+          email: displayEmail,
+          targetCountry: (effectiveStudentId ? localStorage.getItem(`ferex_student_target_country_${effectiveStudentId}`) : null) || impersonated?.country || 'European Union',
           targetUniversity: 'European Partner Universities',
           program: 'Higher Education Program',
           currentStep: hasSignedAgreement ? 3 : 2,
@@ -519,4 +589,3 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
     </div>
   );
 };
-

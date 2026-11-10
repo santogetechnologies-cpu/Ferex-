@@ -49,7 +49,12 @@ export const Chat: React.FC = () => {
           };
         });
         setConversations(mapped);
-        if (mapped.length > 0) setActiveId(mapped[0].id);
+        if (mapped.length > 0) {
+          setActiveId(mapped[0].id);
+        } else {
+          // Automatically initialize conversation with assigned counselor
+          handleStartChat();
+        }
       }).catch(() => {});
     }
   }, [activeStudentId, activeStudentName]);

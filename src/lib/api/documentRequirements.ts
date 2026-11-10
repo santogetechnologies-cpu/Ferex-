@@ -653,9 +653,34 @@ async function syncToCloudCatalog(items: DocumentRequirement[]) {
   }
 }
 
-export async function getAllDocumentRequirements(): Promise<DocumentRequirement[]> {
+async function getClient() {
   try {
-    // 1. Live shared Supabase cloud system_config catalog
+    return await getAdminSupabaseClient();
+  } catch {
+    return supabase;
+  }
+}
+
+export async function getAllDocumentRequirements(): Promise<DocumentRequirement[]> {
+  // 1. Primary: Direct query on public.document_requirements table
+  try {
+    const client = await getClient();
+    const { data, error } = await client
+      .from('document_requirements')
+      .select('*')
+      .order('country', { ascending: true });
+
+    if (!error && data && data.length > 0) {
+      const dbList = data as DocumentRequirement[];
+      saveStoredRequirements(dbList, false);
+      return dbList;
+    }
+  } catch (e) {
+    console.warn('[getAllDocumentRequirements] DB query notice:', e);
+  }
+
+  // 2. Secondary: Live shared Supabase cloud system_config catalog
+  try {
     const { data: cfg, error: cfgErr } = await supabase
       .from('system_config')
       .select('value')
@@ -675,25 +700,6 @@ export async function getAllDocumentRequirements(): Promise<DocumentRequirement[
     console.warn('[getAllDocumentRequirements] cloud fetch notice:', e);
   }
 
-  // 2. Try direct table if present
-  try {
-    const { data, error } = await supabase
-      .from('document_requirements')
-      .select('*')
-      .order('country', { ascending: true });
-
-    if (!error && data && data.length > 0) {
-      const dbList = data as DocumentRequirement[];
-      const stored = getStoredRequirements();
-      const dbIds = new Set(dbList.map(d => d.id));
-      const localOnly = stored.filter(s => !dbIds.has(s.id));
-      const merged = [...dbList, ...localOnly];
-      saveStoredRequirements(merged, false);
-      return merged;
-    }
-  } catch (e) {
-    console.warn('[getAllDocumentRequirements] DB query notice:', e);
-  }
   return getStoredRequirements();
 }
 
@@ -816,7 +822,8 @@ export async function addDocumentRequirement(
   };
 
   try {
-    await supabase.from('document_requirements').insert(newReq);
+    const client = await getClient();
+    await client.from('document_requirements').insert(newReq);
   } catch (e) {
     console.warn('[addDocumentRequirement] DB notice:', e);
   }
@@ -839,7 +846,8 @@ export async function updateDocumentRequirement(
   const updateData = { ...payload, updated_at: now };
 
   try {
-    await supabase.from('document_requirements').update(updateData).eq('id', id);
+    const client = await getClient();
+    await client.from('document_requirements').update(updateData).eq('id', id);
   } catch (e) {
     console.warn('[updateDocumentRequirement] DB notice:', e);
   }
@@ -864,7 +872,8 @@ export async function updateDocumentRequirement(
 
 export async function removeDocumentRequirement(id: string): Promise<boolean> {
   try {
-    await supabase.from('document_requirements').delete().eq('id', id);
+    const client = await getClient();
+    await client.from('document_requirements').delete().eq('id', id);
   } catch (e) {
     console.warn('[removeDocumentRequirement] DB notice:', e);
   }

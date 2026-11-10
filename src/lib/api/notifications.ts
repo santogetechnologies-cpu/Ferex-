@@ -48,17 +48,22 @@ const DEFAULT_STUDENT_NOTIFICATIONS = (userId: string): Notification[] => [
 export async function getNotifications(userId: string): Promise<Notification[]> {
   try {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId || '');
-    let query = supabase
-      .from('notifications')
-      .select('*');
-
-    if (isUuid) {
-      query = query.or(`user_id.eq.${userId},user_id.is.null`);
-    } else {
-      query = query.or('user_id.is.null');
+    if (!isUuid) {
+      const local = localStorage.getItem(`ferex_notifications_${userId}`);
+      if (local) {
+        try {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } catch (e) {}
+      }
+      return DEFAULT_STUDENT_NOTIFICATIONS(userId);
     }
 
-    const { data, error } = await query.order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
 
     if (!error && data && data.length > 0) {
       const normalized = data.map(n => ({
@@ -160,21 +165,23 @@ export async function createNotification(payload: {
     created_at: new Date().toISOString()
   };
 
-  try {
-    const { data, error } = await supabase
-      .from('notifications')
-      .insert(notifObj)
-      .select();
+  if (targetUserId) {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert(notifObj)
+        .select();
 
-    if (!error && data && data.length > 0) {
-      window.dispatchEvent(new Event('ferex_notification_change'));
-      return data[0] as Notification;
-    }
-  } catch (err) {}
+      if (!error && data && data.length > 0) {
+        window.dispatchEvent(new Event('ferex_notification_change'));
+        return data[0] as Notification;
+      }
+    } catch (err) {}
+  }
 
   // Local storage backup
   try {
-    const key = `ferex_notifications_${payload.user_id}`;
+    const key = `ferex_notifications_${payload.user_id || 'general'}`;
     const local = localStorage.getItem(key);
     const existing = local ? JSON.parse(local) : [];
     localStorage.setItem(key, JSON.stringify([notifObj, ...existing]));
@@ -199,13 +206,12 @@ export async function deleteNotification(id: string) {
 
 export async function clearAllNotifications(userId?: string) {
   try {
-    let query = supabase.from('notifications').delete();
-    if (userId) {
-      query = query.or(`user_id.eq.${userId},user_id.eq.admin`);
+    const isUuid = userId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
+    if (isUuid) {
+      await supabase.from('notifications').delete().eq('user_id', userId);
     } else {
-      query = query.neq('id', '00000000-0000-0000-0000-000000000000');
+      await supabase.from('notifications').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     }
-    await query;
   } catch (err) {}
   window.dispatchEvent(new Event('ferex_notification_change'));
   return true;

@@ -153,7 +153,7 @@ export const SupportTickets: React.FC = () => {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      void supabase.removeChannel(channel);
     };
   }, [selectedTicketId, tickets, activeStudentId, user?.id]);
 
@@ -177,7 +177,7 @@ export const SupportTickets: React.FC = () => {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      void supabase.removeChannel(channel);
     };
   }, [activeStudentId, refresh]);
 
@@ -233,6 +233,23 @@ export const SupportTickets: React.FC = () => {
         } catch {}
       }
 
+      // If assignedCounselor is not a UUID, resolve to actual counselor's UUID
+      let counselorUuid: string | undefined = undefined;
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(assignedCounselor || '');
+      if (isUuid) {
+        counselorUuid = assignedCounselor;
+      } else if (assignedCounselor) {
+        try {
+          const { data: cUser } = await supabase
+            .from('users')
+            .select('id')
+            .or(`email.ilike.%${assignedCounselor}%,full_name.ilike.%${assignedCounselor}%`)
+            .limit(1)
+            .maybeSingle();
+          if (cUser?.id) counselorUuid = cUser.id;
+        } catch {}
+      }
+
       await newTicket({
         student_id: activeStudentId,
         ticket_no: ticketNo,
@@ -240,7 +257,7 @@ export const SupportTickets: React.FC = () => {
         description: newDesc.trim(),
         category: newCategory,
         priority: newPriority,
-        assigned_to: assignedCounselor || 'Admissions Counselor',
+        assigned_to: counselorUuid || assignedCounselor || 'Admissions Counselor',
       });
 
       // Dispatch automated Resend Support Ticket Receipt Email to student
