@@ -24,7 +24,7 @@ export function useStudents() {
   useEffect(() => {
     fetchStudents();
 
-    // Realtime subscription on student users
+    // Realtime subscription on student users and enrolled education leads
     const channel = supabase
       .channel('realtime_students_roster')
       .on(
@@ -38,14 +38,27 @@ export function useStudents() {
           fetchStudents();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'education_leads',
+        },
+        () => {
+          fetchStudents();
+        }
+      )
       .subscribe();
 
     const handleLocalEvent = () => fetchStudents();
     window.addEventListener('ferex_students_change', handleLocalEvent);
+    window.addEventListener('ferex_education_leads_change', handleLocalEvent);
 
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('ferex_students_change', handleLocalEvent);
+      window.removeEventListener('ferex_education_leads_change', handleLocalEvent);
     };
   }, [fetchStudents]);
 

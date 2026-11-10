@@ -18,8 +18,10 @@ export function getDefaultCounselorForCountry(country?: string): string {
   return `Admissions Counselor (${country} Desk)`;
 }
 
-// ─── Get all students (users with role = 'student') ──────────────────────────
+// ─── Get all students (users with role = 'student' + enrolled CRM leads) ──────
 export async function getStudents(): Promise<UserProfile[]> {
+  let userStudents: UserProfile[] = [];
+
   try {
     const admin = await getAdminSupabaseClient();
     const client = admin || supabase;
@@ -30,23 +32,156 @@ export async function getStudents(): Promise<UserProfile[]> {
       .order('created_at', { ascending: false });
 
     if (!error && Array.isArray(data)) {
-      return data as UserProfile[];
+      userStudents = data as UserProfile[];
     }
   } catch (err) {
     console.warn('[getStudents DB warning]:', err);
   }
 
-  const { data, error } = await supabase
-    .from('users')
-    .select('id, email, full_name, role, avatar_url, phone, country, department, permissions, assigned_counselor, must_change_password, created_at')
-    .eq('role', 'student')
-    .order('created_at', { ascending: false });
+  if (userStudents.length === 0) {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, email, full_name, role, avatar_url, phone, country, department, permissions, assigned_counselor, must_change_password, created_at')
+        .eq('role', 'student')
+        .order('created_at', { ascending: false });
 
-  if (!error && data) {
-    return data as UserProfile[];
+      if (!error && data) {
+        userStudents = data as UserProfile[];
+      }
+    } catch {}
   }
 
-  return [];
+  // ─── Dual-source Roster Federation: Enrolled CRM Leads ───
+  try {
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+    const { data: enrolledLeads, error: leadsErr } = await client
+      .from('education_leads')
+      .select('*')
+      .eq('status', 'Enrolled');
+
+    if (!leadsErr && Array.isArray(enrolledLeads)) {
+      const existingUserIds = new Set(userStudents.map((s) => s.id));
+      const existingEmails = new Set(
+        userStudents
+          .map((s) => (s.email || '').toLowerCase().trim())
+          .filter(Boolean)
+      );
+      const existingPhones = new Set(
+        userStudents
+          .map((s) => (s.phone || '').replace(/[^\d]/g, ''))
+          .filter(Boolean)
+      );
+
+      for (const lead of enrolledLeads) {
+        const leadEmail = (lead.email || '').toLowerCase().trim();
+        const leadPhone = (lead.phone || '').replace(/[^\d]/g, '');
+
+        const alreadyExists =
+          (lead.converted_student_id && existingUserIds.has(lead.converted_student_id)) ||
+          existingUserIds.has(lead.id) ||
+          (leadEmail && existingEmails.has(leadEmail)) ||
+          (leadPhone && leadPhone.length >= 7 && existingPhones.has(leadPhone));
+
+        if (!alreadyExists) {
+          const studentId = lead.converted_student_id || lead.id;
+          const fallbackEmail =
+            leadEmail ||
+            `student.${leadPhone.slice(-6) || lead.id.slice(0, 6)}@ferexstudent.org`;
+
+          const synthesizedStudent: UserProfile = {
+            id: studentId,
+            email: fallbackEmail,
+            full_name: lead.name || 'Admitted Student',
+            role: 'student',
+            avatar_url: undefined,
+            phone: lead.phone || '',
+            country: lead.preferred_country || 'Poland',
+            department: 'Education',
+            permissions: [],
+            assigned_counselor: lead.assigned_counselor_name || 'Admissions Counselor',
+            created_at: lead.created_at || new Date().toISOString(),
+          };
+          userStudents.push(synthesizedStudent);
+
+          // Asynchronously reconcile into public.users and public.applications
+          reconcileEnrolledLeadUser(lead).catch(() => {});
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[getStudents leads federation warning]:', err);
+  }
+
+  return userStudents;
+}
+
+async function reconcileEnrolledLeadUser(lead: any) {
+  try {
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+    const studentId = lead.converted_student_id || lead.id;
+    const studentEmail =
+      lead.email && lead.email.includes('@')
+        ? lead.email.trim().toLowerCase()
+        : `student.${(lead.phone || '').replace(/[^\d]/g, '').slice(-6) || lead.id.slice(0, 6)}@ferexstudent.org`;
+
+    // 1. Ensure user row in public.users
+    await client
+      .from('users')
+      .upsert(
+        {
+          id: studentId,
+          email: studentEmail,
+          full_name: lead.name || 'Admitted Student',
+          role: 'student',
+          phone: lead.phone || '',
+          country: lead.preferred_country || 'Poland',
+          department: 'Education',
+          assigned_counselor: lead.assigned_counselor_name || 'Admissions Counselor',
+          must_change_password: true,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      );
+
+    // 2. Ensure application record in public.applications
+    const { data: existingApp } = await client
+      .from('applications')
+      .select('id')
+      .eq('student_id', studentId)
+      .maybeSingle();
+
+    if (!existingApp) {
+      await client.from('applications').insert({
+        student_id: studentId,
+        student_name: lead.name || 'Admitted Student',
+        student_email: studentEmail,
+        university_name: 'Pending University Selection',
+        program_name: lead.degree_level
+          ? `${lead.degree_level} Degree`
+          : 'Undergraduate / Postgraduate Program',
+        country: lead.preferred_country || 'Poland',
+        counselor: lead.assigned_counselor_name || 'Admissions Counselor',
+        status: 'Enrolled',
+        stage: 'Stage 1: Profile & Target Selection',
+        intake: 'Upcoming Intake 2026',
+        created_at: lead.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    }
+
+    // 3. Mark converted_student_id on the lead if missing
+    if (!lead.converted_student_id) {
+      await client
+        .from('education_leads')
+        .update({ converted_student_id: studentId, updated_at: new Date().toISOString() })
+        .eq('id', lead.id);
+    }
+  } catch (err) {
+    console.warn('[reconcileEnrolledLeadUser warning]:', err);
+  }
 }
 
 export const ADMINISTRATIVE_ROLES = ['admin', 'central', 'super_admin', 'staff', 'counselor', 'education_admin', 'education'] as const;

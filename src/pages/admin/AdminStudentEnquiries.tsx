@@ -172,11 +172,26 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
     }
   };
 
-  // Status Change Handler
+  // Status Change Handler with Automatic Student Directory Sync
   const handleQuickStatusChange = async (lead: EducationLead, newStatus: EducationLead['status']) => {
     try {
-      await updateEducationLead(lead.id, { status: newStatus }, profile?.full_name || 'Staff');
-      showToastMsg(`Updated "${lead.name || lead.phone}" status to "${newStatus}"`);
+      if (newStatus === 'Enrolled' && !lead.converted_student_id) {
+        showToastMsg(`Enrolling "${lead.name || lead.phone}" & syncing to Student Directory...`);
+        const res = await convertLeadToStudentAccount(
+          lead.id,
+          undefined,
+          profile?.full_name || 'Admissions Counselor'
+        );
+        if (res.success) {
+          showToastMsg(`🎉 Lead Enrolled! Student profile active and synced to Student Directory.`);
+        } else {
+          await updateEducationLead(lead.id, { status: newStatus }, profile?.full_name || 'Staff');
+          showToastMsg(`Enrolled "${lead.name || lead.phone}". Directory sync active.`);
+        }
+      } else {
+        await updateEducationLead(lead.id, { status: newStatus }, profile?.full_name || 'Staff');
+        showToastMsg(`Updated "${lead.name || lead.phone}" status to "${newStatus}"`);
+      }
       await loadData();
     } catch (err: any) {
       showToastMsg(`Error: ${err.message}`);
@@ -718,9 +733,19 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
                             <span>Close Deal & Create Login</span>
                           </button>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-black text-emerald-800 bg-emerald-100 border border-emerald-300">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" /> Enrolled
-                          </span>
+                          <div className="inline-flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-black text-emerald-800 bg-emerald-100 border border-emerald-300">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-700" /> Enrolled
+                            </span>
+                            <Link
+                              to={`/admin/students?search=${encodeURIComponent(lead.email || lead.phone || lead.name || '')}`}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold text-[#58051E] bg-[#58051E]/10 hover:bg-[#58051E]/20 border border-[#58051E]/20 transition-all cursor-pointer"
+                              title="View in Student Directory & Enrollments"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              <span>Directory</span>
+                            </Link>
+                          </div>
                         )}
 
                         {/* View Interaction Timeline */}

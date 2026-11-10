@@ -222,7 +222,12 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
         course: studentApp?.program_name || studentApp?.course || 'Program Pending Selection',
         intake: studentApp?.intake || 'Upcoming Intake',
         status: studentApp?.status || 'Active',
-        statusColor: studentApp?.status === 'Offer Issued' ? 'bg-[#58051E]/10 text-[#58051E] border-[#58051E]/20' : 'bg-emerald-50 text-emerald-700 border-emerald-100',
+        statusColor:
+          studentApp?.status === 'Enrolled'
+            ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+            : studentApp?.status === 'Offer Issued'
+            ? 'bg-[#58051E]/10 text-[#58051E] border-[#58051E]/20'
+            : 'bg-emerald-50 text-emerald-700 border-emerald-100',
         counselor: assignedCounselor,
         joined: s.created_at ? new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently',
         appStatus: studentApp?.status || 'Submitted',
@@ -440,7 +445,10 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
       s.email.toLowerCase().includes(search.toLowerCase()) ||
       s.university.toLowerCase().includes(search.toLowerCase()) ||
       s.targetCountry.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'All' || s.status === statusFilter;
+    const matchStatus =
+      statusFilter === 'All' ||
+      s.status.toLowerCase() === statusFilter.toLowerCase() ||
+      (statusFilter === 'Active' && (s.status === 'Enrolled' || s.status === 'Active' || s.status === 'Offer Issued'));
     
     const targetNorm = (s.targetCountry || '').toLowerCase().trim();
     const filterNorm = (countryFilter || '').toLowerCase().trim();
@@ -561,7 +569,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
         </div>
 
         <div className="sm:col-span-3 flex gap-1.5">
-          {['All', 'Active', 'Pending'].map(f => (
+          {['All', 'Active', 'Enrolled', 'Pending'].map(f => (
             <button key={f} onClick={() => { setStatusFilter(f); setCurrentPage(1); }}
               className={`flex-1 h-10 rounded-xl text-xs font-bold border transition-all duration-150 active:scale-98 ${statusFilter === f ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm shadow-[#58051E]/20' : 'bg-white text-slate-600 border-slate-200/90 hover:bg-slate-50 hover:border-slate-300'}`}>
               {f}
