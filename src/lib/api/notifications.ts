@@ -123,28 +123,38 @@ export async function markNotificationAsRead(id: string) {
 
 export async function markAllNotificationsAsRead(userId: string) {
   try {
-    await supabase
-      .from('notifications')
-      .update({ is_read: true, read: true })
-      .or(`user_id.eq.${userId},user_id.eq.admin`);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId || '');
+    if (isUuid) {
+      await supabase
+        .from('notifications')
+        .update({ is_read: true, read: true })
+        .eq('user_id', userId);
+    }
   } catch (e) {}
 }
 
 export async function createNotification(payload: {
-  user_id: string;
+  user_id?: string | null;
   title: string;
   body: string;
   category?: string;
+  link?: string;
 }) {
   const newId = generateUUID();
+  const rawUserId = payload.user_id?.trim();
+  const isUuid = Boolean(rawUserId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawUserId));
+  const targetUserId = isUuid ? rawUserId : null;
+
   const notifObj = {
     id: newId,
-    user_id: payload.user_id,
+    user_id: targetUserId,
     title: payload.title,
     body: payload.body,
     message: payload.body,
     category: payload.category || 'Support',
     type: (payload.category || 'info').toLowerCase(),
+    link: payload.link || '',
+    action_url: payload.link || '',
     is_read: false,
     read: false,
     created_at: new Date().toISOString()

@@ -193,6 +193,21 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
 
       if (decisionOutcome === 'Approved') {
         try {
+          const { setStudentStageStatus } = await import('../../lib/api/journey');
+          await setStudentStageStatus(selectedStudentId, 9, 'Completed');
+          await setStudentStageStatus(selectedStudentId, 10, 'Completed', 'Visa Approved & Stamped');
+          await setStudentStageStatus(selectedStudentId, 11, 'In Progress', 'Eligible for Pre-Departure and Flight Concierge');
+          const { createNotification } = await import('../../lib/api/notifications');
+          await createNotification({
+            user_id: selectedStudentId,
+            title: '🎉 National Student Visa Approved & Stamped!',
+            body: `Congratulations! Your national student visa has been approved. You are now enrolled in Pre-Departure & Flight concierge.`,
+            category: 'Visa',
+            link: '/student/pre-departure'
+          });
+        } catch {}
+
+        try {
           const studentApps = await getApplications(selectedStudentId);
           const activeApp = studentApps.find(a =>
             a.status !== 'Rejected' &&

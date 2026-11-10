@@ -199,7 +199,14 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
     }
   };
 
-  const filtered = records.filter(r =>
+  const scopedRecords = React.useMemo(() => {
+    if (!isStaff || showAllForStaff) return records;
+    const allowedIds = new Set(dbStudents.map(s => s.id));
+    const allowedEmails = new Set(dbStudents.map(s => s.email?.toLowerCase()).filter(Boolean));
+    return records.filter(r => allowedIds.has(r.student_id) || (r.student_email && allowedEmails.has(r.student_email.toLowerCase())));
+  }, [records, isStaff, showAllForStaff, dbStudents]);
+
+  const filtered = scopedRecords.filter(r =>
     r.student_name.toLowerCase().includes(search.toLowerCase()) ||
     (r.student_email && r.student_email.toLowerCase().includes(search.toLowerCase())) ||
     (r.university_name && r.university_name.toLowerCase().includes(search.toLowerCase()))

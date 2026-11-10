@@ -174,12 +174,24 @@ export async function uploadDocument(payload: {
 
   try {
     const { createNotification } = await import('./notifications');
+    // Notify staff
     await createNotification({
-      user_id: payload.student_id || 'admin',
-      title: 'New Document Submitted',
+      user_id: null,
+      title: 'New Student Document Submitted',
       body: `A new student document (${payload.doc_type || payload.file_name}) was submitted for review & verification.`,
-      category: 'Document'
+      category: 'Document',
+      link: '/admin/document-review'
     });
+    // Notify student confirmation
+    if (payload.student_id && payload.student_id !== 'admin') {
+      await createNotification({
+        user_id: payload.student_id,
+        title: 'Document Uploaded Successfully',
+        body: `Your document (${payload.doc_type || payload.file_name}) was uploaded and is queued for verification.`,
+        category: 'Document',
+        link: '/student/documents'
+      });
+    }
   } catch {}
 
   return insertData;

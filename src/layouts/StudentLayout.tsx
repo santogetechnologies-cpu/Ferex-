@@ -57,6 +57,8 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
     stopImpersonatingStudent();
     if (returnRole === 'counselor' || returnRole === 'staff') {
       navigate('/staff/students');
+    } else if (returnRole === 'central_admin' || returnRole === 'superadmin' || returnRole === 'central') {
+      navigate('/central/students');
     } else {
       navigate('/admin/students');
     }

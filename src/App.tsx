@@ -329,7 +329,7 @@ function App() {
           <Route path="/student/meetings" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><Meetings /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/chat" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><Chat /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/support" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><SupportTickets /></StudentLayout></ProtectedRoute>} />
-          <Route path="/student/notifications" element={<Navigate to="/student/dashboard" replace />} />
+          <Route path="/student/notifications" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><Notifications /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/profile" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><MyProfile /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/settings" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><MyProfile defaultTab="Account & Security" /></StudentLayout></ProtectedRoute>} />
           <Route path="/student/visa-tracker" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><VisaTracker /></StudentLayout></ProtectedRoute>} />
@@ -559,6 +559,8 @@ function App() {
           <Route path="/staff/applications" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffApplications /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/offers" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminApplications initialFilter="Offer Issued" /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/documents" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffDocuments /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/legalization" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminNawaTracker isStaff={true} /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/nawa" element={<Navigate to="/staff/legalization" replace />} />
           <Route path="/staff/visa-tracker" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminVisaTracker isStaff={true} /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/pre-departure" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminPreDeparture isStaff={true} /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/support" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffTickets /></StaffLayout></ProtectedRoute>} />

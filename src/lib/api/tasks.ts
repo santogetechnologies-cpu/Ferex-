@@ -253,6 +253,32 @@ export async function createTask(payload: {
 }
 
 /**
+ * Updates task details (title, description, priority, due date, status) in Supabase.
+ */
+export async function updateTask(id: string, updates: Partial<Task> & { due?: string }): Promise<boolean> {
+  const admin = await getAdminSupabaseClient();
+  const client = admin || supabase;
+  const now = new Date().toISOString();
+
+  const payload: any = { updated_at: now };
+  if (updates.title) payload.title = updates.title.trim();
+  if (updates.description !== undefined) payload.description = updates.description.trim();
+  if (updates.priority) payload.priority = updates.priority;
+  if (updates.status) payload.status = updates.status;
+  if (updates.due_date || (updates as any).due) payload.due_date = updates.due_date || (updates as any).due;
+  if ((updates as any).assignee || updates.assigned_to) payload.assigned_to = (updates as any).assignee || updates.assigned_to;
+  if (updates.category) payload.category = updates.category;
+
+  const { error } = await client.from('tasks').update(payload).eq('id', id);
+  if (error) throw new Error(error.message);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('ferex_tasks_change'));
+  }
+  return true;
+}
+
+/**
  * Updates task status across Supabase tasks and subsidiary tables.
  */
 export async function updateTaskStatus(id: string, status: Task['status']): Promise<Partial<Task>> {

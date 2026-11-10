@@ -25,6 +25,9 @@ export async function getEducationCountry(studentId: string): Promise<string> {
 export async function saveEducationCountry(studentId: string, country: string) {
   const { error } = await supabase.from('education_student_preferences').upsert({ student_id: studentId, country: country.trim(), updated_at: new Date().toISOString() });
   if (error) throw error;
+  try {
+    await supabase.from('users').update({ target_country: country.trim(), updated_at: new Date().toISOString() }).eq('id', studentId);
+  } catch {}
   window.dispatchEvent(new Event('ferex_country_change'));
 }
 

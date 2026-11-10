@@ -142,6 +142,11 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
           };
           setPersonal(pInfo);
           setTempPersonal(pInfo);
+
+          if (active.emergency_contact && typeof active.emergency_contact === 'object') {
+            setEmergency(active.emergency_contact);
+            setTempEmergency(active.emergency_contact);
+          }
         }
       } catch (err) {
         console.warn('[MyProfile] Sync error:', err);
@@ -216,11 +221,17 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
   };
 
   // ── Save Emergency Info ────────────────────────────────────────────────────
-  const handleSaveEmergency = () => {
+  const handleSaveEmergency = async () => {
     setEmergency({ ...tempEmergency });
     setEditingEmergency(false);
     if (activeStudentId) {
       localStorage.setItem(`ferex_student_emergency_${activeStudentId}`, JSON.stringify(tempEmergency));
+      try {
+        await supabase.from('users').update({
+          emergency_contact: tempEmergency,
+          updated_at: new Date().toISOString()
+        }).eq('id', activeStudentId);
+      } catch (err) {}
     }
     showToastMsg('Emergency contact details saved!');
   };

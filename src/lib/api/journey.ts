@@ -42,3 +42,34 @@ export async function updateJourneyStageStatus(
   if (error) throw error;
   return data as JourneyStage;
 }
+
+export async function setStudentStageStatus(
+  studentId: string,
+  stageNumber: number,
+  status: JourneyStage['status'],
+  notes?: string
+) {
+  if (!studentId) return;
+  try {
+    await ensureJourneyStages(studentId);
+    const stages = await getJourneyStages(studentId);
+    const target = stages.find(s => s.stage_number === stageNumber);
+    if (target) {
+      await updateJourneyStageStatus(target.id, status, notes);
+    } else {
+      await supabase.from('education_workflow_progress').upsert({
+        student_id: studentId,
+        stage_number: stageNumber,
+        stage_name: educationStages[stageNumber - 1] || `Stage ${stageNumber}`,
+        status,
+        notes: notes || '',
+        completed_at: status === 'Completed' ? new Date().toISOString() : null,
+      }, { onConflict: 'student_id,stage_number' });
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('ferex_journey_change'));
+    }
+  } catch (err) {
+    console.warn('[setStudentStageStatus error]:', err);
+  }
+}

@@ -14,9 +14,13 @@ import { useCountryWorkflows } from '../../hooks/useCountryWorkflows';
 import { useDestinations } from '../../hooks/useDestinations';
 import type { NawaRecord } from '../../lib/api/nawa';
 import type { UserProfile, CountryWorkflowConfig, WorkflowStageConfig, WorkflowDocumentRequirement } from '../../lib/types';
+import { useAuth } from '../../contexts/AuthContext';
 import { ToastNotification } from '../../components/ToastNotification';
 
-export const AdminNawaTracker: React.FC = () => {
+export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = false }) => {
+  const { user, profile } = useAuth();
+  const counselorEmail = (profile?.email || user?.email || '').toLowerCase().trim();
+  const counselorName = (profile?.full_name || '').toLowerCase().trim();
   const { workflows: savedWorkflows, saveWorkflow, removeWorkflow, getWorkflowForCountry } = useCountryWorkflows();
   const { destinations: destinationList, addDestination } = useDestinations();
 
@@ -181,6 +185,16 @@ export const AdminNawaTracker: React.FC = () => {
       if (updated) {
         setRecords(prev => prev.map(r => r.id === id ? updated : r));
         showToast(`Updated verification progress for ${updated.student_name} to Step ${step} (${status}).`);
+
+        if (status === 'Approved' || step >= 4) {
+          if (updated.student_id) {
+            try {
+              const { setStudentStageStatus } = await import('../../lib/api/journey');
+              await setStudentStageStatus(updated.student_id, 5, 'Completed');
+              await setStudentStageStatus(updated.student_id, 9, 'In Progress', 'Legalization approved. Ready for Visa Filing.');
+            } catch {}
+          }
+        }
       }
     } catch (e) {
       showToast('Failed to update step.');
@@ -361,8 +375,23 @@ export const AdminNawaTracker: React.FC = () => {
     return 'Poland';
   };
 
+  const scopedStudents = React.useMemo(() => {
+    if (!isStaff) return students;
+    return students.filter(s => {
+      const ac = (s.assigned_counselor || '').toLowerCase().trim();
+      return Boolean(ac && ((counselorEmail && ac.includes(counselorEmail)) || (counselorName && ac.includes(counselorName))));
+    });
+  }, [students, isStaff, counselorEmail, counselorName]);
+
+  const scopedRecords = React.useMemo(() => {
+    if (!isStaff) return records;
+    const studentIds = new Set(scopedStudents.map(s => s.id));
+    const studentEmails = new Set(scopedStudents.map(s => s.email?.toLowerCase()).filter(Boolean));
+    return records.filter(r => studentIds.has(r.student_id) || (r.student_email && studentEmails.has(r.student_email.toLowerCase())));
+  }, [records, isStaff, scopedStudents]);
+
   // Filtered tracking list
-  const filtered = records.filter(r => {
+  const filtered = scopedRecords.filter(r => {
     const q = search.toLowerCase().trim();
     const nameMatch = (r.student_name || '').toLowerCase().includes(q) || (r.ref_no || r.nawa_ref_no || '').toLowerCase().includes(q) || (r.document_type || '').toLowerCase().includes(q);
     const country = resolveStudentCountry(r);

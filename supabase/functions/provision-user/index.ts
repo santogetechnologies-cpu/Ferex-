@@ -13,9 +13,11 @@ Deno.serve(async req => {
     const { data: { user }, error: authError } = await caller.auth.getUser();
     if (authError || !user) return reply({ error: 'Sign in required' }, 401);
     const { data: role, error: roleError } = await caller.rpc('get_auth_user_role');
-    if (roleError || ![...centralRoles, ...educationRoles].includes(role)) return reply({ error: 'Administrator access required' }, 403);
+    const allowedCallers = [...centralRoles, ...educationRoles, 'counselor', 'staff'];
+    if (roleError || !allowedCallers.includes(role)) return reply({ error: 'Administrator access required' }, 403);
     const body = await req.json();
     if (!supportedRoles.includes(body.role) || (!centralRoles.includes(role) && !['student', 'staff', 'counselor'].includes(body.role))) return reply({ error: 'You cannot provision this role' }, 403);
+    if (['counselor', 'staff'].includes(role) && body.role !== 'student') return reply({ error: 'Admissions counselors can only provision student accounts' }, 403);
     const email = String(body.email || '').trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !String(body.full_name || '').trim()) return reply({ error: 'A valid name and email are required' }, 400);
     if (body.password && (typeof body.password !== 'string' || body.password.length < 8)) return reply({ error: 'Password must contain at least 8 characters' }, 400);

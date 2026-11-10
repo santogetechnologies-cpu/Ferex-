@@ -7,7 +7,7 @@ import {
 import { useTasks } from '../../hooks/useTasks';
 import { useAuth } from '../../contexts/AuthContext';
 import { getStaffMembers, getStudents } from '../../lib/api/students';
-import { deleteTask } from '../../lib/api/tasks';
+import { deleteTask, updateTask } from '../../lib/api/tasks';
 import { ToastNotification } from '../../components/ToastNotification';
 
 type Priority = 'High' | 'Medium' | 'Low';
@@ -219,12 +219,25 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
     }
   };
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editTask || !editTask.title.trim()) return;
 
-    setTasks(prev => prev.map(t => t.id === editTask.id ? editTask : t));
-    showToast(`Task ${editTask.id} updated`);
+    try {
+      await updateTask(editTask.id, {
+        title: editTask.title,
+        description: editTask.description,
+        priority: editTask.priority,
+        status: editTask.status,
+        due: editTask.due,
+        assigned_to: editTask.assignee,
+        category: editTask.category
+      });
+      setTasks(prev => prev.map(t => t.id === editTask.id ? editTask : t));
+      showToast(`Task ${editTask.id} updated and synced to database`);
+    } catch (err: any) {
+      showToast(`Error updating task: ${err.message || 'Failed'}`);
+    }
     setEditTask(null);
   };
 
@@ -241,6 +254,9 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
     setDeleteId(null);
   };
 
+  const currentUserName = (profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || '').toLowerCase().trim();
+  const currentUserEmail = (user?.email || profile?.email || '').toLowerCase().trim();
+
   // Filter tasks based on active pill + search query
   const filtered = tasks.filter(t => {
     const matchesSearch =
@@ -252,7 +268,14 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
 
     if (!matchesSearch) return false;
 
-    if (activeFilter === 'My Tasks') return t.assignee === 'Riya Shah';
+    if (activeFilter === 'My Tasks') {
+      const aLower = (t.assignee || '').toLowerCase().trim();
+      return Boolean(
+        (currentUserName && aLower.includes(currentUserName)) ||
+        (currentUserEmail && aLower.includes(currentUserEmail)) ||
+        (counselorIdentity?.id && (t as any).assigned_staff_id === counselorIdentity.id)
+      );
+    }
     if (activeFilter === 'High Priority') return t.priority === 'High';
     if (activeFilter === 'Due Today') return t.due === 'Today' || t.isDueToday;
     if (activeFilter === 'Completed') return t.status === 'Done';

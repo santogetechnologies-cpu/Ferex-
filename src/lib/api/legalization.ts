@@ -224,6 +224,20 @@ export async function updateLegalizationStatus(
 
   if (updatedRecord) {
     await syncLegalizationToCloudCatalog(updatedRecord);
+    if (updatedRecord.student_id) {
+      try {
+        const isApproved = status === 'Approved';
+        await createNotification({
+          user_id: updatedRecord.student_id,
+          title: isApproved ? 'Qualification Legalization Approved!' : `Legalization Status: ${status}`,
+          body: isApproved
+            ? `Your official qualifications for ${updatedRecord.country || 'Europe'} have been recognized and approved (${updatedRecord.ref_no || ''}). You can now file for your National Student Visa!`
+            : `Your legalization file (${updatedRecord.ref_no || ''}) has reached Step ${updatedRecord.current_step || step || 1}: ${status}.`,
+          category: 'Legalization',
+          link: '/student/journey-tracker'
+        });
+      } catch {}
+    }
   }
 
   window.dispatchEvent(new Event('ferex_legalization_change'));

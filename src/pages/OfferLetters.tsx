@@ -158,6 +158,28 @@ export const OfferLetters: React.FC = () => {
   const handleAccept = async (app: any) => {
     try {
       await changeStatus(app.id, 'Accepted');
+
+      // Advance stage 8 in education_workflow_progress
+      const studentId = activeStudentId || app.student_id;
+      if (studentId) {
+        try {
+          const { setStudentStageStatus } = await import('../lib/api/journey');
+          await setStudentStageStatus(studentId, 7, 'Completed');
+          await setStudentStageStatus(studentId, 8, 'In Progress', 'Offer accepted. Direct university tuition payment pending.');
+        } catch {}
+      }
+
+      // Notify staff
+      try {
+        const { createNotification } = await import('../lib/api/notifications');
+        await createNotification({
+          user_id: null,
+          title: 'Admission Offer Accepted by Student',
+          body: `${studentName} accepted admission offer for ${app.university_name || 'Partner University'}. Awaiting tuition verification.`,
+          category: 'Application',
+          link: '/admin/applications'
+        });
+      } catch {}
       
       // Trigger offer acceptance workflow with sync events
       triggerOfferAcceptanceWorkflow({

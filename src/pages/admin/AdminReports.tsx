@@ -68,16 +68,56 @@ export const AdminReports: React.FC = () => {
     ? Object.entries(countryCounts).map(([country, count]) => ({ country, count, pct: Math.round((count / totalApps) * 100) }))
     : [{ country: 'Poland', count: students.length, pct: 100 }];
 
-  const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
-  const appData = [0, 0, 0, 0, 0, 0, 0, applications.length];
-  const paymentData = [0, 0, 0, 0, 0, 0, 0, Math.round(totalPaidRevenue / 1000)];
+  const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const nowMonth = new Date().getMonth();
+  const current6Months = monthLabels.slice(Math.max(0, nowMonth - 5), nowMonth + 1);
+  const appData = current6Months.map((_, idx) => {
+    const targetMonthIdx = nowMonth - (current6Months.length - 1 - idx);
+    const count = applications.filter(a => {
+      const d = new Date(a.applied_date || a.created_at || Date.now());
+      return d.getMonth() === targetMonthIdx;
+    }).length;
+    return count;
+  });
+  const paymentData = current6Months.map((_, idx) => {
+    const targetMonthIdx = nowMonth - (current6Months.length - 1 - idx);
+    const sum = verifiedPayments.filter(p => {
+      const d = new Date(p.created_at || Date.now());
+      return d.getMonth() === targetMonthIdx;
+    }).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+    return Math.round(sum / 1000);
+  });
 
   const handleExport = (type: string) => {
+    const rows = [
+      ['Report Type', `${type} Operational Report`],
+      ['Generated At', new Date().toISOString()],
+      ['Total Students', String(students.length)],
+      ['Total Applications', String(applications.length)],
+      ['Total Universities', String(universities.length)],
+      ['Verified Revenue (INR)', String(totalPaidRevenue)],
+      [],
+      ['Student Name', 'Email', 'Assigned Counselor', 'Target Country', 'Application Status']
+    ];
+
+    students.forEach((s: any) => {
+      const app = applications.find(a => a.student_id === s.id);
+      rows.push([
+        s.full_name || s.name || 'Student',
+        s.email || '',
+        s.assigned_counselor || s.counselor || 'Admissions Desk',
+        s.country || s.target_country || 'Poland',
+        app?.status || 'Submitted'
+      ]);
+    });
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const encodedUri = encodeURI(csvContent);
     const a = document.createElement('a');
-    a.href = 'data:text/csv,Ferex Report Export';
-    a.download = `Ferex_${type}_Report.csv`;
+    a.href = encodedUri;
+    a.download = `Ferex_${type}_Report_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
-    setToast(`${type} report exported!`);
+    setToast(`${type} report exported with ${students.length} student records!`);
     setTimeout(() => setToast(''), 2500);
   };
 

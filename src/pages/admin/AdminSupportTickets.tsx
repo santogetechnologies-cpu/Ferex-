@@ -206,7 +206,7 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
       setIsReplying(true);
       await sendReplyApi({
         ticket_id: activeTicket.id,
-        sender_id: user?.id || '00000000-0000-0000-0000-000000000000',
+        sender_id: user?.id || '',
         sender_name: profile?.full_name || 'Education Admin',
         message: msgText,
         is_staff: true,

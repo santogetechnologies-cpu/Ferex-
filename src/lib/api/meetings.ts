@@ -110,9 +110,7 @@ export async function getAllMeetings(): Promise<Meeting[]> {
     const merged = [...dbMeetings, ...cloudCatalog.filter(m => !dbIds.has(m.id))];
     return merged.filter(m => {
       const sId = (m.student_id || '').toLowerCase();
-      const sName = ((m as any).users?.full_name || (m as any).student_name || '').toLowerCase();
       if (sId && deletedIds.includes(sId)) return false;
-      if (sName.includes('jishi') || sName.includes('ajay') || sName.includes('navaneeth') || sName === 'rahul sharma') return false;
       return true;
     });
   } catch {

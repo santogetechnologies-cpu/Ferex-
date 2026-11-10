@@ -114,7 +114,14 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
   }, [searchParams]);
   const [statusFilter, setStatusFilter] = useState('All');
   const [countryFilter, setCountryFilter] = useState('All');
-  const [counselorFilter, setCounselorFilter] = useState('All');
+  const staffCounselorName = (profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || '').trim();
+  const [counselorFilter, setCounselorFilter] = useState<string>(() => (isStaff && staffCounselorName) ? staffCounselorName : 'All');
+
+  useEffect(() => {
+    if (isStaff && staffCounselorName && counselorFilter === 'All') {
+      setCounselorFilter(staffCounselorName);
+    }
+  }, [isStaff, staffCounselorName]);
 
   const { documents: allDocs } = useDocuments();
   const [allRequirements, setAllRequirements] = useState<DocumentRequirement[]>([]);
@@ -830,7 +837,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
 
                 {/* Service Agreement Status Card */}
                 {(() => {
-                  const isSigned = isAgreementSigned(viewStudent.id);
+                  const isSigned = signedStudentIds.has(viewStudent.id) || isAgreementSigned(viewStudent.id);
                   const agreement = getLocalAgreement(viewStudent.id);
                   return (
                     <div className={`p-4 rounded-xl border space-y-1.5 ${

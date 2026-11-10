@@ -6,6 +6,7 @@ import {
 import { ChangePasswordForm } from '../../components/ChangePasswordForm';
 import { ToastNotification } from '../../components/ToastNotification';
 import { Button } from '../../components/Button';
+import { supabase } from '../../lib/supabase';
 import {
   getLeadFormConfig,
   saveLeadFormConfig,
@@ -56,7 +57,47 @@ export const AdminSettings: React.FC = () => {
   useEffect(() => {
     getLeadFormConfig().then((cfg) => setFormConfig(cfg));
     getWhatsAppConfig().then((wcfg) => setWhatsappConfig(wcfg));
+
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('system_config')
+          .select('value')
+          .eq('key', 'ferex_organization_settings')
+          .maybeSingle();
+
+        if (data?.value && typeof data.value === 'object') {
+          setOrg(prev => ({ ...prev, ...data.value }));
+        } else {
+          try {
+            const raw = localStorage.getItem('ferex_organization_settings');
+            if (raw) setOrg(prev => ({ ...prev, ...JSON.parse(raw) }));
+          } catch {}
+        }
+      } catch {}
+    })();
   }, []);
+
+  const [isSavingOrg, setIsSavingOrg] = useState(false);
+  const handleSaveOrg = async () => {
+    setIsSavingOrg(true);
+    try {
+      localStorage.setItem('ferex_organization_settings', JSON.stringify(org));
+      const { getAdminSupabaseClient } = await import('../../lib/adminAuthClient');
+      const admin = await getAdminSupabaseClient();
+      const client = admin || supabase;
+      await client.from('system_config').upsert({
+        key: 'ferex_organization_settings',
+        value: org,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'key' });
+      showToast('Organization settings saved and synced to database!');
+    } catch (err: any) {
+      showToast(`Saved locally: ${err.message || 'Offline mode'}`);
+    } finally {
+      setIsSavingOrg(false);
+    }
+  };
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -151,10 +192,11 @@ export const AdminSettings: React.FC = () => {
       </div>
       <div className="pt-3 border-t border-slate-100 flex justify-end">
         <button
-          onClick={() => showToast('Organization settings saved!')}
-          className="flex items-center gap-2 h-10 px-5 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer"
+          onClick={handleSaveOrg}
+          disabled={isSavingOrg}
+          className="flex items-center gap-2 h-10 px-5 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer disabled:opacity-60"
         >
-          <Save className="w-4 h-4" /> Save Organization Settings
+          <Save className="w-4 h-4" /> {isSavingOrg ? 'Saving...' : 'Save Organization Settings'}
         </button>
       </div>
     </div>

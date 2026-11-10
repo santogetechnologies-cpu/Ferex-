@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Search, Eye, Edit3, Trash2, X, CheckCircle2, RefreshCw, GraduationCap, Check, AlertCircle } from 'lucide-react';
+import { Users, Search, Eye, Edit3, Trash2, X, CheckCircle2, RefreshCw, GraduationCap, Check, AlertCircle, LogIn } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
+import { useAuth } from '../../contexts/AuthContext';
+import { startImpersonatingStudent } from '../../lib/api/studentImpersonation';
 import {
   getStudentsConsolidatedOversight,
   reassignStudentCounselor,
@@ -15,6 +18,8 @@ import {
 import { supabase } from '../../lib/supabase';
 
 export const CentralStudents: React.FC = () => {
+  const navigate = useNavigate();
+  const { user, profile } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<StudentOversightItem | null>(null);
   const [reassignModalStudent, setReassignModalStudent] = useState<StudentOversightItem | null>(null);
@@ -32,7 +37,7 @@ export const CentralStudents: React.FC = () => {
     phone: '',
     targetUni: 'University of Warsaw',
     course: 'M.Sc. Computer Science',
-    counselor: 'Rahul Mehta'
+    counselor: ''
   });
 
   const showToastMsg = (msg: string) => {
@@ -96,7 +101,7 @@ export const CentralStudents: React.FC = () => {
       });
       setShowAddModal(false);
       showToastMsg(`Enrolled student ${newStudent.name}`);
-      setNewStudent({ name: '', email: '', phone: '', targetUni: 'University of Warsaw', course: 'M.Sc. Computer Science', counselor: 'Rahul Mehta' });
+      setNewStudent({ name: '', email: '', phone: '', targetUni: 'University of Warsaw', course: 'M.Sc. Computer Science', counselor: counselorsList[0]?.full_name || '' });
       await loadData();
     } catch (err: any) {
       showToastMsg(`Error: ${err.message || 'Failed to create student'}`);
@@ -253,11 +258,11 @@ export const CentralStudents: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-1.5">
-                        <strong className="text-slate-800">{student.counselor}</strong>
+                        <strong className="text-slate-800">{student.counselor || 'Admissions Counselor'}</strong>
                         <button
                           onClick={() => {
                             setReassignModalStudent(student);
-                            setSelectedCounselorName(student.counselor || (counselorsList[0]?.full_name || 'Rahul Mehta'));
+                            setSelectedCounselorName(student.counselor || (counselorsList[0]?.full_name || ''));
                           }}
                           className="text-[10px] font-bold text-[#58051E] hover:underline cursor-pointer"
                         >
@@ -268,6 +273,24 @@ export const CentralStudents: React.FC = () => {
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
+                          onClick={() => {
+                            startImpersonatingStudent({
+                              id: student.id,
+                              name: student.name,
+                              email: student.email,
+                              country: student.country,
+                              counselor: student.counselor,
+                              originalAdminRole: 'central_admin',
+                              originalAdminEmail: profile?.email || user?.email || '',
+                            });
+                            navigate('/student/dashboard');
+                          }}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
+                          title="Login as Student & Navigate Portal"
+                        >
+                          <LogIn className="w-4 h-4 text-emerald-600" />
+                        </button>
+                        <button
                           onClick={() => setSelectedStudent(student)}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
                           title="View Full Student Journey & Details"
@@ -277,7 +300,7 @@ export const CentralStudents: React.FC = () => {
                         <button
                           onClick={() => {
                             setReassignModalStudent(student);
-                            setSelectedCounselorName(student.counselor || (counselorsList[0]?.full_name || 'Rahul Mehta'));
+                            setSelectedCounselorName(student.counselor || (counselorsList[0]?.full_name || ''));
                           }}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                           title="Reassign Counselor"

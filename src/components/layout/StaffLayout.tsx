@@ -26,6 +26,7 @@ const baseStaffMenuItems = [
   { name: 'Applications', path: '/staff/applications', icon: FileCheck },
   { name: 'Offer Letters', path: '/staff/offers', icon: FileText },
   { name: 'Documents Review', path: '/staff/documents', icon: FolderOpen },
+  { name: 'Legalization & NAWA', path: '/staff/legalization', icon: ShieldCheck },
   { name: 'VFS Visa Tracker', path: '/staff/visa-tracker', icon: ShieldCheck },
   { name: 'Pre-Departure', path: '/staff/pre-departure', icon: Plane },
   { name: 'Support Tickets', path: '/staff/support', icon: Headphones },

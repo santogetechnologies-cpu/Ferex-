@@ -197,7 +197,18 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
               document_type: targetDoc.category || targetDoc.docType,
               notes: 'Mandatory documents verified. Legalization & admission initiation started.'
             });
-            showToast(`Document approved & legalization initialized.`);
+            const { setStudentStageStatus } = await import('../../lib/api/journey');
+            await setStudentStageStatus(targetDoc.studentId, 4, 'Completed');
+            await setStudentStageStatus(targetDoc.studentId, 5, 'In Progress');
+            const { createNotification } = await import('../../lib/api/notifications');
+            await createNotification({
+              user_id: targetDoc.studentId,
+              title: 'Document Verified & Approved',
+              body: `Your document "${targetDoc.docType}" has been verified and approved by the admissions team. Legalization dossier initialized.`,
+              category: 'Document',
+              link: '/student/documents'
+            });
+            showToast(`Document approved, student notified & legalization initialized.`);
             return;
           } catch (e) {}
         }
@@ -239,7 +250,9 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
     return docs.filter(d => {
       const student = studentsMap[d.studentId];
       const ac = (student?.assigned_counselor || '').toLowerCase().trim();
-      return Boolean(ac && ((counselorEmail && ac.includes(counselorEmail)) || (counselorName && ac.includes(counselorName))));
+      const isAssignedToMe = Boolean(ac && ((counselorEmail && ac.includes(counselorEmail)) || (counselorName && ac.includes(counselorName))));
+      const isUnassigned = !ac || ac === 'admissions desk' || ac === '--';
+      return isAssignedToMe || isUnassigned;
     });
   }, [docs, isStaff, showAllForStaff, counselorEmail, counselorName, studentsMap]);
 
@@ -265,7 +278,7 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
       map.get(sKey)!.docs.push(d);
     });
     return Array.from(map.values());
-  }, [docs]);
+  }, [scopedDocs]);
 
   return (
     <div className="space-y-5 relative text-left">

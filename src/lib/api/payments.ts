@@ -176,10 +176,11 @@ export async function submitPaymentProof(payload: {
   // Trigger notifications for Admin and Student
   try {
     await createNotification({
-      user_id: 'admin',
+      user_id: null,
       title: 'New Student Payment Proof Submitted',
       body: `Payment proof of ₹${Number(payload.amount).toLocaleString('en-IN')} submitted by ${payload.student_name || 'Student'} for "${payload.title}" (UTR: ${payload.utr_number || 'Pending Verification'}).`,
-      category: 'Payment'
+      category: 'Payment',
+      link: '/admin/payments'
     });
 
     if (rawStudentId && rawStudentId !== 'admin') {

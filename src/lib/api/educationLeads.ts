@@ -493,8 +493,8 @@ export async function convertLeadToStudentAccount(
       assigned_counselor: lead.assigned_counselor_name || 'Senior Admissions Counselor',
     });
 
-    if (result && (result as any).user?.id) {
-      createdStudentId = (result as any).user.id;
+    if (result && (result.id || (result as any).user?.id)) {
+      createdStudentId = result.id || (result as any).user.id;
     }
   } catch (err) {
     console.warn('Account provisioning API notice, using direct user registration:', err);
@@ -554,6 +554,7 @@ export async function convertLeadToStudentAccount(
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('ferex_education_leads_change'));
     window.dispatchEvent(new Event('ferex_user_change'));
+    window.dispatchEvent(new Event('ferex_students_change'));
   }
 
   return {

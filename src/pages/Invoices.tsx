@@ -22,12 +22,16 @@ export const Invoices: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'invoices' | 'credits'>('invoices');
   const [toastMessage, setToastMessage] = useState('');
   const [viewInvoice, setViewInvoice] = useState<InvoiceData | null>(null);
+  const [feeOverrides, setFeeOverrides] = useState<Record<string, any>>({});
 
   const studentName = activeStudentName;
 
   useEffect(() => {
     if (activeStudentId) {
       getCreditNotes(activeStudentId).then(res => setCreditNotes(res || [])).catch(() => setCreditNotes([]));
+      import('../lib/api/payments').then(({ getStudentFeeOverrides }) => {
+        getStudentFeeOverrides(activeStudentId).then(setFeeOverrides).catch(() => {});
+      });
     }
   }, [activeStudentId]);
 
@@ -201,6 +205,21 @@ export const Invoices: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Special Waiver / Scholarship Banner */}
+      {Object.keys(feeOverrides).length > 0 && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center justify-between text-xs text-emerald-800">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>
+              <strong>Special Waiver/Scholarship Applied:</strong> An institutional fee discount has been authorized on your student account.
+            </span>
+          </div>
+          <span className="font-extrabold uppercase text-[10px] tracking-wider px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-md">
+            Discount Active
+          </span>
+        </div>
+      )}
 
       {/* Invoices Tab */}
       {activeTab === 'invoices' && (

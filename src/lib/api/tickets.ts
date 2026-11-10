@@ -247,10 +247,20 @@ export async function addTicketReply(payload: {
 }): Promise<TicketReply> {
   const newId = generateUUID();
   const now = new Date().toISOString();
+
+  const isValidUUID = (id?: string) => Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) && id !== '00000000-0000-0000-0000-000000000000');
+  let validSenderId = isValidUUID(payload.sender_id) ? payload.sender_id : null;
+  if (!validSenderId) {
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      if (authData?.user?.id) validSenderId = authData.user.id;
+    } catch {}
+  }
+
   const replyObj: TicketReply = {
     id: newId,
     ticket_id: payload.ticket_id,
-    sender_id: payload.sender_id,
+    sender_id: validSenderId || payload.sender_id,
     sender_name: payload.sender_name || 'Staff',
     message: payload.message.trim(),
     is_staff: payload.is_staff || false,
@@ -260,17 +270,21 @@ export async function addTicketReply(payload: {
   const admin = await getAdminSupabaseClient();
   const client = admin || supabase;
 
+  const insertData: any = {
+    id: newId,
+    ticket_id: payload.ticket_id,
+    sender_name: payload.sender_name || 'Admin',
+    message: payload.message.trim(),
+    is_staff: payload.is_staff || false,
+    sent_at: now,
+  };
+  if (validSenderId) {
+    insertData.sender_id = validSenderId;
+  }
+
   const { data, error } = await client
     .from('ticket_replies')
-    .insert({
-      id: newId,
-      ticket_id: payload.ticket_id,
-      sender_id: payload.sender_id,
-      sender_name: payload.sender_name || 'Admin',
-      message: payload.message.trim(),
-      is_staff: payload.is_staff || false,
-      sent_at: now,
-    })
+    .insert(insertData)
     .select();
 
   if (error) {

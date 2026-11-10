@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Edit3, Trash2, X, Save, CheckCircle2, Mail, Phone, ShieldCheck } from 'lucide-react';
-import { getStaffMembers, updateStudent, deleteStudent } from '../../lib/api/students';
+import { getStaffMembers, getStudents, updateStudent, deleteStudent } from '../../lib/api/students';
 import { useAuth } from '../../contexts/AuthContext';
 import { isSuperAdmin } from '../../lib/roleRouter';
 import { ToastNotification } from '../../components/ToastNotification';
@@ -61,11 +61,28 @@ export const AdminStaffManagement: React.FC = () => {
   const [toast, setToast] = useState('');
 
   const loadData = () => {
-    getStaffMembers().then(members => {
+    Promise.all([getStaffMembers(), getStudents()]).then(([members, studentsList]) => {
+      const studentCountMap: Record<string, number> = {};
+      (studentsList || []).forEach((st: any) => {
+        const cName = (st.assigned_counselor || '').trim().toLowerCase();
+        if (cName) {
+          studentCountMap[cName] = (studentCountMap[cName] || 0) + 1;
+        }
+      });
+
       const mapped = members.map(m => {
         const parts = (m.department || '').split(':');
         const dept = parts[0] || 'Admissions';
         const customRole = parts[1] || ROLE_DISPLAY_MAP[m.role] || (m.role === 'admin' ? 'Admin' : 'Staff');
+        const mName = (m.full_name || m.email.split('@')[0] || '').trim().toLowerCase();
+        const mEmail = (m.email || '').trim().toLowerCase();
+        let count = 0;
+        for (const [counselor, cCount] of Object.entries(studentCountMap)) {
+          if ((mName && counselor.includes(mName)) || (mEmail && counselor.includes(mEmail))) {
+            count += cCount;
+          }
+        }
+
         return {
           id: m.id,
           name: m.full_name || m.email.split('@')[0],
@@ -75,7 +92,7 @@ export const AdminStaffManagement: React.FC = () => {
           role: customRole,
           status: 'Active' as const,
           joined: new Date(m.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-          students: 0,
+          students: count,
           permissions: m.permissions || DEFAULT_PERMS,
         };
       });
