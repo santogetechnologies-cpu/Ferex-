@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, ShieldCheck, AlertCircle, Clock, FileText, Receipt } from 'lucide-react';
+import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, ShieldCheck, AlertCircle, Clock, FileText, Receipt, ExternalLink } from 'lucide-react';
 import { useStudents } from '../../hooks/useStudents';
 import { useApplications } from '../../hooks/useApplications';
 import { useDocuments } from '../../hooks/useDocuments';
@@ -12,6 +12,7 @@ import { ToastNotification } from '../../components/ToastNotification';
 import { isAgreementSigned, getLocalAgreement } from '../../lib/api/agreement';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { startImpersonatingStudent } from '../../lib/api/studentImpersonation';
 
 interface StudentItem {
   id: string;
@@ -51,8 +52,22 @@ interface AdminStudentsProps {
 }
 
 export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false }) => {
+  const navigate = useNavigate();
   const { user, profile } = useAuth();
   const [signedStudentIds, setSignedStudentIds] = useState<Set<string>>(new Set());
+
+  const handleNavigateAsStudent = (s: StudentItem) => {
+    startImpersonatingStudent({
+      id: s.id,
+      name: s.name,
+      email: s.email,
+      country: s.targetCountry,
+      counselor: s.counselor,
+      originalAdminRole: isStaff ? 'counselor' : 'education_admin',
+      originalAdminEmail: profile?.email || user?.email || '',
+    });
+    navigate('/student/dashboard');
+  };
 
   useEffect(() => {
     const loadAgreements = async () => {
@@ -676,6 +691,14 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                         </button>
                       )}
                       <button
+                        onClick={() => handleNavigateAsStudent(s)}
+                        title={`Navigate into Student Portal as ${s.name}`}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#58051E] hover:bg-[#720a28] text-white rounded-lg text-xs font-black shadow-xs transition-all cursor-pointer"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 text-amber-300" />
+                        <span className="hidden sm:inline">Login as Student</span>
+                      </button>
+                      <button
                         onClick={() => setViewStudent(s)}
                         title="View Student Dossier"
                         className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
@@ -733,6 +756,18 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                   </div>
                 </div>
                 <button onClick={() => setViewStudent(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
+              </div>
+
+              {/* Direct Impersonation Navigation Button */}
+              <div className="mb-4">
+                <button
+                  type="button"
+                  onClick={() => handleNavigateAsStudent(viewStudent)}
+                  className="w-full h-11 px-4 bg-[#58051E] hover:bg-[#720a28] text-white rounded-xl text-xs font-black shadow-md shadow-[#58051E]/20 flex items-center justify-center gap-2 cursor-pointer transition-all"
+                >
+                  <ExternalLink className="w-4 h-4 text-amber-300" />
+                  <span>Navigate into Student Portal (Act as {viewStudent.name})</span>
+                </button>
               </div>
 
               <div className="space-y-4 text-xs font-semibold">

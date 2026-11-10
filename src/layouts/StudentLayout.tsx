@@ -15,6 +15,7 @@ import { supabase } from '../lib/supabase';
 import { normalizeRole, getDashboardRoute } from '../lib/roleRouter';
 import { EnterpriseAIChatbot } from '../components/EnterpriseAIChatbot';
 import { isAgreementSigned } from '../lib/api/agreement';
+import { getImpersonatedStudent, stopImpersonatingStudent, type ImpersonatedStudent } from '../lib/api/studentImpersonation';
 
 interface StudentLayoutProps {
   children: React.ReactNode;
@@ -27,8 +28,21 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   const { notifications, markRead } = useNotifications(user?.id);
   const { config } = useSystemConfig();
 
-  // Authoritative role guard: if non-student is here, redirect immediately to their dashboard
+  const [impersonated, setImpersonated] = useState<ImpersonatedStudent | null>(() => getImpersonatedStudent());
+
   useEffect(() => {
+    const handleImpersonationChange = () => {
+      setImpersonated(getImpersonatedStudent());
+    };
+    window.addEventListener('ferex-impersonation-changed', handleImpersonationChange);
+    return () => window.removeEventListener('ferex-impersonation-changed', handleImpersonationChange);
+  }, []);
+
+  // Authoritative role guard: if non-student is here and NOT impersonating, redirect immediately to their dashboard
+  useEffect(() => {
+    const isImpersonating = Boolean(getImpersonatedStudent());
+    if (isImpersonating) return; // Allow admin/counselor to manage student portal
+
     const rawRole = profile?.role || user?.user_metadata?.role;
     if (rawRole) {
       const normalized = normalizeRole(rawRole, user?.email);
@@ -38,6 +52,15 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
     }
   }, [profile?.role, user?.user_metadata?.role, user?.email, navigate]);
 
+  const handleExitImpersonation = () => {
+    const returnRole = impersonated?.originalAdminRole;
+    stopImpersonatingStudent();
+    if (returnRole === 'counselor') {
+      navigate('/staff/students');
+    } else {
+      navigate('/admin/students');
+    }
+  };
 
   // Responsive states
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -46,12 +69,10 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-
-
   // Live database profile resolution
   const [studentDetail, setStudentDetail] = useState<{ name: string; email: string }>({
-    name: profile?.full_name || '',
-    email: profile?.email || user?.email || '',
+    name: impersonated?.name || profile?.full_name || '',
+    email: impersonated?.email || profile?.email || user?.email || '',
   });
 
   useEffect(() => {
@@ -317,6 +338,25 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
 
       {/* CONTENT WORKSPACE VIEWPORT */}
       <div className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-200 ${isCollapsed ? 'lg:pl-18' : 'lg:pl-60'}`}>
+
+        {/* COUNSELOR / ADMIN IMPERSONATION BANNER */}
+        {impersonated && (
+          <div className="bg-gradient-to-r from-amber-600 via-[#58051E] to-[#3a0213] text-white px-4 py-2 text-xs font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-md sticky top-0 z-40">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              <span>
+                👑 <strong>Admissions Staff Impersonation</strong>: You are managing the portal as student <strong>{impersonated.name}</strong> ({impersonated.email}) • Destination: {impersonated.country || 'Europe'}
+              </span>
+            </div>
+            <button
+              onClick={handleExitImpersonation}
+              className="px-3 py-1 bg-white hover:bg-slate-100 text-slate-900 rounded-lg text-xs font-black shadow-xs transition-all flex items-center gap-1 cursor-pointer shrink-0"
+            >
+              <LogOut className="w-3.5 h-3.5 text-rose-600" />
+              <span>Exit Student Portal & Return to Admin</span>
+            </button>
+          </div>
+        )}
 
         {/* STICKY TOP NAVBAR */}
         <header className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none shrink-0">

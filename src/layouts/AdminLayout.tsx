@@ -22,7 +22,8 @@ interface AdminLayoutProps { children: React.ReactNode; }
 
 const baseMenuItems = [
   { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard, badge: null, hasUpdate: false },
-  { name: 'Students', path: '/admin/students', icon: Users, badge: null, hasUpdate: false },
+  { name: 'Student Enquiries CRM', path: '/admin/enquiries', icon: Users, badge: 'LEADS', hasUpdate: false },
+  { name: 'Students', path: '/admin/students', icon: GraduationCap, badge: null, hasUpdate: false },
   { name: 'Universities', path: '/admin/universities', icon: Building2, badge: null, hasUpdate: false },
   { name: 'Applications', path: '/admin/applications', icon: FileCheck, badge: null, hasUpdate: false },
   { name: 'Offer Letters', path: '/admin/offers', icon: Award, badge: null, hasUpdate: false },

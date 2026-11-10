@@ -428,7 +428,7 @@ export const FerexLandingPage: React.FC = () => {
                   <LogIn className="w-3.5 h-3.5 text-[#570229]" /> Portal Login
                 </button>
                 <button
-                  onClick={() => goToLogin('signup')}
+                  onClick={() => navigate('/study-abroad')}
                   className="h-10 px-5 rounded-xl bg-[#570229] text-white text-xs font-black hover:bg-[#6F0335] transition-all shadow-md shadow-[#570229]/20 flex items-center gap-1.5 active:scale-98 cursor-pointer"
                 >
                   Apply Online <ArrowRight className="w-3.5 h-3.5" />
@@ -460,7 +460,7 @@ export const FerexLandingPage: React.FC = () => {
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center gap-3.5 pt-1">
                 <button
-                  onClick={() => goToLogin('signup')}
+                  onClick={() => navigate('/study-abroad')}
                   className="h-12 px-7 rounded-xl bg-[#570229] hover:bg-[#6F0335] text-white text-xs sm:text-sm font-bold transition-all shadow-lg shadow-[#570229]/20 flex items-center gap-2 cursor-pointer active:scale-98"
                 >
                   Apply for Intake 2026-27 <ArrowRight className="w-4 h-4" />

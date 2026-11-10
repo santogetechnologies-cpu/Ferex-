@@ -52,6 +52,9 @@ import { AdminMeetings } from './pages/admin/AdminMeetings';
 import { AdminNawaTracker } from './pages/admin/AdminNawaTracker';
 import { AdminDocumentConfig } from './pages/admin/AdminDocumentConfig';
 import { AdminPaymentControl } from './pages/admin/AdminPaymentControl';
+import { StudyAbroadLeadLandingPage } from './pages/StudyAbroadLeadLandingPage';
+import { AdminStudentEnquiries } from './pages/admin/AdminStudentEnquiries';
+import { getImpersonatedStudent } from './lib/api/studentImpersonation';
 
 // Central imports
 import { CentralLayout } from './layouts/CentralLayout';
@@ -248,8 +251,15 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
 
     const normalizedAllowed = allowedRoles.map(r => normalizeRole(r));
 
+    const isStudentRoute = normalizedAllowed.includes('student');
+    const isStaffOrAdmin = isSuper || ['admin', 'education_admin', 'counselor', 'staff'].includes(currentRole) || ['admin', 'education_admin', 'counselor', 'staff'].includes(rawRole || '');
+    const isImpersonating = typeof window !== 'undefined' && Boolean(getImpersonatedStudent());
+
     let isAllowed = false;
-    if (isSuper) {
+    if (isStudentRoute && isStaffOrAdmin && isImpersonating) {
+      // Allow authorized Education Admin & Counselors to navigate into student portal seamlessly
+      isAllowed = true;
+    } else if (isSuper) {
       // Super admin has universal governance across all enterprise apps (except pure student-only routes)
       isAllowed = !normalizedAllowed.includes('student') || normalizedAllowed.length > 1;
     } else {
@@ -293,6 +303,10 @@ function App() {
           <Routes>
             {/* ── Official FEREX Education Website & Login Portal ── */}
             <Route path="/" element={<FerexLandingPage />} />
+            <Route path="/study-abroad" element={<StudyAbroadLeadLandingPage />} />
+            <Route path="/apply" element={<StudyAbroadLeadLandingPage />} />
+            <Route path="/enquiry" element={<StudyAbroadLeadLandingPage />} />
+            <Route path="/admissions-lead" element={<StudyAbroadLeadLandingPage />} />
             <Route path="/login" element={<AuthLayout><LoginPage /></AuthLayout>} />
             <Route path="/reset-password" element={<AuthLayout><ResetPasswordPage /></AuthLayout>} />
             <Route path="/admin/login" element={<Navigate to="/login" replace />} />
@@ -325,6 +339,8 @@ function App() {
 
           {/* ── Admin Routes ── */}
           <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminDashboard /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/enquiries" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminStudentEnquiries /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/leads" element={<Navigate to="/admin/enquiries" replace />} />
           <Route path="/admin/students" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminStudents /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/universities" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminUniversities /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/visa-tracker" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminVisaTracker /></AdminLayout></ProtectedRoute>} />
@@ -534,6 +550,8 @@ function App() {
           {/* ── Ferex Staff Panel Routes (Admissions Counselor - Education Only) ── */}
           <Route path="/staff" element={<Navigate to="/staff/dashboard" replace />} />
           <Route path="/staff/dashboard" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffDashboard /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/enquiries" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminStudentEnquiries isStaff={true} /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/leads" element={<Navigate to="/staff/enquiries" replace />} />
           <Route path="/staff/tasks" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffTasks /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/students" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffStudents /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/universities" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffUniversities /></StaffLayout></ProtectedRoute>} />
