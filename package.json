@@ -11,7 +11,7 @@
     "test:seed": "node --env-file=.env.test --experimental-strip-types scripts/seed.ts",
     "test:e2e": "playwright test",
     "test:auth": "node --env-file=.env.test --experimental-strip-types tests/global-setup.ts",
-    "test:billing": "node --experimental-strip-types --test tests/education-billing.test.ts tests/education-billing-db.test.ts tests/payment-signature.test.ts tests/accounting-pdf.test.ts tests/role-access.test.ts tests/university-import.test.ts",
+    "test:billing": "node --experimental-strip-types --test tests/education-billing.test.ts tests/education-billing-db.test.ts tests/payment-signature.test.ts tests/accounting-pdf.test.ts tests/role-access.test.ts tests/university-import.test.ts tests/student-deletion-roster.test.ts",
     "test:billing:e2e": "playwright test --config playwright.education.config.ts",
     "test:razorpay": "node --env-file=.env --experimental-strip-types --test tests/razorpay-standard.test.ts"
   },

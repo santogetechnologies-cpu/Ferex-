@@ -10,6 +10,7 @@ const reply = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers });
 
 const centralRoles = ['central', 'superadmin', 'super_admin'];
+const educationRoles = ['admin', 'education_admin', 'education'];
 
 Deno.serve(async req => {
   if (req.method === 'OPTIONS') return reply({});
@@ -34,8 +35,11 @@ Deno.serve(async req => {
     }
 
     const { data: role, error: roleError } = await caller.rpc('get_auth_user_role');
-    if (roleError || !centralRoles.includes(role)) {
-      return reply({ error: 'Central Administrator access required to delete users' }, 403);
+    const isCentral = !roleError && centralRoles.includes(role);
+    const isEducation = !roleError && educationRoles.includes(role);
+
+    if (!isCentral && !isEducation) {
+      return reply({ error: 'Administrator access required to delete accounts' }, 403);
     }
 
     const body = await req.json();
@@ -63,22 +67,17 @@ Deno.serve(async req => {
 
     if (rpcError) {
       console.warn('RPC delete_user_by_admin error:', rpcError);
-      // Fallback: direct service role admin deletion
-      if (targetUserId) {
-        await db.auth.admin.deleteUser(targetUserId).catch(e => console.warn('Auth admin delete:', e));
-        await db.from('users').delete().eq('id', targetUserId).catch(e => console.warn('Users table delete:', e));
-      }
-      if (targetEmail) {
-        await db.from('users').delete().ilike('email', targetEmail).catch(e => console.warn('Users table delete by email:', e));
-      }
-    } else if (targetUserId) {
-      // Double check auth delete
+      return reply({ error: rpcError.message || 'Database deletion error' }, 400);
+    }
+
+    // Double check auth delete if user_id is provided
+    if (targetUserId) {
       await db.auth.admin.deleteUser(targetUserId).catch(() => {});
     }
 
     return reply({
       success: true,
-      message: 'User permanently deleted from authentication and directory',
+      message: 'Account permanently deleted from authentication and directory',
       data: rpcData,
     });
   } catch (err: any) {
@@ -86,4 +85,3 @@ Deno.serve(async req => {
     return reply({ error: err?.message || 'Failed to delete user' }, 500);
   }
 });
-

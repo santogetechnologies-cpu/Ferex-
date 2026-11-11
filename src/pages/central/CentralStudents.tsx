@@ -122,8 +122,9 @@ export const CentralStudents: React.FC = () => {
 
   const handleDeleteStudent = async (id: string, name: string) => {
     if (!window.confirm(`Are you sure you want to permanently delete student ${name}?`)) return;
+    const target = students.find(s => s.id === id);
     try {
-      await deleteStudent(id);
+      await deleteStudent(id, target?.email);
       setStudents(prev => prev.filter(s => s.id !== id));
       showToastMsg(`Removed student record for ${name}`);
     } catch (err: any) {

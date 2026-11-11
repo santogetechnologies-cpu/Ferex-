@@ -134,8 +134,9 @@ export const AdminStaffManagement: React.FC = () => {
 
   const handleDelete = async () => {
     if (!deleteId) return;
+    const target = staff.find(s => s.id === deleteId);
     try {
-      await deleteStudent(deleteId);
+      await deleteStudent(deleteId, target?.email);
       setStaff(prev => prev.filter(s => s.id !== deleteId));
       setDeleteId(null);
       showToast('Administrative user removed from system.');

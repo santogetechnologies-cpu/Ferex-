@@ -9,8 +9,68 @@ export const DEFAULT_COUNSELOR_ROSTER = [
   { id: 'c-1', name: 'Admissions Officer', role: 'European Admissions Lead', desk: 'Admissions Desk', email: 'info@ferexventures.com', country: 'Global' },
 ];
 
+const DELETED_STUDENTS_KEY = 'ferex_deleted_student_ids';
+const DELETED_STUDENT_EMAILS_KEY = 'ferex_deleted_student_emails';
+
 export function getDeletedStudentIds(): string[] {
-  return [];
+  if (typeof localStorage === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(DELETED_STUDENTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function getDeletedStudentEmails(): string[] {
+  if (typeof localStorage === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(DELETED_STUDENT_EMAILS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function isStudentDeleted(id?: string | null, email?: string | null): boolean {
+  if (!id && !email) return false;
+  const deletedIds = new Set(getDeletedStudentIds());
+  if (id && deletedIds.has(id)) return true;
+  const deletedEmails = new Set(getDeletedStudentEmails().map((e) => e.toLowerCase()));
+  if (email && deletedEmails.has(email.toLowerCase().trim())) return true;
+  return false;
+}
+
+export function markStudentDeleted(id?: string | null, email?: string | null): void {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    if (id) {
+      const ids = Array.from(new Set([...getDeletedStudentIds(), id]));
+      localStorage.setItem(DELETED_STUDENTS_KEY, JSON.stringify(ids));
+    }
+    if (email) {
+      const cleanEmail = email.toLowerCase().trim();
+      if (cleanEmail) {
+        const emails = Array.from(new Set([...getDeletedStudentEmails(), cleanEmail]));
+        localStorage.setItem(DELETED_STUDENT_EMAILS_KEY, JSON.stringify(emails));
+      }
+    }
+  } catch {}
+}
+
+export function unmarkStudentDeleted(id?: string | null, email?: string | null): void {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    if (id) {
+      const ids = getDeletedStudentIds().filter((i) => i !== id);
+      localStorage.setItem(DELETED_STUDENTS_KEY, JSON.stringify(ids));
+    }
+    if (email) {
+      const cleanEmail = email.toLowerCase().trim();
+      const emails = getDeletedStudentEmails().filter((e) => e.toLowerCase() !== cleanEmail);
+      localStorage.setItem(DELETED_STUDENT_EMAILS_KEY, JSON.stringify(emails));
+    }
+  } catch {}
 }
 
 export function getDefaultCounselorForCountry(country?: string): string {
@@ -27,7 +87,7 @@ export async function getStudents(): Promise<UserProfile[]> {
     const client = admin || supabase;
     const { data, error } = await client
       .from('users')
-      .select('id, email, full_name, role, avatar_url, phone, country, department, permissions, assigned_counselor, must_change_password, created_at')
+      .select('id, email, full_name, role, avatar_url, phone, country, target_country, destination_country, department, permissions, assigned_counselor, status, is_active, must_change_password, created_at, updated_at')
       .eq('role', 'student')
       .order('created_at', { ascending: false });
 
@@ -42,7 +102,7 @@ export async function getStudents(): Promise<UserProfile[]> {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, email, full_name, role, avatar_url, phone, country, department, permissions, assigned_counselor, must_change_password, created_at')
+        .select('id, email, full_name, role, avatar_url, phone, country, target_country, destination_country, department, permissions, assigned_counselor, status, is_active, must_change_password, created_at, updated_at')
         .eq('role', 'student')
         .order('created_at', { ascending: false });
 
@@ -51,6 +111,11 @@ export async function getStudents(): Promise<UserProfile[]> {
       }
     } catch {}
   }
+
+  // Filter out any records that are marked deleted or have status = 'deleted'
+  userStudents = userStudents.filter(
+    (u) => (u as any).status !== 'deleted' && !isStudentDeleted(u.id, u.email)
+  );
 
   // ─── Dual-source Roster Federation: Enrolled CRM Leads ───
   try {
@@ -78,6 +143,15 @@ export async function getStudents(): Promise<UserProfile[]> {
         const leadEmail = (lead.email || '').toLowerCase().trim();
         const leadPhone = (lead.phone || '').replace(/[^\d]/g, '');
 
+        // If lead or converted student is deleted or archived, do NOT synthesize
+        if (
+          lead.status === 'Archived' ||
+          isStudentDeleted(lead.converted_student_id, leadEmail) ||
+          isStudentDeleted(lead.id, leadEmail)
+        ) {
+          continue;
+        }
+
         const alreadyExists =
           (lead.converted_student_id && existingUserIds.has(lead.converted_student_id)) ||
           existingUserIds.has(lead.id) ||
@@ -90,6 +164,7 @@ export async function getStudents(): Promise<UserProfile[]> {
             leadEmail ||
             `student.${leadPhone.slice(-6) || lead.id.slice(0, 6)}@ferexstudent.org`;
 
+          const destCountry = lead.preferred_country || 'Poland';
           const synthesizedStudent: UserProfile = {
             id: studentId,
             email: fallbackEmail,
@@ -97,13 +172,18 @@ export async function getStudents(): Promise<UserProfile[]> {
             role: 'student',
             avatar_url: undefined,
             phone: lead.phone || '',
-            country: lead.preferred_country || 'Poland',
+            country: destCountry,
+            target_country: destCountry,
+            destination_country: destCountry,
             department: 'Education',
             permissions: [],
             assigned_counselor: lead.assigned_counselor_name || 'Admissions Counselor',
             created_at: lead.created_at || new Date().toISOString(),
           };
           userStudents.push(synthesizedStudent);
+          existingUserIds.add(studentId);
+          if (leadEmail) existingEmails.add(leadEmail);
+          if (leadPhone && leadPhone.length >= 7) existingPhones.add(leadPhone);
 
           // Asynchronously reconcile into public.users and public.applications
           reconcileEnrolledLeadUser(lead).catch(() => {});
@@ -114,18 +194,40 @@ export async function getStudents(): Promise<UserProfile[]> {
     console.warn('[getStudents leads federation warning]:', err);
   }
 
-  return userStudents;
+  // Final strict deduplication across IDs and normalized emails
+  const uniqueStudents: UserProfile[] = [];
+  const seenIds = new Set<string>();
+  const seenEmails = new Set<string>();
+
+  for (const s of userStudents) {
+    const normEmail = (s.email || '').toLowerCase().trim();
+    if (seenIds.has(s.id)) continue;
+    if (normEmail && seenEmails.has(normEmail)) continue;
+
+    seenIds.add(s.id);
+    if (normEmail) seenEmails.add(normEmail);
+    uniqueStudents.push(s);
+  }
+
+  return uniqueStudents;
 }
 
 async function reconcileEnrolledLeadUser(lead: any) {
   try {
-    const admin = await getAdminSupabaseClient();
-    const client = admin || supabase;
     const studentId = lead.converted_student_id || lead.id;
     const studentEmail =
       lead.email && lead.email.includes('@')
         ? lead.email.trim().toLowerCase()
         : `student.${(lead.phone || '').replace(/[^\d]/g, '').slice(-6) || lead.id.slice(0, 6)}@ferexstudent.org`;
+
+    // Guard: Never reconcile if deleted or archived
+    if (isStudentDeleted(studentId, studentEmail) || lead.status === 'Archived') {
+      return;
+    }
+
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+    const destCountry = lead.preferred_country || 'Poland';
 
     // 1. Ensure user row in public.users
     await client
@@ -137,7 +239,9 @@ async function reconcileEnrolledLeadUser(lead: any) {
           full_name: lead.name || 'Admitted Student',
           role: 'student',
           phone: lead.phone || '',
-          country: lead.preferred_country || 'Poland',
+          country: destCountry,
+          target_country: destCountry,
+          destination_country: destCountry,
           department: 'Education',
           assigned_counselor: lead.assigned_counselor_name || 'Admissions Counselor',
           must_change_password: true,
@@ -162,7 +266,7 @@ async function reconcileEnrolledLeadUser(lead: any) {
         program_name: lead.degree_level
           ? `${lead.degree_level} Degree`
           : 'Undergraduate / Postgraduate Program',
-        country: lead.preferred_country || 'Poland',
+        country: destCountry,
         counselor: lead.assigned_counselor_name || 'Admissions Counselor',
         status: 'Enrolled',
         stage: 'Stage 1: Profile & Target Selection',
@@ -283,7 +387,35 @@ export async function createStudent(payload: {
   destination_country?: string;
   country?: string;
 }): Promise<UserProfile> {
-  return provisionAccount({ ...payload, country: payload.target_country || payload.destination_country || payload.country, role: 'student' });
+  const cleanEmail = payload.email.trim().toLowerCase();
+  const chosenCountry = payload.target_country || payload.destination_country || payload.country || 'Poland';
+
+  // Clear any tombstone records so new user can be registered cleanly
+  unmarkStudentDeleted(undefined, cleanEmail);
+
+  const student = await provisionAccount({
+    ...payload,
+    email: cleanEmail,
+    country: chosenCountry,
+    role: 'student',
+  });
+
+  if (student?.id) {
+    unmarkStudentDeleted(student.id, cleanEmail);
+    try {
+      const admin = await getAdminSupabaseClient();
+      const client = admin || supabase;
+      await client.from('users').update({
+        target_country: chosenCountry,
+        destination_country: chosenCountry,
+        country: chosenCountry,
+        status: 'active',
+        is_active: true,
+      }).eq('id', student.id);
+    } catch {}
+  }
+
+  return student;
 }
 
 // ─── Create a new staff member profile in public.users & credentials ──────────
@@ -314,10 +446,10 @@ export async function updateStudent(id: string, updates: Partial<UserProfile> & 
   }
 
   const dbUpdates: any = { ...updates, updated_at: new Date().toISOString() };
-  delete dbUpdates.target_country;
-  delete dbUpdates.destination_country;
   if (destCountry) {
     dbUpdates.country = destCountry;
+    dbUpdates.target_country = destCountry;
+    dbUpdates.destination_country = destCountry;
   }
 
   const { data, error } = await client
@@ -330,43 +462,161 @@ export async function updateStudent(id: string, updates: Partial<UserProfile> & 
     throw new Error(`Failed to update student profile: ${error?.message || 'Database error'}`);
   }
 
+  // Synchronize applications table
+  try {
+    const appUpdates: any = { updated_at: new Date().toISOString() };
+    if (destCountry) appUpdates.country = destCountry;
+    if (updates.assigned_counselor) appUpdates.counselor = updates.assigned_counselor;
+    if (updates.full_name) appUpdates.student_name = updates.full_name;
+
+    if (Object.keys(appUpdates).length > 1) {
+      await client.from('applications').update(appUpdates).eq('student_id', id);
+    }
+  } catch (appErr) {
+    console.warn('[updateStudent app sync warning]:', appErr);
+  }
+
   window.dispatchEvent(new Event('ferex_staff_change'));
   window.dispatchEvent(new Event('ferex_students_change'));
   window.dispatchEvent(new Event('ferex_student_profile_change'));
+  window.dispatchEvent(new Event('ferex_applications_change'));
 
   return data[0] as UserProfile;
 }
 
 // ─── Delete student (permanently removes from public.users & all related tables) ───
-export async function deleteStudent(id: string): Promise<void> {
-  if (!id) return;
-  const cleanId = id.trim();
+export async function deleteStudent(id: string, optionalEmail?: string): Promise<void> {
+  if (!id && !optionalEmail) return;
+  const cleanId = (id || '').trim();
+  const cleanEmail = (optionalEmail || '').toLowerCase().trim();
 
-  const admin = await getAdminSupabaseClient();
-  const client = admin || supabase;
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
+  const targetUserId = isUuid ? cleanId : undefined;
 
-  // 1. Delete from Supabase public.users (foreign keys with ON DELETE CASCADE handle relations)
-  const { error } = await client.from('users').delete().eq('id', cleanId);
-  if (error) {
-    throw new Error(`Failed to delete student: ${error.message}`);
+  // 1. Mark in client deleted cache early to immediately hide from UI and prevent resurrection
+  markStudentDeleted(cleanId, cleanEmail);
+
+  let executionError: Error | null = null;
+  let successConfirmed = false;
+
+  // 2. Try Secure Database RPC function: delete_user_by_admin
+  try {
+    const { data, error } = await supabase.rpc('delete_user_by_admin', {
+      target_user_id: targetUserId || null,
+      target_email: cleanEmail || null,
+    });
+
+    if (error) {
+      executionError = new Error(error.message);
+    } else if (data && data.success) {
+      successConfirmed = true;
+      executionError = null;
+    }
+  } catch (err: any) {
+    executionError = err;
   }
 
-  // Also clean up related records defensively
-  try {
-    await client.from('student_payments').delete().eq('student_id', cleanId);
-    await client.from('student_documents').delete().eq('student_id', cleanId);
-    await client.from('applications').delete().eq('student_id', cleanId);
-    await client.from('tasks').delete().eq('student_id', cleanId);
-    await client.from('support_tickets').delete().eq('student_id', cleanId);
-  } catch {}
+  // 3. Fallback: Call delete-user Edge Function (has service-role Supabase Admin access)
+  if (!successConfirmed) {
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: targetUserId, email: cleanEmail },
+      });
 
-  // 2. Broadcast change events across tabs and components
-  window.dispatchEvent(new Event('ferex_staff_change'));
+      if (!error && data?.success) {
+        successConfirmed = true;
+        executionError = null;
+      } else if (error) {
+        let msg = error.message;
+        try {
+          const body = await error.context?.json();
+          if (body?.error) msg = body.error;
+        } catch {}
+        if (!executionError) executionError = new Error(msg || 'Edge function delete failed');
+      }
+    } catch (err: any) {
+      if (!executionError) executionError = err;
+    }
+  }
+
+  // 4. Fallback: Direct RLS delete on public.users and related tables
+  if (!successConfirmed) {
+    try {
+      const admin = await getAdminSupabaseClient();
+      const client = admin || supabase;
+
+      // Unlink and archive any matching education_leads
+      if (cleanId || cleanEmail) {
+        let leadsQuery = client.from('education_leads').update({
+          status: 'Archived',
+          converted_student_id: null,
+          updated_at: new Date().toISOString(),
+        });
+        if (cleanId) leadsQuery = leadsQuery.eq('converted_student_id', cleanId);
+        else if (cleanEmail) leadsQuery = leadsQuery.ilike('email', cleanEmail);
+        await leadsQuery;
+      }
+
+      // Delete student records defensively
+      if (cleanId) {
+        await Promise.allSettled([
+          client.from('applications').delete().eq('student_id', cleanId),
+          client.from('education_service_agreements').delete().eq('student_id', cleanId),
+          client.from('student_documents').delete().eq('student_id', cleanId),
+          client.from('student_payments').delete().eq('student_id', cleanId),
+          client.from('tasks').delete().eq('student_id', cleanId),
+          client.from('support_tickets').delete().eq('student_id', cleanId),
+        ]);
+      }
+
+      // Delete row from public.users
+      let userQuery = client.from('users').delete();
+      if (targetUserId) {
+        userQuery = userQuery.eq('id', targetUserId);
+      } else if (cleanEmail) {
+        userQuery = userQuery.ilike('email', cleanEmail);
+      } else {
+        userQuery = userQuery.eq('id', cleanId);
+      }
+
+      const { error } = await userQuery;
+      if (!error) {
+        successConfirmed = true;
+        executionError = null;
+      } else if (!executionError) {
+        executionError = new Error(error.message);
+      }
+    } catch (err: any) {
+      if (!executionError) executionError = err;
+    }
+  }
+
+  // If all attempts failed, rollback client cache and throw actual error
+  if (!successConfirmed && executionError) {
+    unmarkStudentDeleted(cleanId, cleanEmail);
+    throw executionError;
+  }
+
+  // Remove student-specific localStorage keys
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.removeItem(`ferex_student_target_country_${cleanId}`);
+      localStorage.removeItem(`ferex_student_country_${cleanId}`);
+      localStorage.removeItem(`ferex_agreement_${cleanId}`);
+      localStorage.removeItem(`ferex_agreement_sig_${cleanId}`);
+      localStorage.removeItem(`ferex_journey_${cleanId}`);
+    } catch {}
+  }
+
+  // Broadcast change events across tabs and components
   window.dispatchEvent(new Event('ferex_students_change'));
+  window.dispatchEvent(new Event('ferex_education_leads_change'));
+  window.dispatchEvent(new Event('ferex_staff_change'));
   window.dispatchEvent(new Event('ferex_payment_change'));
   window.dispatchEvent(new Event('ferex_document_change'));
   window.dispatchEvent(new Event('ferex_tasks_change'));
   window.dispatchEvent(new Event('ferex_applications_change'));
+  window.dispatchEvent(new Event('ferex_agreement_change'));
 }
 
 // ─── Get student count stats ──────────────────────────────────────────────────
@@ -413,7 +663,8 @@ export async function getStudentsConsolidatedOversight(): Promise<StudentOversig
       client.from('student_documents').select('id, student_id, status, doc_type'),
     ]);
 
-    const students = studentsRes.data || [];
+    const rawStudents = studentsRes.data || [];
+    const students = rawStudents.filter((s: any) => s.status !== 'deleted' && !isStudentDeleted(s.id, s.email));
     const apps = appsRes.data || [];
     const payments = payRes.data || [];
     const docs = docsRes.data || [];

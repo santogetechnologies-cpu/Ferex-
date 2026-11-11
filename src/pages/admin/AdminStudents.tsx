@@ -82,7 +82,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
     window.addEventListener('ferex_agreement_change', loadAgreements);
     return () => window.removeEventListener('ferex_agreement_change', loadAgreements);
   }, []);
-  const { students: dbStudents, removeStudent, editStudent: updateDbStudent, addStudent } = useStudents();
+  const { students: dbStudents, removeStudent, editStudent: updateDbStudent, addStudent, refresh: refreshStudents, loading: isLoadingStudents } = useStudents();
   const { applications: dbApps } = useApplications();
   const [students, setStudents] = useState<StudentItem[]>([]);
   const [staffMembers, setStaffMembers] = useState<UserProfile[]>([]);
@@ -166,7 +166,20 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
   }, []);
 
   useEffect(() => {
-    const mapped = dbStudents.map((s) => {
+    // Strict deduplication of dbStudents by ID and email
+    const seenIds = new Set<string>();
+    const seenEmails = new Set<string>();
+    const uniqueDbStudents = dbStudents.filter((s) => {
+      const cleanId = (s.id || '').trim();
+      const cleanEmail = (s.email || '').toLowerCase().trim();
+      if (!cleanId || seenIds.has(cleanId)) return false;
+      if (cleanEmail && seenEmails.has(cleanEmail)) return false;
+      seenIds.add(cleanId);
+      if (cleanEmail) seenEmails.add(cleanEmail);
+      return true;
+    });
+
+    const mapped = uniqueDbStudents.map((s) => {
       const studentApp = dbApps.find(a => a.student_id === s.id);
       
       const savedCountry = typeof localStorage !== 'undefined'
@@ -186,9 +199,10 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
         appUniv.includes('warsaw') || appUniv.includes('krakow') || appUniv.includes('wroclaw') || appUniv.includes('poland') || appUniv.includes('poznan') ? 'Poland' :
         null;
 
-      const rawCountry = savedCountry || 
+      const rawCountry = 
         (s as any).target_country || 
         (s as any).destination_country || 
+        savedCountry || 
         ((s as any).country && (s as any).country !== 'India' && (s as any).country !== 'Global' ? (s as any).country : null) ||
         studentApp?.universities?.country || 
         (studentApp as any)?.country || 
@@ -342,6 +356,8 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
     setTimeout(() => setToast(''), 2500);
   };
 
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const handleSaveEdit = async () => {
     if (!editTemp) return;
     try {
@@ -349,11 +365,15 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
         full_name: editTemp.name,
         phone: editTemp.phone,
         assigned_counselor: editTemp.counselor,
+        target_country: editTemp.targetCountry,
+        destination_country: editTemp.targetCountry,
+        country: editTemp.targetCountry,
       });
       setStudents(prev => prev.map(s => s.id === editTemp.id ? editTemp : s));
       setEditStudent(null);
       setEditTemp(null);
       showToast('Student record updated.');
+      await refreshStudents();
     } catch (err: any) {
       showToast(`Error updating: ${err.message}`);
     }
@@ -361,13 +381,22 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
 
   const handleDelete = async () => {
     if (!deleteId) return;
+    const targetStudent = students.find(s => s.id === deleteId);
     try {
-      await removeStudent(deleteId);
+      setIsDeleting(true);
+      await removeStudent(deleteId, targetStudent?.email);
       setStudents(prev => prev.filter(s => s.id !== deleteId));
       setDeleteId(null);
-      showToast('Student removed from records.');
+      showToast('Student permanently removed from records.');
+      await refreshStudents();
+      if (currentPage > 1 && (filtered.length - 1) <= (currentPage - 1) * PER_PAGE) {
+        setCurrentPage(p => Math.max(1, p - 1));
+      }
     } catch (err: any) {
-      showToast(`Error deleting: ${err.message}`);
+      console.error('Delete student error:', err);
+      showToast(`Error deleting: ${err.message || 'Failed to delete'}`);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -388,6 +417,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
         assigned_counselor: chosenCounselor,
         target_country: addTargetCountry,
         destination_country: addTargetCountry,
+        country: addTargetCountry,
       } as any);
 
       // Persist chosen country locally
@@ -415,6 +445,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
       setAddEmail('');
       setAddPhone('');
       showToast(`Student ${addName} added successfully for ${addTargetCountry}. Assigned to ${chosenCounselor}.`);
+      await refreshStudents();
     } catch (err: any) {
       showToast(`Error adding student: ${err.message || 'Failed'}`);
     } finally {
@@ -993,6 +1024,18 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Phone</label>
                   <input type="text" value={editTemp.phone} onChange={(e) => setEditTemp({ ...editTemp, phone: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none" />
                 </div>
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Target Destination Country</label>
+                  <select
+                    value={editTemp.targetCountry}
+                    onChange={(e) => setEditTemp({ ...editTemp, targetCountry: e.target.value })}
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none"
+                  >
+                    {['Poland', 'Germany', 'United Kingdom', 'France', 'Italy', 'United States', 'Canada', 'Hungary'].map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
                 {!isStaff && (
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Assigned Counselor (From Company Staff List) *</label>
@@ -1288,8 +1331,10 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
               </div>
               <p className="text-xs text-slate-500">This action will remove the student profile from active CRM records.</p>
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                <button type="button" onClick={() => setDeleteId(null)} className="h-8.5 px-3 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50">Cancel</button>
-                <button type="button" onClick={handleDelete} className="h-8.5 px-4 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 shadow-xs">Delete Student</button>
+                <button type="button" disabled={isDeleting} onClick={() => setDeleteId(null)} className="h-8.5 px-3 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 disabled:opacity-50">Cancel</button>
+                <button type="button" disabled={isDeleting} onClick={handleDelete} className="h-8.5 px-4 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer">
+                  {isDeleting ? 'Deleting...' : 'Delete Student'}
+                </button>
               </div>
             </motion.div>
           </div>

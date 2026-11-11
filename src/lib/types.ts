@@ -16,6 +16,11 @@ export interface UserProfile {
   passport_no?: string;
   city?: string;
   country?: string;
+  target_country?: string;
+  destination_country?: string;
+  status?: string;
+  is_active?: boolean;
+  address?: string;
   emergency_contact?: Record<string, any>;
 }
 

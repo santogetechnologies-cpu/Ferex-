@@ -76,9 +76,9 @@ export function useStudents() {
     return updated;
   };
 
-  const removeStudent = async (id: string) => {
-    await deleteStudent(id);
-    setStudents(prev => prev.filter(s => s.id !== id));
+  const removeStudent = async (id: string, email?: string) => {
+    await deleteStudent(id, email);
+    setStudents(prev => prev.filter(s => s.id !== id && (email ? s.email?.toLowerCase() !== email.toLowerCase() : true)));
     window.dispatchEvent(new Event('ferex_students_change'));
   };
 
