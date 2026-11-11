@@ -364,8 +364,33 @@ export async function updateEducationLead(
 ): Promise<EducationLead | null> {
   const nowIso = new Date().toISOString();
   const local = getLocalLeads();
-  const target = local.find((l) => l.id === id);
-  if (!target) return null;
+  let target = local.find((l) => l.id === id);
+
+  // If not in localStorage cache, try fetching from Supabase
+  if (!target) {
+    try {
+      const { data: dbLead } = await supabase
+        .from('education_leads')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      if (dbLead) target = dbLead as EducationLead;
+    } catch {}
+  }
+
+  // Always update Supabase regardless of cache state
+  try {
+    await supabase.from('education_leads').update({ ...updates, updated_at: nowIso }).eq('id', id);
+  } catch (err) {
+    console.warn('Supabase lead update notice:', err);
+  }
+
+  if (!target) {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('ferex_education_leads_change'));
+    }
+    return null;
+  }
 
   const updated: EducationLead = {
     ...target,
@@ -374,12 +399,6 @@ export async function updateEducationLead(
   };
 
   saveLocalLeads(local.map((l) => (l.id === id ? updated : l)));
-
-  try {
-    await supabase.from('education_leads').update({ ...updates, updated_at: nowIso }).eq('id', id);
-  } catch (err) {
-    console.warn('Supabase lead update notice:', err);
-  }
 
   // Log activity if status changed
   if (updates.status && updates.status !== target.status) {
