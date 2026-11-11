@@ -32,6 +32,18 @@ export function isRealApplication(a: any): boolean {
   return true;
 }
 
+export function isApplicationActive(a: any): boolean {
+  if (!isRealApplication(a)) return false;
+  const status = (a.status || '').trim();
+  return status !== 'Withdrawn' && status !== 'Rejected';
+}
+
+export async function getActiveApplication(studentId: string): Promise<Application | null> {
+  if (!studentId) return null;
+  const apps = await getApplications(studentId);
+  return apps.find(isApplicationActive) || null;
+}
+
 // ─── Get applications (optionally scoped to a student) ───────────────────────
 export async function getApplications(studentId?: string): Promise<Application[]> {
   try {
@@ -154,7 +166,6 @@ export async function createApplication(payload: {
   tuition_fee?: string | number;
   course_fee?: string | number;
 }): Promise<Application> {
-  const newId = generateUUID();
   const univName = payload.university_name?.trim() || 'Partner University';
   const progName = (payload.program_name || payload.course || 'Degree Program').trim();
   const intakeVal = payload.intake?.trim() || 'October 2026';
@@ -178,6 +189,56 @@ export async function createApplication(payload: {
   if (!targetStudentId || !isValidUuid(targetStudentId)) {
     targetStudentId = generateUUID();
   }
+
+  // ── Enforce: One Active University Application Per Student ──
+  const isTargetReal = isRealApplication({ university_name: univName });
+  if (isTargetReal && targetStudentId) {
+    let existingApps: any[] = [];
+    try {
+      const admin = await getAdminSupabaseClient();
+      const client = admin || supabase;
+      const { data, error } = await client
+        .from('applications')
+        .select('id, university_name, status')
+        .eq('student_id', targetStudentId);
+
+      if (!error && Array.isArray(data)) {
+        existingApps = data;
+      }
+    } catch {}
+
+    if (existingApps.length === 0) {
+      existingApps = getLocalApplications().filter(a => a.student_id === targetStudentId);
+    }
+
+    const activeApp = existingApps.find(isApplicationActive);
+    if (activeApp) {
+      throw new Error(
+        `You already have an active application to ${activeApp.university_name || 'a partner university'}. A student can apply to only ONE university at a time. Please withdraw your existing application before applying to another university.`
+      );
+    }
+  }
+
+  // Check if there is an existing placeholder row to upgrade
+  let placeholderId: string | null = null;
+  if (isTargetReal && targetStudentId) {
+    try {
+      const admin = await getAdminSupabaseClient();
+      const client = admin || supabase;
+      const { data: placeholderRow } = await client
+        .from('applications')
+        .select('id')
+        .eq('student_id', targetStudentId)
+        .ilike('university_name', '%pending university%')
+        .maybeSingle();
+
+      if (placeholderRow?.id) {
+        placeholderId = placeholderRow.id;
+      }
+    } catch {}
+  }
+
+  const finalAppId = placeholderId || generateUUID();
 
   // Guarantee student row in public.users to satisfy foreign key without overwriting admin roles
   if (targetStudentId && isValidUuid(targetStudentId)) {
@@ -203,7 +264,7 @@ export async function createApplication(payload: {
   const isUniUuid = isValidUuid(payload.university_id);
 
   const appRecord: Application = {
-    id: newId,
+    id: finalAppId,
     student_id: targetStudentId,
     student_name: targetStudentName,
     university_id: payload.university_id || '',
@@ -222,7 +283,7 @@ export async function createApplication(payload: {
   const client = admin || supabase;
 
   const dbPayload: any = {
-    id: newId,
+    id: finalAppId,
     student_id: targetStudentId,
     university_id: isUniUuid ? payload.university_id : null,
     university_name: univName,
@@ -236,14 +297,27 @@ export async function createApplication(payload: {
     updated_at: now,
   };
 
-  const { error } = await client.from('applications').insert(dbPayload);
-  if (error) {
-    throw new Error(`Failed to create application: ${error.message}`);
+  let writeError: any = null;
+  if (placeholderId) {
+    const { error } = await client.from('applications').update(dbPayload).eq('id', placeholderId);
+    writeError = error;
+  } else {
+    const { error } = await client.from('applications').insert(dbPayload);
+    writeError = error;
+  }
+
+  if (writeError) {
+    throw new Error(`Failed to create application: ${writeError.message}`);
   }
 
   // Update local cache
   const local = getLocalApplications();
-  local.unshift(appRecord);
+  const existingIdx = local.findIndex(a => a.id === finalAppId || (placeholderId && a.id === placeholderId) || (a.student_id === targetStudentId && !isRealApplication(a)));
+  if (existingIdx >= 0) {
+    local[existingIdx] = appRecord;
+  } else {
+    local.unshift(appRecord);
+  }
   saveLocalApplications(local);
 
   try {

@@ -88,6 +88,8 @@ export function useDocuments(studentId?: string) {
     file_url: string;
     file_size: string;
     doc_type: StudentDocument['doc_type'];
+    requirement_id?: string | null;
+    requirement_name?: string | null;
   }) => {
     const created = await uploadDocument(payload);
     setDocuments(prev => [created, ...prev.filter(d => d.id !== created.id)]);
@@ -102,6 +104,8 @@ export function useDocuments(studentId?: string) {
       file_url: string;
       file_size: string;
       doc_type: StudentDocument['doc_type'];
+      requirement_id?: string | null;
+      requirement_name?: string | null;
     }
   ) => {
     const updated = await reuploadDocumentRecord(docId, payload);

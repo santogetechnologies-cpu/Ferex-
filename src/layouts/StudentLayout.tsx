@@ -260,7 +260,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex text-slate-800 dark:text-slate-100 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
+    <div className="h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 flex text-slate-800 dark:text-slate-100 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
 
       {/* MOBILE SIDEBAR DRAWER BACKDROP */}
       <AnimatePresence>
@@ -348,11 +348,11 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
       </aside>
 
       {/* CONTENT WORKSPACE VIEWPORT */}
-      <div className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-200 ${isCollapsed ? 'lg:pl-18' : 'lg:pl-60'} print:pl-0 print:m-0 print:min-h-0 print:w-full print:block`}>
+      <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 ${isCollapsed ? 'lg:pl-18' : 'lg:pl-60'} print:pl-0 print:m-0 print:min-h-0 print:w-full print:block`}>
 
         {/* COUNSELOR / ADMIN IMPERSONATION BANNER */}
         {impersonated && (
-          <div className="bg-gradient-to-r from-amber-600 via-[#58051E] to-[#3a0213] text-white px-4 py-2 text-xs font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-md sticky top-0 z-40 print:hidden">
+          <div className="bg-gradient-to-r from-amber-600 via-[#58051E] to-[#3a0213] text-white px-4 py-2 text-xs font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-md shrink-0 z-40 print:hidden">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
               <span>
@@ -369,8 +369,8 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
           </div>
         )}
 
-        {/* STICKY TOP NAVBAR */}
-        <header className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none shrink-0 print:hidden">
+        {/* TOP NAVBAR */}
+        <header className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none shrink-0 print:hidden">
 
           {/* Left part: Toggles & Breadcrumbs */}
           <div className="flex items-center gap-2.5">
@@ -559,15 +559,17 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
         </header>
 
         {/* MAIN BODY AREA */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto print:p-0 print:m-0 print:max-w-none print:w-full print:block">
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-          >
-            {children}
-          </motion.div>
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden print:overflow-visible">
+          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto print:p-0 print:m-0 print:max-w-none print:w-full print:block">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+            >
+              {children}
+            </motion.div>
+          </div>
         </main>
       </div>
 

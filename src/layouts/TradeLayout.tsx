@@ -181,7 +181,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
+    <div className="h-screen overflow-hidden bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
       
       {/* Mobile Backdrop */}
       <AnimatePresence>
@@ -261,10 +261,10 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
       </aside>
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-200 ${isCollapsed ? 'lg:pl-[70px]' : 'lg:pl-[250px]'}`}>
+      <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 ${isCollapsed ? 'lg:pl-[70px]' : 'lg:pl-[250px]'}`}>
         
-        {/* Top Sticky Navbar */}
-        <header className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none shrink-0">
+        {/* Top Navbar */}
+        <header className="shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none">
           
           <div className="flex items-center gap-2.5">
             <button
@@ -366,9 +366,9 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
         </header>
 
         {/* Dynamic Page Content */}
-        <div className="p-4 sm:p-6 flex-1 overflow-x-hidden">
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6">
           {children}
-        </div>
+        </main>
       </div>
 
       {/* ── GLOBAL SEARCH OMNIBAR ── */}

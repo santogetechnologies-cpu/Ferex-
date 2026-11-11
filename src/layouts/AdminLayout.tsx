@@ -150,7 +150,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/80 dark:bg-slate-950 flex text-slate-800 dark:text-slate-100 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E] overflow-x-hidden">
+    <div className="h-screen overflow-hidden bg-slate-50/80 dark:bg-slate-950 flex text-slate-800 dark:text-slate-100 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
       {/* Mobile Backdrop */}
       <AnimatePresence>
         {isMobileOpen && (
@@ -264,10 +264,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-screen min-w-0 lg:pl-60">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden min-w-0 lg:pl-60">
 
-        {/* Sticky Header */}
-        <header className="h-14 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 flex items-center px-4 sm:px-6 gap-3 sticky top-0 z-30 select-none">
+        {/* Header */}
+        <header className="h-14 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 flex items-center px-4 sm:px-6 gap-3 shrink-0 z-30 select-none">
 
           <button onClick={() => setIsMobileOpen(true)} className="lg:hidden p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer">
             <Menu className="w-4.5 h-4.5" />
@@ -447,15 +447,17 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </header>
 
         {/* Page Content with smooth route transition */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-          >
-            {children}
-          </motion.div>
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+            >
+              {children}
+            </motion.div>
+          </div>
         </main>
       </div>
     </div>

@@ -131,10 +131,29 @@ export async function uploadDocument(payload: {
   file_url: string;
   file_size?: string;
   doc_type: StudentDocument['doc_type'];
+  requirement_id?: string | null;
+  requirement_name?: string | null;
 }): Promise<StudentDocument> {
   const newId = generateUUID();
   const validStudentId = isValidUuid(payload.student_id) ? payload.student_id : null;
   const now = new Date().toISOString();
+
+  const admin = await getAdminSupabaseClient();
+  const client = admin || supabase;
+
+  let validReqId = isValidUuid(payload.requirement_id || undefined) ? payload.requirement_id : null;
+  if (!validReqId && payload.requirement_name) {
+    try {
+      const { data: matchedReq } = await client
+        .from('document_requirements')
+        .select('id')
+        .ilike('document_name', payload.requirement_name)
+        .maybeSingle();
+      if (matchedReq?.id && isValidUuid(matchedReq.id)) {
+        validReqId = matchedReq.id;
+      }
+    } catch {}
+  }
 
   const insertData: StudentDocument = {
     id: newId,
@@ -148,22 +167,27 @@ export async function uploadDocument(payload: {
     reviewer_notes: '',
     uploaded_at: now,
     reviewed_at: null,
+    requirement_id: payload.requirement_id || validReqId || null,
+    requirement_name: payload.requirement_name || null,
   };
 
-  const admin = await getAdminSupabaseClient();
-  const client = admin || supabase;
-
-  const { error } = await client.from('student_documents').insert({
+  const dbInsertPayload: any = {
     id: newId,
     student_id: validStudentId,
     file_name: payload.file_name,
+    name: payload.file_name,
     file_url: payload.file_url,
     doc_type: payload.doc_type || 'General',
     document_type: payload.doc_type || 'General',
     file_size: payload.file_size || '1.2 MB',
     status: 'Submitted',
     uploaded_at: now,
-  });
+  };
+  if (validReqId) {
+    dbInsertPayload.requirement_id = validReqId;
+  }
+
+  const { error } = await client.from('student_documents').insert(dbInsertPayload);
 
   if (error) {
     console.warn('[uploadDocument DB insert notice]:', error.message);
@@ -270,6 +294,8 @@ export async function reuploadDocumentRecord(
     file_url: string;
     file_size?: string;
     doc_type: StudentDocument['doc_type'];
+    requirement_id?: string | null;
+    requirement_name?: string | null;
   }
 ): Promise<StudentDocument> {
   const now = new Date().toISOString();
@@ -277,20 +303,39 @@ export async function reuploadDocumentRecord(
   const admin = await getAdminSupabaseClient();
   const client = admin || supabase;
 
+  let validReqId = isValidUuid(payload.requirement_id || undefined) ? payload.requirement_id : null;
+  if (!validReqId && payload.requirement_name) {
+    try {
+      const { data: matchedReq } = await client
+        .from('document_requirements')
+        .select('id')
+        .ilike('document_name', payload.requirement_name)
+        .maybeSingle();
+      if (matchedReq?.id && isValidUuid(matchedReq.id)) {
+        validReqId = matchedReq.id;
+      }
+    } catch {}
+  }
+
+  const updatePayload: any = {
+    file_name: payload.file_name,
+    name: payload.file_name,
+    file_url: payload.file_url,
+    file_size: payload.file_size || '1.2 MB',
+    doc_type: payload.doc_type,
+    document_type: payload.doc_type,
+    status: 'Submitted',
+    uploaded_at: now,
+    updated_at: now,
+    reviewer_notes: '',
+  };
+  if (validReqId) {
+    updatePayload.requirement_id = validReqId;
+  }
+
   const { data } = await client
     .from('student_documents')
-    .update({
-      file_name: payload.file_name,
-      name: payload.file_name,
-      file_url: payload.file_url,
-      file_size: payload.file_size || '1.2 MB',
-      doc_type: payload.doc_type,
-      document_type: payload.doc_type,
-      status: 'Submitted',
-      uploaded_at: now,
-      updated_at: now,
-      reviewer_notes: '',
-    })
+    .update(updatePayload)
     .eq('id', id)
     .select();
 
@@ -310,8 +355,13 @@ export async function reuploadDocumentRecord(
       doc_type: payload.doc_type,
       status: 'Submitted',
       uploaded_at: now,
-      reviewer_notes: ''
+      reviewer_notes: '',
+      requirement_id: payload.requirement_id || validReqId || (existing as any)?.requirement_id || null,
+      requirement_name: payload.requirement_name || (existing as any)?.requirement_name || null,
     } as StudentDocument;
+  } else if (payload.requirement_id || payload.requirement_name) {
+    docResult.requirement_id = payload.requirement_id || validReqId || docResult.requirement_id;
+    docResult.requirement_name = payload.requirement_name || docResult.requirement_name;
   }
 
   await syncDocumentToCloudCatalog(docResult);

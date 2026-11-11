@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Folder, Search, Upload, Eye, FileText, X, AlertCircle,
-  ShieldCheck, Globe, CheckCircle2, Download, ExternalLink, Clock
+  ShieldCheck, Globe, CheckCircle2, Download, ExternalLink, Clock,
+  FilePlus, PlusCircle
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
@@ -15,6 +16,7 @@ import { useApplications } from '../hooks/useApplications';
 import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
 import { getDocumentRequirements, calculateDossierStatus, type DocumentRequirement } from '../lib/api/documentRequirements';
 import { sendStudentDocumentUploadedEmail } from '../lib/api/email';
+import { supabase } from '../lib/supabase';
 
 export const Documents: React.FC = () => {
   const { user, profile } = useAuth();
@@ -178,6 +180,16 @@ export const Documents: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [toastMessage, setToastMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedReq, setSelectedReq] = useState<DocumentRequirement | null>(null);
+
+  // Add Other Certificate State
+  const [showAddCertModal, setShowAddCertModal] = useState(false);
+  const [certName, setCertName] = useState('');
+  const [certDesc, setCertDesc] = useState('');
+  const [certFile, setCertFile] = useState<File | null>(null);
+  const [certError, setCertError] = useState('');
+  const [isSubmittingCert, setIsSubmittingCert] = useState(false);
+  const certFileInputRef = useRef<HTMLInputElement>(null);
 
   // Dynamic Dossier Completeness calculation
   const dossierStatus = useMemo(() => {
@@ -186,11 +198,44 @@ export const Documents: React.FC = () => {
 
   const handleOpenUploadForReq = (req: DocumentRequirement) => {
     setReuploadTargetDocId(null);
+    setSelectedReq(req);
     setUploadName(req.document_name);
     setUploadType(req.document_type || 'Transcripts');
     setSelectedFile(null);
     setShowUploadModal(true);
   };
+
+  const handleCloseUploadModal = () => {
+    setShowUploadModal(false);
+    setSelectedReq(null);
+    setReuploadTargetDocId(null);
+    setUploadName('');
+    setSelectedFile(null);
+  };
+
+  // Prevent background scrolling while the Upload Compliance Document modal is open
+  useEffect(() => {
+    if (!showUploadModal) return;
+
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isSubmitting) {
+        handleCloseUploadModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showUploadModal, isSubmitting]);
 
   // Search & Filter
   const filteredDocs = documents.filter((doc) => {
@@ -290,6 +335,8 @@ export const Documents: React.FC = () => {
           file_url: fileUrlStr,
           file_size: fileSizeStr,
           doc_type: uploadType,
+          requirement_id: selectedReq?.id,
+          requirement_name: selectedReq?.document_name,
         });
         showToast(`Document "${baseName}" re-uploaded successfully and submitted for review.`);
       } else {
@@ -299,6 +346,8 @@ export const Documents: React.FC = () => {
           file_url: fileUrlStr,
           file_size: fileSizeStr,
           doc_type: uploadType,
+          requirement_id: selectedReq?.id,
+          requirement_name: selectedReq?.document_name,
         });
         showToast(`Document "${baseName}" submitted successfully for verification.`);
       }
@@ -317,6 +366,7 @@ export const Documents: React.FC = () => {
       }
 
       setShowUploadModal(false);
+      setSelectedReq(null);
       setReuploadTargetDocId(null);
       setUploadName('');
       setSelectedFile(null);
@@ -324,6 +374,110 @@ export const Documents: React.FC = () => {
       showToast(`Error: ${err.message || 'Failed to upload'}`);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCertFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      const validExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'doc', 'docx'];
+      if (!validExtensions.includes(ext)) {
+        setCertError(`Unsupported file format (.${ext}). Please select a PDF, JPG, PNG, WEBP, or DOCX document.`);
+        return;
+      }
+      if (file.size > 15 * 1024 * 1024) {
+        setCertError('File size exceeds the 15MB limit. Please choose a smaller file.');
+        return;
+      }
+      setCertFile(file);
+      setCertError('');
+      if (!certName) {
+        setCertName(file.name.replace(/\.[^/.]+$/, ''));
+      }
+    }
+  };
+
+  const handleCertSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    if (!certName.trim()) {
+      setCertError('Please enter the certificate name.');
+      return;
+    }
+    if (!certFile) {
+      setCertError('Please select a certificate file to upload.');
+      return;
+    }
+
+    const ext = (certFile.name.split('.').pop() || '').toLowerCase();
+    const validExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'doc', 'docx'];
+    if (!validExtensions.includes(ext)) {
+      setCertError(`Unsupported file format (.${ext}).`);
+      return;
+    }
+    if (certFile.size > 15 * 1024 * 1024) {
+      setCertError('File size exceeds 15MB.');
+      return;
+    }
+
+    try {
+      setIsSubmittingCert(true);
+      setCertError('');
+
+      const cleanTitle = certName.trim();
+      const baseName = cleanTitle.toLowerCase().endsWith(`.${ext}`) ? cleanTitle : `${cleanTitle}.${ext}`;
+      const fileSizeStr = `${(certFile.size / (1024 * 1024)).toFixed(1)} MB`;
+
+      const { uploadFileToBucket } = await import('../lib/storage');
+      const uploadRes = await uploadFileToBucket('student-documents', certFile, cleanTitle.replace(/\.[^/.]+$/, ''));
+
+      if (!uploadRes?.url) {
+        throw new Error('Failed to upload file to storage.');
+      }
+
+      const targetStudentId = activeStudentId || user?.id;
+      const targetStudentEmail = activeStudentEmail || user?.email;
+      const targetStudentName = activeStudentName || profile?.full_name || targetStudentEmail?.split('@')[0] || 'Student';
+
+      const created = await addDoc({
+        student_id: targetStudentId,
+        file_name: baseName,
+        file_url: uploadRes.url,
+        file_size: fileSizeStr,
+        doc_type: 'Other',
+      });
+
+      if (certDesc.trim() && created?.id) {
+        try {
+          const { getAdminSupabaseClient } = await import('../lib/adminAuthClient');
+          const admin = await getAdminSupabaseClient();
+          const client = admin || supabase;
+          await client.from('student_documents').update({
+            reviewer_notes: certDesc.trim()
+          }).eq('id', created.id);
+        } catch {}
+      }
+
+      if (targetStudentEmail) {
+        sendStudentDocumentUploadedEmail({
+          studentEmail: targetStudentEmail,
+          studentName: targetStudentName,
+          documentName: baseName,
+          documentType: 'Other Certificate',
+          fileSize: fileSizeStr,
+        }).catch(() => {});
+      }
+
+      showToast(`Certificate "${baseName}" added successfully.`);
+      setShowAddCertModal(false);
+      setCertName('');
+      setCertDesc('');
+      setCertFile(null);
+    } catch (err: any) {
+      setCertError(err.message || 'Failed to add certificate.');
+    } finally {
+      setIsSubmittingCert(false);
     }
   };
 
@@ -377,20 +531,6 @@ export const Documents: React.FC = () => {
             Upload, verify, and track your required academic, identity, and visa documents.
           </p>
         </div>
-
-        <Button
-          onClick={() => {
-            setUploadName('');
-            setSelectedFile(null);
-            setReuploadTargetDocId(null);
-            setShowUploadModal(true);
-          }}
-          size="sm"
-          leftIcon={<Upload className="w-4 h-4" />}
-          className="self-start sm:self-auto bg-[#58051E] hover:bg-[#430316] text-white"
-        >
-          Upload Document
-        </Button>
       </div>
 
       {/* Country Compliance Guidelines Banner */}
@@ -715,6 +855,38 @@ export const Documents: React.FC = () => {
               </div>
             )
           )}
+
+          {/* ── Add Other Certificate Section ── */}
+          <div className="p-4 rounded-2xl bg-[#FCF8F9] border border-dashed border-[#58051E]/25 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-full bg-[#58051E]/8 text-[#58051E] flex items-center justify-center shrink-0">
+                <FilePlus className="w-5 h-5 stroke-[2.2]" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-[#58051E] tracking-tight">
+                  Add Other Certificate
+                </h3>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  Upload any additional certificate or supporting document
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setCertName('');
+                setCertDesc('');
+                setCertFile(null);
+                setCertError('');
+                setShowAddCertModal(true);
+              }}
+              className="h-9 px-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer self-start sm:self-auto shrink-0 active:scale-98"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Add Certificate</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -746,13 +918,6 @@ export const Documents: React.FC = () => {
                 ? 'No documents match your current search query or status filter.'
                 : 'Upload academic transcripts, passport copies, and required compliance files to initiate your admissions review.'}
             </p>
-            <Button
-              size="sm"
-              onClick={() => setShowUploadModal(true)}
-              leftIcon={<Upload className="w-4 h-4" />}
-            >
-              Upload First Document
-            </Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -814,8 +979,15 @@ export const Documents: React.FC = () => {
                         variant="destructive"
                         onClick={() => {
                           setReuploadTargetDocId(doc.id);
+                          const matchedReq = configuredReqs.find(r => 
+                            (doc as any).requirement_id === r.id ||
+                            r.document_name === doc.name ||
+                            r.document_name === (doc as any).file_name
+                          );
+                          setSelectedReq(matchedReq || null);
                           setUploadName(doc.name);
                           setUploadType(doc.type);
+                          setSelectedFile(null);
                           setShowUploadModal(true);
                         }}
                         leftIcon={<Upload className="w-3.5 h-3.5" />}
@@ -834,19 +1006,19 @@ export const Documents: React.FC = () => {
       {/* Upload File Modal */}
       <AnimatePresence>
         {showUploadModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overscroll-contain">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs"
-              onClick={() => setShowUploadModal(false)}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs touch-none overscroll-contain"
+              onClick={handleCloseUploadModal}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
-              className="relative bg-white rounded-xl p-6 w-full max-w-md shadow-card border border-slate-200 z-10 text-left space-y-4"
+              className="relative bg-white rounded-xl p-6 w-full max-w-md shadow-card border border-slate-200 z-10 text-left space-y-4 max-h-[90vh] overflow-y-auto overscroll-contain"
             >
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 className="text-base font-semibold text-slate-900">
@@ -854,7 +1026,7 @@ export const Documents: React.FC = () => {
                 </h3>
                 <button
                   type="button"
-                  onClick={() => setShowUploadModal(false)}
+                  onClick={handleCloseUploadModal}
                   className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
@@ -879,34 +1051,6 @@ export const Documents: React.FC = () => {
               })()}
 
               <form onSubmit={handleUploadSubmit} className="space-y-4">
-                {configuredReqs.length > 0 && (
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Target Compliance Requirement
-                    </label>
-                    <select
-                      value={uploadName}
-                      onChange={(e) => {
-                        const selectedVal = e.target.value;
-                        setUploadName(selectedVal);
-                        const matched = configuredReqs.find(r => r.document_name === selectedVal);
-                        if (matched) {
-                          setUploadType(matched.document_type || 'Academic');
-                        }
-                      }}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E] focus:bg-white"
-                    >
-                      <option value="" disabled>-- Select Configured Document ({configuredReqs.length} Configured) --</option>
-                      {configuredReqs.map(req => (
-                        <option key={req.id} value={req.document_name}>
-                          {req.document_name} ({req.document_type || 'Required'})
-                        </option>
-                      ))}
-                      <option value="Other">Custom / Other Document</option>
-                    </select>
-                  </div>
-                )}
-
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1.5">Document File Name</label>
                   <input
@@ -963,7 +1107,7 @@ export const Documents: React.FC = () => {
                 </div>
 
                 <div className="flex items-center justify-end gap-2 pt-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setShowUploadModal(false)}>Cancel</Button>
+                  <Button type="button" variant="outline" size="sm" onClick={handleCloseUploadModal}>Cancel</Button>
                   <Button type="submit" size="sm" disabled={isSubmitting || !uploadName}>
                     {isSubmitting ? 'Uploading...' : 'Submit Document'}
                   </Button>
@@ -1055,6 +1199,156 @@ export const Documents: React.FC = () => {
                   <Button size="sm" variant="outline" onClick={() => setPreviewDoc(null)}>Close</Button>
                 </div>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Add Other Certificate Modal ── */}
+      <AnimatePresence>
+        {showAddCertModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs"
+              onClick={() => {
+                if (!isSubmittingCert) setShowAddCertModal(false);
+              }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative bg-white rounded-2xl p-5 sm:p-6 w-full max-w-lg shadow-2xl border border-slate-100 z-10 text-left space-y-4 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center">
+                    <FilePlus className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">
+                      Add Other Certificate
+                    </h3>
+                    <p className="text-xs text-slate-400 font-semibold">
+                      Upload an additional certificate or supporting file
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={isSubmittingCert}
+                  onClick={() => setShowAddCertModal(false)}
+                  className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 cursor-pointer disabled:opacity-50"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {certError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                  <span>{certError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleCertSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Certificate / Document Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={certName}
+                    onChange={(e) => {
+                      setCertName(e.target.value);
+                      if (certError) setCertError('');
+                    }}
+                    placeholder="e.g. German B2 Language Certificate, Internship Experience"
+                    required
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E] focus:bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Description / Purpose <span className="text-slate-400 font-normal">(Optional)</span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={certDesc}
+                    onChange={(e) => setCertDesc(e.target.value)}
+                    placeholder="e.g. Issued by Goethe-Institut in July 2025 as supporting qualification"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E] focus:bg-white resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Certificate File <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="file"
+                    ref={certFileInputRef}
+                    onChange={handleCertFileChange}
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
+                    className="hidden"
+                  />
+
+                  <div
+                    onClick={() => certFileInputRef.current?.click()}
+                    className={`p-5 border-2 border-dashed rounded-xl text-center cursor-pointer transition-all ${
+                      certFile
+                        ? 'bg-rose-50/30 border-[#58051E]/40'
+                        : 'bg-slate-50 border-slate-200 hover:border-[#58051E]/40 hover:bg-slate-50/80'
+                    }`}
+                  >
+                    <Upload className="w-6 h-6 text-slate-400 mx-auto mb-1.5" />
+                    {certFile ? (
+                      <div>
+                        <p className="text-xs font-bold text-[#58051E] truncate max-w-sm mx-auto">
+                          {certFile.name}
+                        </p>
+                        <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                          {(certFile.size / (1024 * 1024)).toFixed(2)} MB • Click to replace file
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-xs font-bold text-slate-800">
+                          Click to select certificate file
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Supports PDF, DOCX, JPG, PNG, WEBP (Max 15MB)
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isSubmittingCert}
+                    onClick={() => setShowAddCertModal(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={isSubmittingCert || !certName.trim()}
+                    className="bg-[#58051E] hover:bg-[#430316] text-white flex items-center gap-1.5"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>{isSubmittingCert ? 'Adding...' : 'Add Certificate'}</span>
+                  </Button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}

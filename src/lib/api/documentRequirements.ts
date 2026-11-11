@@ -924,8 +924,10 @@ export function isRequirementSatisfied(req: DocumentRequirement, studentDocs: an
     const dName = rawName.replace(/\.[^/.]+$/, '').trim();
     const dType = (d.type || d.doc_type || d.category || '').toLowerCase().trim();
     const dReqId = (d as any).requirement_id;
+    const dReqName = ((d as any).requirement_name || '').replace(/\.[^/.]+$/, '').toLowerCase().trim();
 
     if (dReqId && dReqId === req.id) return true;
+    if (dReqName && reqNameNorm && (dReqName === reqNameNorm || dReqName.includes(reqNameNorm) || reqNameNorm.includes(dReqName))) return true;
     if (dName && reqNameNorm && (dName === reqNameNorm || dName.includes(reqNameNorm) || reqNameNorm.includes(dName))) return true;
     if (dType && reqTypeNorm && dType === reqTypeNorm && dName && reqNameNorm && (dName.slice(0, 3) === reqNameNorm.slice(0, 3))) return true;
     return false;

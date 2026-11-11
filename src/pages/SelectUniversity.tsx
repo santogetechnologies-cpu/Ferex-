@@ -18,6 +18,7 @@ import { Card } from '../components/Card';
 import { canAccessPage, checkPaymentStage } from '../lib/paymentUnlock';
 import { sendStudentApplicationEmail } from '../lib/api/email';
 import { supabase } from '../lib/supabase';
+import { isApplicationActive } from '../lib/api/applications';
 
 const COUNTRY_FLAGS: Record<string, string> = {
   Poland: '🇵🇱',
@@ -124,7 +125,7 @@ export const SelectUniversity: React.FC = () => {
   const { activeStudentId, activeStudentEmail, activeStudentName, impersonatedStudent } = useActiveStudentScope();
   const { universities } = useUniversities();
   const { destinations } = useDestinations();
-  const { addApp } = useApplications(activeStudentId);
+  const { applications, addApp } = useApplications(activeStudentId);
   const { payments, refresh: refreshPayments } = usePayments(activeStudentId);
   const { documents } = useDocuments(activeStudentId);
   const { getWorkflowForCountry } = useCountryWorkflows();
@@ -197,6 +198,11 @@ export const SelectUniversity: React.FC = () => {
   const [successToast, setSuccessToast] = useState('');
   const [drawerUni, setDrawerUni] = useState<any>(null);
 
+  // Active application check (business rule: 1 active university application per student)
+  const activeApplication = useMemo(() => {
+    return applications.find(isApplicationActive);
+  }, [applications]);
+
   // Payment Modal State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
@@ -249,6 +255,13 @@ export const SelectUniversity: React.FC = () => {
   };
 
   const handleOpenApply = (uni: any) => {
+    if (activeApplication) {
+      setSuccessToast(
+        `Active Application Exists: You already have an active application to ${activeApplication.university_name}. A student can apply to only ONE university at a time. Please withdraw your existing application before applying to another university.`
+      );
+      setTimeout(() => setSuccessToast(''), 4500);
+      return;
+    }
     setApplyUni(uni);
     const initialLevel = degreeLevel || "Bachelor's Degree";
     const available = getFilteredCourses(uni, initialLevel);
@@ -270,6 +283,14 @@ export const SelectUniversity: React.FC = () => {
   const handleApplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!applyUni || !activeStudentId) return;
+
+    if (activeApplication) {
+      setSuccessToast(
+        `Active Application Exists: You already have an active application to ${activeApplication.university_name}. Please withdraw your existing application before applying.`
+      );
+      setTimeout(() => setSuccessToast(''), 4500);
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -353,6 +374,7 @@ export const SelectUniversity: React.FC = () => {
       setTimeout(() => navigate('/student/applications'), 1200);
     } catch (err: any) {
       setSuccessToast(`Error: ${err.message || 'Failed to submit application'}`);
+      setTimeout(() => setSuccessToast(''), 5000);
     } finally {
       setIsSubmitting(false);
     }

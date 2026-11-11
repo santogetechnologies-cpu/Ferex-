@@ -163,7 +163,7 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
   const activeItem = navSections.flatMap(s => s.items).find(i => i.path === location.pathname);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex text-left font-sans antialiased text-slate-900 selection:bg-[#58051E] selection:text-white">
+    <div className="h-screen overflow-hidden bg-slate-50 flex text-left font-sans antialiased text-slate-900 selection:bg-[#58051E] selection:text-white">
       {/* Toast Notification */}
       <ToastNotification message={toast} onClose={() => setToast('')} />
 
@@ -242,9 +242,9 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden lg:pl-64">
         {/* Top Header */}
-        <header className="h-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-20 px-4 sm:px-6 flex items-center justify-between gap-3 select-none">
+        <header className="h-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 shrink-0 z-20 px-4 sm:px-6 flex items-center justify-between gap-3 select-none">
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => setMobileMenuOpen(true)}
@@ -432,8 +432,10 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
         </header>
 
         {/* Page Body Viewport */}
-        <main className="flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto">
-          {children}
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+          <div className="p-4 md:p-8 max-w-7xl w-full mx-auto">
+            {children}
+          </div>
         </main>
       </div>
 

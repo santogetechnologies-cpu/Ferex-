@@ -154,6 +154,8 @@ export interface StudentDocument {
   reviewer_notes: string;
   uploaded_at: string;
   reviewed_at: string | null;
+  requirement_id?: string | null;
+  requirement_name?: string | null;
   // joined
   users?: UserProfile;
 }

@@ -99,7 +99,7 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E] overflow-x-hidden">
+    <div className="h-screen overflow-hidden bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
       {/* Mobile Backdrop */}
       <AnimatePresence>
         {isMobileOpen && (
@@ -228,9 +228,9 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-screen min-w-0 lg:pl-60">
-        {/* Sticky Header — Identical to FEREX Design Language */}
-        <header className="h-14 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 flex items-center px-4 sm:px-6 gap-3 sticky top-0 z-30 select-none">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden min-w-0 lg:pl-60">
+        {/* Header — Identical to FEREX Design Language */}
+        <header className="h-14 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 flex items-center px-4 sm:px-6 gap-3 shrink-0 z-30 select-none">
           <button
             onClick={() => setIsMobileOpen(true)}
             className="lg:hidden p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
@@ -310,8 +310,10 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
         </header>
 
         {/* Content Wrapper */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
-          {children}
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+            {children}
+          </div>
         </main>
       </div>
     </div>

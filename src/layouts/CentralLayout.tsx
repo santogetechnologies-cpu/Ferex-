@@ -94,7 +94,7 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
+    <div className="h-screen overflow-hidden bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
       
       {/* MOBILE SIDEBAR DRAWER BACKDROP */}
       <AnimatePresence>
@@ -199,10 +199,10 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
       </aside>
 
       {/* CONTENT WORKSPACE VIEWPORT */}
-      <div className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-200 ${isCollapsed ? 'lg:pl-[70px]' : 'lg:pl-[250px]'}`}>
+      <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 ${isCollapsed ? 'lg:pl-[70px]' : 'lg:pl-[250px]'}`}>
         
-        {/* STICKY TOP NAVBAR */}
-        <header className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none shrink-0">
+        {/* TOP NAVBAR */}
+        <header className="shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none">
           
           {/* Left part: Toggles, Breadcrumbs & Division Switcher */}
           <div className="flex items-center gap-2.5">
@@ -355,8 +355,10 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
         </header>
 
         {/* MAIN BODY OUTLET */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          {children}
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>
