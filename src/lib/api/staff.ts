@@ -499,14 +499,92 @@ export async function createDivisionStaff(staff: {
   return newStaff;
 }
 
-export async function deleteDivisionStaff(idOrEmail: string): Promise<boolean> {
-  const target = idOrEmail.toLowerCase().trim();
-  markStaffDeleted(target);
+export async function deleteDivisionStaff(idOrEmail: string, optionalEmail?: string): Promise<{ success: boolean; message?: string }> {
+  const param1 = (idOrEmail || '').trim();
+  const param2 = (optionalEmail || '').toLowerCase().trim();
+
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(param1);
+  const resolvedId = isUuid ? param1 : undefined;
+  const resolvedEmail = param2 || (!isUuid && param1.includes('@') ? param1.toLowerCase() : '');
+
+  let executionError: Error | null = null;
+  let successConfirmed = false;
+
+  // 1. Primary backend execution: Call secure database RPC function delete_user_by_admin
+  try {
+    const { data, error } = await supabase.rpc('delete_user_by_admin', {
+      target_user_id: resolvedId || null,
+      target_email: resolvedEmail || null,
+    });
+
+    if (error) {
+      executionError = new Error(error.message);
+    } else if (data && data.success) {
+      successConfirmed = true;
+    }
+  } catch (err: any) {
+    executionError = err;
+  }
+
+  // 2. Secondary fallback: Call delete-user Edge Function
+  if (!successConfirmed) {
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: resolvedId, email: resolvedEmail },
+      });
+
+      if (!error && data?.success) {
+        successConfirmed = true;
+        executionError = null;
+      } else if (error) {
+        let msg = error.message;
+        try {
+          const body = await error.context?.json();
+          if (body?.error) msg = body.error;
+        } catch {}
+        if (!executionError) executionError = new Error(msg || 'Edge function delete failed');
+      }
+    } catch (err: any) {
+      if (!executionError) executionError = err;
+    }
+  }
+
+  // 3. Third fallback: Direct RLS delete on public.users if caller has delete policy
+  if (!successConfirmed) {
+    try {
+      let query = supabase.from('users').delete();
+      if (resolvedId) {
+        query = query.eq('id', resolvedId);
+      } else if (resolvedEmail) {
+        query = query.ilike('email', resolvedEmail);
+      }
+      const { error } = await query;
+      if (!error) {
+        successConfirmed = true;
+        executionError = null;
+      } else if (!executionError) {
+        executionError = new Error(error.message);
+      }
+    } catch (err: any) {
+      if (!executionError) executionError = err;
+    }
+  }
+
+  // If all attempts failed, throw the actual backend error (no false success notification)
+  if (!successConfirmed && executionError) {
+    throw executionError;
+  }
+
+  // Deletion confirmed by backend: update local storage and client registries
+  if (resolvedEmail) markStaffDeleted(resolvedEmail);
+  if (resolvedId) markStaffDeleted(resolvedId);
 
   // Remove from custom staff store
   try {
     const custom = getCustomStaffMembers().filter(
-      m => m.email.toLowerCase() !== target && m.id.toLowerCase() !== target
+      m =>
+        (resolvedEmail ? m.email.toLowerCase() !== resolvedEmail : true) &&
+        (resolvedId ? m.id !== resolvedId : true)
     );
     localStorage.setItem(CUSTOM_STAFF_STORAGE_KEY, JSON.stringify(custom));
   } catch {}
@@ -520,33 +598,25 @@ export async function deleteDivisionStaff(idOrEmail: string): Promise<boolean> {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          const filtered = parsed.filter((m: any) => m.email?.toLowerCase() !== target && m.id?.toLowerCase() !== target);
+          const filtered = parsed.filter(
+            (m: any) =>
+              (resolvedEmail ? m.email?.toLowerCase() !== resolvedEmail : true) &&
+              (resolvedId ? m.id !== resolvedId : true)
+          );
           localStorage.setItem(key, JSON.stringify(filtered));
         }
       }
     } catch {}
   }
 
-  // Attempt Supabase deletion or status update
-  try {
-    const admin = await getAdminSupabaseClient();
-    const client = admin || supabase;
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(target);
-    if (isUuid) {
-      await client.from('users').update({ status: 'deleted', updated_at: new Date().toISOString() }).eq('id', target);
-    } else {
-      await client.from('users').update({ status: 'deleted', updated_at: new Date().toISOString() }).eq('email', target);
-    }
-  } catch (e) {
-    console.warn('[deleteDivisionStaff] Supabase update note:', e);
-  }
-
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('ferex_staff_users_change'));
+    window.dispatchEvent(new Event('ferex_staff_change'));
     window.dispatchEvent(new Event('ferex_digital_tasks_change'));
     window.dispatchEvent(new Event('ferex_digital_projects_change'));
   }
-  return true;
+
+  return { success: true };
 }
 
 export async function getStaffAssignedStudents(staffName?: string) {

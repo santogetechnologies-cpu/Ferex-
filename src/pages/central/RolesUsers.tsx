@@ -1,4 +1,4 @@
-import { markStaffDeleted, deleteDivisionStaff } from '../../lib/api/staff';
+import { markStaffDeleted, deleteDivisionStaff, isStaffDeleted } from '../../lib/api/staff';
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -171,7 +171,7 @@ const SYSTEM_ROLES = [
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export const RolesUsers: React.FC = () => {
-  const { provisionDivisionAdmin } = useAuth();
+  const { provisionDivisionAdmin, user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<'roles' | 'users'>('users');
   const [searchQuery, setSearchQuery] = useState('');
   const [divisionFilter, setDivisionFilter] = useState('All');
@@ -203,6 +203,7 @@ export const RolesUsers: React.FC = () => {
         .from('users')
         .select('*')
         .neq('role', 'student')
+        .neq('status', 'deleted')
         .order('created_at', { ascending: false });
 
       if (error) console.warn('Error loading users:', error.message);
@@ -212,6 +213,11 @@ export const RolesUsers: React.FC = () => {
       (data || []).forEach((u: any) => {
         let cleanRole = (u.role || '').toLowerCase().trim();
         const cleanEmail = (u.email || '').toLowerCase().trim();
+
+        // Strict defensive filter: Never display accounts marked deleted in DB or client registry
+        if (u.status === 'deleted' || isStaffDeleted(cleanEmail) || isStaffDeleted(u.id)) {
+          return;
+        }
 
         if (isSuperAdmin(u.role, u.email)) {
           cleanRole = 'superadmin';
@@ -234,8 +240,7 @@ export const RolesUsers: React.FC = () => {
         }
 
         const cfg = DIVISION_CONFIG[cleanRole] || DIVISION_CONFIG.superadmin;
-
-
+        const isActive = u.status !== 'inactive' && u.is_active !== false;
 
         list.push({
           id: u.id,
@@ -246,7 +251,7 @@ export const RolesUsers: React.FC = () => {
           division: cleanRole,
           divisionLabel: cfg.label,
           targetRoute: cfg.route,
-          status: 'Active',
+          status: isActive ? 'Active' : 'Inactive',
           created_at: u.created_at || new Date().toISOString(),
           initials: (u.full_name || u.email || 'AD').slice(0, 2).toUpperCase(),
         });
@@ -316,18 +321,35 @@ export const RolesUsers: React.FC = () => {
   // ─── Delete User ─────────────────────────────────────────────────────────────
 
   const handleDelete = async (id: string, emailToDelete: string) => {
-    if (!window.confirm(`Remove login access for ${emailToDelete}? This will also remove them from all project and task assignment options.`)) return;
+    // Guard: Prevent accidentally deleting the currently logged-in Super Admin
+    const isSelf =
+      (user && (user.id === id || user.email?.toLowerCase() === emailToDelete.toLowerCase())) ||
+      (profile && (profile.id === id || profile.email?.toLowerCase() === emailToDelete.toLowerCase()));
+
+    if (isSelf) {
+      showToastMsg('Security restriction: You cannot delete your own active administrator account.');
+      return;
+    }
+
+    if (!window.confirm(`Permanently delete account for ${emailToDelete}? This will revoke login access and remove them from all project and task assignment options.`)) {
+      return;
+    }
+
     try {
-      markStaffDeleted(emailToDelete);
-      markStaffDeleted(id);
-      await deleteDivisionStaff(emailToDelete || id);
-      setAdminList(prev => prev.filter(a => a.id !== id));
-      showToastMsg(`Login for ${emailToDelete} removed.`);
+      // Execute deletion on backend (RPC / Edge Function) with administrative permissions
+      await deleteDivisionStaff(id, emailToDelete);
+
+      // Only update local list after backend confirms deletion
+      setAdminList(prev => prev.filter(a => a.id !== id && a.email?.toLowerCase() !== emailToDelete.toLowerCase()));
+      showToastMsg(`Account ${emailToDelete} permanently deleted.`);
+
       window.dispatchEvent(new Event('ferex_staff_change'));
       window.dispatchEvent(new Event('ferex_staff_users_change'));
       loadAdmins();
     } catch (err: any) {
-      showToastMsg(`Failed to delete: ${err.message || 'Error'}`);
+      console.error('User deletion error:', err);
+      // Show actual backend error instead of false success
+      showToastMsg(`Failed to delete: ${err?.message || 'Server error'}`);
     }
   };
 
@@ -570,8 +592,12 @@ export const RolesUsers: React.FC = () => {
                           </td>
 
                           <td className="py-3.5 px-4">
-                            <span className="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              ● Active
+                            <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-extrabold border ${
+                              adm.status === 'Active'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : 'bg-slate-100 text-slate-600 border-slate-300'
+                            }`}>
+                              ● {adm.status}
                             </span>
                           </td>
 
@@ -584,13 +610,32 @@ export const RolesUsers: React.FC = () => {
                               >
                                 <Copy className="w-4 h-4" />
                               </button>
-                              <button
-                                onClick={() => handleDelete(adm.id, adm.email)}
-                                title="Revoke & Delete Login"
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              {(() => {
+                                const isSelf =
+                                  (user && (user.id === adm.id || user.email?.toLowerCase() === adm.email.toLowerCase())) ||
+                                  (profile && (profile.id === adm.id || profile.email?.toLowerCase() === adm.email.toLowerCase()));
+
+                                if (isSelf) {
+                                  return (
+                                    <span
+                                      title="Your active account cannot be deleted"
+                                      className="p-1.5 rounded-lg text-slate-300 cursor-not-allowed inline-flex items-center"
+                                    >
+                                      <Lock className="w-4 h-4" />
+                                    </span>
+                                  );
+                                }
+
+                                return (
+                                  <button
+                                    onClick={() => handleDelete(adm.id, adm.email)}
+                                    title="Permanently Delete Account"
+                                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                );
+                              })()}
                             </div>
                           </td>
                         </tr>
