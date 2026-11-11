@@ -321,7 +321,7 @@ export async function createApplication(payload: {
   saveLocalApplications(local);
 
   try {
-    await logActivity('APPLICATION_SUBMITTED', 'application', newId, {
+    await logActivity('APPLICATION_SUBMITTED', 'application', finalAppId, {
       university: univName,
       program: progName,
       student: targetStudentName,

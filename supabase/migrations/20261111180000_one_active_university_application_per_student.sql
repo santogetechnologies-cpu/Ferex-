@@ -49,3 +49,4 @@ CREATE TRIGGER trg_check_one_active_application
   ON public.applications
   FOR EACH ROW
   EXECUTE FUNCTION public.check_one_active_application_per_student();
+
