@@ -267,14 +267,14 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
         {isMobileOpen && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 0.4 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-40 lg:hidden"
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-40 lg:hidden print:hidden"
             onClick={() => setIsMobileOpen(false)}
           />
         )}
       </AnimatePresence>
 
       {/* SIDEBAR NAVIGATION PANEL */}
-      <aside className={`fixed top-0 left-0 bottom-0 h-screen bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 z-40 flex flex-col transition-all duration-200 ease-out select-none
+      <aside className={`fixed top-0 left-0 bottom-0 h-screen bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 z-40 flex flex-col transition-all duration-200 ease-out select-none print:hidden
         ${isCollapsed ? 'w-18' : 'w-60'}
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
 
@@ -348,11 +348,11 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
       </aside>
 
       {/* CONTENT WORKSPACE VIEWPORT */}
-      <div className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-200 ${isCollapsed ? 'lg:pl-18' : 'lg:pl-60'}`}>
+      <div className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-200 ${isCollapsed ? 'lg:pl-18' : 'lg:pl-60'} print:pl-0 print:m-0 print:min-h-0 print:w-full print:block`}>
 
         {/* COUNSELOR / ADMIN IMPERSONATION BANNER */}
         {impersonated && (
-          <div className="bg-gradient-to-r from-amber-600 via-[#58051E] to-[#3a0213] text-white px-4 py-2 text-xs font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-md sticky top-0 z-40">
+          <div className="bg-gradient-to-r from-amber-600 via-[#58051E] to-[#3a0213] text-white px-4 py-2 text-xs font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-md sticky top-0 z-40 print:hidden">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
               <span>
@@ -370,7 +370,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
         )}
 
         {/* STICKY TOP NAVBAR */}
-        <header className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none shrink-0">
+        <header className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none shrink-0 print:hidden">
 
           {/* Left part: Toggles & Breadcrumbs */}
           <div className="flex items-center gap-2.5">
@@ -559,7 +559,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
         </header>
 
         {/* MAIN BODY AREA */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto print:p-0 print:m-0 print:max-w-none print:w-full print:block">
           <motion.div
             key={location.pathname}
             initial={{ opacity: 0, y: 6 }}
@@ -572,20 +572,22 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
       </div>
 
       {/* ── 24/7 FEREX AI STUDENT COPILOT & REALTIME VOICE ── */}
-      <EnterpriseAIChatbot
-        role="student"
-        studentContext={{
-          studentName: displayName,
-          email: displayEmail,
-          targetCountry: (effectiveStudentId ? localStorage.getItem(`ferex_student_target_country_${effectiveStudentId}`) : null) || impersonated?.country || 'European Union',
-          targetUniversity: 'European Partner Universities',
-          program: 'Higher Education Program',
-          currentStep: hasSignedAgreement ? 3 : 2,
-          stepTitle: hasSignedAgreement ? 'Document Review & University Application' : 'Service Agreement Signing',
-          assignedCounselor: 'Admissions Officer',
-          visaStatus: 'Document Preparation',
-        }}
-      />
+      <div className="print:hidden">
+        <EnterpriseAIChatbot
+          role="student"
+          studentContext={{
+            studentName: displayName,
+            email: displayEmail,
+            targetCountry: (effectiveStudentId ? localStorage.getItem(`ferex_student_target_country_${effectiveStudentId}`) : null) || impersonated?.country || 'European Union',
+            targetUniversity: 'European Partner Universities',
+            program: 'Higher Education Program',
+            currentStep: hasSignedAgreement ? 3 : 2,
+            stepTitle: hasSignedAgreement ? 'Document Review & University Application' : 'Service Agreement Signing',
+            assignedCounselor: 'Admissions Officer',
+            visaStatus: 'Document Preparation',
+          }}
+        />
+      </div>
     </div>
   );
 };

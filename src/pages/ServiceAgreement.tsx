@@ -60,24 +60,87 @@ export const ServiceAgreement: React.FC = () => {
     }
   }, [studentId, studentEmail]);
 
-  // Canvas drawing handlers
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+  const initCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.scale(dpr, dpr);
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#570229';
+  };
+
+  useEffect(() => {
+    if (signatureType === 'drawn') {
+      const anim = requestAnimationFrame(() => {
+        initCanvas();
+      });
+      return () => cancelAnimationFrame(anim);
+    }
+  }, [signatureType]);
+
+  useEffect(() => {
+    if (signatureType !== 'drawn') return;
+    const handleResize = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const prevData = hasDrawn ? canvas.toDataURL() : null;
+      initCanvas();
+      if (prevData) {
+        const img = new Image();
+        img.onload = () => {
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            const rect = canvas.getBoundingClientRect();
+            ctx.drawImage(img, 0, 0, rect.width, rect.height);
+          }
+        };
+        img.src = prevData;
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [signatureType, hasDrawn]);
+
+  // Pointer Events drawing handlers
+  const startDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    try {
+      canvas.setPointerCapture(e.pointerId);
+    } catch {}
+
+    const rect = canvas.getBoundingClientRect();
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const x = 'touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
-    const y = 'touches' in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+    const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+    const y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
 
     ctx.beginPath();
     ctx.moveTo(x, y);
+    ctx.arc(x, y, 1.25, 0, Math.PI * 2);
+    ctx.fillStyle = '#570229';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+
     setIsDrawing(true);
     setHasDrawn(true);
   };
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+  const draw = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -85,18 +148,24 @@ export const ServiceAgreement: React.FC = () => {
     if (!ctx) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = 'touches' in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
-    const y = 'touches' in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
-
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = '#570229';
-    ctx.lineTo(x, y);
-    ctx.stroke();
+    const native = e.nativeEvent as PointerEvent;
+    const events = typeof native?.getCoalescedEvents === 'function' ? native.getCoalescedEvents() : [e];
+    for (const ev of events) {
+      const x = Math.max(0, Math.min(rect.width, ev.clientX - rect.left));
+      const y = Math.max(0, Math.min(rect.height, ev.clientY - rect.top));
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    }
   };
 
-  const stopDrawing = () => {
+  const stopDrawing = (e?: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
     setIsDrawing(false);
+    if (e && canvasRef.current) {
+      try {
+        canvasRef.current.releasePointerCapture(e.pointerId);
+      } catch {}
+    }
   };
 
   const clearCanvas = () => {
@@ -104,8 +173,25 @@ export const ServiceAgreement: React.FC = () => {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+    initCanvas();
     setHasDrawn(false);
+  };
+
+  const isCanvasBlank = (canvas: HTMLCanvasElement): boolean => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return true;
+    try {
+      const pixelBuffer = new Uint32Array(
+        ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer
+      );
+      return !pixelBuffer.some((color) => color !== 0);
+    } catch {
+      return !hasDrawn;
+    }
   };
 
   const regAmount = feeConfig.advance_registration_fee_enabled ? (feeConfig.advance_registration_fee_amount ?? 0) : 0;
@@ -126,11 +212,12 @@ export const ServiceAgreement: React.FC = () => {
 
     let signatureData = '';
     if (signatureType === 'drawn') {
-      if (!hasDrawn || !canvasRef.current) {
+      const canvas = canvasRef.current;
+      if (!hasDrawn || !canvas || isCanvasBlank(canvas)) {
         setFormError('Please draw your digital signature on the canvas.');
         return;
       }
-      signatureData = canvasRef.current.toDataURL('image/png');
+      signatureData = canvas.toDataURL('image/png');
     } else {
       if (!typedSignature.trim()) {
         setFormError('Please type your legal signature name.');
@@ -185,8 +272,32 @@ export const ServiceAgreement: React.FC = () => {
     finally { setIsSubmitting(false); }
   };
 
+  useEffect(() => {
+    let cachedTitle = '';
+    const handleBeforePrint = () => {
+      cachedTitle = document.title;
+      document.title = '';
+    };
+    const handleAfterPrint = () => {
+      document.title = cachedTitle || 'FEREX — Global Education & Corporate Ecosystem';
+    };
+    window.addEventListener('beforeprint', handleBeforePrint);
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+  }, []);
+
   const handlePrint = () => {
+    const originalTitle = document.title;
+    document.title = '';
     window.print();
+    setTimeout(() => {
+      if (!document.title) {
+        document.title = originalTitle || 'FEREX — Global Education & Corporate Ecosystem';
+      }
+    }, 1000);
   };
 
   const isSigned = Boolean(agreement && agreement.status === 'Signed');
@@ -202,7 +313,7 @@ export const ServiceAgreement: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-12 text-left">
+    <div className="max-w-4xl mx-auto space-y-6 pb-12 text-left print:max-w-none print:w-full print:p-0 print:m-0 print:space-y-0 print:pb-0">
       {/* Toast Notification */}
       <AnimatePresence>
         {successToast && (
@@ -210,7 +321,7 @@ export const ServiceAgreement: React.FC = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 right-6 z-50 bg-emerald-600 text-white px-5 py-3.5 rounded-2xl shadow-xl flex items-center gap-3 font-bold text-sm"
+            className="fixed top-6 right-6 z-50 bg-emerald-600 text-white px-5 py-3.5 rounded-2xl shadow-xl flex items-center gap-3 font-bold text-sm print:hidden"
           >
             <CheckCircle2 className="w-5 h-5" />
             <span>Service Agreement signed and securely registered! Redirecting to Fee Stage...</span>
@@ -219,7 +330,7 @@ export const ServiceAgreement: React.FC = () => {
       </AnimatePresence>
 
       {/* Top Banner / Actions */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="text-[10px] font-black uppercase tracking-wider text-[#570229] bg-[#570229]/10 px-2.5 py-0.5 rounded-md">
@@ -266,9 +377,12 @@ export const ServiceAgreement: React.FC = () => {
       </div>
 
       {/* Official Agreement Document Sheet */}
-      <div className="bg-white rounded-2xl border border-slate-300/90 shadow-md p-6 sm:p-10 space-y-8 print:shadow-none print:border-none print:p-0">
+      <div
+        id="student-service-agreement"
+        className="student-service-agreement-sheet bg-white rounded-2xl border border-slate-300/90 shadow-md p-6 sm:p-10 space-y-8 print:shadow-none print:border-none print:p-0 print:m-0 print:space-y-6 print:rounded-none"
+      >
         {/* Header / Company Info */}
-        <div className="border-b border-slate-200 pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="agreement-print-header border-b border-slate-200 pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:flex-row print:justify-between print:items-start print:pb-4 print:mb-4">
           <div>
             <span className="text-[11px] font-black tracking-widest text-[#570229] uppercase block mb-1">
               FEREX EDUCATION
@@ -277,18 +391,18 @@ export const ServiceAgreement: React.FC = () => {
               (Under Ferex Ventures Private Limited)
             </span>
             <div className="flex items-start gap-1.5 text-xs text-slate-600 mt-2 max-w-md">
-              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5 print:text-[#570229]" />
               <span>12/640 Thachukuzhi, Companipady Road, Nellikuzhy PO, Kothamangalam, Kerala - 686 691</span>
             </div>
           </div>
 
-          <div className="text-xs text-slate-600 space-y-1 md:text-right">
-            <div className="flex items-center md:justify-end gap-1.5">
-              <Phone className="w-3.5 h-3.5 text-slate-400" />
+          <div className="text-xs text-slate-600 space-y-1 md:text-right print:text-right">
+            <div className="flex items-center md:justify-end gap-1.5 print:justify-end">
+              <Phone className="w-3.5 h-3.5 text-slate-400 print:text-[#570229]" />
               <span className="font-medium">+91 95448 85077 , +44 78678 67779</span>
             </div>
-            <div className="flex items-center md:justify-end gap-1.5">
-              <Mail className="w-3.5 h-3.5 text-slate-400" />
+            <div className="flex items-center md:justify-end gap-1.5 print:justify-end">
+              <Mail className="w-3.5 h-3.5 text-slate-400 print:text-[#570229]" />
               <span className="font-medium">ferexventuresoffice@gmail.com</span>
             </div>
             <div className="text-[11px] text-slate-400 font-mono">
@@ -298,185 +412,185 @@ export const ServiceAgreement: React.FC = () => {
         </div>
 
         {/* Title */}
-        <div className="text-center py-2 border-b border-slate-100">
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-wider uppercase font-serif">
+        <div className="agreement-print-title text-center py-2 border-b border-slate-100 print:py-2 print:border-b print:border-slate-300 print:mb-4">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-wider uppercase font-serif print:text-xl">
             SERVICE AGREEMENT
           </h2>
-          <p className="text-xs text-slate-500 font-medium mt-1">
+          <p className="text-xs text-slate-500 font-medium mt-1 print:text-[11px] print:text-slate-600">
             Standard Terms of Education Consultancy, University Placement & Visa Processing
           </p>
         </div>
 
         {/* Clauses List */}
         <div className="space-y-5 text-xs text-slate-700 leading-relaxed font-sans">
-          <div className="space-y-1">
-            <h3 className="font-extrabold text-slate-900 text-sm">1. PARTIES</h3>
-            <p className="text-slate-600">
+          <div className="space-y-1 agreement-clause print:break-inside-avoid">
+            <h3 className="font-extrabold text-slate-900 text-sm print:text-xs">1. PARTIES</h3>
+            <p className="text-slate-600 print:text-[11px] print:text-slate-700">
               This agreement is made between <strong>Ferex Education</strong> (under Ferex Ventures Private Limited)
               and the student mentioned below (the &ldquo;Student&rdquo;).
             </p>
           </div>
 
-          <div className="space-y-1">
-            <h3 className="font-extrabold text-slate-900 text-sm">2. SCOPE OF SERVICES</h3>
-            <p className="text-slate-600">
+          <div className="space-y-1 agreement-clause print:break-inside-avoid">
+            <h3 className="font-extrabold text-slate-900 text-sm print:text-xs">2. SCOPE OF SERVICES</h3>
+            <p className="text-slate-600 print:text-[11px] print:text-slate-700">
               Ferex Education will provide admission guidance, university application processing, visa assistance,
               and pre-departure guidance. Post-arrival services are optional and may be charged separately.
             </p>
           </div>
 
-          <div className="space-y-1">
-            <h3 className="font-extrabold text-slate-900 text-sm">3. FEE &amp; PAYMENT STRUCTURE</h3>
-            <p className="text-slate-600">
+          <div className="space-y-1 agreement-clause print:break-inside-avoid">
+            <h3 className="font-extrabold text-slate-900 text-sm print:text-xs">3. FEE &amp; PAYMENT STRUCTURE</h3>
+            <p className="text-slate-600 print:text-[11px] print:text-slate-700">
               All service fees are strictly non-refundable. Payments must be made in agreed stages. Delay in payment
               may affect timelines.
             </p>
           </div>
 
-          <div className="space-y-1">
-            <h3 className="font-extrabold text-slate-900 text-sm">5. UNIVERSITY ADMISSION DISCLAIMER</h3>
-            <p className="text-slate-600">
+          <div className="space-y-1 agreement-clause print:break-inside-avoid">
+            <h3 className="font-extrabold text-slate-900 text-sm print:text-xs">5. UNIVERSITY ADMISSION DISCLAIMER</h3>
+            <p className="text-slate-600 print:text-[11px] print:text-slate-700">
               Admission decisions are solely made by the respective universities. Ferex Education acts only as a facilitator.
             </p>
           </div>
 
-          <div className="space-y-1">
-            <h3 className="font-extrabold text-slate-900 text-sm">6. VISA DISCLAIMER</h3>
-            <p className="text-slate-600">
+          <div className="space-y-1 agreement-clause print:break-inside-avoid">
+            <h3 className="font-extrabold text-slate-900 text-sm print:text-xs">6. VISA DISCLAIMER</h3>
+            <p className="text-slate-600 print:text-[11px] print:text-slate-700">
               Visa approval or rejection is entirely at the discretion of the embassy/consulate. No guarantees are provided.
             </p>
           </div>
 
-          <div className="space-y-1">
-            <h3 className="font-extrabold text-slate-900 text-sm">7. STUDENT RESPONSIBILITIES</h3>
-            <p className="text-slate-600">
+          <div className="space-y-1 agreement-clause print:break-inside-avoid">
+            <h3 className="font-extrabold text-slate-900 text-sm print:text-xs">7. STUDENT RESPONSIBILITIES</h3>
+            <p className="text-slate-600 print:text-[11px] print:text-slate-700">
               The student must provide genuine documents, accurate information, and follow all timelines.
               Any false information may result in immediate termination of services.
             </p>
           </div>
 
-          <div className="space-y-1">
-            <h3 className="font-extrabold text-slate-900 text-sm">8. FINANCIAL RESPONSIBILITY</h3>
-            <p className="text-slate-600">
+          <div className="space-y-1 agreement-clause print:break-inside-avoid">
+            <h3 className="font-extrabold text-slate-900 text-sm print:text-xs">8. FINANCIAL RESPONSIBILITY</h3>
+            <p className="text-slate-600 print:text-[11px] print:text-slate-700">
               The student is solely responsible for university tuition fees, living expenses, visa consular charges,
               and any third-party payments.
             </p>
           </div>
 
-          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center font-bold text-slate-800 text-[11px] tracking-wide">
+          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-center font-bold text-slate-800 text-[11px] tracking-wide agreement-clause print:break-inside-avoid print:bg-slate-50 print:border-slate-300">
             FEEDRUCATIEON X (Under Ferex Ventures Private Limited)
           </div>
 
-          <div className="space-y-1">
-            <h3 className="font-extrabold text-slate-900 text-sm">9. REFUND POLICY</h3>
-            <p className="text-slate-600">
+          <div className="space-y-1 agreement-clause print:break-inside-avoid">
+            <h3 className="font-extrabold text-slate-900 text-sm print:text-xs">9. REFUND POLICY</h3>
+            <p className="text-slate-600 print:text-[11px] print:text-slate-700">
               No refunds will be issued once the service process has begun under any circumstances.
             </p>
           </div>
 
-          <div className="space-y-1">
-            <h3 className="font-extrabold text-slate-900 text-sm">10. CONFIDENTIALITY</h3>
-            <p className="text-slate-600">
+          <div className="space-y-1 agreement-clause print:break-inside-avoid">
+            <h3 className="font-extrabold text-slate-900 text-sm print:text-xs">10. CONFIDENTIALITY</h3>
+            <p className="text-slate-600 print:text-[11px] print:text-slate-700">
               All student data will be kept strictly confidential and used only for academic admission and visa processing purposes.
             </p>
           </div>
 
-          <div className="space-y-1">
-            <h3 className="font-extrabold text-slate-900 text-sm">11. TERMINATION</h3>
-            <p className="text-slate-600">
+          <div className="space-y-1 agreement-clause print:break-inside-avoid">
+            <h3 className="font-extrabold text-slate-900 text-sm print:text-xs">11. TERMINATION</h3>
+            <p className="text-slate-600 print:text-[11px] print:text-slate-700">
               Ferex Education reserves the right to terminate services due to misconduct, non-payment, or submission of false documents.
             </p>
           </div>
 
-          <div className="space-y-1">
-            <h3 className="font-extrabold text-slate-900 text-sm">12. JURISDICTION</h3>
-            <p className="text-slate-600">
+          <div className="space-y-1 agreement-clause print:break-inside-avoid">
+            <h3 className="font-extrabold text-slate-900 text-sm print:text-xs">12. JURISDICTION</h3>
+            <p className="text-slate-600 print:text-[11px] print:text-slate-700">
               This agreement shall be governed by and interpreted under the laws of India, subject to the jurisdiction of courts in Kerala.
             </p>
           </div>
 
-          <div className="space-y-1">
-            <h3 className="font-extrabold text-slate-900 text-sm">13. DECLARATION</h3>
-            <p className="text-slate-600">
+          <div className="space-y-1 agreement-clause print:break-inside-avoid">
+            <h3 className="font-extrabold text-slate-900 text-sm print:text-xs">13. DECLARATION</h3>
+            <p className="text-slate-600 print:text-[11px] print:text-slate-700">
               By signing below, the student agrees to all terms and conditions stated above in full knowledge and consent.
             </p>
           </div>
         </div>
 
         {/* STAGE DESCRIPTION AMOUNT (INR) Table */}
-        <div className="space-y-2">
+        <div className="space-y-2 agreement-fee-table print:break-inside-avoid">
           <h4 className="text-xs font-black uppercase text-slate-900 tracking-wider">
             Fee &amp; Milestone Schedule
           </h4>
-          <div className="border border-slate-200 rounded-xl overflow-hidden">
+          <div className="border border-slate-200 rounded-xl overflow-hidden print:rounded-md print:border-slate-300">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase text-[10px] tracking-wider print:bg-slate-100">
                 <tr>
-                  <th className="py-2.5 px-4">Stage</th>
-                  <th className="py-2.5 px-4">Description</th>
-                  <th className="py-2.5 px-4 text-right">Amount (INR)</th>
+                  <th className="py-2.5 px-4 print:py-2 print:px-3">Stage</th>
+                  <th className="py-2.5 px-4 print:py-2 print:px-3">Description</th>
+                  <th className="py-2.5 px-4 text-right print:py-2 print:px-3">Amount (INR)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
+              <tbody className="divide-y divide-slate-100 text-slate-700 print:divide-slate-200">
                 <tr>
-                  <td className="py-3 px-4 font-bold">1</td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4 font-bold print:py-2 print:px-3">1</td>
+                  <td className="py-3 px-4 print:py-2 print:px-3">
                     <span className="font-bold text-slate-900 block">Registration Fee</span>
                     <span className="text-[11px] text-slate-500">Initial intake eligibility, profile vetting &amp; portal onboarding</span>
                   </td>
-                  <td className="py-3 px-4 text-right font-black font-mono text-slate-900">
+                  <td className="py-3 px-4 text-right font-black font-mono text-slate-900 print:py-2 print:px-3">
                     ₹{regAmount.toLocaleString('en-IN')}
                   </td>
                 </tr>
                 <tr>
-                  <td className="py-3 px-4 font-bold">2</td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4 font-bold print:py-2 print:px-3">2</td>
+                  <td className="py-3 px-4 print:py-2 print:px-3">
                     <span className="font-bold text-slate-900 block">Application Processing &amp; Visa Documents</span>
                     <span className="text-[11px] text-slate-500">University application lodging, translations &amp; visa document compilation (Due after offer letter)</span>
                   </td>
-                  <td className="py-3 px-4 text-right font-black font-mono text-slate-900">
+                  <td className="py-3 px-4 text-right font-black font-mono text-slate-900 print:py-2 print:px-3">
                     ₹{docVisaAmount.toLocaleString('en-IN')}
                   </td>
                 </tr>
                 <tr>
-                  <td className="py-3 px-4 font-bold">3</td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4 font-bold print:py-2 print:px-3">3</td>
+                  <td className="py-3 px-4 print:py-2 print:px-3">
                     <span className="font-bold text-slate-900 block">Visa Processing &amp; Service Charge</span>
                     <span className="text-[11px] text-slate-500">Consular submission advisory, appointment handling &amp; pre-departure clearance (Due after visa)</span>
                   </td>
-                  <td className="py-3 px-4 text-right font-black font-mono text-slate-900">
+                  <td className="py-3 px-4 text-right font-black font-mono text-slate-900 print:py-2 print:px-3">
                     ₹{serviceAmount.toLocaleString('en-IN')}
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <p className="text-[10.5px] text-slate-500 italic">
+          <p className="text-[10.5px] text-slate-500 italic print:text-[10px]">
             * Note: University Application Fee, University Tuition Fee, and VFS Embassy Appointment Charges are paid by the student directly to the respective institutions / authorities — not to Ferex Education.
           </p>
         </div>
 
         {/* Signature Verification Block */}
-        <div className="pt-6 border-t border-slate-200">
+        <div className="pt-6 border-t border-slate-200 agreement-signature-block print:break-inside-avoid print:pt-0 print:border-none">
           {isSigned ? (
-            <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-6 space-y-4">
+            <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-6 space-y-4 print:p-4 print:bg-emerald-50/50 print:border print:border-emerald-300 print:rounded-xl">
               <div className="flex items-center gap-2 text-emerald-800 text-sm font-black">
                 <ShieldCheck className="w-5 h-5 text-emerald-700" />
                 <span>Officially Executed &amp; Legally Binding Agreement</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 print:grid-cols-2 print:gap-6">
                 <div className="space-y-2">
                   <span className="text-[11px] font-bold text-slate-500 uppercase block">Student Details</span>
                   <p className="text-sm font-extrabold text-slate-900">{agreement?.student_name}</p>
                   <p className="text-xs text-slate-500">{agreement?.student_email}</p>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-400 print:text-slate-500">
                     Signed Date: {agreement?.signed_at ? new Date(agreement.signed_at).toLocaleString() : 'N/A'}
                   </p>
                   <div className="pt-2">
                     <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Student Signature</span>
                     {agreement?.signature_type === 'drawn' ? (
-                      <div className="bg-white border border-slate-200 rounded-lg p-2 max-w-xs">
+                      <div className="bg-white border border-slate-200 rounded-lg p-2 max-w-xs print:border-slate-300">
                         <img src={agreement.signature_data} alt="Student Signature" className="h-12 object-contain" />
                       </div>
                     ) : (
@@ -487,12 +601,12 @@ export const ServiceAgreement: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2 sm:text-right">
+                <div className="space-y-2 sm:text-right print:text-right">
                   <span className="text-[11px] font-bold text-slate-500 uppercase block">Authorized Signatory</span>
                   <p className="text-sm font-extrabold text-slate-900">Ferex Education</p>
                   <p className="text-xs text-slate-500">Under Ferex Ventures Pvt Ltd</p>
-                  <p className="text-[11px] text-slate-400">Official Verification ID: {agreement?.id}</p>
-                  <div className="pt-2 flex sm:justify-end">
+                  <p className="text-[11px] text-slate-400 print:text-slate-500">Official Verification ID: {agreement?.id}</p>
+                  <div className="pt-2 flex sm:justify-end print:justify-end">
                     <div className="border border-emerald-300 bg-white rounded-lg px-3 py-1.5 flex items-center gap-2 text-emerald-700 text-xs font-bold shadow-xs">
                       <ShieldCheck className="w-4 h-4 text-emerald-600" />
                       <span>Ferex Verified Signatory</span>
@@ -503,7 +617,7 @@ export const ServiceAgreement: React.FC = () => {
             </div>
           ) : (
             /* Signing Form */
-            <form onSubmit={handleSignAgreement} className="space-y-6">
+            <form onSubmit={handleSignAgreement} className="space-y-6 print:hidden">
               <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
                 <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
                   <PenTool className="w-4 h-4 text-[#570229]" />
@@ -584,16 +698,12 @@ export const ServiceAgreement: React.FC = () => {
                       <div className="border border-slate-300 rounded-xl bg-white overflow-hidden relative">
                         <canvas
                           ref={canvasRef}
-                          width={600}
-                          height={120}
-                          onMouseDown={startDrawing}
-                          onMouseMove={draw}
-                          onMouseUp={stopDrawing}
-                          onMouseLeave={stopDrawing}
-                          onTouchStart={startDrawing}
-                          onTouchMove={draw}
-                          onTouchEnd={stopDrawing}
-                          className="w-full h-[120px] cursor-crosshair block touch-none"
+                          onPointerDown={startDrawing}
+                          onPointerMove={draw}
+                          onPointerUp={stopDrawing}
+                          onPointerCancel={stopDrawing}
+                          style={{ touchAction: 'none' }}
+                          className="w-full h-[120px] cursor-crosshair block select-none touch-none"
                         />
                         <button
                           type="button"
@@ -655,6 +765,12 @@ export const ServiceAgreement: React.FC = () => {
               </div>
             </form>
           )}
+        </div>
+
+        {/* Document Print Footer */}
+        <div className="hidden print:flex justify-between items-center text-[10px] text-slate-500 border-t border-slate-200 pt-3 mt-6 print:pt-3 print:mt-4 print:border-t print:border-slate-300">
+          <span>FEREX EDUCATION • Student Service Agreement</span>
+          <span>Official Legal Compliance Document</span>
         </div>
       </div>
     </div>
