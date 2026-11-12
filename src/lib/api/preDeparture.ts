@@ -38,8 +38,6 @@ export interface PreDepartureRecord {
   updated_at?: string;
 }
 
-const PREDEP_CATALOG_KEY = 'ferex_predeparture_catalog';
-
 async function getClient() {
   try {
     return await getAdminSupabaseClient();
@@ -48,47 +46,8 @@ async function getClient() {
   }
 }
 
-async function fetchPreDepartureCatalog(): Promise<PreDepartureRecord[]> {
-  try {
-    const admin = await getClient();
-    const { data } = await admin
-      .from('system_config')
-      .select('value')
-      .eq('key', PREDEP_CATALOG_KEY)
-      .maybeSingle();
-    if (data?.value && Array.isArray(data.value)) {
-      return data.value;
-    }
-  } catch {}
-  try {
-    const raw = localStorage.getItem('ferex_predeparture_cloud_catalog');
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return [];
-}
-
-async function syncPreDepartureToCloudCatalog(record: PreDepartureRecord) {
-  try {
-    const current = await fetchPreDepartureCatalog();
-    const filtered = current.filter(r =>
-      r.id !== record.id &&
-      r.student_id !== record.student_id &&
-      (!record.student_email || r.student_email?.toLowerCase() !== record.student_email.toLowerCase())
-    );
-    const updated = [record, ...filtered];
-    try {
-      localStorage.setItem('ferex_predeparture_cloud_catalog', JSON.stringify(updated));
-    } catch {}
-    const admin = await getClient();
-    await admin.from('system_config').upsert({
-      key: PREDEP_CATALOG_KEY,
-      value: updated,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'key' });
-  } catch (e) {
-    console.warn('[syncPreDepartureToCloudCatalog notice]:', e);
-  }
-}
+// pre_departure_checklists is the only source of truth. A JSON copy in system_config used to be merged in; it
+// kept records of deleted students alive and hid failed saves, so it is no longer read or written.
 
 function matchesStudent(r: PreDepartureRecord, targetId?: string): boolean {
   if (!targetId) return true;
@@ -104,81 +63,65 @@ function matchesStudent(r: PreDepartureRecord, targetId?: string): boolean {
 export async function getPreDepartureRecords(studentIdentifier?: string): Promise<PreDepartureRecord[]> {
   const client = await getClient();
 
-  try {
-    let query = client
-      .from('pre_departure_checklists')
-      .select(`
-        *,
-        student:student_id (
-          id,
-          full_name,
-          email
-        )
-      `)
-      .order('created_at', { ascending: false });
+  let query = client
+    .from('pre_departure_checklists')
+    .select(`
+      *,
+      student:student_id (
+        id,
+        full_name,
+        email
+      )
+    `)
+    .order('created_at', { ascending: false });
 
-    // If studentIdentifier is provided and is a UUID, filter by student_id or id
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(studentIdentifier || '');
-    if (isUuid && studentIdentifier) {
-      query = query.or(`student_id.eq.${studentIdentifier},id.eq.${studentIdentifier}`);
-    }
-
-    const { data, error } = await query;
-
-    if (!error && data && data.length > 0) {
-      const records: PreDepartureRecord[] = data.map((d: any) => {
-        const studentObj = Array.isArray(d.student) ? d.student[0] : d.student;
-        return {
-          id: d.id,
-          student_id: d.student_id,
-          student_name: studentObj?.full_name || d.student_name || 'Student',
-          student_email: studentObj?.email || d.student_email || '',
-          university_name: d.university_name || '',
-          flight_booked: Boolean(d.flight_booked),
-          airline: d.airline || '',
-          flight_no: d.flight_no || '',
-          departure_date: d.departure_date || '',
-          arrival_date: d.arrival_date || '',
-          arrival_city: d.arrival_city || '',
-          flight_details: d.flight_details || '',
-          airport_pickup_opted: Boolean(d.airport_pickup_opted),
-          pickup_driver: d.pickup_driver || '',
-          pickup_contact: d.pickup_contact || '',
-          pickup_details: d.pickup_details || '',
-          dorm_assigned: Boolean(d.dorm_assigned),
-          dorm_name: d.dorm_name || '',
-          room_no: d.room_no || '',
-          dorm_address: d.dorm_address || '',
-          dorm_details: d.dorm_details || '',
-          insurance_purchased: Boolean(d.insurance_purchased),
-          forex_card_ready: Boolean(d.forex_card_ready),
-          sim_card_ready: Boolean(d.sim_card_ready),
-          luggage_packed: Boolean(d.luggage_packed),
-          emergency_contacts_saved: Boolean(d.emergency_contacts_saved),
-          briefing_attended: Boolean(d.briefing_attended),
-          overall_progress: Number(d.overall_progress) || 0,
-          clearance_status: d.clearance_status || 'Pending',
-          notes: d.notes || '',
-          created_at: d.created_at || new Date().toISOString(),
-          updated_at: d.updated_at || new Date().toISOString()
-        };
-      });
-
-      if (studentIdentifier) {
-        return records.filter(r => matchesStudent(r, studentIdentifier));
-      }
-      return records;
-    }
-  } catch (err) {
-    console.warn('[getPreDepartureRecords DB query error, falling back to catalog]:', err);
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(studentIdentifier || '');
+  if (isUuid && studentIdentifier) {
+    query = query.or(`student_id.eq.${studentIdentifier},id.eq.${studentIdentifier}`);
   }
 
-  // Fallback to cloud catalog
-  const cloudCatalog = await fetchPreDepartureCatalog();
-  if (studentIdentifier) {
-    return cloudCatalog.filter(r => matchesStudent(r, studentIdentifier));
-  }
-  return cloudCatalog;
+  const { data, error } = await query;
+  if (error) throw new Error(`Could not load pre-departure records: ${error.message}`);
+
+    const records: PreDepartureRecord[] = (data || []).map((d: any) => {
+      const studentObj = Array.isArray(d.student) ? d.student[0] : d.student;
+      return {
+        id: d.id,
+        student_id: d.student_id,
+        student_name: studentObj?.full_name || d.student_name || 'Student',
+        student_email: studentObj?.email || d.student_email || '',
+        university_name: d.university_name || '',
+        flight_booked: Boolean(d.flight_booked),
+        airline: d.airline || '',
+        flight_no: d.flight_no || '',
+        departure_date: d.departure_date || '',
+        arrival_date: d.arrival_date || '',
+        arrival_city: d.arrival_city || '',
+        flight_details: d.flight_details || '',
+        airport_pickup_opted: Boolean(d.airport_pickup_opted),
+        pickup_driver: d.pickup_driver || '',
+        pickup_contact: d.pickup_contact || '',
+        pickup_details: d.pickup_details || '',
+        dorm_assigned: Boolean(d.dorm_assigned),
+        dorm_name: d.dorm_name || '',
+        room_no: d.room_no || '',
+        dorm_address: d.dorm_address || '',
+        dorm_details: d.dorm_details || '',
+        insurance_purchased: Boolean(d.insurance_purchased),
+        forex_card_ready: Boolean(d.forex_card_ready),
+        sim_card_ready: Boolean(d.sim_card_ready),
+        luggage_packed: Boolean(d.luggage_packed),
+        emergency_contacts_saved: Boolean(d.emergency_contacts_saved),
+        briefing_attended: Boolean(d.briefing_attended),
+        overall_progress: Number(d.overall_progress) || 0,
+        clearance_status: d.clearance_status || 'Pending',
+        notes: d.notes || '',
+        created_at: d.created_at || new Date().toISOString(),
+        updated_at: d.updated_at || new Date().toISOString()
+      };
+    });
+
+  return studentIdentifier ? records.filter(r => matchesStudent(r, studentIdentifier)) : records;
 }
 
 export async function savePreDepartureRecord(payload: Partial<PreDepartureRecord> & { student_id: string; student_name: string }): Promise<PreDepartureRecord> {
@@ -241,53 +184,39 @@ export async function savePreDepartureRecord(payload: Partial<PreDepartureRecord
   const completedCount = checklistItems.filter(Boolean).length;
   fullRecord.overall_progress = Math.round((completedCount / checklistItems.length) * 100);
 
-  // Persist directly to pre_departure_checklists table in DB
-  try {
-    const client = await getClient();
-    const dbPayload = {
-      id: fullRecord.id,
-      student_id: fullRecord.student_id,
-      flight_booked: fullRecord.flight_booked,
-      airline: fullRecord.airline,
-      flight_no: fullRecord.flight_no,
-      departure_date: fullRecord.departure_date ? fullRecord.departure_date.split('T')[0] : null,
-      arrival_date: fullRecord.arrival_date ? fullRecord.arrival_date.split('T')[0] : null,
-      arrival_city: fullRecord.arrival_city,
-      flight_details: fullRecord.flight_details,
-      airport_pickup_opted: fullRecord.airport_pickup_opted,
-      pickup_driver: fullRecord.pickup_driver,
-      pickup_contact: fullRecord.pickup_contact,
-      pickup_details: fullRecord.pickup_details,
-      dorm_assigned: fullRecord.dorm_assigned,
-      dorm_name: fullRecord.dorm_name,
-      room_no: fullRecord.room_no,
-      dorm_address: fullRecord.dorm_address,
-      dorm_details: fullRecord.dorm_details,
-      insurance_purchased: fullRecord.insurance_purchased,
-      forex_card_ready: fullRecord.forex_card_ready,
-      sim_card_ready: fullRecord.sim_card_ready,
-      luggage_packed: fullRecord.luggage_packed,
-      emergency_contacts_saved: fullRecord.emergency_contacts_saved,
-      briefing_attended: fullRecord.briefing_attended,
-      overall_progress: fullRecord.overall_progress,
-      clearance_status: fullRecord.clearance_status,
-      notes: fullRecord.notes,
-      updated_at: now
-    };
-
-    const { error } = await client
-      .from('pre_departure_checklists')
-      .upsert(dbPayload, { onConflict: 'student_id' });
-
-    if (error) {
-      console.warn('[savePreDepartureRecord DB error]:', error.message);
-    }
-  } catch (err) {
-    console.warn('[savePreDepartureRecord DB exception]:', err);
-  }
-
-  // Also sync to cloud catalog for fallback
-  await syncPreDepartureToCloudCatalog(fullRecord);
+  // Persist to pre_departure_checklists; a failed save must be reported, not hidden.
+  const client = await getClient();
+  const { error: saveError } = await client.from('pre_departure_checklists').upsert({
+    id: fullRecord.id,
+    student_id: fullRecord.student_id,
+    flight_booked: fullRecord.flight_booked,
+    airline: fullRecord.airline,
+    flight_no: fullRecord.flight_no,
+    departure_date: fullRecord.departure_date ? fullRecord.departure_date.split('T')[0] : null,
+    arrival_date: fullRecord.arrival_date ? fullRecord.arrival_date.split('T')[0] : null,
+    arrival_city: fullRecord.arrival_city,
+    flight_details: fullRecord.flight_details,
+    airport_pickup_opted: fullRecord.airport_pickup_opted,
+    pickup_driver: fullRecord.pickup_driver,
+    pickup_contact: fullRecord.pickup_contact,
+    pickup_details: fullRecord.pickup_details,
+    dorm_assigned: fullRecord.dorm_assigned,
+    dorm_name: fullRecord.dorm_name,
+    room_no: fullRecord.room_no,
+    dorm_address: fullRecord.dorm_address,
+    dorm_details: fullRecord.dorm_details,
+    insurance_purchased: fullRecord.insurance_purchased,
+    forex_card_ready: fullRecord.forex_card_ready,
+    sim_card_ready: fullRecord.sim_card_ready,
+    luggage_packed: fullRecord.luggage_packed,
+    emergency_contacts_saved: fullRecord.emergency_contacts_saved,
+    briefing_attended: fullRecord.briefing_attended,
+    overall_progress: fullRecord.overall_progress,
+    clearance_status: fullRecord.clearance_status,
+    notes: fullRecord.notes,
+    updated_at: now,
+  }, { onConflict: 'student_id' });
+  if (saveError) throw new Error(`Could not save pre-departure details: ${saveError.message}`);
 
   // Dispatch both event variations
   window.dispatchEvent(new Event('ferex_predeparture_change'));

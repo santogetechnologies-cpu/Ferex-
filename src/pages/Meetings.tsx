@@ -59,8 +59,12 @@ export const Meetings: React.FC = () => {
   };
 
   const handleDeleteCall = async (id: string, subjectName: string) => {
-    await deleteCall(id);
-    showToast(`Scheduled session "${subjectName}" cancelled.`);
+    try {
+      await deleteCall(id);
+      showToast(`Scheduled session "${subjectName}" cancelled.`);
+    } catch (err: any) {
+      showToast(`Could not cancel the session: ${err.message || 'Failed'}`);
+    }
   };
 
   // Video call states

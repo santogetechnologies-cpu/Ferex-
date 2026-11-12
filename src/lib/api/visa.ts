@@ -20,8 +20,6 @@ export interface VisaTrackingRecord {
   updated_at: string;
 }
 
-const VISA_CATALOG_KEY = 'ferex_visa_records_catalog';
-
 function cleanDate(d?: string): string {
   if (!d) return '';
   if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
@@ -43,77 +41,47 @@ function matchesStudent(r: VisaTrackingRecord, targetId?: string): boolean {
   );
 }
 
+// visa_applications is the only source of truth. A JSON copy in system_config used to be merged in; it kept
+// records of deleted students alive and hid failed saves, so it is no longer read or written.
 export async function getVisaRecords(studentIdentifier?: string): Promise<VisaTrackingRecord[]> {
-  try {
-    const admin = await getAdminSupabaseClient();
-    const client = admin || supabase;
+  const admin = await getAdminSupabaseClient();
+  const client = admin || supabase;
 
-    let query = client
-      .from('visa_applications')
-      .select('*, users:student_id(full_name, email)')
-      .order('created_at', { ascending: false });
+  let query = client
+    .from('visa_applications')
+    .select('*, users:student_id(full_name, email)')
+    .order('created_at', { ascending: false });
 
-    if (studentIdentifier && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(studentIdentifier)) {
-      query = query.eq('student_id', studentIdentifier);
-    }
-
-    const { data, error } = await query;
-    if (!error && Array.isArray(data) && data.length > 0) {
-      const records: VisaTrackingRecord[] = data.map((r: any) => {
-        const studentObj = r.users || {};
-        const outcome = (r.decision_outcome || (r.status === 'Visa Approved' ? 'Approved' : r.status === 'Visa Refused' ? 'Rejected' : 'Pending')) as 'Pending' | 'Approved' | 'Rejected';
-        return {
-          id: r.id,
-          student_id: r.student_id,
-          student_name: studentObj.full_name || r.notes?.match(/Student:\s*([^,\.]+)/)?.[1] || 'Enrolled Student',
-          student_email: studentObj.email || '',
-          vfs_ref_no: r.vfs_ref_no || r.reference_no || 'VFS-POL-2026',
-          embassy_name: r.country ? `Embassy of ${r.country}` : 'Embassy of Poland',
-          vfs_center: r.vfs_center || 'VFS Global Center',
-          appointment_date: r.appointment_date || '',
-          passport_no: r.passport_no || '',
-          courier_tracking_no: r.courier_tracking_no || r.tracking_id || '',
-          current_stage: r.current_stage || (outcome === 'Approved' ? 8 : 1),
-          status_label: r.status_label || r.status || 'VFS Processing',
-          decision_outcome: outcome,
-          notes: r.notes || '',
-          updated_at: r.updated_at || r.created_at || new Date().toISOString()
-        };
-      });
-
-      if (studentIdentifier) {
-        return records.filter(r => matchesStudent(r, studentIdentifier));
-      }
-      return records;
-    }
-  } catch (dbErr) {
-    console.warn('[getVisaRecords DB query notice]:', dbErr);
+  if (studentIdentifier && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(studentIdentifier)) {
+    query = query.eq('student_id', studentIdentifier);
   }
 
-  // Fallback to system_config or localStorage
-  try {
-    const admin = await getAdminSupabaseClient();
-    const { data } = await admin
-      .from('system_config')
-      .select('value')
-      .eq('key', VISA_CATALOG_KEY)
-      .maybeSingle();
-    if (data?.value && Array.isArray(data.value)) {
-      if (studentIdentifier) return (data.value as VisaTrackingRecord[]).filter(r => matchesStudent(r, studentIdentifier));
-      return data.value as VisaTrackingRecord[];
-    }
-  } catch {}
+  const { data, error } = await query;
+  if (error) throw new Error(`Could not load visa records: ${error.message}`);
 
-  try {
-    const raw = localStorage.getItem('ferex_visa_cloud_catalog');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (studentIdentifier) return parsed.filter((r: any) => matchesStudent(r, studentIdentifier));
-      return parsed;
-    }
-  } catch {}
+  const records: VisaTrackingRecord[] = (data || []).map((r: any) => {
+    const studentObj = r.users || {};
+    const outcome = (r.decision_outcome || (r.status === 'Visa Approved' ? 'Approved' : r.status === 'Visa Refused' ? 'Rejected' : 'Pending')) as 'Pending' | 'Approved' | 'Rejected';
+    return {
+      id: r.id,
+      student_id: r.student_id,
+      student_name: studentObj.full_name || r.notes?.match(/Student:\s*([^,\.]+)/)?.[1] || 'Enrolled Student',
+      student_email: studentObj.email || '',
+      vfs_ref_no: r.vfs_ref_no || r.reference_no || 'VFS-POL-2026',
+      embassy_name: r.country ? `Embassy of ${r.country}` : 'Embassy of Poland',
+      vfs_center: r.vfs_center || 'VFS Global Center',
+      appointment_date: r.appointment_date || '',
+      passport_no: r.passport_no || '',
+      courier_tracking_no: r.courier_tracking_no || r.tracking_id || '',
+      current_stage: r.current_stage || (outcome === 'Approved' ? 8 : 1),
+      status_label: r.status_label || r.status || 'VFS Processing',
+      decision_outcome: outcome,
+      notes: r.notes || '',
+      updated_at: r.updated_at || r.created_at || new Date().toISOString()
+    };
+  });
 
-  return [];
+  return studentIdentifier ? records.filter(r => matchesStudent(r, studentIdentifier)) : records;
 }
 
 export async function updateVisaStatus(
@@ -161,45 +129,30 @@ export async function updateVisaStatus(
     updated_at: nowIso,
   };
 
-  // 1. Persist directly into public.visa_applications
-  if (upsertPayload.student_id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(upsertPayload.student_id)) {
-    try {
-      const admin = await getAdminSupabaseClient();
-      const client = admin || supabase;
-
-      await client.from('visa_applications').upsert({
-        id: validId,
-        student_id: upsertPayload.student_id,
-        vfs_ref_no: upsertPayload.vfs_ref_no,
-        vfs_center: upsertPayload.vfs_center,
-        appointment_date: upsertPayload.appointment_date ? cleanDate(upsertPayload.appointment_date) : null,
-        passport_no: upsertPayload.passport_no,
-        courier_tracking_no: upsertPayload.courier_tracking_no,
-        current_stage: upsertPayload.current_stage,
-        status_label: upsertPayload.status_label,
-        status: resolvedOutcome === 'Approved' ? 'Visa Approved' : resolvedOutcome === 'Rejected' ? 'Visa Refused' : 'Under Embassy Review',
-        decision_outcome: resolvedOutcome,
-        notes: upsertPayload.notes,
-        updated_at: nowIso,
-      }, { onConflict: 'id' });
-    } catch (dbErr) {
-      console.warn('[updateVisaStatus DB write notice]:', dbErr);
-    }
+  // Persist into public.visa_applications; a failed save must be reported, not hidden.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(upsertPayload.student_id)) {
+    throw new Error('A valid student is required to save visa tracking.');
   }
-
-  // 2. Sync to system_config & localStorage for redundancy
-  try {
+  {
     const admin = await getAdminSupabaseClient();
-    const current = await getVisaRecords();
-    const filtered = current.filter(r => r.id !== upsertPayload.id && r.student_id !== upsertPayload.student_id);
-    const updated = [upsertPayload, ...filtered];
-    try { localStorage.setItem('ferex_visa_cloud_catalog', JSON.stringify(updated)); } catch {}
-    await admin.from('system_config').upsert({
-      key: VISA_CATALOG_KEY,
-      value: updated,
+    const client = admin || supabase;
+    const { error: saveError } = await client.from('visa_applications').upsert({
+      id: validId,
+      student_id: upsertPayload.student_id,
+      vfs_ref_no: upsertPayload.vfs_ref_no,
+      vfs_center: upsertPayload.vfs_center,
+      appointment_date: upsertPayload.appointment_date ? cleanDate(upsertPayload.appointment_date) : null,
+      passport_no: upsertPayload.passport_no,
+      courier_tracking_no: upsertPayload.courier_tracking_no,
+      current_stage: upsertPayload.current_stage,
+      status_label: upsertPayload.status_label,
+      status: resolvedOutcome === 'Approved' ? 'Visa Approved' : resolvedOutcome === 'Rejected' ? 'Visa Refused' : 'Under Embassy Review',
+      decision_outcome: resolvedOutcome,
+      notes: upsertPayload.notes,
       updated_at: nowIso,
-    }, { onConflict: 'key' });
-  } catch {}
+    }, { onConflict: 'id' });
+    if (saveError) throw new Error(`Could not save visa tracking: ${saveError.message}`);
+  }
 
   // 3. Automated status cascades & notifications
   if (upsertPayload.student_id) {

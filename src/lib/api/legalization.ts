@@ -27,103 +27,16 @@ export interface LegalizationRecord {
 // Backward-compatible alias
 export type NawaRecord = LegalizationRecord;
 
-const LEGALIZATION_CATALOG_ID = 'ferex_legalization_catalog';
-
-async function fetchLegalizationCatalog(): Promise<LegalizationRecord[]> {
-  try {
-    const admin = await getAdminSupabaseClient();
-    const { data, error } = await admin
-      .from('system_config')
-      .select('value')
-      .eq('key', LEGALIZATION_CATALOG_ID)
-      .maybeSingle();
-    if (!error && data?.value && Array.isArray(data.value)) {
-      return data.value;
-    }
-  } catch {}
-  try {
-    const raw = localStorage.getItem('ferex_legalization_cloud_catalog');
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return [];
-}
-
-async function syncLegalizationToCloudCatalog(record: LegalizationRecord) {
-  try {
-    const current = await fetchLegalizationCatalog();
-    const filtered = current.filter(r => r.id !== record.id);
-    const updated = [record, ...filtered];
-    try {
-      localStorage.setItem('ferex_legalization_cloud_catalog', JSON.stringify(updated));
-    } catch {}
-    const admin = await getAdminSupabaseClient();
-    await admin.from('system_config').upsert({
-      key: LEGALIZATION_CATALOG_ID,
-      value: updated,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'key' });
-  } catch (e) {
-    console.warn('[syncLegalizationToCloudCatalog notice]:', e);
-  }
-}
-
+// The legalization_records table is the only source of truth. An older JSON copy in system_config kept
+// records of deleted students alive and hid failed saves, so it is no longer read or written.
 export async function getLegalizationRecords(country?: string, studentId?: string): Promise<LegalizationRecord[]> {
-  try {
-    let dbRecs: LegalizationRecord[] = [];
-    try {
-      const admin = await getAdminSupabaseClient();
-      let query = admin
-        .from('legalization_records')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (country && country !== 'All') {
-        query = query.ilike('country', `%${country}%`);
-      }
-
-      if (studentId) {
-        query = query.eq('student_id', studentId);
-      }
-
-      const { data, error } = await query;
-      if (!error && Array.isArray(data)) {
-        dbRecs = data.map((r: any) => ({
-          ...r,
-          nawa_ref_no: r.nawa_ref_no || r.ref_no
-        })) as LegalizationRecord[];
-      }
-    } catch {}
-
-    const cloudCatalog = await fetchLegalizationCatalog();
-    let targetCloud = cloudCatalog.map(r => ({ ...r, nawa_ref_no: r.nawa_ref_no || r.ref_no }));
-    if (country && country !== 'All') {
-      targetCloud = targetCloud.filter(r => r.country?.toLowerCase().includes(country.toLowerCase()));
-    }
-    if (studentId) {
-      targetCloud = targetCloud.filter(r => r.student_id === studentId);
-    }
-
-    const dbIds = new Set(dbRecs.map(r => r.id));
-    const merged = [...dbRecs, ...targetCloud.filter(r => !dbIds.has(r.id))];
-
-    if (country && country !== 'All') {
-      return merged.filter(r => r.country?.toLowerCase().includes(country.toLowerCase()));
-    }
-    if (studentId) {
-      return merged.filter(r => r.student_id === studentId);
-    }
-    return merged;
-  } catch (err) {
-    const cloudCatalog = await fetchLegalizationCatalog();
-    let filtered = cloudCatalog.map(r => ({ ...r, nawa_ref_no: r.nawa_ref_no || r.ref_no }));
-    if (country && country !== 'All') {
-      filtered = filtered.filter(r => r.country?.toLowerCase().includes(country.toLowerCase()));
-    }
-    if (studentId) {
-      filtered = filtered.filter(r => r.student_id === studentId);
-    }
-    return filtered;
-  }
+  const admin = await getAdminSupabaseClient();
+  let query = admin.from('legalization_records').select('*').order('created_at', { ascending: false });
+  if (country && country !== 'All') query = query.ilike('country', `%${country}%`);
+  if (studentId) query = query.eq('student_id', studentId);
+  const { data, error } = await query;
+  if (error) throw new Error(`Could not load legalization records: ${error.message}`);
+  return (data || []).map((r: any) => ({ ...r, nawa_ref_no: r.nawa_ref_no || r.ref_no })) as LegalizationRecord[];
 }
 
 export async function createLegalizationApplication(payload: {
@@ -163,14 +76,9 @@ export async function createLegalizationApplication(payload: {
     updated_at: now
   };
 
-  try {
-    const admin = await getAdminSupabaseClient();
-    await admin.from('legalization_records').insert(newRecord);
-  } catch (e) {
-    console.warn('[createLegalizationApplication] DB insert notice:', e);
-  }
-
-  await syncLegalizationToCloudCatalog(newRecord);
+  const admin = await getAdminSupabaseClient();
+  const { error: insertError } = await admin.from('legalization_records').insert(newRecord);
+  if (insertError) throw new Error(`Could not save legalization record: ${insertError.message}`);
 
   // Send student notification
   try {
@@ -203,27 +111,12 @@ export async function updateLegalizationStatus(
   if (certificateUrl) updateData.certificate_url = certificateUrl;
   if (status === 'Approved') updateData.approval_date = now;
 
-  let updatedRecord: LegalizationRecord | null = null;
-  try {
-    const admin = await getAdminSupabaseClient();
-    const { data } = await admin.from('legalization_records').update(updateData).eq('id', id).select();
-    if (data && data.length > 0) {
-      updatedRecord = data[0] as LegalizationRecord;
-    }
-  } catch (e) {
-    console.warn('[updateLegalizationStatus] DB update notice:', e);
-  }
-
-  if (!updatedRecord) {
-    const catalog = await fetchLegalizationCatalog();
-    const existing = catalog.find(r => r.id === id);
-    if (existing) {
-      updatedRecord = { ...existing, ...updateData };
-    }
-  }
+  const admin = await getAdminSupabaseClient();
+  const { data, error: updateError } = await admin.from('legalization_records').update(updateData).eq('id', id).select();
+  if (updateError) throw new Error(`Could not update legalization record: ${updateError.message}`);
+  const updatedRecord: LegalizationRecord | null = data && data.length > 0 ? (data[0] as LegalizationRecord) : null;
 
   if (updatedRecord) {
-    await syncLegalizationToCloudCatalog(updatedRecord);
     if (updatedRecord.student_id) {
       try {
         const isApproved = status === 'Approved';
@@ -246,22 +139,9 @@ export async function updateLegalizationStatus(
 }
 
 export async function deleteLegalizationRecord(id: string): Promise<boolean> {
-  try {
-    const admin = await getAdminSupabaseClient();
-    await admin.from('legalization_records').delete().eq('id', id);
-  } catch (e) {}
-
-  try {
-    const catalog = await fetchLegalizationCatalog();
-    const filtered = catalog.filter(r => r.id !== id);
-    const admin = await getAdminSupabaseClient();
-    await admin.from('system_config').upsert({
-      key: LEGALIZATION_CATALOG_ID,
-      value: filtered,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'key' });
-  } catch {}
-
+  const admin = await getAdminSupabaseClient();
+  const { error } = await admin.from('legalization_records').delete().eq('id', id);
+  if (error) throw new Error(`Could not delete legalization record: ${error.message}`);
   window.dispatchEvent(new Event('ferex_legalization_change'));
   return true;
 }
