@@ -1,4 +1,5 @@
 import { markStaffDeleted, deleteDivisionStaff, isStaffDeleted } from '../../lib/api/staff';
+import { deactivateUserAccount, updateUserRoleWithRealtime } from '../../lib/api/sessionSecurity';
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -359,6 +360,38 @@ export const RolesUsers: React.FC = () => {
     showToastMsg('Login details copied to clipboard!');
   };
 
+  const handleToggleStatus = async (adm: AdminAccount) => {
+    const isSelf =
+      (user && (user.id === adm.id || user.email?.toLowerCase() === adm.email.toLowerCase())) ||
+      (profile && (profile.id === adm.id || profile.email?.toLowerCase() === adm.email.toLowerCase()));
+
+    if (isSelf && adm.status === 'Active') {
+      showToastMsg('Security restriction: You cannot deactivate your own active administrator account.');
+      return;
+    }
+
+    const newActiveState = adm.status !== 'Active';
+    const actionLabel = newActiveState ? 'Activate' : 'Deactivate';
+
+    if (!window.confirm(`${actionLabel} account for ${adm.email}? ${!newActiveState ? 'Active sessions will be terminated immediately in real time.' : ''}`)) {
+      return;
+    }
+
+    try {
+      if (!newActiveState) {
+        await deactivateUserAccount(adm.id, adm.email);
+        showToastMsg(`Account ${adm.email} deactivated and active session revoked.`);
+      } else {
+        await supabase.from('users').update({ is_active: true, status: 'active', updated_at: new Date().toISOString() }).eq('id', adm.id);
+        await updateUserRoleWithRealtime(adm.id, adm.role, adm.email);
+        showToastMsg(`Account ${adm.email} activated.`);
+      }
+      loadAdmins();
+    } catch (err: any) {
+      showToastMsg(`Failed: ${err?.message || 'Error updating status'}`);
+    }
+  };
+
   // ─── Filtered Users ──────────────────────────────────────────────────────────
 
   const filteredAdmins = adminList.filter(a => {
@@ -592,13 +625,18 @@ export const RolesUsers: React.FC = () => {
                           </td>
 
                           <td className="py-3.5 px-4">
-                            <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-extrabold border ${
-                              adm.status === 'Active'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                : 'bg-slate-100 text-slate-600 border-slate-300'
-                            }`}>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleStatus(adm)}
+                              title={`Click to ${adm.status === 'Active' ? 'Deactivate (Terminates Session Immediately)' : 'Activate'} account`}
+                              className={`px-2 py-0.5 rounded-full text-[9.5px] font-extrabold border cursor-pointer hover:opacity-80 transition-all ${
+                                adm.status === 'Active'
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                  : 'bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200'
+                              }`}
+                            >
                               ● {adm.status}
-                            </span>
+                            </button>
                           </td>
 
                           <td className="py-3.5 px-4 text-right">

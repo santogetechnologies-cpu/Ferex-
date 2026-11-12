@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, AlertCircle, ArrowRight, ShieldCheck, Eye, EyeOff, CheckCircle2, Laptop, Globe, FolderKanban } from 'lucide-react';
@@ -17,6 +17,16 @@ export const DigitalLoginPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    try {
+      const revocationMsg = sessionStorage.getItem('ferex_auth_revocation_message');
+      if (revocationMsg) {
+        setErrorMsg(revocationMsg);
+        sessionStorage.removeItem('ferex_auth_revocation_message');
+      }
+    } catch {}
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

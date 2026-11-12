@@ -1,6 +1,7 @@
 import { supabase } from '../supabase';
 import { getAdminSupabaseClient } from '../adminAuthClient';
 import { generateUUID } from '../../utils/uuid';
+import { broadcastSessionRevocation } from './sessionSecurity';
 
 export interface DivisionStaffMember {
   id: string;
@@ -578,6 +579,14 @@ export async function deleteDivisionStaff(idOrEmail: string, optionalEmail?: str
   // Deletion confirmed by backend: update local storage and client registries
   if (resolvedEmail) markStaffDeleted(resolvedEmail);
   if (resolvedId) markStaffDeleted(resolvedId);
+
+  // Broadcast real-time session revocation so the affected user is immediately logged out without refreshing
+  broadcastSessionRevocation({
+    userId: resolvedId,
+    email: resolvedEmail,
+    action: 'delete',
+    message: 'Your account has been deactivated or deleted. Please contact the Central Admin.',
+  });
 
   // Remove from custom staff store
   try {

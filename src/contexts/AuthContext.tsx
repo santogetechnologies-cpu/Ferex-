@@ -73,6 +73,12 @@ async function fetchProfile(userId: string, _email?: string | null): Promise<Use
 async function ensureProfile(user: User): Promise<UserProfile> {
   const profile = await fetchProfile(user.id);
   if (!profile) throw new Error('Your account profile could not be loaded. Contact your administrator.');
+  if (
+    (profile as any).is_active === false ||
+    ['deleted', 'inactive', 'deactivated', 'suspended'].includes(((profile as any).status || '').toLowerCase())
+  ) {
+    throw new Error('Your account has been deactivated or deleted. Please contact the Central Admin.');
+  }
   return profile;
 }
 
@@ -83,6 +89,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const signOut = useCallback(async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {}
+    try {
+      const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('ferex_session_') || k.startsWith('ferex_current_') || ['ferex_user', 'ferex_student_target_country', 'ferex_student_selected_uni', 'ferex_selected_course'].includes(k));
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    } catch {}
+    setUser(null);
+    setSession(null);
+    setProfile(null);
+  }, []);
+
+  const triggerRevocation = useCallback(async (reasonMessage?: string) => {
+    const msg = reasonMessage || 'Your account has been deactivated or deleted. Please contact the Central Admin.';
+    try {
+      sessionStorage.setItem('ferex_auth_revocation_message', msg);
+    } catch {}
+
+    window.dispatchEvent(new CustomEvent('ferex_session_revoked', { detail: { message: msg } }));
+
+    await signOut();
+
+    const isDigital = typeof window !== 'undefined' && window.location.pathname.startsWith('/digital');
+    const targetLogin = isDigital ? '/digital/login' : '/login';
+    if (typeof window !== 'undefined' && window.location.pathname !== targetLogin) {
+      window.location.href = targetLogin;
+    }
+  }, [signOut]);
 
   const authGeneration = useRef(0);
   const loadUserData = useCallback(async (currentSession: Session | null) => {
@@ -109,13 +145,167 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         }
       }
-    } catch {
+    } catch (err: any) {
+      if (err?.message?.includes('deactivated or deleted')) {
+        triggerRevocation(err.message);
+        return;
+      }
       // A profile lookup failure never grants a role from metadata or local storage.
       if (generation === authGeneration.current) setProfile(null);
     } finally {
       if (generation === authGeneration.current) setLoading(false);
     }
-  }, []);
+  }, [triggerRevocation]);
+
+  // Real-time security listener for active user account state
+  useEffect(() => {
+    if (!user?.id) return;
+    const currentUserId = user.id;
+    const currentUserEmail = (user.email || profile?.email || '').toLowerCase().trim();
+
+    // 1. WebSocket Channel for real-time account status, deletion and role updates
+    const securityChannel = supabase
+      .channel(`realtime_auth_security_${currentUserId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'users',
+        },
+        (payload) => {
+          const deletedId = (payload.old as any)?.id;
+          const deletedEmail = ((payload.old as any)?.email || '').toLowerCase().trim();
+          if (
+            deletedId === currentUserId ||
+            (currentUserEmail && deletedEmail === currentUserEmail)
+          ) {
+            triggerRevocation('Your account has been deactivated or deleted. Please contact the Central Admin.');
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'users',
+          filter: `id=eq.${currentUserId}`,
+        },
+        (payload) => {
+          const updated = payload.new as any;
+          if (!updated) return;
+
+          const isInactive =
+            updated.is_active === false ||
+            ['deleted', 'inactive', 'deactivated', 'suspended'].includes((updated.status || '').toLowerCase());
+
+          if (isInactive) {
+            triggerRevocation('Your account has been deactivated or deleted. Please contact the Central Admin.');
+            return;
+          }
+
+          const newRole = (updated.role || '').toLowerCase().trim();
+          const currentRole = (profile?.role || '').toLowerCase().trim();
+          const permsChanged = JSON.stringify(updated.permissions) !== JSON.stringify(profile?.permissions);
+
+          if (newRole !== currentRole || permsChanged) {
+            setProfile(prev => prev ? {
+              ...prev,
+              role: updated.role,
+              permissions: updated.permissions || [],
+              department: updated.department || prev.department,
+              full_name: updated.full_name || prev.full_name,
+              is_active: updated.is_active,
+              status: updated.status,
+            } : null);
+
+            window.dispatchEvent(new CustomEvent('ferex_role_changed', {
+              detail: { newRole: updated.role, permissions: updated.permissions }
+            }));
+          }
+        }
+      )
+      .on(
+        'broadcast',
+        { event: 'session_revoked' },
+        (payload) => {
+          const p = payload.payload;
+          if (
+            p?.userId === currentUserId ||
+            (currentUserEmail && p?.email && p.email.toLowerCase().trim() === currentUserEmail)
+          ) {
+            if (p.action === 'delete' || p.action === 'deactivate') {
+              triggerRevocation(p.message);
+            } else if (p.action === 'role_change' && p.newRole) {
+              setProfile(prev => prev ? {
+                ...prev,
+                role: p.newRole,
+                permissions: p.permissions || prev.permissions,
+              } : null);
+              window.dispatchEvent(new CustomEvent('ferex_role_changed', {
+                detail: { newRole: p.newRole, permissions: p.permissions }
+              }));
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    // 2. Active session verification fallback (on tab visibility / periodic check)
+    const verifyStatus = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, role, is_active, status, permissions')
+          .eq('id', currentUserId)
+          .maybeSingle();
+
+        if (error) return;
+
+        if (!data) {
+          triggerRevocation('Your account has been deactivated or deleted. Please contact the Central Admin.');
+          return;
+        }
+
+        if (
+          data.is_active === false ||
+          ['deleted', 'inactive', 'deactivated', 'suspended'].includes((data.status || '').toLowerCase())
+        ) {
+          triggerRevocation('Your account has been deactivated or deleted. Please contact the Central Admin.');
+          return;
+        }
+
+        const newRole = (data.role || '').toLowerCase().trim();
+        const currentRole = (profile?.role || '').toLowerCase().trim();
+        if (newRole !== currentRole || JSON.stringify(data.permissions) !== JSON.stringify(profile?.permissions)) {
+          setProfile(prev => prev ? {
+            ...prev,
+            role: data.role,
+            permissions: data.permissions || [],
+          } : null);
+          window.dispatchEvent(new CustomEvent('ferex_role_changed', {
+            detail: { newRole: data.role, permissions: data.permissions }
+          }));
+        }
+      } catch {}
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        verifyStatus();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    const interval = setInterval(verifyStatus, 15000);
+
+    return () => {
+      supabase.removeChannel(securityChannel);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      clearInterval(interval);
+    };
+  }, [user?.id, profile?.email, profile?.role, profile?.permissions, triggerRevocation]);
 
   useEffect(() => {
     for (const key of Object.keys(localStorage)) { if (key.startsWith('ferex_admin_cred_')) localStorage.removeItem(key); }
@@ -204,19 +394,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const created = await provisionAccount({ email: email.trim(), password, full_name: fullName, role, ...extra });
       return { user: created };
     } catch (error) { return { error: (error as Error).message }; }
-  }, []);
-
-  const signOut = useCallback(async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch {}
-    try {
-      const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('ferex_session_') || k.startsWith('ferex_current_') || ['ferex_user', 'ferex_student_target_country', 'ferex_student_selected_uni', 'ferex_selected_course'].includes(k));
-      keysToRemove.forEach(k => localStorage.removeItem(k));
-    } catch {}
-    setUser(null);
-    setSession(null);
-    setProfile(null);
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {

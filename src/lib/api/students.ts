@@ -4,6 +4,7 @@ import { getAdminSupabaseClient } from '../adminAuthClient';
 import type { UserProfile } from '../types';
 import { generateUUID } from '../../utils/uuid';
 import { createNotification } from './notifications';
+import { broadcastSessionRevocation } from './sessionSecurity';
 
 export const DEFAULT_COUNSELOR_ROSTER = [
   { id: 'c-1', name: 'Admissions Officer', role: 'European Admissions Lead', desk: 'Admissions Desk', email: 'info@ferexventures.com', country: 'Global' },
@@ -461,6 +462,24 @@ export async function updateStudent(id: string, updates: Partial<UserProfile> & 
   window.dispatchEvent(new Event('ferex_student_profile_change'));
   window.dispatchEvent(new Event('ferex_applications_change'));
 
+  // Broadcast real-time permission update if role, active status or permissions changed
+  if (updates.is_active === false || updates.status === 'inactive' || updates.status === 'deleted') {
+    broadcastSessionRevocation({
+      userId: id,
+      email: data[0]?.email,
+      action: 'deactivate',
+      message: 'Your account has been deactivated or deleted. Please contact the Central Admin.',
+    });
+  } else if (updates.role || updates.permissions) {
+    broadcastSessionRevocation({
+      userId: id,
+      email: data[0]?.email,
+      action: updates.role ? 'role_change' : 'permissions_change',
+      newRole: updates.role,
+      permissions: updates.permissions,
+    });
+  }
+
   return data[0] as UserProfile;
 }
 
@@ -618,6 +637,14 @@ export async function deleteStudent(id: string, optionalEmail?: string): Promise
   window.dispatchEvent(new Event('ferex_tasks_change'));
   window.dispatchEvent(new Event('ferex_applications_change'));
   window.dispatchEvent(new Event('ferex_agreement_change'));
+
+  // Broadcast real-time session revocation so the affected student is immediately logged out without refreshing
+  broadcastSessionRevocation({
+    userId: targetUserId,
+    email: cleanEmail,
+    action: 'delete',
+    message: 'Your account has been deactivated or deleted. Please contact the Central Admin.',
+  });
 }
 
 // ─── Get student count stats ──────────────────────────────────────────────────

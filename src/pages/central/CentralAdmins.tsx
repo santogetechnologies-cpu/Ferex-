@@ -12,6 +12,7 @@ import { ToastNotification } from '../../components/ToastNotification';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { isSuperAdmin } from '../../lib/roleRouter';
+import { deleteDivisionStaff } from '../../lib/api/staff';
 
 interface AdminAccount {
   id: string;
@@ -305,11 +306,11 @@ export const CentralAdmins: React.FC = () => {
   };
 
   const handleDelete = async (id: string, emailToDelete: string) => {
-    if (!window.confirm(`Remove login access for ${emailToDelete}?`)) return;
+    if (!window.confirm(`Remove login access for ${emailToDelete}? This will revoke their active session immediately.`)) return;
     try {
-      await supabase.from('users').delete().eq('id', id);
-      setAdminList(prev => prev.filter(a => a.id !== id));
-      showToastMsg(`Login for ${emailToDelete} removed.`);
+      await deleteDivisionStaff(id, emailToDelete);
+      setAdminList(prev => prev.filter(a => a.id !== id && a.email?.toLowerCase() !== emailToDelete.toLowerCase()));
+      showToastMsg(`Login for ${emailToDelete} removed and session terminated.`);
       window.dispatchEvent(new Event('ferex_staff_change'));
       loadAdmins();
     } catch (err: any) {

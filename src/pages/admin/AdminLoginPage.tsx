@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, AlertCircle, CheckCircle2, ShieldCheck, ArrowLeft, Shield, UserPlus, LogIn, Lock } from 'lucide-react';
@@ -29,6 +29,16 @@ export const AdminLoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    try {
+      const revocationMsg = sessionStorage.getItem('ferex_auth_revocation_message');
+      if (revocationMsg) {
+        setError(revocationMsg);
+        sessionStorage.removeItem('ferex_auth_revocation_message');
+      }
+    } catch {}
+  }, []);
 
   // 1. Handle Super Admin Sign In
   const handleSignIn = async (e: React.FormEvent) => {

@@ -87,6 +87,16 @@ export const LoginPage: React.FC = () => {
   };
 
   useEffect(() => {
+    try {
+      const revocationMsg = sessionStorage.getItem('ferex_auth_revocation_message');
+      if (revocationMsg) {
+        setErrorMsg(revocationMsg);
+        sessionStorage.removeItem('ferex_auth_revocation_message');
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
     const mode = searchParams.get('mode');
     if (mode === 'signup') {
       switchToSignUp();
