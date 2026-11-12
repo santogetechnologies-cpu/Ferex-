@@ -189,7 +189,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
     ]).then(([stored, agreement, destination]) => {
       if (cancelled) return;
       setPreferredCountry(destination);
-      const completed = new Set(stored.filter(s => s.status === 'Completed').map(s => s.stage_number));
+      const completed = new Set(stored.filter(s => s.status === 'Completed' && s.stage_number !== 3).map(s => s.stage_number));
       completed.add(1);
       if (agreement?.status === 'Signed') completed.add(2);
       const registration = educationFees(config).find(f => f.id === 'registration');

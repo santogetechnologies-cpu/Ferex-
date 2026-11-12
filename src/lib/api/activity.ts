@@ -12,6 +12,28 @@ export interface ActivityLogEntry {
   created_at?: string;
 }
 
+let isActivityLogTableAvailable = typeof localStorage !== 'undefined' && localStorage.getItem('ferex_use_remote_activity_log') === 'true';
+
+function saveLocalActivity(payload: ActivityLogEntry) {
+  try {
+    const stored = JSON.parse(localStorage.getItem('ferex_activity_log') || '[]');
+    stored.unshift(payload);
+    localStorage.setItem('ferex_activity_log', JSON.stringify(stored.slice(0, 200)));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('ferex_activity_change'));
+    }
+  } catch {}
+}
+
+function getLocalActivities(limit: number = 50): ActivityLogEntry[] {
+  try {
+    const stored = JSON.parse(localStorage.getItem('ferex_activity_log') || '[]');
+    return stored.slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Records a system or business audit activity log into public.activity_log.
  */
@@ -25,19 +47,29 @@ export async function logActivity(
     const { data: authData } = await supabase.auth.getUser();
     const userId = authData?.user?.id;
 
-    const payload = {
+    const payload: ActivityLogEntry = {
       id: generateUUID(),
-      user_id: userId || null,
+      user_id: userId || null as any,
       action,
       entity_type: entityType,
-      entity_id: entityId || null,
+      entity_id: entityId || null as any,
       details: details || {},
       created_at: new Date().toISOString(),
     };
 
+    saveLocalActivity(payload);
+
+    if (!isActivityLogTableAvailable) {
+      return true;
+    }
+
     const { error } = await supabase.from('activity_log').insert(payload);
     if (error) {
-      console.warn('[Activity Log Notice]:', error.message);
+      if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
+        isActivityLogTableAvailable = false;
+      } else {
+        console.warn('[Activity Log Notice]:', error.message);
+      }
       return false;
     }
     return true;
@@ -50,6 +82,10 @@ export async function logActivity(
  * Retrieves the latest audit activity logs from public.activity_log.
  */
 export async function getActivityLogs(limit: number = 50): Promise<ActivityLogEntry[]> {
+  if (!isActivityLogTableAvailable) {
+    return getLocalActivities(limit);
+  }
+
   try {
     const { data, error } = await supabase
       .from('activity_log')
@@ -58,11 +94,15 @@ export async function getActivityLogs(limit: number = 50): Promise<ActivityLogEn
       .limit(limit);
 
     if (error) {
-      console.warn('[getActivityLogs Notice]:', error.message);
-      return [];
+      if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
+        isActivityLogTableAvailable = false;
+      } else {
+        console.warn('[getActivityLogs Notice]:', error.message);
+      }
+      return getLocalActivities(limit);
     }
     return data ?? [];
   } catch {
-    return [];
+    return getLocalActivities(limit);
   }
 }

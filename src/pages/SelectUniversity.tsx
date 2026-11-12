@@ -321,12 +321,10 @@ export const SelectUniversity: React.FC = () => {
         } catch (e) {}
       }
 
-      // Automatically advance workflow stages: Stage 2 (University Shortlisting) & Stage 3 (Application Preparation)
+      // Automatically advance workflow stage: Stage 6 (University Selection & Course Application)
       try {
         const { setStudentStageStatus } = await import('../lib/api/journey');
-        await setStudentStageStatus(activeStudentId, 2, 'Completed', `Selected ${applyUni.name} (${applyUni.country})`);
-        await setStudentStageStatus(activeStudentId, 3, 'Completed', `Applied for ${degreeLevel} - ${selectedCourse || 'Program'}`);
-        await setStudentStageStatus(activeStudentId, 4, 'In Progress', 'Application dossier awaiting institutional review.');
+        await setStudentStageStatus(activeStudentId, 6, 'Completed', `Applied for ${degreeLevel} - ${selectedCourse || 'Program'} at ${applyUni.name}`);
       } catch (stageErr) {
         console.warn('Workflow progression notice:', stageErr);
       }
