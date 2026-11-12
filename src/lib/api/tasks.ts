@@ -287,13 +287,14 @@ export async function updateTaskStatus(id: string, status: Task['status']): Prom
   const client = admin || supabase;
 
   // 1. Update tasks table
-  await client
+  const { error: statusError } = await client
     .from('tasks')
     .update({
       status,
       updated_at: now,
     })
     .eq('id', id);
+  if (statusError) throw new Error(`Could not update task: ${statusError.message}`);
 
   // 2. Cross-update subsidiary tables if record exists with that ID
   const subStatus = status === 'Completed' || status === 'Done' ? 'Completed' : status === 'In Progress' ? 'In Progress' : 'Pending';
@@ -374,10 +375,11 @@ export async function reassignTask(payload: {
     updatePayload.category = payload.division;
   }
 
-  await client
+  const { error: assignError } = await client
     .from('tasks')
     .update(updatePayload)
     .eq('id', payload.taskId);
+  if (assignError) throw new Error(`Could not assign task: ${assignError.message}`);
 
   // Sync to subsidiary tables
   const email = payload.assignedStaffEmail || `${payload.assignedTo.toLowerCase().replace(/\s+/g, '')}@ferex.com`;

@@ -419,14 +419,12 @@ export async function issueRefund(paymentId: string, refundAmount: number, reaso
   } catch (e) {}
 
   // 2. Guaranteed update using standard columns
-  try {
-    await supabase.from('payments').update({
-      status: 'Refunded',
-      reviewer_notes: `[REFUNDED] Amount: INR ${refundAmount} | Reason: ${reason} | Credit Note: ${creditNoteNo}`
-    }).eq('id', paymentId);
-  } catch (e) {
-    console.warn('[issueRefund basic update]', e);
-  }
+  // The refund must really mark the payment, otherwise a credit note would exist for a payment still counted as paid.
+  const { error: refundError } = await supabase.from('payments').update({
+    status: 'Refunded',
+    reviewer_notes: `[REFUNDED] Amount: INR ${refundAmount} | Reason: ${reason} | Credit Note: ${creditNoteNo}`
+  }).eq('id', paymentId);
+  if (refundError) throw new Error(`Refund failed: ${refundError.message}`);
 
   // 3. Extended update if schema supports extra columns
   try {
@@ -462,12 +460,11 @@ export async function issueRefund(paymentId: string, refundAmount: number, reaso
 
 // ─── ADMIN — mark partial payment ────────────────────────────────────────────
 export async function markPartialPayment(paymentId: string, partialAmount: number): Promise<void> {
-  try {
-    await supabase.from('payments').update({
-      status: 'Partial',
-      partial_amount: partialAmount,
-    }).eq('id', paymentId);
-  } catch (e) { console.warn('[markPartialPayment]', e); }
+  const { error } = await supabase.from('payments').update({
+    status: 'Partial',
+    partial_amount: partialAmount,
+  }).eq('id', paymentId);
+  if (error) throw new Error(`Could not mark partial payment: ${error.message}`);
 }
 
 // ─── PDF — Separate Bank-Style Payment Receipt ────────────────────────────────

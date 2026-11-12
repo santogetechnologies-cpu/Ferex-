@@ -57,7 +57,7 @@ export async function setStudentStageStatus(
     if (target) {
       await updateJourneyStageStatus(target.id, status, notes);
     } else {
-      await supabase.from('education_workflow_progress').upsert({
+      const { error: stageError } = await supabase.from('education_workflow_progress').upsert({
         student_id: studentId,
         stage_number: stageNumber,
         stage_name: educationStages[stageNumber - 1] || `Stage ${stageNumber}`,
@@ -65,6 +65,7 @@ export async function setStudentStageStatus(
         notes: notes || '',
         completed_at: status === 'Completed' ? new Date().toISOString() : null,
       }, { onConflict: 'student_id,stage_number' });
+      if (stageError) throw stageError;
     }
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('ferex_journey_change'));

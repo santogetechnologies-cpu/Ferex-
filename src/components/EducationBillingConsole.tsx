@@ -513,6 +513,32 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
         </div>
       )}
 
+      {/* Admin: choose the student whose configured fees you want to collect */}
+      {admin && (
+        <section className="p-4 bg-white border border-slate-200/90 rounded-2xl shadow-xs flex flex-col sm:flex-row sm:items-end gap-3">
+          <div className="flex-1">
+            <label htmlFor="billing-student" className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5">
+              Collect fees for student
+            </label>
+            <select
+              id="billing-student"
+              aria-label="Student"
+              className={fieldClass}
+              value={studentId}
+              onChange={e => { setStudentId(e.target.value); setMessage(''); }}
+            >
+              <option value="">Select a student to see their configured fees…</option>
+              {students.map(s => (
+                <option key={s.id} value={s.id}>{s.full_name || s.email} — {s.email}</option>
+              ))}
+            </select>
+          </div>
+          {studentId && (
+            <button type="button" className={secondaryBtn} onClick={() => setStudentId('')}>Show all payments</button>
+          )}
+        </section>
+      )}
+
       {/* KPI Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {Object.entries(totals).map(([currency, sums]) => (
@@ -551,7 +577,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                 <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-800 flex items-start gap-2.5">
                   <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                   <span>
-                    Select a university to apply country-specific fees. Fees with country overrides remain unavailable until a destination is selected.
+                    This student has no destination country yet. Select a university or destination so the right fee plan applies.
                   </span>
                 </div>
               )}

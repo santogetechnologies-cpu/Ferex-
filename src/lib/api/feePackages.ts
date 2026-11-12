@@ -247,7 +247,7 @@ export async function setStudentBillingFlow(
   assignedBy: string
 ): Promise<void> {
   const now = new Date().toISOString();
-  await supabase.from('education_student_preferences').upsert({
+  const { error } = await supabase.from('education_student_preferences').upsert({
     student_id: studentId,
     fee_flow_mode: flowMode,
     fee_package_id: flowMode === 'package' ? packageId : null,
@@ -255,6 +255,7 @@ export async function setStudentBillingFlow(
     fee_package_assigned_by: assignedBy,
     updated_at: now,
   }, { onConflict: 'student_id' });
+  if (error) throw new Error(`Could not save billing flow: ${error.message}`);
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('ferex_student_billing_flow_change', { detail: { studentId } }));

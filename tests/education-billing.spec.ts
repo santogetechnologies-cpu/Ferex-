@@ -55,7 +55,7 @@ async function setup(page: Page, role = 'education_admin', existingPayments: any
 for (const [role, path] of [
   ['education_admin', '/admin/payment-control'], ['admin', '/admin/fee-config'],
   ['central', '/central/education-billing'], ['superadmin', '/central/payments'],
-  ['education_admin', '/admin/universities'], ['education_admin', '/admin/students'],
+  ['education_admin', '/admin/universities'], ['education_admin', '/admin/students'], ['education_admin', '/admin/enquiries'],
   ['student', '/student/payments'], ['student', '/student/journey-tracker'],
   ['student', '/student/select-university'], ['student', '/student/offers'],
   ['student', '/student/invoices'], ['student', '/student/receipts'],
@@ -82,7 +82,7 @@ test('student sees country override, only UPI and pending verification after sub
 test('admin records three payment entries as one atomic request', async ({ page }) => {
   const { saved } = await setup(page); await page.goto('/admin/payment-control');
   await page.getByRole('combobox', { name: 'Student', exact: true }).selectOption(studentId);
-  await page.getByRole('button', { name: 'Record bank / cash / split payment' }).click();
+  await page.getByRole('button', { name: 'Collect fee (full, partial or split)' }).click();
   await page.getByLabel('Entry 1 amount').fill('1000'); await page.getByLabel('Entry 1 reference').fill('BANK-1');
   await page.getByRole('button', { name: 'Add payment entry', exact: true }).click();
   await page.getByLabel('Entry 2 amount').fill('600'); await page.getByLabel('Entry 2 reference').fill('CASH-1');
@@ -91,6 +91,17 @@ test('admin records three payment entries as one atomic request', async ({ page 
   await page.getByRole('button', { name: 'Record payment entries', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0); expect(saved).toHaveLength(3);
   expect(saved.map(p => p.amount)).toEqual([1000, 600, 400]); expect(saved.every(p => p.status === 'Paid')).toBe(true);
+});
+test('student can pay part of a fee and sees the position clearly', async ({ page }) => {
+  const { saved } = await setup(page, 'student'); await page.goto('/student/payments');
+  await expect(page.getByLabel('Payment summary INR')).toContainText('Balance to pay');
+  await expect(page.getByText('Unpaid', { exact: true }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Pay by UPI', exact: true }).click();
+  await page.getByLabel('Amount to pay').fill('500');
+  await page.getByLabel('UPI transaction reference').fill('123456789012');
+  await page.getByRole('button', { name: 'Submit UPI reference', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(saved).toHaveLength(1); expect(saved[0].amount).toBe(500); expect(saved[0].status).toBe('Pending Verification');
 });
 test('university edit has no fee or installment tabs', async ({ page }) => {
   await setup(page); await page.goto('/admin/universities');
@@ -104,13 +115,17 @@ test('student cannot enter admin or central billing', async ({ page }) => {
   await page.goto('/admin/payment-control'); await expect(page).toHaveURL(/\/student\/dashboard/);
 });
 
-test('fee settings preserve country overrides and before/after workflow timing', async ({ page }) => {
+test('fee settings keep before/after timing and no longer offer country overrides', async ({ page }) => {
   const { configurations } = await setup(page); await page.goto('/admin/fee-config');
   const registration = page.locator('article').filter({ hasText: 'Advanced Registration Fee' });
   await registration.getByLabel('Common amount', { exact: true }).fill('1800');
   await registration.getByRole('combobox', { name: 'Payable', exact: true }).selectOption('after');
   await registration.getByRole('combobox', { name: 'Workflow stage', exact: true }).selectOption('10');
   await page.getByRole('button', { name: 'Save fee configuration', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('saved to the database');
-  expect(configurations[0][0].value.education_fees[0]).toMatchObject({ amount: 1800, stage: 10, timing: 'after', countryAmounts: { Canada: 2000 } });
+  await expect(page.getByRole('status')).toContainText('Fee configuration saved');
+  await expect(page.getByText('Country-Specific Fee Overrides')).toHaveCount(0);
+  const saved = configurations[0][0].value.education_fees[0];
+  expect(saved).toMatchObject({ amount: 1800, stage: 10, timing: 'after' });
+  // Country amounts now live in country fee plans, so old per-country overrides are dropped on save.
+  expect(saved).not.toHaveProperty('countryAmounts');
 });
