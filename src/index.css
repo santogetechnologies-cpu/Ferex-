@@ -288,17 +288,20 @@ h1, h2, h3, h4, .font-heading {
     print-color-adjust: exact !important;
   }
 
-  /* Reset layout constraints on ancestors to ensure seamless multi-page pagination */
+  /* Reset layout constraints on ancestors to ensure seamless multi-page pagination and full preview scrolling */
   #root,
   #root > div,
+  #root > div > div,
   main,
   main > div,
+  main > div > div,
   .agreement-page-wrapper {
     display: block !important;
     width: 100% !important;
     max-width: 100% !important;
     height: auto !important;
     min-height: 0 !important;
+    max-height: none !important;
     margin: 0 !important;
     padding: 0 !important;
     position: static !important;
@@ -307,6 +310,13 @@ h1, h2, h3, h4, .font-heading {
     border: none !important;
     box-shadow: none !important;
     background: transparent !important;
+  }
+
+  /* Reset any overflow clipping on all elements in print so multi-page documents are never truncated */
+  #root,
+  #root *,
+  body * {
+    overflow: visible !important;
   }
 
   /* Universal portal chrome hide */
@@ -377,48 +387,83 @@ h1, h2, h3, h4, .font-heading {
   .agreement-print-title,
   .agreement-clause,
   .agreement-fee-table,
-  .agreement-signature-block {
+  .agreement-signature-block,
+  .agreement-print-company-footer,
+  .agreement-final-page-footer {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }
 
   .agreement-print-header {
+    display: none !important;
+  }
+
+  /* Page 2 wrapper: starts cleanly on Page 2 and anchors company details + footer to bottom of Page 2 */
+  .agreement-page-2-wrapper,
+  .agreement-page-final-wrapper {
+    break-before: page !important;
+    page-break-before: always !important;
+    padding-top: 14mm !important;
+    min-height: 255mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+  }
+
+  .agreement-final-page-footer {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    margin-top: auto !important;
+    width: 100% !important;
+  }
+
+  .agreement-print-company-footer {
     display: flex !important;
     flex-direction: row !important;
     justify-content: space-between !important;
     align-items: flex-start !important;
-    border-bottom: 1.5pt solid #cbd5e1 !important;
-    padding-bottom: 12pt !important;
-    margin-bottom: 12pt !important;
+    border-top: 1.5pt solid #cbd5e1 !important;
+    border-bottom: none !important;
+    padding-top: 10pt !important;
+    margin-top: 0 !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
   .agreement-print-title {
     text-align: center !important;
-    padding: 6pt 0 !important;
+    padding: 3pt 0 !important;
     border-bottom: 1pt solid #cbd5e1 !important;
-    margin-bottom: 12pt !important;
+    margin-bottom: 6pt !important;
   }
 
   .agreement-clause {
-    margin-bottom: 8pt !important;
+    margin-bottom: 4.5pt !important;
   }
 
+  /* Fee & Milestone Schedule stays together immediately after Clause 13 on Page 1 */
   .agreement-fee-table {
-    break-before: page !important;
-    page-break-before: always !important;
-    padding-top: 16mm !important;
-    margin-top: 0 !important;
+    break-before: auto !important;
+    page-break-before: auto !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    padding-top: 0 !important;
+    margin-top: 6pt !important;
   }
 
   .agreement-fee-table table {
     width: 100% !important;
     border-collapse: collapse !important;
+    border: 1pt solid #cbd5e1 !important;
+    margin: 0 !important;
   }
 
   .agreement-fee-table th,
   .agreement-fee-table td {
     border: 1pt solid #cbd5e1 !important;
-    padding: 5pt 7pt !important;
+    padding: 3.5pt 6pt !important;
+    vertical-align: middle !important;
   }
 
   .agreement-fee-table thead th {
@@ -427,8 +472,22 @@ h1, h2, h3, h4, .font-heading {
     color: #0f172a !important;
   }
 
+  .agreement-fee-table th:first-child,
+  .agreement-fee-table td:first-child {
+    text-align: center !important;
+    width: 44pt !important;
+  }
+
+  .agreement-fee-table th:last-child,
+  .agreement-fee-table td:last-child {
+    text-align: right !important;
+    width: 105pt !important;
+  }
+
   .agreement-signature-block {
-    margin-top: 14pt !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    margin-top: 0 !important;
     border: none !important;
     background: transparent !important;
   }

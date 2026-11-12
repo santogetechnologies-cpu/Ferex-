@@ -260,7 +260,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 flex text-slate-800 dark:text-slate-100 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
+    <div className="h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 flex text-slate-800 dark:text-slate-100 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E] print:h-auto print:min-h-0 print:overflow-visible print:block">
 
       {/* MOBILE SIDEBAR DRAWER BACKDROP */}
       <AnimatePresence>
@@ -348,7 +348,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
       </aside>
 
       {/* CONTENT WORKSPACE VIEWPORT */}
-      <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 ${isCollapsed ? 'lg:pl-18' : 'lg:pl-60'} print:pl-0 print:m-0 print:min-h-0 print:w-full print:block`}>
+      <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 ${isCollapsed ? 'lg:pl-18' : 'lg:pl-60'} print:pl-0 print:m-0 print:min-h-0 print:h-auto print:overflow-visible print:w-full print:block`}>
 
         {/* COUNSELOR / ADMIN IMPERSONATION BANNER */}
         {impersonated && (
@@ -559,13 +559,14 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
         </header>
 
         {/* MAIN BODY AREA */}
-        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden print:overflow-visible">
-          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto print:p-0 print:m-0 print:max-w-none print:w-full print:block">
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden print:overflow-visible print:h-auto print:min-h-0 print:block">
+          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto print:p-0 print:m-0 print:max-w-none print:w-full print:block print:h-auto print:overflow-visible">
             <motion.div
               key={location.pathname}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="print:transform-none print:block print:h-auto print:overflow-visible"
             >
               {children}
             </motion.div>
