@@ -1283,8 +1283,9 @@ export const upsertLeavePolicy = async (policy: Partial<LeavePolicyConfig>): Pro
     code: policy.code || `POL_${Date.now()}`,
     category: policy.category || 'full_day',
     division: policy.division || 'all',
-    annual_quota_days: Number(policy.annual_quota_days) ?? 10,
-    monthly_max_permission_hours: Number(policy.monthly_max_permission_hours) ?? 0,
+    // Number(undefined) is NaN, which `??` never replaces, so missing values used to be saved as NaN.
+    annual_quota_days: Number.isFinite(Number(policy.annual_quota_days)) ? Number(policy.annual_quota_days) : 10,
+    monthly_max_permission_hours: Number.isFinite(Number(policy.monthly_max_permission_hours)) ? Number(policy.monthly_max_permission_hours) : 0,
     is_monetizable: policy.is_monetizable ?? true,
     is_encashable: policy.is_encashable ?? false,
     requires_attachment: policy.requires_attachment ?? false,

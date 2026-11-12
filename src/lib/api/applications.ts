@@ -240,24 +240,14 @@ export async function createApplication(payload: {
 
   const finalAppId = placeholderId || generateUUID();
 
-  // Guarantee student row in public.users to satisfy foreign key without overwriting admin roles
+  // The student must already exist. Creating a profile here used to resurrect deleted students (with an invented
+  // email) whenever an application was filed for a stale id.
   if (targetStudentId && isValidUuid(targetStudentId)) {
-    try {
-      const admin = await getAdminSupabaseClient();
-      const client = admin || supabase;
-      const { data: existingUser } = await client.from('users').select('id, role').eq('id', targetStudentId).maybeSingle();
-      
-      // Only insert if user does not exist, and never downgrade existing admin/staff to student
-      if (!existingUser) {
-        await client.from('users').insert({
-          id: targetStudentId,
-          email: targetStudentEmail || `${targetStudentId}@student.ferex.com`,
-          full_name: targetStudentName,
-          role: 'student',
-          updated_at: new Date().toISOString(),
-        });
-      }
-    } catch {}
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+    const { data: existingUser, error: userError } = await client.from('users').select('id').eq('id', targetStudentId).maybeSingle();
+    if (userError) throw new Error(`Could not verify the student account: ${userError.message}`);
+    if (!existingUser) throw new Error('This student account no longer exists, so an application cannot be created.');
   }
 
   const now = new Date().toISOString();

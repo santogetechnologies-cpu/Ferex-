@@ -79,6 +79,14 @@ function sanitizeGateways(gw: GlobalPaymentGatewayConfig): GlobalPaymentGatewayC
   return gw;
 }
 
+// Browser copy for offline use. Gateway secrets are never written to browser storage.
+function cacheGateways(config: GlobalPaymentGatewayConfig) {
+  try {
+    const safe = { ...config, stripe: { ...config.stripe, secretKey: '', webhookSecret: '' } };
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(safe));
+  } catch {}
+}
+
 // Retrieve global gateway configuration
 export async function getGlobalPaymentGateways(): Promise<GlobalPaymentGatewayConfig> {
   // 1. Check Supabase system_config
@@ -91,8 +99,18 @@ export async function getGlobalPaymentGateways(): Promise<GlobalPaymentGatewayCo
 
     if (!error && data?.value) {
       const merged = sanitizeGateways({ ...DEFAULT_PAYMENT_GATEWAYS, ...data.value });
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
+      cacheGateways(merged);
       return merged;
+    }
+
+    // Non-admins cannot read the raw record (it may hold gateway secrets); they get the public projection.
+    if (!error && !data) {
+      const { data: projection, error: rpcError } = await supabase.rpc('get_public_payment_config');
+      if (!rpcError && projection) {
+        const merged = sanitizeGateways({ ...DEFAULT_PAYMENT_GATEWAYS, ...(projection as object) } as GlobalPaymentGatewayConfig);
+        cacheGateways(merged);
+        return merged;
+      }
     }
   } catch (err) {
     // Fallback gracefully
@@ -120,19 +138,14 @@ export async function saveGlobalPaymentGateways(
     updated_by: adminName,
   };
 
-  // 1. Save to local storage
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
-
-  // 2. Save to Supabase system_config
-  try {
-    await supabase.from('system_config').upsert({
-      key: 'payment_gateways',
-      value: updated,
-      updated_at: new Date().toISOString(),
-    });
-  } catch (err) {
-    console.warn('Could not sync payment gateways to Supabase system_config:', err);
-  }
+  // 1. Save to Supabase system_config; a failed save must be reported, not hidden.
+  const { error: saveError } = await supabase.from('system_config').upsert({
+    key: 'payment_gateways',
+    value: updated,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'key' });
+  if (saveError) throw new Error(`Could not save payment gateway settings: ${saveError.message}`);
+  cacheGateways(updated);
 
   // 3. Dispatch event for live sync across open tabs & portals
   window.dispatchEvent(new CustomEvent('ferex_payment_gateways_change', { detail: updated }));
