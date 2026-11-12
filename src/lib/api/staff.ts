@@ -63,61 +63,24 @@ export const LEGACY_MOCK_EMAILS = new Set([
   'accounts@ferex.com',
 ]);
 
+// People are deleted and re-created on the server; the database is the only source of truth.
+// These used to keep per-browser deleted-email lists and locally invented staff, which hid re-created
+// accounts and showed deleted ones. They are kept as inert shims for existing callers.
 export function getDeletedStaffList(): string[] {
-  try {
-    if (typeof localStorage === 'undefined') return [];
-    const raw = localStorage.getItem(DELETED_STAFF_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed.map((x: string) => String(x).toLowerCase().trim());
-    }
-  } catch {}
   return [];
 }
 
-export function markStaffDeleted(idOrEmail: string): void {
-  try {
-    if (typeof localStorage === 'undefined' || !idOrEmail) return;
-    const current = getDeletedStaffList();
-    const val = idOrEmail.toLowerCase().trim();
-    if (!current.includes(val)) {
-      current.push(val);
-      localStorage.setItem(DELETED_STAFF_STORAGE_KEY, JSON.stringify(current));
-    }
-  } catch {}
-}
+export function markStaffDeleted(_idOrEmail: string): void {}
 
 export function isStaffDeleted(idOrEmail?: string): boolean {
-  if (!idOrEmail) return false;
-  const val = idOrEmail.toLowerCase().trim();
-  if (LEGACY_MOCK_EMAILS.has(val)) return true;
-  const deleted = getDeletedStaffList();
-  return deleted.includes(val);
+  return !!idOrEmail && LEGACY_MOCK_EMAILS.has(idOrEmail.toLowerCase().trim());
 }
 
 export function getCustomStaffMembers(): DivisionStaffMember[] {
-  try {
-    if (typeof localStorage === 'undefined') return [];
-    const raw = localStorage.getItem(CUSTOM_STAFF_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed.filter(m => !isStaffDeleted(m.email) && !isStaffDeleted(m.id));
-    }
-  } catch {}
   return [];
 }
 
-export function saveCustomStaffMember(member: DivisionStaffMember): void {
-  try {
-    if (typeof localStorage === 'undefined' || !member) return;
-    if (isStaffDeleted(member.email) || isStaffDeleted(member.id)) return;
-    const current = getCustomStaffMembers().filter(
-      m => m.email.toLowerCase() !== member.email.toLowerCase() && m.id !== member.id
-    );
-    current.unshift(member);
-    localStorage.setItem(CUSTOM_STAFF_STORAGE_KEY, JSON.stringify(current));
-  } catch {}
-}
+export function saveCustomStaffMember(_member: DivisionStaffMember): void {}
 
 const DEFAULT_DIVISION_STAFF: Record<string, DivisionStaffMember[]> = {
   digital: [],
@@ -203,44 +166,6 @@ export async function getDivisionStaff(division: 'trade' | 'rimi' | 'digital' | 
     } catch (e) {
       console.warn('[getDivisionStaff] Users table query notice:', e);
     }
-
-    // 3. Current authenticated user check
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const cu = sessionData?.session?.user;
-      if (cu && cu.email && !isDeleted({ email: cu.email, id: cu.id })) {
-        const userRole = (cu.user_metadata?.role || cu.app_metadata?.role || '').toLowerCase();
-        const fullName = cu.user_metadata?.full_name || cu.email.split('@')[0];
-        if (
-          userRole.includes('digital') ||
-          userRole.includes('pm') ||
-          userRole.includes('account') ||
-          userRole.includes('central') ||
-          userRole.includes('admin') ||
-          userRole.includes('manager')
-        ) {
-          dbMembers.push({
-            id: cu.id,
-            name: fullName,
-            email: cu.email.toLowerCase().trim(),
-            role: userRole || 'digital_manager',
-            roleLabel: ROLE_DISPLAY_NAMES[userRole] || 'Digital Manager',
-            division: 'digital',
-            department: 'Digital Agency HQ',
-          });
-        }
-      }
-    } catch {}
-
-    // 4. Custom staff members saved in local store
-    try {
-      const customStaff = getCustomStaffMembers();
-      customStaff.forEach(cs => {
-        if (!isDeleted(cs)) {
-          dbMembers.push(cs);
-        }
-      });
-    } catch {}
 
     // Deduplicate DB & custom members by email
     const dedupedMap = new Map<string, DivisionStaffMember>();

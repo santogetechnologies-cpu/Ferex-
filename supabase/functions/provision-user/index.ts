@@ -22,6 +22,10 @@ Deno.serve(async req => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !String(body.full_name || '').trim()) return reply({ error: 'A valid name and email are required' }, 400);
     if (body.password && (typeof body.password !== 'string' || body.password.length < 8)) return reply({ error: 'Password must contain at least 8 characters' }, 400);
     const db = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    // A login left behind by an earlier delete (no profile row) must not block re-creating the same email.
+    // An email that still has a profile is a genuine duplicate and is rejected below.
+    const { error: purgeError } = await db.rpc('purge_orphan_auth_user', { p_email: email });
+    if (purgeError) console.error('Orphan login cleanup failed:', purgeError.message);
     const { data, error } = await db.auth.admin.createUser({
       email,
       password: body.password || crypto.randomUUID() + crypto.randomUUID(),
@@ -34,7 +38,7 @@ Deno.serve(async req => {
         phone: body.phone || '',
       },
     });
-    if (error) return reply({ error: error.message }, 400);
+    if (error) return reply({ error: /already|registered|exists/i.test(error.message) ? 'An account with this email already exists.' : error.message }, 400);
 
     // Give handle_new_user trigger a brief moment or upsert profile directly
     let profile = null;

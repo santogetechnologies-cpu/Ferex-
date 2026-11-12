@@ -9,68 +9,25 @@ import { isStaffDeleted } from './staff';
 
 export const DEFAULT_COUNSELOR_ROSTER: { id: string; name: string; role: string; desk: string; email: string; country: string }[] = [];
 
-const DELETED_STUDENTS_KEY = 'ferex_deleted_student_ids';
-const DELETED_STUDENT_EMAILS_KEY = 'ferex_deleted_student_emails';
+// Students deleted in this tab are hidden immediately while the server confirms. This is in-memory and
+// by id only: it is never persisted and never keyed on email, so re-creating a student with the same
+// email/username always shows up, in every browser.
+const deletedStudentIds = new Set<string>();
 
 export function getDeletedStudentIds(): string[] {
-  if (typeof localStorage === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(DELETED_STUDENTS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+  return Array.from(deletedStudentIds);
 }
 
-export function getDeletedStudentEmails(): string[] {
-  if (typeof localStorage === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(DELETED_STUDENT_EMAILS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+export function isStudentDeleted(id?: string | null, _email?: string | null): boolean {
+  return !!id && deletedStudentIds.has(id);
 }
 
-export function isStudentDeleted(id?: string | null, email?: string | null): boolean {
-  if (!id && !email) return false;
-  const deletedIds = new Set(getDeletedStudentIds());
-  if (id && deletedIds.has(id)) return true;
-  const deletedEmails = new Set(getDeletedStudentEmails().map((e) => e.toLowerCase()));
-  if (email && deletedEmails.has(email.toLowerCase().trim())) return true;
-  return false;
+export function markStudentDeleted(id?: string | null, _email?: string | null): void {
+  if (id) deletedStudentIds.add(id);
 }
 
-export function markStudentDeleted(id?: string | null, email?: string | null): void {
-  if (typeof localStorage === 'undefined') return;
-  try {
-    if (id) {
-      const ids = Array.from(new Set([...getDeletedStudentIds(), id]));
-      localStorage.setItem(DELETED_STUDENTS_KEY, JSON.stringify(ids));
-    }
-    if (email) {
-      const cleanEmail = email.toLowerCase().trim();
-      if (cleanEmail) {
-        const emails = Array.from(new Set([...getDeletedStudentEmails(), cleanEmail]));
-        localStorage.setItem(DELETED_STUDENT_EMAILS_KEY, JSON.stringify(emails));
-      }
-    }
-  } catch {}
-}
-
-export function unmarkStudentDeleted(id?: string | null, email?: string | null): void {
-  if (typeof localStorage === 'undefined') return;
-  try {
-    if (id) {
-      const ids = getDeletedStudentIds().filter((i) => i !== id);
-      localStorage.setItem(DELETED_STUDENTS_KEY, JSON.stringify(ids));
-    }
-    if (email) {
-      const cleanEmail = email.toLowerCase().trim();
-      const emails = getDeletedStudentEmails().filter((e) => e.toLowerCase() !== cleanEmail);
-      localStorage.setItem(DELETED_STUDENT_EMAILS_KEY, JSON.stringify(emails));
-    }
-  } catch {}
+export function unmarkStudentDeleted(id?: string | null, _email?: string | null): void {
+  if (id) deletedStudentIds.delete(id);
 }
 
 export function getDefaultCounselorForCountry(country?: string): string {
@@ -78,66 +35,8 @@ export function getDefaultCounselorForCountry(country?: string): string {
   return `Admissions Counselor (${country} Desk)`;
 }
 
-// ─── Background synchronization: push local tombstone deletions to backend DB ───
-let hasSyncedTombstones = false;
-export async function syncDeletedStudentsToDatabase(): Promise<void> {
-  if (hasSyncedTombstones) return;
-  hasSyncedTombstones = true;
-
-  try {
-    const admin = await getAdminSupabaseClient();
-    const client = admin || supabase;
-
-    // Self-healing: ensure deleted student Jenish is archived in backend CRM leads
-    await client
-      .from('education_leads')
-      .update({
-        status: 'Archived',
-        converted_student_id: null,
-        updated_at: new Date().toISOString(),
-      })
-      .ilike('email', 'jenish@gmail.com')
-      .eq('status', 'Enrolled');
-
-    const deletedIds = getDeletedStudentIds();
-    const deletedEmails = getDeletedStudentEmails();
-
-    for (const cleanId of deletedIds) {
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanId);
-      if (isUuid) {
-        await client
-          .from('education_leads')
-          .update({
-            status: 'Archived',
-            converted_student_id: null,
-            updated_at: new Date().toISOString(),
-          })
-          .or(`id.eq.${cleanId},converted_student_id.eq.${cleanId}`);
-      }
-    }
-
-    for (const cleanEmail of deletedEmails) {
-      if (cleanEmail && cleanEmail.includes('@')) {
-        await client
-          .from('education_leads')
-          .update({
-            status: 'Archived',
-            converted_student_id: null,
-            updated_at: new Date().toISOString(),
-          })
-          .ilike('email', cleanEmail);
-      }
-    }
-  } catch (err) {
-    console.warn('[syncDeletedStudentsToDatabase notice]:', err);
-  }
-}
-
 // ─── Get all students (users with role = 'student' + enrolled CRM leads) ──────
 export async function getStudents(): Promise<UserProfile[]> {
-  // Fire background synchronization to ensure deleted leads are archived across all sessions
-  syncDeletedStudentsToDatabase();
-
   let userStudents: UserProfile[] = [];
 
   try {
@@ -174,81 +73,6 @@ export async function getStudents(): Promise<UserProfile[]> {
   userStudents = userStudents.filter(
     (u) => (u as any).status !== 'deleted' && !isStudentDeleted(u.id, u.email)
   );
-
-  // ─── Dual-source Roster Federation: Enrolled CRM Leads ───
-  try {
-    const admin = await getAdminSupabaseClient();
-    const client = admin || supabase;
-    const { data: enrolledLeads, error: leadsErr } = await client
-      .from('education_leads')
-      .select('*')
-      .eq('status', 'Enrolled');
-
-    if (!leadsErr && Array.isArray(enrolledLeads)) {
-      const existingUserIds = new Set(userStudents.map((s) => s.id));
-      const existingEmails = new Set(
-        userStudents
-          .map((s) => (s.email || '').toLowerCase().trim())
-          .filter(Boolean)
-      );
-      const existingPhones = new Set(
-        userStudents
-          .map((s) => (s.phone || '').replace(/[^\d]/g, ''))
-          .filter(Boolean)
-      );
-
-      for (const lead of enrolledLeads) {
-        const leadEmail = (lead.email || '').toLowerCase().trim();
-        const leadPhone = (lead.phone || '').replace(/[^\d]/g, '');
-
-        // If lead or converted student is deleted or archived, do NOT synthesize
-        if (
-          lead.status === 'Archived' ||
-          leadEmail === 'jenish@gmail.com' ||
-          isStudentDeleted(lead.converted_student_id, leadEmail) ||
-          isStudentDeleted(lead.id, leadEmail)
-        ) {
-          continue;
-        }
-
-        const alreadyExists =
-          (lead.converted_student_id && existingUserIds.has(lead.converted_student_id)) ||
-          existingUserIds.has(lead.id) ||
-          (leadEmail && existingEmails.has(leadEmail)) ||
-          (leadPhone && leadPhone.length >= 7 && existingPhones.has(leadPhone));
-
-        if (!alreadyExists) {
-          const studentId = lead.converted_student_id || lead.id;
-          const fallbackEmail =
-            leadEmail ||
-            `student.${leadPhone.slice(-6) || lead.id.slice(0, 6)}@ferexstudent.org`;
-
-          const destCountry = lead.preferred_country || 'Poland';
-          const synthesizedStudent: UserProfile = {
-            id: studentId,
-            email: fallbackEmail,
-            full_name: lead.name || 'Admitted Student',
-            role: 'student',
-            avatar_url: undefined,
-            phone: lead.phone || '',
-            country: destCountry,
-            target_country: destCountry,
-            destination_country: destCountry,
-            department: 'Education',
-            permissions: [],
-            assigned_counselor: lead.assigned_counselor_name || 'Admissions Counselor',
-            created_at: lead.created_at || new Date().toISOString(),
-          };
-          userStudents.push(synthesizedStudent);
-          existingUserIds.add(studentId);
-          if (leadEmail) existingEmails.add(leadEmail);
-          if (leadPhone && leadPhone.length >= 7) existingPhones.add(leadPhone);
-        }
-      }
-    }
-  } catch (err) {
-    console.warn('[getStudents leads federation warning]:', err);
-  }
 
   // Final strict deduplication across IDs and normalized emails
   const uniqueStudents: UserProfile[] = [];

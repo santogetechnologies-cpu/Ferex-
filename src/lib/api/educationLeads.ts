@@ -239,6 +239,7 @@ export async function getEducationLeads(filters?: {
   search?: string;
 }): Promise<EducationLead[]> {
   let dbLeads: EducationLead[] = [];
+  let dbOk = false;
   try {
     let query = supabase.from('education_leads').select('*').order('created_at', { ascending: false });
 
@@ -252,29 +253,23 @@ export async function getEducationLeads(filters?: {
     const { data, error } = await query;
     if (!error && Array.isArray(data)) {
       dbLeads = data as EducationLead[];
+      dbOk = true;
     }
   } catch (err) {
     console.warn('Error fetching leads from Supabase:', err);
   }
 
-  // Merge with local fallback
-  const local = getLocalLeads();
+  // The database is the source of truth. The browser copy is only an offline fallback; merging it into a
+  // successful result resurrected leads that had been deleted or archived on the server.
   const map = new Map<string, EducationLead>();
-  local.forEach((l) => map.set(l.id, l));
-  dbLeads.forEach((l) => {
-    const loc = map.get(l.id);
-    if (loc && loc.updated_at && l.updated_at && new Date(loc.updated_at).getTime() > new Date(l.updated_at).getTime()) {
-      map.set(l.id, { ...l, ...loc });
-    } else {
-      map.set(l.id, { ...loc, ...l });
-    }
-  });
+  if (!dbOk) getLocalLeads().forEach((l) => map.set(l.id, l));
+  dbLeads.forEach((l) => map.set(l.id, l));
 
   let result = Array.from(map.values()).sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
-  saveLocalLeads(result);
+  if (dbOk) saveLocalLeads(result);
 
   if (filters?.status && filters.status !== 'All') {
     result = result.filter((l) => l.status === filters.status);
@@ -325,16 +320,9 @@ export async function createEducationLead(lead: {
     updated_at: nowIso,
   };
 
-  // 1. Cache locally
-  const local = getLocalLeads();
-  saveLocalLeads([newLead, ...local.filter((l) => l.id !== newId)]);
-
-  // 2. Insert to Supabase
-  try {
-    await supabase.from('education_leads').insert(newLead);
-  } catch (err) {
-    console.warn('Supabase lead insert notice:', err);
-  }
+  // Insert first and fail loudly: a lead that only exists in the visitor's browser is a lost enquiry.
+  const { error: insertError } = await supabase.from('education_leads').insert(newLead);
+  if (insertError) throw new Error(`Could not submit your enquiry: ${insertError.message}`);
 
   // 3. Log initial activity
   await addEducationLeadActivity({
@@ -384,11 +372,8 @@ export async function updateEducationLead(
   }
 
   // Always update Supabase regardless of cache state
-  try {
-    await supabase.from('education_leads').update({ ...updates, updated_at: nowIso }).eq('id', id);
-  } catch (err) {
-    console.warn('Supabase lead update notice:', err);
-  }
+  const { error: updateError } = await supabase.from('education_leads').update({ ...updates, updated_at: nowIso }).eq('id', id);
+  if (updateError) throw new Error(`Could not update lead: ${updateError.message}`);
 
   if (!target) {
     if (typeof window !== 'undefined') {
@@ -452,20 +437,17 @@ export async function bulkAssignLeadsToCounselor(
 
   saveLocalLeads(updatedLocal);
 
-  try {
-    await supabase
-      .from('education_leads')
-      .update({
-        assigned_counselor_id: counselor.id,
-        assigned_counselor_name: counselor.name,
-        assigned_counselor_email: counselor.email || '',
-        assigned_at: nowIso,
-        updated_at: nowIso,
-      })
-      .in('id', leadIds);
-  } catch (err) {
-    console.warn('Supabase bulk lead assignment notice:', err);
-  }
+  const { error: assignError } = await supabase
+    .from('education_leads')
+    .update({
+      assigned_counselor_id: counselor.id,
+      assigned_counselor_name: counselor.name,
+      assigned_counselor_email: counselor.email || '',
+      assigned_at: nowIso,
+      updated_at: nowIso,
+    })
+    .in('id', leadIds);
+  if (assignError) throw new Error(`Could not assign leads: ${assignError.message}`);
 
   // Log assignment activity for each lead
   for (const id of leadIds) {
@@ -516,7 +498,7 @@ export async function convertLeadToStudentAccount(
 
   if (!lead) return { success: false, error: 'Lead not found' };
 
-  const finalPassword = tempPassword && tempPassword.trim().length >= 6
+  const finalPassword = tempPassword && tempPassword.trim().length >= 8
     ? tempPassword.trim()
     : `Ferex@${Math.floor(100000 + Math.random() * 900000)}`;
 
@@ -528,6 +510,7 @@ export async function convertLeadToStudentAccount(
   const nowIso = new Date().toISOString();
 
   let createdStudentId = '';
+  let provisionError = '';
 
   try {
     // 1. Provision user account via supabase provision-user edge function
@@ -547,37 +530,13 @@ export async function convertLeadToStudentAccount(
       createdStudentId = result.id || (result as any).user.id;
     }
   } catch (err) {
-    console.warn('Account provisioning API notice, trying direct client auth registration:', err);
+    provisionError = err instanceof Error ? err.message : 'Account provisioning failed';
   }
 
-  // 1b. Fallback auth signup if edge function was unreachable
+  // Never fabricate a student id: without a real login the "student" could not sign in, own payments or
+  // receive tasks, and would just be a ghost row. Report the failure so the lead stays open.
   if (!createdStudentId) {
-    try {
-      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-        email: targetEmail,
-        password: finalPassword,
-        options: {
-          data: {
-            full_name: fullName,
-            role: 'student',
-            phone: lead.phone,
-            department: 'Education',
-            country: lead.preferred_country || 'Poland',
-            assigned_counselor: lead.assigned_counselor_name || 'Senior Admissions Counselor'
-          }
-        }
-      });
-      if (!signUpErr && signUpData?.user?.id) {
-        createdStudentId = signUpData.user.id;
-      }
-    } catch (e) {
-      console.warn('Fallback signup error:', e);
-    }
-  }
-
-  // Fallback ID if auth provisioning services failed
-  if (!createdStudentId) {
-    createdStudentId = lead.id;
+    return { success: false, error: provisionError || 'Could not create the student login. The lead was not closed.' };
   }
 
   // Ensure record in public.users has the right metadata using admin client to bypass counselor RLS 42501
@@ -687,6 +646,7 @@ export async function convertLeadToStudentAccount(
 
 export async function getEducationLeadActivities(leadId: string): Promise<EducationLeadActivity[]> {
   let dbActs: EducationLeadActivity[] = [];
+  let actsOk = false;
   try {
     const { data, error } = await supabase
       .from('education_lead_activities')
@@ -696,12 +656,12 @@ export async function getEducationLeadActivities(leadId: string): Promise<Educat
 
     if (!error && Array.isArray(data)) {
       dbActs = data as EducationLeadActivity[];
+      actsOk = true;
     }
   } catch {}
 
-  const local = getLocalActivities().filter((a) => a.lead_id === leadId);
   const map = new Map<string, EducationLeadActivity>();
-  local.forEach((a) => map.set(a.id, a));
+  if (!actsOk) getLocalActivities().filter((a) => a.lead_id === leadId).forEach((a) => map.set(a.id, a));
   dbActs.forEach((a) => map.set(a.id, a));
 
   return Array.from(map.values()).sort(
