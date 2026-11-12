@@ -112,7 +112,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     }
   })();
   const adminName = profile?.full_name || user?.user_metadata?.full_name || localSavedUser?.fullName || localSavedUser?.full_name || 'System Admin';
-  const adminEmail = profile?.email || user?.email || localSavedUser?.email || 'admin@ferex.com';
+  const adminEmail = profile?.email || user?.email || localSavedUser?.email || '';
+
+  useEffect(() => {
+    if (profile && (profile.is_active === false || ['deleted', 'inactive', 'deactivated', 'suspended'].includes(((profile as any).status || '').toLowerCase()))) {
+      handleSignOut();
+    }
+  }, [profile]);
   const unreadNotifs = (notifications || []).filter(n => !n.is_read);
   const totalUnreadCount = unreadNotifs.length + pendingPaymentsCount;
 

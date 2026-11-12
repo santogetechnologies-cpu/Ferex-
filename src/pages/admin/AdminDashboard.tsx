@@ -136,6 +136,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
     { label: 'Rejected', value: rejectedCount, color: 'bg-red-500', pct: Math.round((rejectedCount / totalApps) * 100) },
   ];
 
+  // Dynamic Weekly Activity Volume computed directly from real database application and student records
+  const activityBuckets = React.useMemo(() => {
+    const buckets = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      const dateStr = d.toISOString().split('T')[0];
+      const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' });
+      return { dateStr, dayLabel, count: 0 };
+    });
+
+    const incrementDate = (dateVal?: string) => {
+      if (!dateVal) return;
+      try {
+        const itemDate = new Date(dateVal).toISOString().split('T')[0];
+        const bucket = buckets.find(b => b.dateStr === itemDate);
+        if (bucket) bucket.count += 1;
+      } catch {}
+    };
+
+    safeApps.forEach(a => incrementDate((a as any).created_at));
+    safeStudents.forEach(s => incrementDate((s as any).created_at));
+
+    const maxCount = Math.max(...buckets.map(b => b.count), 1);
+    return buckets.map(b => ({
+      ...b,
+      heightPct: b.count > 0 ? Math.max(15, Math.round((b.count / maxCount) * 100)) : 8,
+    }));
+  }, [safeApps, safeStudents]);
+
   return (
     <div className="space-y-6 relative text-left pb-8">
       {/* Page Header */}
@@ -252,11 +281,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
               <Badge variant="success" dot>Live Sync</Badge>
             </div>
             <div className="flex items-end gap-2 h-14">
-              {[40, 65, 55, 80, 70, 90, 78, 95, 85, 100, 88, 92].map((h, i) => (
+              {activityBuckets.map((bucket, i) => (
                 <div
                   key={i}
+                  title={`${bucket.dayLabel}: ${bucket.count} recorded event${bucket.count === 1 ? '' : 's'}`}
                   className="flex-1 rounded-t bg-[#58051E]/15 hover:bg-[#58051E] transition-colors cursor-pointer"
-                  style={{ height: `${h}%` }}
+                  style={{ height: `${bucket.heightPct}%` }}
                 />
               ))}
             </div>

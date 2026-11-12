@@ -52,54 +52,86 @@ export const AdminLoginPage: React.FC = () => {
 
     try {
       const { error: authErr } = await signIn(cleanEmail, password);
-      if (!authErr) {
-        const { data: { user } } = await supabase.auth.getUser();
-        const admin = await getAdminSupabaseClient();
-        const client = admin || supabase;
-
-        // Ensure user is given superadmin privileges when logging in via Super Admin portal
-        if (user?.id) {
-          try {
-            await client.from('users').upsert({
-              id: user.id,
-              email: cleanEmail,
-              full_name: user.user_metadata?.full_name || cleanEmail.split('@')[0],
-              role: 'superadmin',
-              updated_at: new Date().toISOString()
-            });
-          } catch {}
-        }
-
-        try {
-          localStorage.setItem('ferex_user', JSON.stringify({
-            id: user?.id || 'super-user',
-            email: cleanEmail,
-            role: 'superadmin',
-            full_name: user?.user_metadata?.full_name || 'Central Super Admin'
-          }));
-        } catch {}
-
-        setSuccess('Super Admin authorization verified. Opening Central Super Admin HQ...');
-        setTimeout(() => navigate('/central/dashboard', { replace: true }), 500);
+      if (authErr) {
+        setIsLoading(false);
+        setError(authErr || 'Invalid credentials. Please check your email and password.');
         return;
       }
-    } catch (e) {}
 
-    // Fallback Demo Credential Handlers
-    setTimeout(() => {
-      setIsLoading(false);
-      if (
-        (cleanEmail === 'superadmin@gmail.com' && password === 'super123') ||
-        (cleanEmail === 'admin@gmail.com' && password === 'admin123') ||
-        (cleanEmail === 'admin@ferex.com' && password === 'admin123')
-      ) {
-        localStorage.setItem('ferex_user', JSON.stringify({ id: 'super-1', email: cleanEmail, role: 'superadmin', full_name: 'Central Super Admin' }));
-        setSuccess('Access granted. Loading Central Super Admin HQ...');
-        setTimeout(() => navigate('/central/dashboard', { replace: true }), 500);
-      } else {
-        setError('Invalid credentials. Please check your email/password or create a new Super Admin account below.');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) {
+        setIsLoading(false);
+        setError('Authentication failed. No user found.');
+        return;
       }
-    }, 500);
+
+      const admin = await getAdminSupabaseClient();
+      const client = admin || supabase;
+
+      // Verify user has active superadmin account in database
+      let { data: profileRecord } = await client
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!profileRecord && cleanEmail) {
+        const { data: byEmail } = await client
+          .from('users')
+          .select('*')
+          .ilike('email', cleanEmail)
+          .maybeSingle();
+        profileRecord = byEmail;
+      }
+
+      if (!profileRecord) {
+        await supabase.auth.signOut().catch(() => {});
+        for (const k of Object.keys(localStorage)) {
+          if (k.startsWith('ferex_')) localStorage.removeItem(k);
+        }
+        setIsLoading(false);
+        setError('Your account has been deactivated or deleted. Please contact the Central Admin.');
+        return;
+      }
+
+      const isInactive =
+        profileRecord.is_active === false ||
+        ['deleted', 'inactive', 'deactivated', 'suspended'].includes((profileRecord.status || '').toLowerCase());
+
+      if (isInactive) {
+        await supabase.auth.signOut().catch(() => {});
+        for (const k of Object.keys(localStorage)) {
+          if (k.startsWith('ferex_')) localStorage.removeItem(k);
+        }
+        setIsLoading(false);
+        setError('Your account has been deactivated or deleted. Please contact the Central Admin.');
+        return;
+      }
+
+      const userRole = profileRecord.role || 'student';
+      if (!isSuperAdmin(userRole, cleanEmail)) {
+        setIsLoading(false);
+        const correctDashboard = getDashboardRoute(userRole, cleanEmail);
+        navigate(correctDashboard, { replace: true });
+        return;
+      }
+
+      try {
+        localStorage.setItem('ferex_user', JSON.stringify({
+          id: user.id,
+          email: cleanEmail,
+          role: 'superadmin',
+          full_name: profileRecord.full_name || user.user_metadata?.full_name || 'Central Super Admin'
+        }));
+      } catch {}
+
+      setSuccess('Super Admin authorization verified. Opening Central Super Admin HQ...');
+      setTimeout(() => navigate('/central/dashboard', { replace: true }), 500);
+      return;
+    } catch (e: any) {
+      setIsLoading(false);
+      setError(e?.message || 'Authentication error. Please check your credentials.');
+    }
   };
 
   // 2. Handle Create Super Admin Credentials (Sign Up)

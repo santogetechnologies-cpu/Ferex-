@@ -627,16 +627,10 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
               className="w-full h-10 px-3 bg-white border border-slate-200/90 rounded-xl text-xs font-bold text-slate-700 focus:outline-none"
             >
               <option value="All">All Counselors</option>
-              {staffMembers.length > 0 ? (
-                staffMembers.map((s: any) => {
-                  const name = s.full_name || s.email;
-                  return <option key={s.id} value={name}>{name}</option>;
-                })
-              ) : (
-                DEFAULT_COUNSELOR_ROSTER.map((c: any) => (
-                  <option key={c.id} value={c.name}>{c.name} ({c.country})</option>
-                ))
-              )}
+              {staffMembers.map((s: any) => {
+                const name = s.full_name || s.email;
+                return <option key={s.id} value={name}>{name}</option>;
+              })}
             </select>
           )}
         </div>

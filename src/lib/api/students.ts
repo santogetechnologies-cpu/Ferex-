@@ -5,10 +5,9 @@ import type { UserProfile } from '../types';
 import { generateUUID } from '../../utils/uuid';
 import { createNotification } from './notifications';
 import { broadcastSessionRevocation } from './sessionSecurity';
+import { isStaffDeleted } from './staff';
 
-export const DEFAULT_COUNSELOR_ROSTER = [
-  { id: 'c-1', name: 'Admissions Officer', role: 'European Admissions Lead', desk: 'Admissions Desk', email: 'info@ferexventures.com', country: 'Global' },
-];
+export const DEFAULT_COUNSELOR_ROSTER: { id: string; name: string; role: string; desk: string; email: string; country: string }[] = [];
 
 const DELETED_STUDENTS_KEY = 'ferex_deleted_student_ids';
 const DELETED_STUDENT_EMAILS_KEY = 'ferex_deleted_student_emails';
@@ -272,28 +271,36 @@ export async function getStudents(): Promise<UserProfile[]> {
 export const ADMINISTRATIVE_ROLES = ['admin', 'central', 'super_admin', 'staff', 'counselor', 'education_admin', 'education'] as const;
 
 export async function getStaffMembers(): Promise<UserProfile[]> {
+  const isDeletedStaff = (u: any) => {
+    if (!u) return true;
+    if (u.is_active === false) return true;
+    const st = (u.status || '').toLowerCase();
+    if (['deleted', 'inactive', 'deactivated', 'suspended'].includes(st)) return true;
+    return isStaffDeleted(u.email) || isStaffDeleted(u.id);
+  };
+
   try {
     const admin = await getAdminSupabaseClient();
     const client = admin || supabase;
     const { data, error } = await client
       .from('users')
-      .select('id, email, full_name, role, avatar_url, phone, department, permissions, assigned_counselor, must_change_password, created_at')
+      .select('id, email, full_name, role, avatar_url, phone, department, permissions, assigned_counselor, must_change_password, is_active, status, created_at')
       .in('role', ['admin', 'central', 'super_admin', 'education_admin', 'education', 'staff', 'counselor'])
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      return data as UserProfile[];
+      return (data as any[]).filter(u => !isDeletedStaff(u)) as UserProfile[];
     }
   } catch {}
 
   const { data, error } = await supabase
     .from('users')
-    .select('id, email, full_name, role, avatar_url, phone, department, permissions, assigned_counselor, must_change_password, created_at')
+    .select('id, email, full_name, role, avatar_url, phone, department, permissions, assigned_counselor, must_change_password, is_active, status, created_at')
     .in('role', ['admin', 'central', 'super_admin', 'education_admin', 'education', 'staff', 'counselor'])
     .order('created_at', { ascending: false });
 
   if (!error && data) {
-    return data as UserProfile[];
+    return (data as any[]).filter(u => !isDeletedStaff(u)) as UserProfile[];
   }
 
   return [];

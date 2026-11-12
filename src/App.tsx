@@ -233,7 +233,9 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
 
   const effectiveUser = user || session?.user;
   if (!session || !effectiveUser) return <Navigate to={location.pathname.startsWith('/digital') ? '/digital/login' : '/login'} replace />;
-  if (!profile) return <div role="alert" className="p-8 text-center">Your account profile could not be loaded. <button className="underline" onClick={()=>window.location.reload()}>Retry</button></div>;
+  if (!profile || profile.is_active === false || ['deleted', 'inactive', 'deactivated', 'suspended'].includes(((profile as any).status || '').toLowerCase())) {
+    return <Navigate to={location.pathname.startsWith('/digital') ? '/digital/login' : '/login'} replace />;
+  }
   const rawRole = profile.role;
   const userEmail = effectiveUser?.email || profile?.email || '';
   const isSuper = isSuperAdmin(rawRole, userEmail);

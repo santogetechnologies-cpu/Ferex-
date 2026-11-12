@@ -201,41 +201,47 @@ export const LoginPage: React.FC = () => {
 
     const { data: dbProfile } = await client
       .from('users')
-      .select('role, must_change_password')
+      .select('role, must_change_password, is_active, status')
       .eq('id', user.id)
       .maybeSingle();
 
-    if (dbProfile?.role) {
-      role = dbProfile.role;
-      mustChangePassword = !!dbProfile.must_change_password;
-    } else if (cleanEmail) {
+    let profileRecord = dbProfile;
+    if (!profileRecord && cleanEmail) {
       const { data: dbProfileByEmail } = await client
         .from('users')
-        .select('role, must_change_password')
+        .select('role, must_change_password, is_active, status')
         .ilike('email', cleanEmail)
         .maybeSingle();
-      if (dbProfileByEmail?.role) {
-        role = dbProfileByEmail.role;
-        mustChangePassword = !!dbProfileByEmail.must_change_password;
+      if (dbProfileByEmail) {
+        profileRecord = dbProfileByEmail;
       }
     }
 
-    if (!role) {
-      const localCred = localStorage.getItem(`ferex_admin_cred_${cleanEmail.toLowerCase()}`);
-      if (localCred) {
-        try {
-          const parsed = JSON.parse(localCred);
-          role = parsed.role;
-          if (parsed.require_password_reset) {
-            mustChangePassword = true;
-          }
-        } catch {}
-      }
+    if (!profileRecord) {
+      await supabase.auth.signOut().catch(() => {});
+      localStorage.removeItem('ferex_user');
+      setIsLoading(false);
+      setErrorMsg('Your account has been deactivated or deleted. Please contact the Central Admin.');
+      return;
     }
 
-    // Direct unassigned Supabase auth defaults to superadmin; student signups have explicit 'student' metadata
+    const isInactive =
+      profileRecord.is_active === false ||
+      ['deleted', 'inactive', 'deactivated', 'suspended'].includes((profileRecord.status || '').toLowerCase());
+
+    if (isInactive) {
+      await supabase.auth.signOut().catch(() => {});
+      localStorage.removeItem('ferex_user');
+      setIsLoading(false);
+      setErrorMsg('Your account has been deactivated or deleted. Please contact the Central Admin.');
+      return;
+    }
+
+    role = profileRecord.role;
+    mustChangePassword = !!profileRecord.must_change_password;
+
     if (!role) {
-      role = user.user_metadata?.role || (dbProfile as any)?.role || 'superadmin';
+      role = 'student';
     }
 
     // Authoritatively detect Super Admin via email, role, or user metadata
@@ -245,7 +251,7 @@ export const LoginPage: React.FC = () => {
       role === 'central' ||
       isSuperAdmin(role, cleanEmail) ||
       isSuperAdmin(user.user_metadata?.role, cleanEmail) ||
-      isSuperAdmin(dbProfile?.role, cleanEmail);
+      isSuperAdmin(profileRecord?.role, cleanEmail);
 
     if (isSuper) {
       role = 'superadmin';

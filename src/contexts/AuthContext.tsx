@@ -22,6 +22,8 @@ export interface UserProfile {
   emergency_contact?: Record<string, any>;
   must_change_password?: boolean;
   permissions?: any[];
+  status?: string;
+  is_active?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -65,14 +67,25 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 import { getAdminSupabaseClient } from '../lib/adminAuthClient';
 
-async function fetchProfile(userId: string, _email?: string | null): Promise<UserProfile | null> {
-  const { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
+async function fetchProfile(userId: string, email?: string | null): Promise<UserProfile | null> {
+  let { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
   if (error) throw error;
+  if (!data && email) {
+    const { data: byEmail, error: emailErr } = await supabase
+      .from('users')
+      .select('*')
+      .ilike('email', email.trim())
+      .maybeSingle();
+    if (emailErr) throw emailErr;
+    data = byEmail;
+  }
   return data as UserProfile | null;
 }
 async function ensureProfile(user: User): Promise<UserProfile> {
-  const profile = await fetchProfile(user.id);
-  if (!profile) throw new Error('Your account profile could not be loaded. Contact your administrator.');
+  const profile = await fetchProfile(user.id, user.email);
+  if (!profile) {
+    throw new Error('Your account has been deactivated or deleted. Please contact the Central Admin.');
+  }
   if (
     (profile as any).is_active === false ||
     ['deleted', 'inactive', 'deactivated', 'suspended'].includes(((profile as any).status || '').toLowerCase())
@@ -132,25 +145,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const authoritativeProfile = await ensureProfile(currentSession.user);
         if (generation === authGeneration.current) setProfile(authoritativeProfile);
       } else {
-        // Fallback for division consoles with demo / active local user
-        const curEmail = typeof window !== 'undefined' ? localStorage.getItem('ferex_current_email') : null;
-        const curRole = typeof window !== 'undefined' ? localStorage.getItem('ferex_current_role') : null;
-        const curName = typeof window !== 'undefined' ? localStorage.getItem('ferex_current_name') : null;
-        if (curEmail && curRole && generation === authGeneration.current) {
-          setProfile({
-            id: 'local-' + curEmail,
-            email: curEmail,
-            role: curRole,
-            full_name: curName || curEmail.split('@')[0],
-          });
-        }
+        if (generation === authGeneration.current) setProfile(null);
       }
     } catch (err: any) {
-      if (err?.message?.includes('deactivated or deleted')) {
-        triggerRevocation(err.message);
-        return;
-      }
-      // A profile lookup failure never grants a role from metadata or local storage.
+      triggerRevocation(err?.message || 'Your account has been deactivated or deleted. Please contact the Central Admin.');
       if (generation === authGeneration.current) setProfile(null);
     } finally {
       if (generation === authGeneration.current) setLoading(false);
@@ -255,13 +253,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // 2. Active session verification fallback (on tab visibility / periodic check)
     const verifyStatus = async () => {
       try {
-        const { data, error } = await supabase
+        let { data, error } = await supabase
           .from('users')
           .select('id, role, is_active, status, permissions')
           .eq('id', currentUserId)
           .maybeSingle();
 
         if (error) return;
+
+        if (!data && currentUserEmail) {
+          const { data: byEmail, error: emailErr } = await supabase
+            .from('users')
+            .select('id, role, is_active, status, permissions')
+            .ilike('email', currentUserEmail)
+            .maybeSingle();
+          if (!emailErr) data = byEmail;
+        }
 
         if (!data) {
           triggerRevocation('Your account has been deactivated or deleted. Please contact the Central Admin.');
@@ -350,6 +357,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
       
       if (error) return { error: error.message };
+
+      if (!data?.user) {
+        return { error: 'Authentication failed. No user found.' };
+      }
+
+      // Check authoritative profile in public.users to verify active status
+      let { data: dbProfile, error: profileErr } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', data.user.id)
+        .maybeSingle();
+
+      if (profileErr) {
+        await supabase.auth.signOut().catch(() => {});
+        return { error: 'Failed to verify account status.' };
+      }
+
+      if (!dbProfile && cleanEmail) {
+        const { data: byEmail, error: emailErr } = await supabase
+          .from('users')
+          .select('*')
+          .ilike('email', cleanEmail)
+          .maybeSingle();
+        if (emailErr) {
+          await supabase.auth.signOut().catch(() => {});
+          return { error: 'Failed to verify account status.' };
+        }
+        dbProfile = byEmail;
+      }
+
+      // If user has been deleted or deactivated in database, reject login immediately!
+      if (!dbProfile) {
+        await supabase.auth.signOut().catch(() => {});
+        for (const k of Object.keys(localStorage)) {
+          if (k.startsWith('ferex_')) localStorage.removeItem(k);
+        }
+        return { error: 'Your account has been deactivated or deleted. Please contact the Central Admin.' };
+      }
+
+      const isInactive =
+        dbProfile.is_active === false ||
+        ['deleted', 'inactive', 'deactivated', 'suspended'].includes((dbProfile.status || '').toLowerCase());
+
+      if (isInactive) {
+        await supabase.auth.signOut().catch(() => {});
+        for (const k of Object.keys(localStorage)) {
+          if (k.startsWith('ferex_')) localStorage.removeItem(k);
+        }
+        return { error: 'Your account has been deactivated or deleted. Please contact the Central Admin.' };
+      }
 
       if (data.session) {
         await loadUserData(data.session);

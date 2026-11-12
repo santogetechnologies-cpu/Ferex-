@@ -12,7 +12,7 @@ import { ToastNotification } from '../../components/ToastNotification';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { isSuperAdmin } from '../../lib/roleRouter';
-import { deleteDivisionStaff } from '../../lib/api/staff';
+import { deleteDivisionStaff, isStaffDeleted } from '../../lib/api/staff';
 
 interface AdminAccount {
   id: string;
@@ -187,6 +187,16 @@ export const CentralAdmins: React.FC = () => {
       (data || []).forEach((u: any) => {
         let cleanRole = (u.role || '').toLowerCase().trim();
         const cleanEmail = (u.email || '').toLowerCase().trim();
+
+        if (
+          u.status === 'deleted' ||
+          u.is_active === false ||
+          ['deleted', 'inactive', 'deactivated', 'suspended'].includes((u.status || '').toLowerCase()) ||
+          isStaffDeleted(cleanEmail) ||
+          isStaffDeleted(u.id)
+        ) {
+          return;
+        }
 
         if (isSuperAdmin(u.role, u.email)) {
           cleanRole = 'superadmin';

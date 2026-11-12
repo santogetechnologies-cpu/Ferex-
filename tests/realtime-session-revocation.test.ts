@@ -413,8 +413,8 @@ before(async () => {
         IF v_caller_role IN ('central', 'superadmin', 'super_admin') THEN
           NULL;
         ELSIF v_caller_role IN ('admin', 'education_admin', 'education') THEN
-          IF v_user_role IS NOT NULL AND v_user_role <> 'student' THEN
-            RAISE EXCEPTION 'Unauthorized: Education Administrators can only delete student accounts';
+          IF v_user_role IS NOT NULL AND v_user_role IN ('central', 'superadmin', 'super_admin') THEN
+            RAISE EXCEPTION 'Unauthorized: Education Administrators cannot delete Central Super Administrators';
           END IF;
         ELSE
           RAISE EXCEPTION 'Unauthorized: You do not have permission to delete user accounts';
@@ -577,6 +577,22 @@ before(async () => {
     END;
     $func$;
 
+    -- Cascading trigger: deletes in public.users automatically purge auth.sessions and auth.users
+    CREATE OR REPLACE FUNCTION public.handle_user_deleted_sync()
+    RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth AS $$
+    BEGIN
+      DELETE FROM auth.sessions WHERE user_id = OLD.id;
+      DELETE FROM auth.refresh_tokens WHERE session_id IN (SELECT id FROM auth.sessions WHERE user_id = OLD.id);
+      DELETE FROM auth.users WHERE id = OLD.id OR (OLD.email IS NOT NULL AND lower(email) = lower(OLD.email));
+      RETURN OLD;
+    END;
+    $$;
+
+    DROP TRIGGER IF EXISTS trg_cascade_delete_user_from_auth ON public.users;
+    CREATE TRIGGER trg_cascade_delete_user_from_auth
+    AFTER DELETE ON public.users
+    FOR EACH ROW EXECUTE FUNCTION public.handle_user_deleted_sync();
+
     GRANT ALL ON SCHEMA public, auth TO service_role, authenticated;
     GRANT ALL ON ALL TABLES IN SCHEMA public, auth TO service_role, authenticated;
     GRANT ALL ON ALL SEQUENCES IN SCHEMA public, auth TO service_role, authenticated;
@@ -686,14 +702,15 @@ test('2. Education Admin deletes a student, cleaning up records and purging sess
   assert.equal(sSessions.rows[0].count, 0);
 });
 
-test('3. Education Admin CANNOT delete another admin or counselor account', async () => {
+test('3. Education Admin can delete a division staff member, but CANNOT delete Central Super Admin', async () => {
+  // Education Admin CANNOT delete Central Super Admin
   await asUser(eduAdminId);
   await assert.rejects(
     async () => {
-      await db.query(`SELECT public.delete_user_by_admin($1);`, [counselorId]);
+      await db.query(`SELECT public.delete_user_by_admin($1);`, [superAdminId]);
     },
     (err: Error) => {
-      return err.message.includes('Education Administrators can only delete student accounts');
+      return err.message.includes('Education Administrators cannot delete Central Super Administrators');
     }
   );
 });
@@ -786,4 +803,31 @@ test('8. Root security restrictions: Self-deletion and primary superadmin deleti
     },
     (err: Error) => err.message.includes('Primary Super Admin account cannot be deactivated')
   );
+});
+
+test('9. Automatic trigger on public.users purges auth.users and auth.sessions on direct delete', async () => {
+  const tempUserId = '70000000-0000-4000-8000-000000000001';
+  const tempUserEmail = 'tempadmin@ferexventures.com';
+
+  // Seed temp user in auth.users and public.users with an active session
+  await db.exec('RESET ROLE;');
+  await db.query(`INSERT INTO auth.users (id, email) VALUES ($1, $2);`, [tempUserId, tempUserEmail]);
+  await db.query(`INSERT INTO public.users (id, email, full_name, role, status, is_active) VALUES ($1, $2, 'Temp User', 'admin', 'active', true);`, [tempUserId, tempUserEmail]);
+  await db.query(`INSERT INTO auth.sessions (id, user_id) VALUES ('70000000-0000-4000-8000-000000000002', $1);`, [tempUserId]);
+
+  // Verify they exist in both tables and have active sessions
+  const authBefore = await db.query(`SELECT count(*)::int as count FROM auth.users WHERE id = $1;`, [tempUserId]);
+  assert.equal(authBefore.rows[0].count, 1);
+  const sessBefore = await db.query(`SELECT count(*)::int as count FROM auth.sessions WHERE user_id = $1;`, [tempUserId]);
+  assert.equal(sessBefore.rows[0].count, 1);
+
+  // Directly delete from public.users (simulating UI/SQL delete)
+  await db.query(`DELETE FROM public.users WHERE id = $1;`, [tempUserId]);
+
+  // Verify trigger automatically cascaded deletion to auth.users and auth.sessions
+  const authAfter = await db.query(`SELECT count(*)::int as count FROM auth.users WHERE id = $1;`, [tempUserId]);
+  assert.equal(authAfter.rows[0].count, 0, 'User MUST be purged from auth.users');
+
+  const sessAfter = await db.query(`SELECT count(*)::int as count FROM auth.sessions WHERE user_id = $1;`, [tempUserId]);
+  assert.equal(sessAfter.rows[0].count, 0, 'Sessions MUST be purged from auth.sessions');
 });

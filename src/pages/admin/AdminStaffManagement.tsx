@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Edit3, Trash2, X, Save, CheckCircle2, Mail, Phone, ShieldCheck } from 'lucide-react';
-import { getStaffMembers, getStudents, updateStudent, deleteStudent } from '../../lib/api/students';
+import { getStaffMembers, getStudents, updateStudent } from '../../lib/api/students';
+import { deleteDivisionStaff } from '../../lib/api/staff';
 import { useAuth } from '../../contexts/AuthContext';
 import { isSuperAdmin } from '../../lib/roleRouter';
 import { ToastNotification } from '../../components/ToastNotification';
@@ -136,7 +137,7 @@ export const AdminStaffManagement: React.FC = () => {
     if (!deleteId) return;
     const target = staff.find(s => s.id === deleteId);
     try {
-      await deleteStudent(deleteId, target?.email);
+      await deleteDivisionStaff(deleteId, target?.email);
       setStaff(prev => prev.filter(s => s.id !== deleteId));
       setDeleteId(null);
       showToast('Administrative user removed from system.');

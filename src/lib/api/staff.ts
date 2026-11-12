@@ -121,42 +121,9 @@ export function saveCustomStaffMember(member: DivisionStaffMember): void {
 
 const DEFAULT_DIVISION_STAFF: Record<string, DivisionStaffMember[]> = {
   digital: [],
-  trade: [
-    {
-      id: '22222222-2222-4222-a222-222222222001',
-      name: 'Global Trade Director',
-      email: 'trade@ferex.com',
-      role: 'trade_admin',
-      roleLabel: 'Trade Director',
-      division: 'trade',
-      department: 'Trade Logistics',
-      phone: '+91 98190 30001'
-    }
-  ],
-  rimi: [
-    {
-      id: '33333333-3333-4333-a333-333333333001',
-      name: 'Rimi Operations Lead',
-      email: 'rimi@ferex.com',
-      role: 'rimi_admin',
-      roleLabel: 'Rimi Distribution Director',
-      division: 'rimi',
-      department: 'Cold Chain Logistics',
-      phone: '+91 98190 40001'
-    }
-  ],
-  education: [
-    {
-      id: '44444444-4444-4444-a444-444444444001',
-      name: 'Admissions Lead Counselor',
-      email: 'education@ferex.com',
-      role: 'education_admin',
-      roleLabel: 'Education Admissions Lead',
-      division: 'education',
-      department: 'Student Admissions',
-      phone: '+91 98190 10001'
-    }
-  ]
+  trade: [],
+  rimi: [],
+  education: []
 };
 
 const LOCAL_STORAGE_KEY = 'ferex_staff_registry_cache';

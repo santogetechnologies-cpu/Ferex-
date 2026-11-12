@@ -62,16 +62,7 @@ import {
   type PayrollDeductionInput,
 } from '../../lib/api/attendance';
 
-const KNOWN_STAFF = [
-  { email: 'counselor@ferex.com', name: 'Education Counselor', role: 'counselor', division: 'education' },
-  { email: 'education@ferex.com', name: 'Education Admin', role: 'admin', division: 'education' },
-  { email: 'rimi@ferex.com', name: 'Rimi Logistics Officer', role: 'logistics_officer', division: 'rimi' },
-  { email: 'trade@ferex.com', name: 'Trade Ops Manager', role: 'operations_manager', division: 'trade' },
-  { email: 'digital@ferex.com', name: 'Digital Staff', role: 'digital_staff', division: 'digital' },
-  { email: 'digimanager@ferex.com', name: 'Digital Manager', role: 'digital_manager', division: 'digital' },
-  { email: 'pm@ferex.com', name: 'Project Manager', role: 'pm', division: 'digital' },
-  { email: 'centraladmin@ferexventures.com', name: 'Central Admin', role: 'superadmin', division: 'central' },
-];
+const KNOWN_STAFF: { email: string; name: string; role: string; division: string }[] = [];
 
 const ALL_ROLES = [
   { id: 'counselor', label: 'Education Counselor' },
@@ -2114,8 +2105,7 @@ export const CentralAttendance: React.FC = () => {
                       {/* Staff Chips list */}
                       <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2 border border-slate-200/80 rounded-xl bg-white">
                         {(() => {
-                          const staffList =
-                            enterpriseStaff.length > 0 ? enterpriseStaff : KNOWN_STAFF;
+                          const staffList = enterpriseStaff;
                           const q = staffModalSearch.trim().toLowerCase();
                           const filtered = staffList.filter(
                             (st) =>
@@ -2403,38 +2393,40 @@ export const CentralAttendance: React.FC = () => {
               </div>
 
               {/* QUICK PRE-FILL STAFF CHIPS */}
-              <div className="mb-4">
-                <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-                  Quick Select Staff Member
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {KNOWN_STAFF.map((staff) => {
-                    const isSelected = salaryForm.user_email === staff.email;
-                    return (
-                      <button
-                        key={staff.email}
-                        type="button"
-                        onClick={() => {
-                          setSalaryForm({
-                            ...salaryForm,
-                            user_email: staff.email,
-                            user_name: staff.name,
-                            user_role: staff.role,
-                            division: staff.division,
-                          });
-                        }}
-                        className={`text-[11px] px-2.5 py-1 rounded-full border transition-all cursor-pointer font-medium ${
-                          isSelected
-                            ? 'bg-[#58051E] text-white border-[#58051E] shadow-xs'
-                            : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-                        }`}
-                      >
-                        {staff.name}
-                      </button>
-                    );
-                  })}
+              {enterpriseStaff.length > 0 && (
+                <div className="mb-4">
+                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Quick Select Staff Member
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {enterpriseStaff.map((staff) => {
+                      const isSelected = salaryForm.user_email === staff.email;
+                      return (
+                        <button
+                          key={staff.email}
+                          type="button"
+                          onClick={() => {
+                            setSalaryForm({
+                              ...salaryForm,
+                              user_email: staff.email,
+                              user_name: staff.name,
+                              user_role: staff.role,
+                              division: staff.division,
+                            });
+                          }}
+                          className={`text-[11px] px-2.5 py-1 rounded-full border transition-all cursor-pointer font-medium ${
+                            isSelected
+                              ? 'bg-[#58051E] text-white border-[#58051E] shadow-xs'
+                              : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                          }`}
+                        >
+                          {staff.name}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <form onSubmit={handleSaveSalary} className="space-y-4">
                 <div>
@@ -2446,7 +2438,7 @@ export const CentralAttendance: React.FC = () => {
                     value={salaryForm.user_email}
                     onChange={(e) => {
                       const email = e.target.value;
-                      const matched = KNOWN_STAFF.find(st => st.email.toLowerCase() === email.toLowerCase());
+                      const matched = enterpriseStaff.find(st => st.email.toLowerCase() === email.toLowerCase());
                       if (matched) {
                         setSalaryForm({
                           ...salaryForm,
@@ -2459,11 +2451,11 @@ export const CentralAttendance: React.FC = () => {
                         setSalaryForm({ ...salaryForm, user_email: email });
                       }
                     }}
-                    placeholder="e.g. counselor@ferex.com"
+                    placeholder="e.g. counselor@ferexventures.com"
                     className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-lg p-2.5 focus:outline-none focus:border-[#58051E]"
                   />
                   <datalist id="known-staff-emails">
-                    {KNOWN_STAFF.map((st) => (
+                    {enterpriseStaff.map((st) => (
                       <option key={st.email} value={st.email}>
                         {st.name} ({st.division})
                       </option>
