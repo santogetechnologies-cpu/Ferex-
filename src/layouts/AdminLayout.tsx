@@ -30,7 +30,7 @@ const baseMenuItems = [
   { name: 'Documents Review', path: '/admin/documents', icon: FolderOpen, badge: null, hasUpdate: false },
   { name: 'Document Config', path: '/admin/document-config', icon: FileText, badge: null, hasUpdate: false },
   { name: 'Legalization & Workflows', path: '/admin/legalization', icon: FileCheck, badge: null, hasUpdate: false },
-  { name: 'Payment & Billing Control', path: '/admin/payment-control', icon: CreditCard, badge: null, hasUpdate: false },
+  { name: 'Payment History', path: '/admin/payment-control', icon: CreditCard, badge: null, hasUpdate: false },
   { name: 'Fee Governance', path: '/admin/fee-config', icon: Sliders, badge: null, hasUpdate: false },
   { name: 'VFS Visa Tracker', path: '/admin/visa-tracker', icon: ShieldCheck, badge: null, hasUpdate: false },
   { name: 'Pre-Departure', path: '/admin/pre-departure', icon: Plane, badge: null, hasUpdate: false },

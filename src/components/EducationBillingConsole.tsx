@@ -6,7 +6,7 @@ import {
   Plus, RotateCcw, Sparkles, X, ChevronRight, FileText,
   DollarSign, TrendingUp, ShieldCheck, ArrowUpRight, GraduationCap,
   Layers, Check, ExternalLink, RefreshCw, Building2, Trash2,
-  Sliders, Receipt, User, Globe, Coins, Calendar, ArrowRight,
+  Receipt, Coins, Calendar, ArrowRight, Filter,
   Tag, Percent, Award, UploadCloud
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -40,7 +40,6 @@ import {
   generateQrCodeImageUrl, type GlobalPaymentGatewayConfig
 } from '../lib/api/paymentGateways';
 import type { Application, JourneyStage, Payment, UserProfile } from '../lib/types';
-import { EducationFeeEditor } from './EducationFeeEditor';
 import { openRazorpayCheckout } from '../lib/razorpayCheckout';
 import { supabase } from '../lib/supabase';
 
@@ -56,7 +55,6 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   const { universities } = useUniversities();
   const { destinations } = useDestinations();
   const [preferredCountry, setPreferredCountry] = useState('');
-  const [tab, setTab] = useState<'billing' | 'settings'>('billing');
   const [feeOverrides, setFeeOverrides] = useState<Record<string, StudentFeeOverride>>({});
   const [students, setStudents] = useState<UserProfile[]>([]);
   const [studentId, setStudentId] = useState('');
@@ -70,6 +68,13 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'All' | 'Paid' | 'Pending' | 'Failed' | 'Partially Paid' | 'Refunded'>('All');
+  const [methodFilter, setMethodFilter] = useState<'All' | 'Cash' | 'UPI' | 'Direct Bank Transfer'>('All');
+  const [dateFilter, setDateFilter] = useState<'All' | 'Today' | 'This Week' | 'This Month' | 'Custom'>('All');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [viewPayment, setViewPayment] = useState<Payment | null>(null);
   const [activeFee, setActiveFee] = useState<EducationFee | null>(null);
   const [parts, setParts] = useState<PaymentPart[]>([]);
   const [total, setTotal] = useState(0);
@@ -226,7 +231,181 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
     return result;
   }, [payments, targetId]);
 
-  const ledger = payments.filter(p => (!targetId || p.student_id === targetId) && `${p.student_name} ${p.title} ${p.utr_number} ${p.status}`.toLowerCase().includes(search.toLowerCase()));
+  const studentMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (statusFilter !== 'All') count++;
+    if (methodFilter !== 'All') count++;
+    if (dateFilter !== 'All') count++;
+    return count;
+  }, [statusFilter, methodFilter, dateFilter]);
+
+  const clearFilters = () => {
+    setStatusFilter('All');
+    setMethodFilter('All');
+    setDateFilter('All');
+    setCustomStartDate('');
+    setCustomEndDate('');
+  };
+
+  const normalizeStatus = (status?: string): 'Paid' | 'Pending' | 'Failed' | 'Partially Paid' | 'Refunded' => {
+    const s = (status || '').toLowerCase().trim();
+    if (s === 'paid' || s === 'verified') return 'Paid';
+    if (s === 'pending' || s === 'pending verification' || s.includes('pending')) return 'Pending';
+    if (s === 'failed' || s === 'rejected' || s === 'cancelled') return 'Failed';
+    if (s === 'partially paid' || s === 'partial') return 'Partially Paid';
+    if (s === 'refunded' || s === 'refund') return 'Refunded';
+    return 'Pending';
+  };
+
+  const normalizeMethod = (method?: string): string => {
+    const m = (method || '').toLowerCase().trim();
+    if (m === 'cash') return 'Cash';
+    if (m === 'upi' || m.includes('upi') || m.includes('phonepe') || m.includes('razorpay')) return 'UPI';
+    if (m.includes('bank') || m.includes('transfer') || m === 'net_banking' || m === 'wire' || m === 'swift') return 'Direct Bank Transfer';
+    return method || 'Direct Bank Transfer';
+  };
+
+  const renderStatusBadge = (status?: string) => {
+    const norm = normalizeStatus(status);
+    switch (norm) {
+      case 'Paid':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+            <span>Paid</span>
+          </span>
+        );
+      case 'Pending':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200">
+            <Clock className="w-3 h-3 text-amber-600" />
+            <span>Pending</span>
+          </span>
+        );
+      case 'Failed':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200">
+            <XCircle className="w-3 h-3 text-rose-600" />
+            <span>Failed</span>
+          </span>
+        );
+      case 'Partially Paid':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
+            <TrendingUp className="w-3 h-3 text-blue-600" />
+            <span>Partially Paid</span>
+          </span>
+        );
+      case 'Refunded':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-purple-50 text-purple-700 border border-purple-200">
+            <RotateCcw className="w-3 h-3 text-purple-600" />
+            <span>Refunded</span>
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200">
+            {status || 'Unknown'}
+          </span>
+        );
+    }
+  };
+
+  const isWithinDateRange = useCallback((itemDateStr: string | null | undefined): boolean => {
+    if (dateFilter === 'All') return true;
+    if (!itemDateStr) return false;
+    const d = new Date(itemDateStr);
+    if (isNaN(d.getTime())) return false;
+
+    const now = new Date();
+    if (dateFilter === 'Today') {
+      return d.toDateString() === now.toDateString();
+    }
+    if (dateFilter === 'This Week') {
+      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      return d >= oneWeekAgo && d <= now;
+    }
+    if (dateFilter === 'This Month') {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      return d >= startOfMonth && d <= now;
+    }
+    if (dateFilter === 'Custom') {
+      if (customStartDate) {
+        const start = new Date(customStartDate);
+        start.setHours(0, 0, 0, 0);
+        if (d < start) return false;
+      }
+      if (customEndDate) {
+        const end = new Date(customEndDate);
+        end.setHours(23, 59, 59, 999);
+        if (d > end) return false;
+      }
+      return true;
+    }
+    return true;
+  }, [dateFilter, customStartDate, customEndDate]);
+
+  const ledger = useMemo(() => {
+    const searchLower = search.toLowerCase().trim();
+
+    return payments
+      .filter(p => {
+        if (targetId && p.student_id !== targetId) return false;
+
+        if (statusFilter !== 'All') {
+          const norm = normalizeStatus(p.status);
+          if (norm !== statusFilter) return false;
+        }
+
+        if (methodFilter !== 'All') {
+          const normMethod = normalizeMethod(p.payment_method);
+          if (normMethod !== methodFilter) return false;
+        }
+
+        const paymentDate = p.created_at || p.paid_at;
+        if (!isWithinDateRange(paymentDate)) return false;
+
+        if (searchLower) {
+          const student = studentMap.get(p.student_id);
+          const studentName = (p.student_name || student?.full_name || profile?.full_name || '').toLowerCase();
+          const studentEmail = (student?.email || (p as any).student_email || (p as any).users?.email || profile?.email || '').toLowerCase();
+          const title = (p.title || '').toLowerCase();
+          const desc = (p.description || '').toLowerCase();
+          const utr = (p.utr_number || '').toLowerCase();
+          const txId = (p.transaction_id || '').toLowerCase();
+          const refNo = (p.ref_no || '').toLowerCase();
+          const status = (p.status || '').toLowerCase();
+          const normStatus = normalizeStatus(p.status).toLowerCase();
+          const method = (p.payment_method || '').toLowerCase();
+          const normMethod = normalizeMethod(p.payment_method).toLowerCase();
+
+          const matches =
+            studentName.includes(searchLower) ||
+            studentEmail.includes(searchLower) ||
+            title.includes(searchLower) ||
+            desc.includes(searchLower) ||
+            utr.includes(searchLower) ||
+            txId.includes(searchLower) ||
+            refNo.includes(searchLower) ||
+            status.includes(searchLower) ||
+            normStatus.includes(searchLower) ||
+            method.includes(searchLower) ||
+            normMethod.includes(searchLower);
+
+          if (!matches) return false;
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        const timeA = new Date(a.created_at || a.paid_at || 0).getTime();
+        const timeB = new Date(b.created_at || b.paid_at || 0).getTime();
+        return timeB - timeA;
+      });
+  }, [payments, targetId, statusFilter, methodFilter, isWithinDateRange, search, studentMap, profile]);
   const upiId = gateway?.divisions.education.customUpiId || gateway?.upi.upiId || 'ferex.payments@icici';
   const upiAvailable = !!(config.payment_gateways.phonepe_upi_enabled && (gateway?.upi?.enabled ?? true));
 
@@ -249,12 +428,13 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   }) : '';
 
   const handleDownloadReceipt = (payment: any) => {
+    const student = studentMap.get(payment.student_id);
     const blob = createReceiptPdfBlob({
       receipt_no: payment.ref_no || `REC-${payment.id?.slice(0, 8)}`,
-      student_name: payment.student_name || studentName,
+      student_name: payment.student_name || student?.full_name || studentName,
       amount: Number(payment.amount) || 0,
       currency: payment.currency || 'INR',
-      payment_method: payment.payment_method || 'UPI',
+      payment_method: normalizeMethod(payment.payment_method) || 'UPI',
       description: payment.title || payment.description || 'Education Payment',
       issued_at: payment.paid_at || payment.created_at || new Date().toISOString(),
     });
@@ -372,7 +552,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
               <CreditCard className="w-6 h-6 text-[#58051E]" />
-              {admin ? 'Payment & Billing Control Console' : 'Payments & billing'}
+              {admin ? 'Payment History' : 'Payments & billing'}
             </h1>
             <span className="text-[10px] font-extrabold bg-[#58051E]/10 text-[#58051E] px-2.5 py-0.5 rounded-full border border-[#58051E]/20">
               {admin ? 'Finance Authority' : 'Student Ledger'}
@@ -395,137 +575,34 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
         </button>
       </div>
 
-      {/* Admin Tabs */}
-      {admin && (
-        <nav className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-2xl border border-slate-200/60 max-w-fit">
-          <button
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              tab === 'billing'
-                ? 'bg-white text-[#58051E] shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-            onClick={() => setTab('billing')}
-          >
-            <Receipt className="w-3.5 h-3.5" />
-            <span>Student billing & ledger</span>
-          </button>
-          <button
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              tab === 'settings'
-                ? 'bg-white text-[#58051E] shadow-xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-            onClick={() => setTab('settings')}
-          >
-            <Sliders className="w-3.5 h-3.5" />
-            <span>Configure fees & Razorpay gateway</span>
-          </button>
-        </nav>
+      {/* Alerts */}
+      {error && (
+        <div role="alert" className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-800 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+          <span>{error}</span>
+        </div>
       )}
 
-      {tab === 'settings' ? (
-        <EducationFeeEditor />
-      ) : (
-        <>
-          {/* Alerts */}
-          {error && (
-            <div role="alert" className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-800 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-              <span>{error}</span>
-            </div>
+      {message && (
+        <div role="status" className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{message}</span>
+          </div>
+          {lastReceiptData && (
+            <button
+              type="button"
+              onClick={() => handleDownloadReceipt(lastReceiptData)}
+              className="px-3 py-1 bg-[#58051E] hover:bg-[#430316] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Download className="w-3 h-3" />
+              <span>Download PDF Receipt</span>
+            </button>
           )}
+        </div>
+      )}
 
-          {message && (
-            <div role="status" className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>{message}</span>
-              </div>
-              {lastReceiptData && (
-                <button
-                  type="button"
-                  onClick={() => handleDownloadReceipt(lastReceiptData)}
-                  className="px-3 py-1 bg-[#58051E] hover:bg-[#430316] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Download className="w-3 h-3" />
-                  <span>Download PDF Receipt</span>
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Student & Destination Context Selector (Admin) */}
-          {admin && (
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-[#58051E]" /> Student
-                </label>
-                <select
-                  aria-label="Student"
-                  className={fieldClass}
-                  value={studentId}
-                  onChange={e => { setStudentId(e.target.value); setAppId(''); }}
-                >
-                  <option value="">All students — ledger only</option>
-                  {students.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.full_name} ({s.email})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {targetId && studentApps.length > 0 && (
-                <div>
-                  <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                    <Building2 className="w-3.5 h-3.5 text-[#58051E]" /> Selected university / country
-                  </label>
-                  <select
-                    className={fieldClass}
-                    value={application?.id || ''}
-                    onChange={e => setAppId(e.target.value)}
-                  >
-                    {studentApps.map(a => (
-                      <option key={a.id} value={a.id}>
-                        {a.university_name} — {universities.find(u => u.id === a.university_id)?.country || a.universities?.country || 'Country not set'}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {targetId && !university && (
-                <div>
-                  <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                    <Globe className="w-3.5 h-3.5 text-[#58051E]" /> Study destination
-                  </label>
-                  <select
-                    className={fieldClass}
-                    value={preferredCountry}
-                    disabled={busy}
-                    onChange={async e => {
-                      setBusy(true);
-                      setError('');
-                      try {
-                        await saveEducationCountry(targetId, e.target.value);
-                        setPreferredCountry(e.target.value);
-                      } catch (e) {
-                        setError((e as Error).message);
-                      } finally {
-                        setBusy(false);
-                      }
-                    }}
-                  >
-                    <option value="">Select a country</option>
-                    {countryOptions.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* KPI Summary Cards */}
+      {/* KPI Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {Object.entries(totals).map(([currency, sums]) => (
               <div
@@ -799,124 +876,341 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                 </p>
               </div>
 
-              {/* Search Bar */}
-              <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  aria-label="Search payment ledger"
-                  className="w-full h-9 pl-9 pr-4 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#58051E]"
-                  placeholder="Search student, fee, reference or status"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                />
+              {/* Search & Filter Controls */}
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-72">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    aria-label="Search payment ledger"
+                    className="w-full h-9 pl-9 pr-8 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#58051E]"
+                    placeholder="Search student, fee, ref or status"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                  />
+                  {search && (
+                    <button
+                      type="button"
+                      onClick={() => setSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      title="Clear search"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Filter Button & Popover */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowFilterDropdown(prev => !prev)}
+                    className={`h-9 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      activeFilterCount > 0
+                        ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm'
+                        : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+                    }`}
+                    title="Filter payments"
+                  >
+                    <Filter className="w-3.5 h-3.5" />
+                    <span>Filter</span>
+                    {activeFilterCount > 0 && (
+                      <span className="w-4 h-4 rounded-full bg-white text-[#58051E] text-[10px] font-black flex items-center justify-center">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Filter Dropdown Popover */}
+                  {showFilterDropdown && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-30"
+                        onClick={() => setShowFilterDropdown(false)}
+                      />
+                      <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white border border-slate-200 rounded-2xl shadow-xl z-40 p-4 space-y-3.5">
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                          <div className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5">
+                            <Filter className="w-3.5 h-3.5 text-[#58051E]" /> Filter Payments
+                          </div>
+                          {activeFilterCount > 0 && (
+                            <button
+                              type="button"
+                              onClick={clearFilters}
+                              className="text-[11px] font-bold text-rose-600 hover:text-rose-800 cursor-pointer"
+                            >
+                              Reset all
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Status Filter */}
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                            Payment Status
+                          </label>
+                          <select
+                            value={statusFilter}
+                            onChange={e => setStatusFilter(e.target.value as any)}
+                            className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#58051E]"
+                          >
+                            <option value="All">All Statuses</option>
+                            <option value="Paid">Paid</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Failed">Failed</option>
+                            <option value="Partially Paid">Partially Paid</option>
+                            <option value="Refunded">Refunded</option>
+                          </select>
+                        </div>
+
+                        {/* Method Filter */}
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                            Payment Method
+                          </label>
+                          <select
+                            value={methodFilter}
+                            onChange={e => setMethodFilter(e.target.value as any)}
+                            className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#58051E]"
+                          >
+                            <option value="All">All Methods</option>
+                            <option value="Cash">Cash</option>
+                            <option value="UPI">UPI</option>
+                            <option value="Direct Bank Transfer">Direct Bank Transfer</option>
+                          </select>
+                        </div>
+
+                        {/* Date Filter */}
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                            Payment Date
+                          </label>
+                          <select
+                            value={dateFilter}
+                            onChange={e => setDateFilter(e.target.value as any)}
+                            className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#58051E]"
+                          >
+                            <option value="All">All Time</option>
+                            <option value="Today">Today</option>
+                            <option value="This Week">This Week</option>
+                            <option value="This Month">This Month</option>
+                            <option value="Custom">Custom Date Range</option>
+                          </select>
+                        </div>
+
+                        {/* Custom Date Pickers */}
+                        {dateFilter === 'Custom' && (
+                          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                            <div>
+                              <label className="text-[9px] font-bold text-slate-400 uppercase">From</label>
+                              <input
+                                type="date"
+                                value={customStartDate}
+                                onChange={e => setCustomStartDate(e.target.value)}
+                                className="w-full h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-700 focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-bold text-slate-400 uppercase">To</label>
+                              <input
+                                type="date"
+                                value={customEndDate}
+                                onChange={e => setCustomEndDate(e.target.value)}
+                                className="w-full h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-700 focus:outline-none"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-slate-500">
+                            {ledger.length} {ledger.length === 1 ? 'record' : 'records'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowFilterDropdown(false)}
+                            className="px-3 py-1 bg-[#58051E] hover:bg-[#430316] text-white rounded-lg text-xs font-bold cursor-pointer"
+                          >
+                            Apply
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* Active Filters Bar */}
+            {activeFilterCount > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[11px] font-semibold text-slate-500">Active filters:</span>
+                {statusFilter !== 'All' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#58051E]/10 text-[#58051E]">
+                    Status: {statusFilter}
+                    <button type="button" onClick={() => setStatusFilter('All')} className="hover:opacity-70 cursor-pointer"><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+                {methodFilter !== 'All' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#58051E]/10 text-[#58051E]">
+                    Method: {methodFilter}
+                    <button type="button" onClick={() => setMethodFilter('All')} className="hover:opacity-70 cursor-pointer"><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+                {dateFilter !== 'All' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#58051E]/10 text-[#58051E]">
+                    Date: {dateFilter === 'Custom' ? `${customStartDate || '...'} to ${customEndDate || '...'}` : dateFilter}
+                    <button type="button" onClick={() => { setDateFilter('All'); setCustomStartDate(''); setCustomEndDate(''); }} className="hover:opacity-70 cursor-pointer"><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="text-[11px] font-bold text-rose-600 hover:text-rose-800 underline ml-1 cursor-pointer"
+                >
+                  Reset all
+                </button>
+              </div>
+            )}
 
             {/* Table */}
             <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-2xs bg-white">
               <table className="w-full text-xs text-left">
                 <thead className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">
                   <tr>
-                    <th className="py-3 px-4">Student / Fee</th>
+                    <th className="py-3 px-4">Student Name</th>
+                    <th className="py-3 px-4">Fee / Payment Description</th>
                     <th className="py-3 px-4">Amount</th>
-                    <th className="py-3 px-4">Method / Reference</th>
+                    <th className="py-3 px-4">Payment Date</th>
+                    <th className="py-3 px-4">Payment Method</th>
+                    <th className="py-3 px-4">Transaction Reference</th>
                     <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4">Actions</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {ledger.map(p => {
-                    const isVerified = ['Paid', 'Verified'].includes(p.status);
-                    const isPending = p.status === 'Pending Verification';
-                    const isRejected = p.status === 'Rejected';
+                    const student = studentMap.get(p.student_id);
+                    const sName = p.student_name || student?.full_name || (profile?.full_name ?? 'Student');
+                    const sEmail = student?.email || (p as any).student_email || (profile?.email ?? '—');
+                    const normStatus = normalizeStatus(p.status);
+                    const isPaid = normStatus === 'Paid';
+                    const isPending = normStatus === 'Pending';
 
                     return (
                       <tr key={p.id} className="hover:bg-slate-50/70 transition-colors">
+                        {/* 1. Student Name */}
                         <td className="py-3 px-4">
-                          <div className="font-bold text-slate-900">{p.student_name}</div>
-                          <div className="text-xs font-extrabold text-[#58051E] mt-0.5">{p.title}</div>
-                          <details className="text-[11px] text-slate-500 mt-1 cursor-pointer">
-                            <summary className="hover:text-slate-800">Details</summary>
-                            <div className="p-2 bg-slate-50 rounded-lg mt-1 space-y-1 text-slate-600 border border-slate-100">
-                              {p.description && <p>{p.description}</p>}
-                              {p.reviewer_notes && <p className="italic font-medium text-slate-700">Notes: {p.reviewer_notes}</p>}
-                              <p className="text-[10px] text-slate-400 font-mono">{new Date(p.created_at).toLocaleString()}</p>
-                            </div>
-                          </details>
+                          <div className="font-bold text-slate-900 leading-snug">{sName}</div>
+                          <div className="text-[11px] text-slate-500 font-medium truncate max-w-[180px]">{sEmail}</div>
                         </td>
 
+                        {/* 2. Fee / Payment Description */}
                         <td className="py-3 px-4">
+                          <div className="font-extrabold text-[#58051E] leading-snug">{p.title || 'Education Fee'}</div>
+                          {p.description && (
+                            <div className="text-[11px] text-slate-500 truncate max-w-[200px]" title={p.description}>
+                              {p.description}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* 3. Amount */}
+                        <td className="py-3 px-4 whitespace-nowrap">
                           <span className="font-black text-slate-900 text-sm">
-                            {money(Number(p.amount), p.currency || 'INR')}
+                            ₹{Number(p.amount || 0).toLocaleString('en-IN')}
                           </span>
                         </td>
 
-                        <td className="py-3 px-4">
-                          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200">
-                            {p.payment_method}
+                        {/* 4. Payment Date */}
+                        <td className="py-3 px-4 whitespace-nowrap text-slate-600 font-medium text-[11px]">
+                          <div>
+                            {new Date(p.created_at || p.paid_at || Date.now()).toLocaleDateString('en-IN', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric'
+                            })}
                           </div>
-                          {p.utr_number && (
-                            <div className="font-mono text-[11px] text-slate-600 mt-1">
-                              {p.utr_number}
-                            </div>
-                          )}
+                          <div className="text-[10px] text-slate-400">
+                            {new Date(p.created_at || p.paid_at || Date.now()).toLocaleTimeString('en-IN', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: true
+                            })}
+                          </div>
                         </td>
 
+                        {/* 5. Payment Method */}
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            {normalizeMethod(p.payment_method)}
+                          </span>
+                        </td>
+
+                        {/* 6. Transaction Reference */}
                         <td className="py-3 px-4">
-                          {isVerified ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              <CheckCircle2 className="w-3 h-3" /> {p.status}
-                            </span>
-                          ) : isPending ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200">
-                              <Clock className="w-3 h-3" /> {p.status}
-                            </span>
-                          ) : isRejected ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200">
-                              <XCircle className="w-3 h-3" /> {p.status}
+                          {p.utr_number || p.transaction_id || p.ref_no ? (
+                            <span className="font-mono text-[11px] font-semibold text-slate-700 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 select-all break-all">
+                              {p.utr_number || p.transaction_id || p.ref_no}
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200">
-                              {p.status}
-                            </span>
+                            <span className="text-slate-400 text-xs">—</span>
                           )}
                         </td>
 
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            {isVerified && (
+                        {/* 7. Status */}
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          {renderStatusBadge(p.status)}
+                        </td>
+
+                        {/* 8. Actions */}
+                        <td className="py-3 px-4 whitespace-nowrap text-right">
+                          <div className="inline-flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setViewPayment(p)}
+                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                              title="View details & receipt"
+                            >
+                              <Eye className="w-3 h-3 text-slate-500" />
+                              <span>View</span>
+                            </button>
+
+                            {isPaid && (
                               <button
                                 type="button"
                                 onClick={() => handleDownloadReceipt(p)}
-                                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                                className="px-2 py-1 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
                                 title="Download PDF Receipt"
                               >
                                 <Download className="w-3 h-3 text-slate-500" />
-                                <span>Receipt</span>
                               </button>
                             )}
 
                             {admin && isPending && (
                               <>
                                 <button
+                                  type="button"
                                   disabled={busy}
                                   onClick={() => {
                                     setReview({ payment: p, approve: true });
                                     setReviewNotes('');
                                   }}
-                                  className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                                  className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                                  title="Verify payment"
                                 >
-                                  <Check className="w-3 h-3" /> Verify
+                                  <Check className="w-3 h-3" />
                                 </button>
                                 <button
+                                  type="button"
                                   disabled={busy}
                                   onClick={() => {
                                     setReview({ payment: p, approve: false });
                                     setReviewNotes('');
                                   }}
-                                  className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                                  className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                                  title="Reject payment"
                                 >
-                                  <X className="w-3 h-3" /> Reject
+                                  <X className="w-3 h-3" />
                                 </button>
                               </>
                             )}
@@ -929,8 +1223,28 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
               </table>
 
               {!loading && !ledger.length && (
-                <div className="p-8 text-center text-xs font-bold text-slate-400">
-                  No matching payments found.
+                <div className="p-8 text-center space-y-2">
+                  <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                    <Receipt className="w-5 h-5" />
+                  </div>
+                  <p className="text-xs font-bold text-slate-700">No payment records found</p>
+                  <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
+                    {search || activeFilterCount > 0
+                      ? 'No transactions matched your search or filter criteria. Try adjusting or clearing your filters.'
+                      : 'No payment transactions recorded in the system yet.'}
+                  </p>
+                  {(search || activeFilterCount > 0) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearch('');
+                        clearFilters();
+                      }}
+                      className="mt-1 text-xs font-bold text-[#58051E] hover:underline cursor-pointer"
+                    >
+                      Clear search & filters
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -946,8 +1260,6 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
               </div>
             )}
           </section>
-        </>
-      )}
 
       {/* Record Payment Modal */}
       {activeFee && (
@@ -1324,6 +1636,163 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
           </section>
         </div>
       )}
+
+      {/* View Payment Details & Receipt Modal */}
+      {viewPayment && (() => {
+        const student = studentMap.get(viewPayment.student_id);
+        const sName = viewPayment.student_name || student?.full_name || (profile?.full_name ?? 'Student');
+        const sEmail = student?.email || (viewPayment as any).student_email || (profile?.email ?? '—');
+        const normStatus = normalizeStatus(viewPayment.status);
+        const isPaid = normStatus === 'Paid';
+        const isPending = normStatus === 'Pending';
+
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs p-4 flex items-center justify-center">
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-label="Payment Details"
+              className="bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 max-w-xl w-full max-h-[90vh] overflow-y-auto space-y-4 text-left"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-[#58051E]/10 flex items-center justify-center text-[#58051E]">
+                    <Receipt className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-slate-900 tracking-tight">Payment Details</h2>
+                    <p className="text-xs text-slate-500 font-medium font-mono">Ref: {viewPayment.ref_no || viewPayment.id}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setViewPayment(null)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  title="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Student Summary */}
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1">
+                <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Student Profile</div>
+                <div className="text-sm font-bold text-slate-900">{sName}</div>
+                <div className="text-xs text-slate-500">{sEmail}</div>
+              </div>
+
+              {/* Payment Info Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                  <div className="text-[10px] font-extrabold text-slate-400 uppercase">Amount</div>
+                  <div className="text-lg font-black text-slate-900 mt-0.5">
+                    ₹{Number(viewPayment.amount || 0).toLocaleString('en-IN')}
+                  </div>
+                  <div className="text-[10px] text-slate-400 font-medium">Currency: {viewPayment.currency || 'INR'}</div>
+                </div>
+
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                  <div className="text-[10px] font-extrabold text-slate-400 uppercase">Status</div>
+                  <div className="mt-1">
+                    {renderStatusBadge(viewPayment.status)}
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                  <div className="text-[10px] font-extrabold text-slate-400 uppercase">Payment Method</div>
+                  <div className="text-xs font-bold text-slate-800 mt-1">
+                    {normalizeMethod(viewPayment.payment_method)}
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                  <div className="text-[10px] font-extrabold text-slate-400 uppercase">Transaction Reference</div>
+                  <div className="text-xs font-mono font-bold text-slate-800 mt-1 select-all break-all">
+                    {viewPayment.utr_number || viewPayment.transaction_id || viewPayment.ref_no || '—'}
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 col-span-2">
+                  <div className="text-[10px] font-extrabold text-slate-400 uppercase">Fee Description</div>
+                  <div className="text-xs font-bold text-[#58051E] mt-0.5">{viewPayment.title || 'Education Fee'}</div>
+                  {viewPayment.description && (
+                    <div className="text-xs text-slate-600 mt-1 leading-relaxed">{viewPayment.description}</div>
+                  )}
+                </div>
+
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 col-span-2">
+                  <div className="text-[10px] font-extrabold text-slate-400 uppercase">Payment Timestamp</div>
+                  <div className="text-xs font-medium text-slate-700 mt-0.5">
+                    {new Date(viewPayment.created_at || viewPayment.paid_at || Date.now()).toLocaleString('en-IN', {
+                      dateStyle: 'full',
+                      timeStyle: 'medium',
+                    })}
+                  </div>
+                </div>
+
+                {viewPayment.reviewer_notes && (
+                  <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl col-span-2">
+                    <div className="text-[10px] font-extrabold text-amber-800 uppercase">Reviewer / Admin Notes</div>
+                    <div className="text-xs text-amber-900 mt-0.5">{viewPayment.reviewer_notes}</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions Footer */}
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setViewPayment(null)}
+                  className={secondaryBtn}
+                >
+                  Close
+                </button>
+
+                <div className="flex items-center gap-2">
+                  {admin && isPending && (
+                    <>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => {
+                          const p = viewPayment;
+                          setViewPayment(null);
+                          setReview({ payment: p, approve: false });
+                          setReviewNotes('');
+                        }}
+                        className="h-9 px-3 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" /> Reject
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => {
+                          const p = viewPayment;
+                          setViewPayment(null);
+                          setReview({ payment: p, approve: true });
+                          setReviewNotes('');
+                        }}
+                        className="h-9 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Check className="w-3.5 h-3.5" /> Verify
+                      </button>
+                    </>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadReceipt(viewPayment)}
+                    className="h-9 px-4 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Download Receipt
+                  </button>
+                </div>
+              </div>
+            </section>
+          </div>
+        );
+      })()}
     </div>
   );
 }
