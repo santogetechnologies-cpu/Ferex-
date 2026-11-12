@@ -53,7 +53,7 @@ const STATUS_COLORS: Record<EducationLead['status'], { bg: string; text: string;
 
 export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ isStaff = false }) => {
   const { profile } = useAuth();
-  const currentCounselorName = profile?.full_name || 'Counselor';
+  const currentCounselorName = (profile?.full_name || '').trim();
 
   const [leads, setLeads] = useState<EducationLead[]>([]);
   const [counselors, setCounselors] = useState<DivisionStaffMember[]>([]);
@@ -63,8 +63,16 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<string>('All');
-  const [counselorFilter, setCounselorFilter] = useState<string>(isStaff ? currentCounselorName : 'All');
+  // Default to 'All'; useEffect below sets the counselor filter once profile is loaded
+  const [counselorFilter, setCounselorFilter] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Fix: profile loads async — update counselor filter once full_name is available
+  useEffect(() => {
+    if (isStaff && currentCounselorName && counselorFilter === 'All') {
+      setCounselorFilter(currentCounselorName);
+    }
+  }, [isStaff, currentCounselorName]);
 
   // Bulk Selection
   const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
@@ -294,14 +302,21 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
     });
   }, [leads, statusFilter, counselorFilter, searchQuery]);
 
-  // Counts for Status Tabs
+  // Counts for Status Tabs — scoped to counselor when in staff view
   const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = { All: leads.length };
+    // Apply only the counselor scope (not status/search) for accurate tab counts
+    const scopedLeads = isStaff && counselorFilter !== 'All'
+      ? leads.filter((l) => {
+          const assignedName = (l.assigned_counselor_name || '').toLowerCase();
+          return assignedName.includes(counselorFilter.toLowerCase());
+        })
+      : leads;
+    const counts: Record<string, number> = { All: scopedLeads.length };
     for (const opt of STATUS_OPTIONS) {
-      counts[opt] = leads.filter((l) => l.status === opt).length;
+      counts[opt] = scopedLeads.filter((l) => l.status === opt).length;
     }
     return counts;
-  }, [leads]);
+  }, [leads, isStaff, counselorFilter]);
 
   // Best Performing Counselor
   const topCounselor = metrics.find((m) => m.counselor_id !== 'unassigned' && m.enrolled > 0);

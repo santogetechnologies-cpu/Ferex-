@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, ShieldCheck, AlertCircle, Clock, FileText, Receipt, ExternalLink } from 'lucide-react';
+import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, ShieldCheck, AlertCircle, Clock, FileText, Receipt, ExternalLink, Package, Layers } from 'lucide-react';
+import {
+  getCountryFeePackages, getStudentBillingAssignment, setStudentBillingFlow, money as pkgMoney,
+  type CountryFeePackage, type StudentBillingFlowMode, type StudentBillingAssignment
+} from '../../lib/api/feePackages';
 import { useStudents } from '../../hooks/useStudents';
 import { useApplications } from '../../hooks/useApplications';
 import { useDocuments } from '../../hooks/useDocuments';
@@ -263,6 +267,44 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
     visaStatus: string;
     discounts: Array<{ fee_id: string; discount: number; reason: string }>;
   } | null>(null);
+
+  // Billing Flow & Country Package State for View Drawer
+  const [availableCountryPackages, setAvailableCountryPackages] = useState<CountryFeePackage[]>([]);
+  const [studentBillingAssignment, setStudentBillingAssignment] = useState<StudentBillingAssignment | null>(null);
+  const [isUpdatingBillingFlow, setIsUpdatingBillingFlow] = useState(false);
+
+  useEffect(() => {
+    if (!viewStudent?.id) {
+      setStudentBillingAssignment(null);
+      return;
+    }
+    getStudentBillingAssignment(viewStudent.id).then(setStudentBillingAssignment);
+    getCountryFeePackages().then(pkgs => {
+      const activeForCountry = pkgs.filter(p => p.is_active && p.country.toLowerCase().trim() === (viewStudent.targetCountry || '').toLowerCase().trim());
+      setAvailableCountryPackages(activeForCountry.length > 0 ? activeForCountry : pkgs.filter(p => p.is_active));
+    });
+  }, [viewStudent]);
+
+  const handleUpdateStudentBillingFlow = async (mode: StudentBillingFlowMode, pkgId?: string) => {
+    if (!viewStudent?.id) return;
+    setIsUpdatingBillingFlow(true);
+    try {
+      const actorName = profile?.full_name || user?.email || (isStaff ? 'Counselor' : 'Admin');
+      await setStudentBillingFlow(viewStudent.id, mode, mode === 'package' ? (pkgId || null) : null, actorName);
+      setStudentBillingAssignment({
+        student_id: viewStudent.id,
+        flow_mode: mode,
+        package_id: mode === 'package' ? pkgId : undefined,
+        assigned_by: actorName,
+        assigned_at: new Date().toISOString()
+      });
+      showToast(mode === 'package' ? 'Student assigned to Package Flow.' : 'Student switched to Normal Flow (milestone-based).');
+    } catch (err: any) {
+      showToast(`Error updating billing flow: ${err.message || 'Failed'}`);
+    } finally {
+      setIsUpdatingBillingFlow(false);
+    }
+  };
 
   useEffect(() => {
     const loadStages = async () => {
@@ -955,6 +997,98 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                     )}
                   </div>
                 )}
+
+                {/* Country Package & Billing Flow Assignment Card */}
+                <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-3 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                      <Package className="w-3.5 h-3.5 text-[#58051E]" />
+                      Commercial Billing Flow
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                      studentBillingAssignment?.flow_mode === 'package'
+                        ? 'bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20'
+                        : 'bg-slate-100 text-slate-600 border border-slate-200'
+                    }`}>
+                      {studentBillingAssignment?.flow_mode === 'package' ? 'Package Flow' : 'Normal Flow'}
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Assign this student to <strong>Normal Flow</strong> (standard milestone fees) or a custom <strong>Country Package</strong> (all-inclusive bundle with covered services).
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      disabled={isUpdatingBillingFlow}
+                      onClick={() => handleUpdateStudentBillingFlow('normal')}
+                      className={`h-9 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer border ${
+                        studentBillingAssignment?.flow_mode !== 'package'
+                          ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      <Layers className="w-3.5 h-3.5" /> Normal Flow
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isUpdatingBillingFlow || availableCountryPackages.length === 0}
+                      onClick={() => {
+                        const defaultPkg = availableCountryPackages[0]?.id;
+                        if (defaultPkg) handleUpdateStudentBillingFlow('package', defaultPkg);
+                      }}
+                      className={`h-9 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer border ${
+                        studentBillingAssignment?.flow_mode === 'package'
+                          ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      <Package className="w-3.5 h-3.5" /> Package Flow
+                    </button>
+                  </div>
+
+                  {studentBillingAssignment?.flow_mode === 'package' && (
+                    <div className="pt-2 space-y-2 border-t border-slate-100">
+                      <label className="block text-[10px] font-extrabold text-slate-600 uppercase tracking-wider">
+                        Select Country Fee Package
+                      </label>
+                      <select
+                        disabled={isUpdatingBillingFlow}
+                        value={studentBillingAssignment.package_id || ''}
+                        onChange={(e) => handleUpdateStudentBillingFlow('package', e.target.value)}
+                        className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20"
+                      >
+                        {availableCountryPackages.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} — {pkgMoney(p.total_amount, p.currency)} ({p.country})
+                          </option>
+                        ))}
+                      </select>
+
+                      {(() => {
+                        const currentPkg = availableCountryPackages.find(p => p.id === studentBillingAssignment.package_id);
+                        if (!currentPkg) return null;
+                        return (
+                          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-slate-800">{currentPkg.name}</span>
+                              <span className="font-black text-[#58051E]">{pkgMoney(currentPkg.total_amount, currentPkg.currency)}</span>
+                            </div>
+                            <p className="text-[11px] text-slate-500">{currentPkg.description}</p>
+                            <div className="pt-1 flex flex-wrap gap-1">
+                              {currentPkg.covered_services.filter(s => s.is_included).map(s => (
+                                <span key={s.id} className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-semibold">
+                                  ✓ {s.title}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
 
                 {/* Stepper with Confirm buttons */}
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3">

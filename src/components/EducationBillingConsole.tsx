@@ -28,6 +28,10 @@ import {
   type StudentFeeOverride
 } from '../lib/api/payments';
 import {
+  getCountryFeePackages, getStudentBillingAssignment, setStudentBillingFlow, money as pkgMoney,
+  type CountryFeePackage, type StudentBillingAssignment
+} from '../lib/api/feePackages';
+import {
   educationFees, resolveEducationFee, feeBalance, feeIsDue,
   educationStages, money, cents, type EducationFee, type PaymentPart
 } from '../lib/educationBilling';
@@ -83,6 +87,32 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
     title: string;
     paid_at: string;
   } | null>(null);
+
+  // Country Fee Package Flow State
+  const [studentAssignment, setStudentAssignment] = useState<StudentBillingAssignment | null>(null);
+  const [activePackage, setActivePackage] = useState<CountryFeePackage | null>(null);
+  const [allPackages, setAllPackages] = useState<CountryFeePackage[]>([]);
+
+  useEffect(() => {
+    if (!targetId) {
+      setStudentAssignment(null);
+      setActivePackage(null);
+      return;
+    }
+    Promise.all([
+      getStudentBillingAssignment(targetId),
+      getCountryFeePackages()
+    ]).then(([assign, pkgs]) => {
+      setStudentAssignment(assign);
+      setAllPackages(pkgs);
+      if (assign?.flow_mode === 'package' && assign.package_id) {
+        const found = pkgs.find(p => p.id === assign.package_id);
+        setActivePackage(found || null);
+      } else {
+        setActivePackage(null);
+      }
+    }).catch(() => {});
+  }, [targetId]);
 
   const load = useCallback(async () => {
     if (!admin && !targetId) return;
@@ -535,6 +565,100 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                   <span>
                     Select a university to apply country-specific fees. Fees with country overrides remain unavailable until a destination is selected.
                   </span>
+                </div>
+              )}
+
+              {/* Package Flow View (When Assigned to Country Fee Package) */}
+              {studentAssignment?.flow_mode === 'package' && activePackage && (
+                <div className="p-5 bg-gradient-to-br from-[#58051E]/5 via-white to-indigo-50/30 border-2 border-[#58051E]/20 rounded-3xl space-y-5 shadow-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="p-1.5 bg-[#58051E] text-white rounded-lg">
+                          <Coins className="w-4 h-4" />
+                        </span>
+                        <h2 className="text-base font-black text-slate-900 tracking-tight">
+                          {activePackage.name}
+                        </h2>
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20">
+                          Assigned Package
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 mt-1">
+                        {activePackage.description}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-xl font-black text-[#58051E]">
+                        {pkgMoney(activePackage.total_amount, activePackage.currency)}
+                      </div>
+                      <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                        All-Inclusive Package Fee
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Covered Inclusions Checklist */}
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Services & Deliverables Covered Under This Package
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {activePackage.covered_services.map(svc => (
+                        <div
+                          key={svc.id}
+                          className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-xs font-semibold ${
+                            svc.is_included
+                              ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
+                              : 'bg-slate-50 border-slate-200 text-slate-400 opacity-60'
+                          }`}
+                        >
+                          {svc.is_included ? (
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                          ) : (
+                            <X className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                          )}
+                          <div>
+                            <p className="font-bold">{svc.title}</p>
+                            {svc.description && <p className="text-[10.5px] opacity-80 mt-0.5">{svc.description}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Package Installments */}
+                  {activePackage.installments.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t border-slate-100">
+                      <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-indigo-600" /> Payment Installment Schedule
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {activePackage.installments.map((inst, idx) => (
+                          <div key={inst.id} className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black text-[#58051E] uppercase tracking-wider">
+                                Installment {idx + 1}
+                              </span>
+                              <span className="text-sm font-black text-slate-900">
+                                {pkgMoney(inst.amount, activePackage.currency)}
+                              </span>
+                            </div>
+                            <p className="text-xs font-extrabold text-slate-800">{inst.title}</p>
+                            <p className="text-[11px] text-slate-500 font-semibold">
+                              {inst.due_description || `${inst.timing === 'before' ? 'Before' : 'After'} Stage ${inst.stage_trigger}`}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {activePackage.terms_note && (
+                    <p className="text-[11px] text-slate-500 italic bg-white/70 p-3 rounded-xl border border-slate-200/60">
+                      <strong>Terms:</strong> {activePackage.terms_note}
+                    </p>
+                  )}
                 </div>
               )}
 
