@@ -196,6 +196,15 @@ export const Documents: React.FC = () => {
     return calculateDossierStatus(configuredReqs, documents);
   }, [configuredReqs, documents]);
 
+  const additionalDocs = useMemo(() => {
+    const matchedDocIds = new Set(
+      dossierStatus.results
+        .map(r => r.doc?.id)
+        .filter(Boolean)
+    );
+    return documents.filter(d => !matchedDocIds.has(d.id));
+  }, [documents, dossierStatus.results]);
+
   const handleOpenUploadForReq = (req: DocumentRequirement) => {
     setReuploadTargetDocId(null);
     setSelectedReq(req);
@@ -832,6 +841,93 @@ export const Documents: React.FC = () => {
                             )}
                           </div>
                         )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {additionalDocs.map((doc) => {
+                  const displayStatus = 
+                    (doc.status as string) === 'Pending Verification' || (doc.status as string) === 'Pending' ? 'Submitted' :
+                    (doc.status as string) === 'Re-upload Requested' ? 'Rejected' :
+                    (doc.status as string) === 'Verified' ? 'Approved' :
+                    (doc.status as string) === 'Under Review' ? 'In Review' :
+                    doc.status || 'Submitted';
+
+                  const badgeColor =
+                    displayStatus === 'Approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                    displayStatus === 'In Review' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                    displayStatus === 'Submitted' ? 'bg-slate-100 text-slate-700 border-slate-200' :
+                    displayStatus === 'Rejected' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                    'bg-slate-100 text-slate-700 border-slate-200';
+
+                  return (
+                    <div 
+                      key={doc.id}
+                      className="p-3.5 rounded-xl border text-xs flex flex-col justify-between transition-all bg-emerald-50/40 border-emerald-200 text-slate-800"
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                              <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-slate-200 text-slate-700 font-bold uppercase">
+                                {doc.type || 'Other'}
+                              </span>
+                              <span className="text-[9.5px] font-medium px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 border border-slate-200 shrink-0">
+                                ADDITIONAL
+                              </span>
+                            </div>
+                            <span className="font-bold text-xs leading-tight text-slate-900 block truncate" title={doc.name}>
+                              {doc.name}
+                            </span>
+                          </div>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${badgeColor}`}>
+                            {displayStatus}
+                          </span>
+                        </div>
+
+                        {doc.reviewerNotes || (doc as any).notes || (doc as any).comment ? (
+                          <p className="text-[10px] text-slate-500 leading-snug line-clamp-2 mt-1">
+                            {doc.reviewerNotes || (doc as any).notes || (doc as any).comment}
+                          </p>
+                        ) : (
+                          <p className="text-[10px] text-slate-400 leading-snug line-clamp-2 mt-1">
+                            Additional supporting certificate.
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="pt-2.5 mt-2 border-t border-slate-200/60 flex items-center justify-between gap-2">
+                        <div className="text-[9.5px] text-slate-400">
+                          <span>{doc.size || '1.0 MB'}</span> • <span>{doc.date || 'Uploaded'}</span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            title="Edit uploaded file"
+                            onClick={() => {
+                              setReuploadTargetDocId(doc.id);
+                              setSelectedReq(null);
+                              setUploadName(doc.name);
+                              setUploadType(doc.type || 'Other');
+                              setSelectedFile(null);
+                              setShowUploadModal(true);
+                            }}
+                            className="p-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 hover:border-slate-300 text-slate-600 hover:text-[#58051E] flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+                            aria-label="Edit uploaded file"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPreview(doc)}
+                            className="px-2.5 py-1 bg-[#58051E] hover:bg-[#430316] text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+                          >
+                            <Eye className="w-3 h-3" /> Preview
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
