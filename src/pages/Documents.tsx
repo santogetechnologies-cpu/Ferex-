@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Folder, Search, Upload, Eye, FileText, X, AlertCircle,
   ShieldCheck, Globe, CheckCircle2, Download, ExternalLink, Clock,
-  FilePlus, PlusCircle
+  FilePlus, PlusCircle, Pencil
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
@@ -799,15 +799,38 @@ export const Documents: React.FC = () => {
                             <Upload className="w-3 h-3" /> Upload
                           </button>
                         ) : (
-                          item.doc && (
+                          <div className="flex items-center gap-1.5 shrink-0">
                             <button
                               type="button"
-                              onClick={() => handleOpenPreview(item.doc)}
-                              className="text-[10px] font-bold text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer"
+                              title="Edit uploaded file"
+                              onClick={() => {
+                                if (item.doc) {
+                                  setReuploadTargetDocId(item.doc.id);
+                                  setSelectedReq(reqDoc);
+                                  setUploadName(item.doc.name);
+                                  setUploadType(item.doc.type);
+                                  setSelectedFile(null);
+                                  setShowUploadModal(true);
+                                } else {
+                                  handleOpenUploadForReq(reqDoc);
+                                }
+                              }}
+                              className="p-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 hover:border-slate-300 text-slate-600 hover:text-[#58051E] flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+                              aria-label="Edit uploaded file"
                             >
-                              <Eye className="w-3 h-3" /> Preview
+                              <Pencil className="w-3 h-3" />
                             </button>
-                          )
+
+                            {item.doc && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenPreview(item.doc)}
+                                className="px-2.5 py-1 bg-[#58051E] hover:bg-[#430316] text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+                              >
+                                <Eye className="w-3 h-3" /> Preview
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1061,30 +1084,6 @@ export const Documents: React.FC = () => {
                     required
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E] focus:bg-white"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Document Category</label>
-                  <select
-                    value={uploadType}
-                    onChange={(e) => setUploadType(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E] focus:bg-white"
-                  >
-                    {configuredReqs.length > 0 ? (
-                      Array.from(new Set(configuredReqs.map(r => r.document_type || 'Academic'))).map(t => (
-                        <option key={t} value={t}>{t}</option>
-                      ))
-                    ) : (
-                      <>
-                        <option value="Academic">Academic</option>
-                        <option value="Identification">Identification</option>
-                        <option value="Financial">Financial</option>
-                        <option value="Language">Language</option>
-                        <option value="Legalization">Legalization</option>
-                        <option value="Other">Other</option>
-                      </>
-                    )}
-                  </select>
                 </div>
 
                 <input
