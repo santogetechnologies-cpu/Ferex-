@@ -1,6 +1,6 @@
 import type { Payment } from './types';
 import { getSystemFeeConfig } from './api/feeConfig';
-import { educationStageAccess, educationFees, resolveEducationFee, feeBalance, money } from './educationBilling';
+import { educationStageAccess, studentFees, getActiveStudentFeeProfile, feeBalance, money } from './educationBilling';
 
 export interface StageUnlockStatus {
   isUnlocked: boolean;
@@ -20,7 +20,7 @@ export function checkPaymentStage(payments: Payment[], stageNum: 1 | 2 | 3, targ
     message: access.allowed ? 'Configured fees for this stage are settled or waived.' : `Outstanding configured fees: ${requiredPayment}` };
 }
 export function getExpectedPaymentAmount(stageNum: 1 | 2 | 3, targetCountry?: string, _tuitionAmount?: number): number {
-  return educationFees(getSystemFeeConfig()).filter(f => f.enabled && f.recipient === 'ferex' && f.currency === 'INR' && f.stage <= workflowStage[stageNum]).reduce((sum, f) => sum + resolveEducationFee(f, targetCountry).amount, 0);
+  return studentFees(getSystemFeeConfig(), targetCountry, getActiveStudentFeeProfile()).filter(f => f.recipient === 'ferex' && f.currency === 'INR' && f.stage <= workflowStage[stageNum]).reduce((sum, f) => sum + f.amount, 0);
 }
 export interface JourneyStageAccess {
   canSelectUniversity: boolean; canSubmitApplication: boolean; canViewOfferLetter: boolean;
@@ -39,6 +39,6 @@ export function canAccessPage(pagePath: string, payments: Payment[], targetCount
   return { allowed, reason: allowed ? undefined : `Complete the configured fees in Payments & billing: ${access.blockedReason || ''}` };
 }
 export function getNextRequiredPayment(payments: Payment[], targetCountry?: string) {
-  const next = educationFees(getSystemFeeConfig()).filter(f => f.enabled && f.recipient === 'ferex').map(f => resolveEducationFee(f, targetCountry)).sort((a,b) => a.stage - b.stage).find(f => feeBalance(f, payments).remaining > 0);
+  const next = studentFees(getSystemFeeConfig(), targetCountry, getActiveStudentFeeProfile()).filter(f => f.recipient === 'ferex').sort((a,b) => a.stage - b.stage).find(f => feeBalance(f, payments).remaining > 0);
   return next ? { stageNum: (next.stage <= 3 ? 1 : next.stage <= 8 ? 2 : 3) as 1 | 2 | 3, name: next.title, description: next.description, status: 'required' as const, expectedAmount: feeBalance(next, payments).remaining } : { stageNum: null, name: 'Configured fees settled', description: 'No outstanding Ferex fees.', status: 'all_complete' as const, expectedAmount: 0 };
 }

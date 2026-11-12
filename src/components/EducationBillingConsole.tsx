@@ -20,7 +20,7 @@ import { getJourneyStages } from '../lib/api/journey';
 import { fetchStudentAgreement } from '../lib/api/agreement';
 import {
   getEducationCountry, saveEducationCountry, listEducationPayments,
-  recordEducationPayment, reviewEducationPayment, recordRazorpayStudentPayment
+  recordEducationPayment, reviewEducationPayment
 } from '../lib/api/educationBilling';
 import {
   getStudentFeeOverrides,
@@ -32,7 +32,7 @@ import {
   type CountryFeePackage, type StudentBillingAssignment
 } from '../lib/api/feePackages';
 import {
-  educationFees, resolveEducationFee, feeBalance, feeIsDue,
+  studentFees, feeBalance, feeIsDue,
   educationStages, money, cents, type EducationFee, type PaymentPart
 } from '../lib/educationBilling';
 import {
@@ -40,7 +40,6 @@ import {
   generateQrCodeImageUrl, type GlobalPaymentGatewayConfig
 } from '../lib/api/paymentGateways';
 import type { Application, JourneyStage, Payment, UserProfile } from '../lib/types';
-import { openRazorpayCheckout } from '../lib/razorpayCheckout';
 import { supabase } from '../lib/supabase';
 
 const fieldClass = 'w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20 focus:border-[#58051E] transition-all';
@@ -192,8 +191,8 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
       const completed = new Set(stored.filter(s => s.status === 'Completed').map(s => s.stage_number));
       completed.add(1);
       if (agreement?.status === 'Signed') completed.add(2);
-      const registration = educationFees(config).find(f => f.id === 'registration');
-      if (!registration?.enabled || feeBalance(registration, studentPayments).remaining === 0) completed.add(3);
+      const registration = studentFees(config, destination || country, { pkg: activePackage, overrides: feeOverrides }).find(f => f.id === 'registration');
+      if (!registration || feeBalance(registration, studentPayments).remaining === 0) completed.add(3);
       if (application && application.status !== 'Draft') completed.add(6);
       if (application?.offer_letter_url || ['Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Enrolled'].includes(application?.status || '')) completed.add(7);
       if (application?.final_acceptance_url) completed.add(8);
@@ -218,7 +217,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
     return () => { cancelled = true; };
   }, [targetId, application?.id, application?.status, config, payments]);
 
-  const fees = educationFees(config).filter(f => f.enabled).map(f => resolveEducationFee(f, country, feeOverrides));
+  const fees = studentFees(config, country, { pkg: activePackage, overrides: feeOverrides });
 
   const totals = useMemo(() => {
     const result: Record<string, { paid: number; pending: number }> = {};
@@ -262,7 +261,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   const normalizeMethod = (method?: string): string => {
     const m = (method || '').toLowerCase().trim();
     if (m === 'cash') return 'Cash';
-    if (m === 'upi' || m.includes('upi') || m.includes('phonepe') || m.includes('razorpay')) return 'UPI';
+    if (m === 'upi' || m.includes('upi') || m.includes('phonepe')) return 'UPI';
     if (m.includes('bank') || m.includes('transfer') || m === 'net_banking' || m === 'wire' || m === 'swift') return 'Direct Bank Transfer';
     return method || 'Direct Bank Transfer';
   };
@@ -446,104 +445,6 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
     URL.revokeObjectURL(url);
   };
 
-  const loadRazorpayScript = (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      if ((window as any).Razorpay) return resolve(true);
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
-
-  const triggerRazorpayCheckout = async () => {
-    if (!activeFee || total <= 0) return;
-    setBusy(true);
-    setMessage('');
-
-    try {
-      const resolvedKeyId = (gateway?.razorpay?.keyId && gateway.razorpay.keyId !== 'rzp_test_default')
-        ? gateway.razorpay.keyId
-        : ((typeof import.meta !== 'undefined' && import.meta.env?.VITE_RAZORPAY_KEY_ID) || 'rzp_test_TvtcmQYBnXjb9R');
-
-      // For Razorpay UPI gateway in India, convert foreign amounts to INR
-      const feeCur = (activeFee.currency || 'INR').toUpperCase();
-      let rzpAmount = total;
-      if (feeCur === 'EUR') {
-        rzpAmount = Math.round(total * 90);
-      } else if (feeCur === 'USD') {
-        rzpAmount = Math.round(total * 84);
-      } else if (feeCur === 'PLN') {
-        rzpAmount = Math.round(total * 21);
-      }
-
-      await openRazorpayCheckout({
-        keyId: resolvedKeyId,
-        amount: rzpAmount,
-        currency: 'INR',
-        name: 'FEREX HIGHER EDUCATION',
-        description: activeFee.title,
-        receipt: `EDU-${batchId}-${Date.now().toString().slice(-4)}`,
-        notes: {
-          student_id: targetId,
-          fee_id: activeFee.id,
-          application_id: application?.id || '',
-        },
-        prefill: {
-          name: studentName,
-          email: user?.email || '',
-          contact: profile?.phone?.trim() || '+919876543210',
-        },
-        onSuccess: async (verified) => {
-          try {
-            setBusy(true);
-            await recordRazorpayStudentPayment({
-              studentId: targetId,
-              studentName,
-              studentEmail: user?.email,
-              fee: activeFee,
-              amount: total,
-              razorpayPaymentId: verified.payment_id,
-              applicationId: application?.id,
-            });
-            const receiptInfo = {
-              ref_no: `EDU-RZP-${verified.payment_id}`,
-              student_name: studentName,
-              amount: total,
-              currency: activeFee.currency || 'INR',
-              payment_method: 'Razorpay Standard Checkout',
-              title: activeFee.title,
-              paid_at: new Date().toISOString(),
-            };
-            setLastReceiptData(receiptInfo);
-            setActiveFee(null);
-            setMessage(`Payment of ${money(total, activeFee.currency)} confirmed and verified via Razorpay! Official receipt sent to your email.`);
-            window.dispatchEvent(new Event('ferex_payment_change'));
-            await load();
-          } catch (err: any) {
-            setMessage(err.message || 'Payment recording failed');
-          } finally {
-            setBusy(false);
-          }
-        },
-        onError: (err) => {
-          setBusy(false);
-          const msg = err.description || err.message || 'Payment attempt was not completed.';
-          setMessage(`${msg} You can retry or complete payment using the UPI QR / manual reference below.`);
-        },
-        onDismiss: () => {
-          setBusy(false);
-          setMessage('Payment checkout was cancelled by the user.');
-        },
-      });
-    } catch (err: any) {
-      setBusy(false);
-      const errMsg = err?.message || 'Payment checkout initialization was interrupted.';
-      setMessage(`${errMsg} You can retry or complete payment by entering your UPI reference below.`);
-    }
-  };
-
   return (
     <div className="space-y-6 text-left">
       {/* Header */}
@@ -561,7 +462,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
           <p className="text-xs font-semibold text-slate-500 mt-1">
             {admin
               ? 'Record confirmed student payments (Cash, UPI, Direct Bank Transfer) with automated receipts, and configure education fees.'
-              : 'Pay your education fees directly via UPI / Razorpay with instant receipt generation and download.'}
+              : 'Pay your education fees directly by UPI with a receipt after finance verification.'}
           </p>
         </div>
 
@@ -772,9 +673,20 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                               </p>
                             </div>
                             <div className="text-right shrink-0">
+                              {fee.original_amount !== undefined && (
+                                <span className="block text-[11px] font-bold text-slate-400 line-through">{money(fee.original_amount, fee.currency)}</span>
+                              )}
                               <span className="text-base font-black text-[#58051E]">
                                 {money(fee.amount, fee.currency)}
                               </span>
+                              {fee.original_amount !== undefined && (
+                                <span className="block mt-0.5 text-[10px] font-extrabold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                                  {fee.discount_percent ? `${fee.discount_percent}% discount` : 'Discount applied'}
+                                </span>
+                              )}
+                              {fee.package_id && (
+                                <span className="block mt-0.5 text-[10px] font-extrabold uppercase tracking-wide text-[#58051E]">Package fee</span>
+                              )}
                             </div>
                           </div>
 
@@ -830,7 +742,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                               {admin ? (
                                 <>
                                   <CreditCard className="w-4 h-4" />
-                                  <span>Record bank / cash / split payment</span>
+                                  <span>Collect fee (full, partial or split)</span>
                                 </>
                               ) : (
                                 <>
@@ -1278,8 +1190,8 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                 </h2>
                 <p className="text-xs text-slate-500 font-medium mt-0.5">
                   {admin
-                    ? 'Record payment directly for this student. Add split entries (Cash, UPI, Direct Bank Transfer) as needed.'
-                    : 'Pay directly via UPI or Razorpay gateway with instant verified receipt.'}
+                    ? 'Record payment directly for this student. Enter any amount up to the balance for a partial payment, and add split entries (Cash, UPI, Card, Cheque, Bank Transfer) as needed.'
+                    : 'Pay any amount up to the balance by UPI. Finance verifies your UTR and issues the receipt.'}
                 </p>
               </div>
               <button
@@ -1322,7 +1234,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                           value={part.method}
                           onChange={e => setParts(parts.map((p, n) => n === i ? { ...p, method: e.target.value as PaymentPart['method'] } : p))}
                         >
-                          {['Bank Transfer', 'Cash', 'UPI'].map(m => (
+                          {['Bank Transfer', 'Cash', 'UPI', 'Card', 'Cheque'].map(m => (
                             <option key={m} value={m}>{m === 'Bank Transfer' ? 'Direct Bank Transfer' : m}</option>
                           ))}
                         </select>
@@ -1411,32 +1323,42 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
               </div>
             ) : (
               <div className="space-y-4 text-center">
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 inline-block">
-                  <span className="text-2xl font-black text-[#58051E]">
-                    {activeFee?.currency && activeFee.currency !== 'INR'
-                      ? `${money(total, activeFee.currency)} (~${money(activeFee.currency === 'EUR' ? Math.round(total * 90) : activeFee.currency === 'USD' ? Math.round(total * 84) : activeFee.currency === 'PLN' ? Math.round(total * 21) : total, 'INR')})`
-                      : money(total, 'INR')}
-                  </span>
-                </div>
-
-                <div className="max-w-md mx-auto space-y-3">
-                  <button
-                    type="button"
-                    onClick={triggerRazorpayCheckout}
-                    disabled={busy}
-                    className="w-full h-11 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-sm font-black flex items-center justify-center gap-2 shadow-lg shadow-[#58051E]/20 transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    <Sparkles className="w-4 h-4 text-[#E6CA9E]" />
-                    <span>Pay with Razorpay UPI (Instant Confirmation)</span>
-                  </button>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Google Pay, PhonePe, Paytm, BHIM, UPI QR, or UPI ID
+                <div className="max-w-xs mx-auto text-left">
+                  <label className="block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5">
+                    Amount to pay now ({activeFee.currency}) — pay in full or in part
+                  </label>
+                  <input
+                    aria-label="Amount to pay"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    className={fieldClass}
+                    value={total}
+                    onChange={e => {
+                      const amount = Number(e.target.value);
+                      setTotal(amount);
+                      setParts(current => [{ ...current[0], amount }]);
+                    }}
+                  />
+                  <div className="flex gap-2 mt-2">
+                    {[1, 0.5].map(fraction => {
+                      const full = feeBalance(activeFee, studentPayments).payable;
+                      const value = Math.round(full * fraction * 100) / 100;
+                      return (
+                        <button
+                          key={fraction}
+                          type="button"
+                          className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer"
+                          onClick={() => { setTotal(value); setParts(current => [{ ...current[0], amount: value }]); }}
+                        >
+                          {fraction === 1 ? `Full balance (${money(full, activeFee.currency)})` : '50%'}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium mt-2">
+                    Pay with Google Pay, PhonePe, Paytm or any UPI app by scanning the QR below, then enter the UTR.
                   </p>
-                </div>
-
-                <div className="relative my-4">
-                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
-                  <div className="relative flex justify-center text-xs font-bold uppercase"><span className="bg-white px-2 text-slate-400">or manual UPI reference</span></div>
                 </div>
 
                 {uri && (

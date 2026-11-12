@@ -1,5 +1,5 @@
 import { saveEducationCountry } from '../lib/api/educationBilling';
-import { educationFees, resolveEducationFee, money, registrationSettled } from '../lib/educationBilling';
+import { studentFees, getActiveStudentFeeProfile, money, registrationSettled } from '../lib/educationBilling';
 import { formatFeeEURandINR } from './Payments';
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -678,7 +678,7 @@ export const SelectUniversity: React.FC = () => {
                         <span className="text-slate-500">University Tuition:</span>
                         <span className="font-bold text-[#6A1B2E]">{drawerUni.university_fee || drawerUni.tuition_range || '€3,500 / yr'}</span>
                       </div>
-                      {educationFees(config).filter(f => f.enabled).map(f => resolveEducationFee(f, drawerUni.country)).map(f => <div key={f.id} className="flex justify-between text-xs"><span>{f.title}:</span><span className="font-bold">{money(f.amount, f.currency)}</span></div>)}
+                      {studentFees(config, drawerUni.country, getActiveStudentFeeProfile()).map(f => <div key={f.id} className="flex justify-between text-xs"><span>{f.title}:</span><span className="font-bold">{money(f.amount, f.currency)}</span></div>)}
                       {drawerUni.living_cost_monthly && (
                         <div className="flex justify-between items-center text-xs">
                           <span className="text-slate-500">Est. Living Cost:</span>

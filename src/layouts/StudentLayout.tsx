@@ -9,6 +9,7 @@ import {
 import { Logo } from '../components/Logo';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
+import { useStudentFeeProfile } from '../hooks/useStudentFeeProfile';
 import { useNotifications } from '../hooks/useNotifications';
 import { useSystemConfig } from '../hooks/useSystemConfig';
 import { supabase } from '../lib/supabase';
@@ -37,6 +38,9 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
 
   const effectiveStudentId = impersonated?.id || user?.id;
   const { notifications, markRead } = useNotifications(effectiveStudentId);
+  // Publishes the student's package/discounts for stage gating; pages remount when they change.
+  const feeProfile = useStudentFeeProfile(effectiveStudentId, true);
+  const feeKey = `${feeProfile.pkg?.id ?? ''}|${Object.entries(feeProfile.overrides ?? {}).map(([k, v]) => `${k}:${v.discount_percent ?? 0}:${v.custom_amount}`).join(',')}`;
   const { config } = useSystemConfig();
 
   // Authoritative role guard: if non-student is here and NOT impersonating, redirect immediately to their dashboard
@@ -568,7 +572,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
               transition={{ duration: 0.2, ease: 'easeOut' }}
               className="print:transform-none print:block print:h-auto print:overflow-visible"
             >
-              {children}
+              <React.Fragment key={feeKey}>{children}</React.Fragment>
             </motion.div>
           </div>
         </main>

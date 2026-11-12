@@ -378,6 +378,11 @@ export async function updateEducationLead(
     } catch {}
   }
 
+  // Closing a lead always records when and by whom, so monthly closure reports are complete.
+  if (updates.status === 'Enrolled' && target?.status !== 'Enrolled' && !updates.converted_at) {
+    updates = { ...updates, converted_at: nowIso, converted_by: updates.converted_by || performerName };
+  }
+
   // Always update Supabase regardless of cache state
   try {
     await supabase.from('education_leads').update({ ...updates, updated_at: nowIso }).eq('id', id);

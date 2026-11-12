@@ -1,3 +1,4 @@
+import { closuresForMonth, monthKey } from '../../lib/leadClosures';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -66,6 +67,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
   // Default to 'All'; useEffect below sets the counselor filter once profile is loaded
   const [counselorFilter, setCounselorFilter] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [closureMonth, setClosureMonth] = useState(() => monthKey(new Date().toISOString()));
 
   // Fix: profile loads async — update counselor filter once full_name is available
   useEffect(() => {
@@ -193,8 +195,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
         if (res.success) {
           showToastMsg(`🎉 Lead Enrolled! Student profile active and synced to Student Directory.`);
         } else {
-          await updateEducationLead(lead.id, { status: newStatus }, profile?.full_name || 'Staff');
-          showToastMsg(`Enrolled "${lead.name || lead.phone}". Directory sync active.`);
+          showToastMsg(`Could not create the student login for "${lead.name || lead.phone}": ${res.error || 'unknown error'}. The lead was not closed; try again.`);
         }
       } else {
         await updateEducationLead(lead.id, { status: newStatus }, profile?.full_name || 'Staff');
@@ -319,6 +320,14 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
   }, [leads, isStaff, counselorFilter]);
 
   // Best Performing Counselor
+  // Deals closed in the chosen month, grouped by counselor (staff only see their own).
+  const closures = useMemo(() => {
+    const visible = isStaff && currentCounselorName
+      ? leads.filter(l => (l.assigned_counselor_name || l.converted_by || '').trim() === currentCounselorName)
+      : leads;
+    return closuresForMonth(visible, closureMonth);
+  }, [leads, closureMonth, isStaff, currentCounselorName]);
+
   const topCounselor = metrics.find((m) => m.counselor_id !== 'unassigned' && m.enrolled > 0);
 
   return (
@@ -419,6 +428,52 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
           <span className="text-[9px] font-semibold text-amber-700 block mt-2">Ranked by closed university admissions</span>
         </Card>
       </div>
+
+      {/* ── Monthly Closures: which counselor closed which student ── */}
+      <Card className="p-4 border border-slate-200/80 shadow-xs space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+              Closed Deals by Counselor — {closures.total} student{closures.total === 1 ? '' : 's'}
+            </h3>
+          </div>
+          <input
+            type="month"
+            aria-label="Closure month"
+            value={closureMonth}
+            max={monthKey(new Date().toISOString())}
+            onChange={e => e.target.value && setClosureMonth(e.target.value)}
+            className="h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800"
+          />
+        </div>
+        {closures.byCounselor.length === 0 ? (
+          <p className="text-xs font-semibold text-slate-500 py-2">No deals were closed in this month.</p>
+        ) : (
+          <div className="space-y-3">
+            {closures.byCounselor.map(group => (
+              <div key={group.counselor} className="border border-slate-200 rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-2 bg-slate-50 text-xs font-black text-slate-800">
+                  <span>{group.counselor}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px]">{group.count} closed</span>
+                </div>
+                <table className="w-full text-left text-xs">
+                  <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                    {group.students.map(st => (
+                      <tr key={st.leadId}>
+                        <td className="px-3 py-1.5 font-bold text-slate-900">{st.studentName}</td>
+                        <td className="px-3 py-1.5">{st.phone}</td>
+                        <td className="px-3 py-1.5">{st.country}</td>
+                        <td className="px-3 py-1.5 text-right text-slate-500">{new Date(st.closedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       {/* ── Counselor Performance Matrix Table (Admin View Only) ── */}
       {!isStaff && metrics.length > 0 && (

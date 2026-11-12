@@ -19,8 +19,6 @@ export function EducationFeeEditor() {
   const { universities } = useUniversities();
   const [fees, setFees] = useState<EducationFee[]>(() => educationFees(config));
   const [upiEnabled, setUpiEnabled] = useState(config.payment_gateways.phonepe_upi_enabled);
-  const [razorpayKeyId, setRazorpayKeyId] = useState('');
-  const [razorpaySecret, setRazorpaySecret] = useState('');
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -32,13 +30,7 @@ export function EducationFeeEditor() {
     if (!dirty) {
       setFees(educationFees(config));
       setUpiEnabled(config.payment_gateways.phonepe_upi_enabled);
-      getGlobalPaymentGateways().then(g => {
-        if (g.razorpay) {
-          setRazorpayKeyId(g.razorpay.keyId || '');
-          setRazorpaySecret(g.razorpay.keySecret || '');
-          if (g.razorpay.enabled !== undefined) setUpiEnabled(g.razorpay.enabled);
-        }
-      }).catch(() => {});
+      getGlobalPaymentGateways().then(g => setUpiEnabled(g.upi?.enabled !== false && g.divisions.education.allowUpi !== false)).catch(() => {});
     }
   }, [config, dirty]);
 
@@ -57,20 +49,11 @@ export function EducationFeeEditor() {
         await saveGlobalPaymentGateways({
           ...currentGw,
           upi: { ...currentGw.upi, enabled: upiEnabled },
-          razorpay: {
-            enabled: upiEnabled,
-            keyId: (razorpayKeyId.trim() && razorpayKeyId.trim() !== 'rzp_test_default')
-              ? razorpayKeyId.trim()
-              : ((typeof import.meta !== 'undefined' && import.meta.env?.VITE_RAZORPAY_KEY_ID) || 'rzp_test_TvtcmQYBnXjb9R'),
-            keySecret: razorpaySecret.trim(),
-            merchantName: 'FEREX HIGHER EDUCATION',
-          },
           divisions: {
             ...currentGw.divisions,
             education: {
               ...currentGw.divisions.education,
               allowUpi: upiEnabled,
-              allowRazorpay: upiEnabled,
             }
           }
         });
@@ -79,7 +62,7 @@ export function EducationFeeEditor() {
       }
       setDirty(false);
       setMessageType('success');
-      setMessage('Fee configuration and Razorpay gateway settings saved successfully.');
+      setMessage('Fee configuration saved successfully.');
     } catch (e) {
       setMessageType('error');
       setMessage((e as Error).message);
@@ -126,7 +109,7 @@ export function EducationFeeEditor() {
         </div>
       </div>
 
-      {/* Razorpay UPI Gateway Configuration Card */}
+      {/* Direct UPI toggle */}
       <div className="p-5 bg-white border border-slate-200/90 rounded-2xl shadow-xs space-y-4">
         <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-3">
@@ -134,8 +117,8 @@ export function EducationFeeEditor() {
               <Coins className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-black text-slate-900">Razorpay UPI Payment Gateway</p>
-              <p className="text-[11px] text-slate-500">Allow students to pay configured education fees directly with UPI (Google Pay, PhonePe, Paytm, QR)</p>
+              <p className="text-xs font-black text-slate-900">Direct UPI Payments</p>
+              <p className="text-[11px] text-slate-500">Students pay configured fees by UPI (Google Pay, PhonePe, Paytm, QR) and submit the UTR for finance verification</p>
             </div>
           </div>
           <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -148,40 +131,10 @@ export function EducationFeeEditor() {
               }}
               className="w-4 h-4 rounded text-[#58051E] focus:ring-[#58051E] border-slate-300 cursor-pointer"
             />
-            <span className="text-xs font-bold text-slate-700">Enable Razorpay UPI</span>
+            <span className="text-xs font-bold text-slate-700">Enable UPI</span>
           </label>
         </div>
 
-        {upiEnabled && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            <div>
-              <label className={labelClass}>Razorpay Key ID</label>
-              <input
-                type="text"
-                className={inputClass}
-                placeholder="rzp_test_... or rzp_live_..."
-                value={razorpayKeyId}
-                onChange={e => {
-                  setDirty(true);
-                  setRazorpayKeyId(e.target.value);
-                }}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Razorpay Key Secret</label>
-              <input
-                type="password"
-                className={inputClass}
-                placeholder="••••••••••••••••"
-                value={razorpaySecret}
-                onChange={e => {
-                  setDirty(true);
-                  setRazorpaySecret(e.target.value);
-                }}
-              />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Fees List */}

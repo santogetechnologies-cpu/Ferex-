@@ -9,7 +9,8 @@ Deploy the database changes before promoting the frontend:
 2. Apply `20261103100000_education_access_integrity.sql`.
 3. Deploy `provision-user` with JWT verification enabled.
 4. Deploy `verify-payment` with JWT verification disabled. Its body authenticates provider webhooks using HMAC signatures. Configure `STRIPE_WEBHOOK_SECRET` or `RAZORPAY_WEBHOOK_SECRET` only for a provider actually in use. Without a configured secret the webhook refuses settlement.
-5. Promote the frontend after the database and function checks pass.
+5. Apply `20261112190000_package_billing_and_percent_discounts.sql` (package fees, registration toggle and per-student % discounts enforced by the payment guard).
+6. Promote the frontend after the database and function checks pass.
 
 Existing signed agreements in system_config are copied into the agreement table. Payment and application history is retained. The new workflow table uses twelve education stages without reinterpreting the old four-step visa records.
 
@@ -26,3 +27,5 @@ npm run test:billing:e2e
 ```
 
 The browser suite uses mocked service responses and never charges a payment or provisions a live account. The database suite runs the migrations against a local PostgreSQL runtime and checks access control, split atomicity, document creation, and country fee limits. A connected Supabase check is still required before production promotion.
+
+Payments: the Razorpay checkout, keys and settings were removed from the app. Students pay by UPI (QR / UPI apps) for any amount up to the balance and submit the UTR for finance verification; admins can collect any fee in full, in part, or split across Cash, UPI, Card, Cheque and Bank Transfer. Any provider credentials belong in server-side secrets, never in the frontend or `system_config`.

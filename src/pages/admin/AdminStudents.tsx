@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { StudentDiscountEditor } from '../../components/StudentDiscountEditor';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, ShieldCheck, AlertCircle, Clock, FileText, Receipt, ExternalLink, Package, Layers } from 'lucide-react';
@@ -990,6 +991,10 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                       </div>
                     )}
                   </div>
+                )}
+
+                {!isStaff && viewStudent?.id && (
+                  <StudentDiscountEditor studentId={viewStudent.id} country={viewStudent.targetCountry} onChanged={showToast} />
                 )}
 
                 {/* Country Package & Billing Flow Assignment Card */}

@@ -1,5 +1,6 @@
 import type { SystemFeeConfig } from './api/feeConfig';
 import type { Payment, JourneyStage } from './types';
+import type { CountryFeePackage } from './api/feePackages';
 
 export interface EducationFee {
   id: string;
@@ -15,7 +16,15 @@ export interface EducationFee {
   tax_rate_percent?: number;
   is_direct_payment?: boolean;
   direct_recipient_institution?: string;
+  /** Set when this fee comes from a student's assigned country package. */
+  package_id?: string;
+  /** Percentage discount applied to this student (0-100). */
+  discount_percent?: number;
+  /** Original amount before the student's discount. */
+  original_amount?: number;
 }
+
+export interface StudentFeeAdjustment { custom_amount: number; discount_amount: number; discount_percent?: number; discount_reason?: string }
 
 export const educationStages = ['Lead inquiry', 'Service agreement', 'Advanced registration', 'Document review', 'Country legalization', 'University application', 'Offer letter', 'University tuition', 'Visa application', 'Visa decision', 'Pre-departure', 'Enrollment'];
 export const money = (value: number, currency = 'INR') => {
@@ -41,20 +50,56 @@ export function educationFees(config: SystemFeeConfig): EducationFee[] {
 export function resolveEducationFee(
   fee: EducationFee,
   country?: string,
-  overrides?: Record<string, { custom_amount: number; discount_amount: number; discount_reason?: string }>
+  overrides?: Record<string, StudentFeeAdjustment>
 ): EducationFee {
-  const studentOverride = overrides?.[fee.id];
-  if (studentOverride) {
-    return {
-      ...fee,
-      amount: studentOverride.custom_amount,
-      description: studentOverride.discount_amount > 0
-        ? `${fee.description || fee.title} (Discount: ${money(studentOverride.discount_amount, fee.currency)}${studentOverride.discount_reason ? ` - ${studentOverride.discount_reason}` : ''})`
-        : fee.description
-    };
-  }
   const override = Object.entries(fee.countryAmounts || {}).find(([name]) => name.trim().toLowerCase() === country?.trim().toLowerCase());
-  return { ...fee, amount: override ? override[1] : fee.amount };
+  const base = fee.package_id ? fee.amount : override ? override[1] : fee.amount;
+  const adj = overrides?.[fee.id];
+  if (!adj) return { ...fee, amount: base };
+  const pct = Number(adj.discount_percent) || 0;
+  let amount = base;
+  if (pct > 0) amount = Math.round(base * (100 - Math.min(100, pct))) / 100;
+  else if (adj.custom_amount > 0 || adj.discount_amount > 0) amount = adj.custom_amount;
+  if (amount === base) return { ...fee, amount: base };
+  const saved = Math.round((base - amount) * 100) / 100;
+  const label = pct > 0 ? `${pct}%` : money(saved, fee.currency);
+  return {
+    ...fee, amount, original_amount: base, discount_percent: pct > 0 ? pct : undefined,
+    description: `${fee.description || fee.title} (Discount: ${label}${adj.discount_reason ? ` - ${adj.discount_reason}` : ''})`.trim(),
+  };
+}
+
+/**
+ * Fees for a student on a country package. The package replaces the standard Ferex-collected fees
+ * (registration, agency, visa documents, custom) with the package registration fee (if enabled) and
+ * its instalments. Fees paid directly to third parties (VFS, universities) are kept as they are.
+ */
+export function packageFees(pkg: CountryFeePackage, base: EducationFee[]): EducationFee[] {
+  const direct = base.filter(f => f.recipient !== 'ferex');
+  const out: EducationFee[] = [];
+  const reg = pkg.registration_fee;
+  if (reg?.enabled && reg.amount > 0) {
+    out.push({ id: 'registration', title: 'Advanced Registration Fee', enabled: true, amount: reg.amount, currency: pkg.currency, recipient: 'ferex', timing: 'before', stage: 3, description: `Registration fee for ${pkg.name}`, package_id: pkg.id });
+  }
+  for (const inst of pkg.installments) {
+    out.push({ id: `pkg:${pkg.id}:${inst.id}`, title: inst.title, enabled: true, amount: inst.amount, currency: pkg.currency, recipient: 'ferex', timing: inst.timing, stage: Math.min(12, Math.max(1, inst.stage_trigger)), description: inst.due_description || `${pkg.name} installment`, package_id: pkg.id });
+  }
+  return [...out, ...direct];
+}
+
+export interface StudentFeeProfile { pkg?: CountryFeePackage | null; overrides?: Record<string, StudentFeeAdjustment> }
+
+// The signed-in student's package/discount profile, filled by the student layout so that
+// stage gating and fee displays outside the billing console see the same fees.
+let activeProfile: StudentFeeProfile | undefined;
+export const setActiveStudentFeeProfile = (profile?: StudentFeeProfile) => { activeProfile = profile; };
+export const getActiveStudentFeeProfile = () => activeProfile;
+
+/** Enabled fees for a student after package selection, country amounts and discounts. */
+export function studentFees(config: SystemFeeConfig, country?: string, profile?: StudentFeeProfile): EducationFee[] {
+  const base = educationFees(config);
+  const list = profile?.pkg ? packageFees(profile.pkg, base) : base;
+  return list.filter(f => f.enabled).map(f => resolveEducationFee(f, country, profile?.overrides));
 }
 
 export function feeIsDue(fee: EducationFee, stages: JourneyStage[]): boolean {
@@ -63,16 +108,16 @@ export function feeIsDue(fee: EducationFee, stages: JourneyStage[]): boolean {
     (fee.timing === 'before' && stages.some(s => s.stage_number >= fee.stage && s.status === 'In Progress'));
 }
 
-export function educationStageAccess(config: SystemFeeConfig, payments: Payment[], stage: number, country?: string) {
-  const required = educationFees(config).filter(f => f.enabled && f.recipient === 'ferex' &&
-    (f.timing === 'before' ? f.stage <= stage : f.stage < stage)).map(f => resolveEducationFee(f, country));
+export function educationStageAccess(config: SystemFeeConfig, payments: Payment[], stage: number, country?: string, profile: StudentFeeProfile | undefined = activeProfile) {
+  const required = studentFees(config, country, profile).filter(f => f.recipient === 'ferex' &&
+    (f.timing === 'before' ? f.stage <= stage : f.stage < stage));
   const unpaid = required.filter(f => feeBalance(f, payments).remaining > 0);
   return { allowed: unpaid.length === 0, unpaid };
 }
 
-export function registrationSettled(config: SystemFeeConfig, payments: Payment[], country?: string) {
-  const fee = educationFees(config).find(f => f.id === 'registration');
-  return !fee?.enabled || feeBalance(resolveEducationFee(fee, country), payments).remaining === 0;
+export function registrationSettled(config: SystemFeeConfig, payments: Payment[], country?: string, profile: StudentFeeProfile | undefined = activeProfile) {
+  const fee = studentFees(config, country, profile).find(f => f.id === 'registration');
+  return !fee || feeBalance(fee, payments).remaining === 0;
 }
 
 export function matchesEducationFee(payment: Payment, fee: EducationFee): boolean {

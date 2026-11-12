@@ -137,7 +137,7 @@ export const CentralPayments: React.FC = () => {
             amount: amt,
             currency: 'INR',
             amountFormatted: `₹${amt.toLocaleString('en-IN')}`,
-            method: 'Razorpay / Bank Wire',
+            method: 'UPI / Bank Wire',
             date: d.issued_at || (d.created_at ? new Date(d.created_at).toLocaleDateString() : 'Recent'),
             status: d.status === 'Paid' ? 'Verified' : 'Pending',
             statusBadge: d.status === 'Paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200',

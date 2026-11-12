@@ -163,7 +163,7 @@ export const CentralReports: React.FC = () => {
           rawTxns.push({
             division: 'Digital',
             amount: amt,
-            gateway: 'Razorpay / Bank Wire',
+            gateway: 'UPI / Bank Wire',
             status: d.status === 'Paid' ? 'Cleared' : 'Pending',
             date: d.issued_at || d.created_at || new Date().toISOString(),
           });
@@ -234,7 +234,7 @@ export const CentralReports: React.FC = () => {
           clearedAmount: digCleared,
           pendingAmount: digPending,
           clearedRate: digTotal > 0 ? Math.round((digCleared / digTotal) * 100) : 100,
-          topGateway: 'Razorpay / Stripe',
+          topGateway: 'UPI / Stripe',
           growth: '+22.1%',
         },
       ];
@@ -254,12 +254,12 @@ export const CentralReports: React.FC = () => {
           count: 0,
         },
         {
-          id: 'razorpay',
-          name: 'Razorpay Payment Gateway',
-          code: 'RAZORPAY',
+          id: 'cards',
+          name: 'Card & Online Payments',
+          code: 'CARD',
           type: 'Online Cards, NetBanking & Auto-debit',
           color: '#059669',
-          match: (m: string) => /razorpay|razor/i.test(m),
+          match: (m: string) => /card|online|netbanking/i.test(m),
           volume: 0,
           count: 0,
         },
@@ -312,7 +312,7 @@ export const CentralReports: React.FC = () => {
         if (!matched) {
           if (txn.division === 'Trade') matched = standardRails.find(r => r.id === 'swift_lc');
           else if (txn.division === 'Rimi') matched = standardRails.find(r => r.id === 'b2b_cash');
-          else if (txn.division === 'Digital') matched = standardRails.find(r => r.id === 'razorpay');
+          else if (txn.division === 'Digital') matched = standardRails.find(r => r.id === 'cards');
           else matched = standardRails.find(r => r.id === 'bank_wire');
         }
         if (matched) {
@@ -613,7 +613,7 @@ export const CentralReports: React.FC = () => {
                 <Wallet className="w-4 h-4 text-[#58051E]" /> Payment Platforms & Gateway Clearing Distribution
               </h2>
               <p className="text-xs font-semibold text-slate-400 mt-0.5">
-                Volume processed across Stripe, Razorpay, SWIFT Letters of Credit, and Direct Bank Rails.
+                Volume processed across Stripe, UPI, SWIFT Letters of Credit, and Direct Bank Rails.
               </p>
             </div>
             <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">

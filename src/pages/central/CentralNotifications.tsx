@@ -61,7 +61,7 @@ export const CentralNotifications: React.FC = () => {
       id: 'ALT-104',
       division: 'Digital',
       divisionBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      title: 'Automated Razorpay Webhook Settlement Captured',
+      title: 'Automated Payment Webhook Settlement Captured',
       message: 'Successfully cleared ₹1,50,000 for Nexus FinTech Mobile Sprint milestone 3.',
       timestamp: '3h ago',
       severity: 'Info',

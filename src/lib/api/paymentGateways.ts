@@ -22,17 +22,9 @@ export interface UpiGatewayConfig {
   autoVerifyUtr: boolean;
 }
 
-export interface RazorpayGatewayConfig {
-  enabled: boolean;
-  keyId: string;
-  keySecret?: string;
-  merchantName: string;
-}
-
 export interface DivisionGatewaySettings {
   allowStripe: boolean;
   allowUpi: boolean;
-  allowRazorpay?: boolean;
   customUpiId?: string;
   customMerchantName?: string;
 }
@@ -40,7 +32,6 @@ export interface DivisionGatewaySettings {
 export interface GlobalPaymentGatewayConfig {
   stripe: StripeGatewayConfig;
   upi: UpiGatewayConfig;
-  razorpay?: RazorpayGatewayConfig;
   divisions: {
     education: DivisionGatewaySettings;
     digital: DivisionGatewaySettings;
@@ -71,13 +62,8 @@ export const DEFAULT_PAYMENT_GATEWAYS: GlobalPaymentGatewayConfig = {
     collectRequestEnabled: true,
     autoVerifyUtr: false,
   },
-  razorpay: {
-    enabled: true,
-    keyId: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RAZORPAY_KEY_ID) || 'rzp_test_TvtcmQYBnXjb9R',
-    merchantName: 'FEREX HIGHER EDUCATION',
-  },
   divisions: {
-    education: { allowStripe: false, allowUpi: true, allowRazorpay: true, customUpiId: '', customMerchantName: '' },
+    education: { allowStripe: false, allowUpi: true, customUpiId: '', customMerchantName: '' },
     digital: { allowStripe: false, allowUpi: false, customUpiId: '', customMerchantName: '' },
     rimi: { allowStripe: false, allowUpi: false, customUpiId: '', customMerchantName: '' },
     trade: { allowStripe: false, allowUpi: false, customUpiId: '', customMerchantName: '' },
@@ -89,14 +75,7 @@ export const DEFAULT_PAYMENT_GATEWAYS: GlobalPaymentGatewayConfig = {
 const LOCAL_STORAGE_KEY = 'ferex_global_payment_gateways';
 
 function sanitizeGateways(gw: GlobalPaymentGatewayConfig): GlobalPaymentGatewayConfig {
-  const defaultKey = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RAZORPAY_KEY_ID) || 'rzp_test_TvtcmQYBnXjb9R';
-  if (!gw.razorpay?.keyId || gw.razorpay.keyId === 'rzp_test_default') {
-    gw.razorpay = {
-      enabled: true,
-      keyId: defaultKey,
-      merchantName: gw.razorpay?.merchantName || 'FEREX HIGHER EDUCATION',
-    };
-  }
+  delete (gw as any).razorpay;
   return gw;
 }
 

@@ -528,6 +528,8 @@ export interface StudentFeeOverride {
   custom_amount: number;
   currency: string;
   discount_amount: number;
+  /** Percentage (0-100) taken off the base fee; when set it wins over custom_amount. */
+  discount_percent?: number;
   discount_reason?: string;
   notes?: string;
   approved_by?: string;
@@ -559,9 +561,12 @@ export async function saveStudentFeeOverride(payload: {
   custom_amount: number;
   currency?: string;
   discount_amount: number;
+  discount_percent?: number;
   discount_reason?: string;
   notes?: string;
 }): Promise<StudentFeeOverride> {
+  const pct = Number(payload.discount_percent) || 0;
+  if (!Number.isFinite(pct) || pct < 0 || pct > 100) throw new Error('Discount must be between 0 and 100 percent.');
   const admin = await getAdminSupabaseClient();
   const record = {
     student_id: payload.student_id,
@@ -569,6 +574,7 @@ export async function saveStudentFeeOverride(payload: {
     custom_amount: Number(payload.custom_amount) || 0,
     currency: payload.currency || 'INR',
     discount_amount: Number(payload.discount_amount) || 0,
+    discount_percent: pct,
     discount_reason: payload.discount_reason || 'Merit Waiver',
     notes: payload.notes || '',
     updated_at: new Date().toISOString()
@@ -584,6 +590,14 @@ export async function saveStudentFeeOverride(payload: {
   window.dispatchEvent(new Event('ferex_payment_change'));
   window.dispatchEvent(new Event('ferex_fee_config_change'));
   return data as StudentFeeOverride;
+}
+
+export async function deleteStudentFeeOverride(studentId: string, feeId: string): Promise<void> {
+  const admin = await getAdminSupabaseClient();
+  const { error } = await admin.from('education_student_fee_overrides').delete().eq('student_id', studentId).eq('fee_id', feeId);
+  if (error) throw new Error(`Failed to remove discount: ${error.message}`);
+  window.dispatchEvent(new Event('ferex_payment_change'));
+  window.dispatchEvent(new Event('ferex_fee_config_change'));
 }
 
 // ─── DIRECT UNIVERSITY & GOVERNMENT (VFS) PAYMENT SUBMISSIONS ──────────────

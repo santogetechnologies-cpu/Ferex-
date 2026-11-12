@@ -28,6 +28,8 @@ export interface CountryFeePackage {
   currency: 'INR' | 'EUR' | 'USD' | 'GBP' | 'PLN';
   covered_services: FeePackageCoveredService[];
   installments: FeePackageInstallment[];
+  /** Advance registration fee charged on top of the installments. Disabled = not collected for package students. */
+  registration_fee: { enabled: boolean; amount: number };
   terms_note?: string;
   created_at: string;
   updated_at: string;
@@ -134,6 +136,9 @@ const LOCAL_KEY = 'ferex_country_fee_packages_cache';
 
 // ─── API Functions ────────────────────────────────────────────────────────────
 
+const normalizePackages = (list: CountryFeePackage[]): CountryFeePackage[] =>
+  list.map(p => ({ ...p, registration_fee: p.registration_fee ?? { enabled: false, amount: 0 } }));
+
 export async function getCountryFeePackages(): Promise<CountryFeePackage[]> {
   try {
     const { data } = await supabase
@@ -148,7 +153,7 @@ export async function getCountryFeePackages(): Promise<CountryFeePackage[]> {
         if (typeof window !== 'undefined') {
           localStorage.setItem(LOCAL_KEY, JSON.stringify(parsed));
         }
-        return parsed as CountryFeePackage[];
+        return normalizePackages(parsed as CountryFeePackage[]);
       }
     }
   } catch {}
@@ -156,7 +161,7 @@ export async function getCountryFeePackages(): Promise<CountryFeePackage[]> {
   if (typeof window !== 'undefined') {
     try {
       const raw = localStorage.getItem(LOCAL_KEY);
-      if (raw) return JSON.parse(raw) as CountryFeePackage[];
+      if (raw) return normalizePackages(JSON.parse(raw) as CountryFeePackage[]);
     } catch {}
   }
   return [];
@@ -188,6 +193,7 @@ export function createBlankPackage(country: string): CountryFeePackage {
     currency: ['Germany', 'France', 'Poland', 'Hungary'].includes(country) ? 'INR' : 'INR',
     covered_services: getDefaultServices(country),
     installments: getDefaultInstallments(50000, 'INR'),
+    registration_fee: { enabled: true, amount: 1500 },
     terms_note: 'Package fees are non-refundable once legalization or visa processes are initiated. FEREX acts as the authorized admissions representative for all services listed.',
     created_at: now,
     updated_at: now,
