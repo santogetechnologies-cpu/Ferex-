@@ -15,6 +15,7 @@ async function setup(page: Page, role = 'education_admin', existingPayments: any
   let payments = [...existingPayments];
   const saved: any[] = [];
   const configurations: any[] = [];
+  const chatSent: any[] = [];
   const token = [Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url'), Buffer.from(JSON.stringify({ sub: id, role: 'authenticated', aud: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 })).toString('base64url'), 'test'].join('.');
   await page.addInitScript(({ user, token }) => {
     const session = { access_token: token, refresh_token: 'test', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, token_type: 'bearer', user };
@@ -37,6 +38,11 @@ async function setup(page: Page, role = 'education_admin', existingPayments: any
         const rows = request.postDataJSON(); saved.push(...rows); payments.push(...rows.map((r: any, i: number) => ({ ...r, id: r.id || `pay-${i}`, created_at: new Date().toISOString() }))); result = [];
       } else result = url.searchParams.has('ref_no') ? [] : payments;
     }
+    else if (name === 'ensure_chat_conversation') result = 'conv-1';
+    else if (name === 'chat_conversations') result = [{ id: 'conv-1', student_id: studentId, counselor_id: adminId, last_message: '', last_message_at: new Date().toISOString(), unread_count_student: 0, unread_count_counselor: 0 }];
+    else if (name === 'chat_messages') {
+      if (request.method() === 'POST') { const row = request.postDataJSON(); chatSent.push(row); result = { ...row, id: 'msg-1', created_at: new Date().toISOString() }; } else result = [];
+    }
     else if (name === 'education_workflow_progress') result = [{ id: 's2', student_id: studentId, stage_number: 2, stage_name: 'Service agreement', status: 'Completed' }];
     else if (name === 'education_student_preferences') result = object ? { country: 'Canada' } : [{ student_id: studentId, country: 'Canada' }];
     else if (name === 'education_service_agreements') result = object ? { body: { student_id: studentId, status: 'Signed', signature_data: 'Test Student' } } : [{ body: { student_id: studentId, status: 'Signed', signature_data: 'Test Student' } }];
@@ -49,7 +55,7 @@ async function setup(page: Page, role = 'education_admin', existingPayments: any
     }
     return route.fulfill({ status: 200, headers, body: JSON.stringify(result) });
   });
-  return { saved, configurations };
+  return { saved, configurations, chatSent };
 }
 
 for (const [role, path] of [
@@ -128,4 +134,14 @@ test('fee settings keep before/after timing and no longer offer country override
   expect(saved).toMatchObject({ amount: 1800, stage: 10, timing: 'after' });
   // Country amounts now live in country fee plans, so old per-country overrides are dropped on save.
   expect(saved).not.toHaveProperty('countryAmounts');
+});
+
+test('student chat opens their thread and sends a real message', async ({ page }) => {
+  const { chatSent } = await setup(page, 'student'); await page.goto('/student/chat');
+  await expect(page.getByRole('heading', { name: 'Support & Advisory Chat' })).toBeVisible();
+  await page.getByLabel('Message').fill('Hello counselor');
+  await page.getByRole('button', { name: /Send/ }).click();
+  await expect(page.getByText('Hello counselor')).toBeVisible();
+  expect(chatSent).toHaveLength(1);
+  expect(chatSent[0]).toMatchObject({ conversation_id: 'conv-1', message: 'Hello counselor' });
 });

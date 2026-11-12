@@ -27,7 +27,7 @@ try {
     keysToPurge.forEach(k => {
       try { localStorage.removeItem(k); } catch {}
     });
-    Object.keys(localStorage).filter(k => k.startsWith('ferex_staff_registry_cache')).forEach(k => {
+    Object.keys(localStorage).filter(k => k.startsWith('ferex_staff_registry_cache') || k.startsWith('ferex_conversations_') || k.startsWith('ferex_chat_msgs_')).forEach(k => {
       try { localStorage.removeItem(k); } catch {}
     });
     localStorage.setItem(SYNC_VERSION, 'true');
