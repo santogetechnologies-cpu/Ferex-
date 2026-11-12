@@ -35,7 +35,8 @@ export interface CountryFeePackage {
   updated_at: string;
 }
 
-export type StudentBillingFlowMode = 'normal' | 'package';
+/** auto: the active plan for the student's country applies; normal: standard fees only; package: a pinned plan. */
+export type StudentBillingFlowMode = 'auto' | 'normal' | 'package';
 
 export interface StudentBillingAssignment {
   student_id: string;
@@ -168,11 +169,12 @@ export async function getCountryFeePackages(): Promise<CountryFeePackage[]> {
 }
 
 export async function saveCountryFeePackages(packages: CountryFeePackage[]): Promise<void> {
-  await supabase.from('system_config').upsert({
+  const { error } = await supabase.from('system_config').upsert({
     key: CONFIG_KEY,
     value: packages,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'key' });
+  if (error) throw new Error(`Could not save fee plans: ${error.message}`);
 
   if (typeof window !== 'undefined') {
     localStorage.setItem(LOCAL_KEY, JSON.stringify(packages));
@@ -188,12 +190,13 @@ export function createBlankPackage(country: string): CountryFeePackage {
     country,
     name: `${country} Complete Admission Package`,
     description: `All-inclusive admissions, legalization, and visa assistance for ${country} study pathway.`,
-    is_active: true,
+    // Starts inactive so creating a draft never changes what live students are billed; activate when ready.
+    is_active: false,
     total_amount: 50000,
     currency: ['Germany', 'France', 'Poland', 'Hungary'].includes(country) ? 'INR' : 'INR',
     covered_services: getDefaultServices(country),
     installments: getDefaultInstallments(50000, 'INR'),
-    registration_fee: { enabled: true, amount: 1500 },
+    registration_fee: { enabled: false, amount: 0 },
     terms_note: 'Package fees are non-refundable once legalization or visa processes are initiated. FEREX acts as the authorized admissions representative for all services listed.',
     created_at: now,
     updated_at: now,
@@ -213,7 +216,7 @@ export async function getStudentBillingAssignment(studentId: string): Promise<St
     if (data) {
       return {
         student_id: studentId,
-        flow_mode: (data.fee_flow_mode as StudentBillingFlowMode) || 'normal',
+        flow_mode: (data.fee_flow_mode as StudentBillingFlowMode) || 'auto',
         package_id: data.fee_package_id || undefined,
         assigned_at: data.fee_package_assigned_at || undefined,
         assigned_by: data.fee_package_assigned_by || undefined,
@@ -221,6 +224,20 @@ export async function getStudentBillingAssignment(studentId: string): Promise<St
     }
   } catch {}
   return null;
+}
+
+/** Destination used for billing: latest open application's university country, else the saved preference. */
+export async function getStudentFeeCountry(studentId: string): Promise<string> {
+  try {
+    const { data: apps } = await supabase.from('applications').select('status, created_at, universities(country)')
+      .eq('student_id', studentId).not('university_id', 'is', null).order('created_at', { ascending: false });
+    const open = (apps || []).find((a: any) => !['Rejected', 'Withdrawn', 'Closed'].includes(a.status) && a.universities?.country);
+    if (open) return (open as any).universities.country;
+  } catch {}
+  try {
+    const { data } = await supabase.from('education_student_preferences').select('country').eq('student_id', studentId).maybeSingle();
+    return data?.country || '';
+  } catch { return ''; }
 }
 
 export async function setStudentBillingFlow(
@@ -233,7 +250,7 @@ export async function setStudentBillingFlow(
   await supabase.from('education_student_preferences').upsert({
     student_id: studentId,
     fee_flow_mode: flowMode,
-    fee_package_id: packageId,
+    fee_package_id: flowMode === 'package' ? packageId : null,
     fee_package_assigned_at: now,
     fee_package_assigned_by: assignedBy,
     updated_at: now,

@@ -75,19 +75,36 @@ export function resolveEducationFee(
  * its instalments. Fees paid directly to third parties (VFS, universities) are kept as they are.
  */
 export function packageFees(pkg: CountryFeePackage, base: EducationFee[]): EducationFee[] {
-  const direct = base.filter(f => f.recipient !== 'ferex');
-  const out: EducationFee[] = [];
+  // Registration is the basic fee for every student: the standard one stays unless the plan overrides it.
   const reg = pkg.registration_fee;
-  if (reg?.enabled && reg.amount > 0) {
-    out.push({ id: 'registration', title: 'Advanced Registration Fee', enabled: true, amount: reg.amount, currency: pkg.currency, recipient: 'ferex', timing: 'before', stage: 3, description: `Registration fee for ${pkg.name}`, package_id: pkg.id });
+  const overridesRegistration = !!reg?.enabled && reg.amount > 0;
+  const standard = base.filter(f => f.id === 'registration' && !overridesRegistration);
+  const direct = base.filter(f => f.recipient !== 'ferex');
+  const out: EducationFee[] = [...standard];
+  if (overridesRegistration) {
+    out.push({ id: 'registration', title: 'Advanced Registration Fee', enabled: true, amount: reg!.amount, currency: pkg.currency, recipient: 'ferex', timing: 'before', stage: 3, description: `Registration fee for ${pkg.name}`, package_id: pkg.id });
   }
   for (const inst of pkg.installments) {
     out.push({ id: `pkg:${pkg.id}:${inst.id}`, title: inst.title, enabled: true, amount: inst.amount, currency: pkg.currency, recipient: 'ferex', timing: inst.timing, stage: Math.min(12, Math.max(1, inst.stage_trigger)), description: inst.due_description || `${pkg.name} installment`, package_id: pkg.id });
   }
-  return [...out, ...direct];
+  return [...out, ...direct.filter(f => f.id !== 'registration')];
 }
 
-export interface StudentFeeProfile { pkg?: CountryFeePackage | null; overrides?: Record<string, StudentFeeAdjustment> }
+/** The plan that bills this student, or null for standard fees. Mirrors the payment guard in the database. */
+export function resolveStudentPackage(
+  assignment: { flow_mode: 'auto' | 'normal' | 'package'; package_id?: string } | null | undefined,
+  packages: CountryFeePackage[],
+  country?: string
+): CountryFeePackage | null {
+  const mode = assignment?.flow_mode ?? 'auto';
+  if (mode === 'normal') return null;
+  if (mode === 'package') return packages.find(p => p.id === assignment?.package_id) ?? null;
+  const wanted = (country || '').trim().toLowerCase();
+  if (!wanted) return null;
+  return packages.find(p => p.is_active !== false && p.country.trim().toLowerCase() === wanted) ?? null;
+}
+export interface StudentFeeProfile
+ { pkg?: CountryFeePackage | null; overrides?: Record<string, StudentFeeAdjustment> }
 
 // The signed-in student's package/discount profile, filled by the student layout so that
 // stage gating and fee displays outside the billing console see the same fees.

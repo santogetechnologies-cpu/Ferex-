@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useUniversities } from '../hooks/useUniversities';
 import { useDestinations } from '../hooks/useDestinations';
+import { sortByFeatured, isFeaturedCountry } from '../lib/api/destinations';
 import { getDashboardRoute } from '../lib/roleRouter';
 import type { University } from '../lib/types';
 import { Logo } from '../components/Logo';
@@ -120,7 +121,7 @@ export const FerexLandingPage: React.FC = () => {
     universities.forEach(u => {
       if (u.country && u.country.toLowerCase().trim() !== 'india') set.add(u.country.trim());
     });
-    return Array.from(set);
+    return sortByFeatured(Array.from(set), destinations, c => c);
   }, [destinations, universities]);
 
   const [calcCountry, setCalcCountry] = useState<string>(availableCountries[0] || '');
@@ -218,7 +219,7 @@ export const FerexLandingPage: React.FC = () => {
       map.set(u.country, existing);
     });
 
-    return Array.from(map.entries()).map(([country, data]) => {
+    const rows = Array.from(map.entries()).map(([country, data]) => {
       const destObj = destinations.find(d => d.name.toLowerCase() === country.toLowerCase());
       const fallbackFlag = destObj?.flag && destObj.flag !== 'EU' && destObj.flag !== '🌍' ? destObj.flag : '🇪🇺';
       return {
@@ -234,6 +235,7 @@ export const FerexLandingPage: React.FC = () => {
         }
       };
     });
+    return sortByFeatured(rows, destinations, r => r.country);
   }, [universities, destinations]);
 
   // Calculator numerical values
@@ -669,8 +671,13 @@ export const FerexLandingPage: React.FC = () => {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-3xl">{dest.meta.flag}</span>
-                    <span className="text-[10px] font-black px-3 py-1 rounded-full bg-[#E9D7DF] text-[#570229] border border-[#C85A7C]/20">
-                      {dest.meta.schengen}
+                    <span className="flex items-center gap-1.5">
+                      {isFeaturedCountry(destinations, dest.country) && (
+                        <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300">★ Featured</span>
+                      )}
+                      <span className="text-[10px] font-black px-3 py-1 rounded-full bg-[#E9D7DF] text-[#570229] border border-[#C85A7C]/20">
+                        {dest.meta.schengen}
+                      </span>
                     </span>
                   </div>
 

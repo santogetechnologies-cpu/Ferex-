@@ -153,12 +153,17 @@ export function CountryFeePackageBuilder() {
   };
 
   const handleToggleActive = async (pkg: CountryFeePackage) => {
-    const updated = packages.map(p => p.id === pkg.id ? { ...p, is_active: !p.is_active, updated_at: new Date().toISOString() } : p);
+    // One active plan per country, so a student can never match two plans.
+    const activating = !pkg.is_active;
+    const updated = packages.map(p =>
+      p.id === pkg.id ? { ...p, is_active: activating, updated_at: new Date().toISOString() }
+      : activating && p.is_active && p.country.trim().toLowerCase() === pkg.country.trim().toLowerCase() ? { ...p, is_active: false, updated_at: new Date().toISOString() }
+      : p);
     setSaving(true);
     try {
       await saveCountryFeePackages(updated);
       setPackages(updated);
-      showToast(pkg.is_active ? 'Package deactivated.' : '✅ Package activated — counselors can now assign students to it.');
+      showToast(pkg.is_active ? 'Plan deactivated. Students of this country use the standard fees.' : `✅ Plan active. ${pkg.country} students are now billed from it automatically.`);
     } catch (e: any) {
       showToast(`Error: ${e.message}`);
     } finally {
@@ -249,10 +254,10 @@ export function CountryFeePackageBuilder() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Package className="w-5 h-5 text-[#58051E]" /> Country Fee Package Builder
+            <Package className="w-5 h-5 text-[#58051E]" /> Country Fee Plans
           </h2>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Create all-inclusive country packages with custom pricing, covered services, and payment milestones. Assign students to Normal or Package billing flow.
+            Per country, set a package price or split payments (agency fee, visa fee and so on). Students of a country with an active plan are billed from it automatically; other countries use the standard separate fees above.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -276,11 +281,11 @@ export function CountryFeePackageBuilder() {
       <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-start gap-3">
         <AlertCircle className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
         <div>
-          <p className="text-xs font-black text-indigo-900 uppercase tracking-wider">How Country Packages Work</p>
+          <p className="text-xs font-black text-indigo-900 uppercase tracking-wider">How country plans work</p>
           <p className="text-xs text-indigo-800 mt-0.5 leading-relaxed">
-            Create a named package per country with custom pricing and covered deliverables. 
-            In <strong>Student Directory → Billing Flow</strong>, assign any student to <em>Normal Flow</em> (standard milestones) or <em>Package Flow</em> (selected country package). 
-            Students on Package Flow see their package details, included services, and installments directly on their payment portal.
+            Every student pays the <strong>basic registration fee</strong> (standard fees above; admins can discount it per student).
+            After that, a student whose destination country has an <strong>active plan</strong> is billed from that plan automatically and sees it, with its installments and discounts, on their payment page.
+            If the country has no plan, the standard separate fees apply. In <strong>Student Directory → Commercial Billing Flow</strong> you can switch one student to standard fees or pin a different plan.
           </p>
         </div>
       </div>
@@ -426,7 +431,7 @@ export function CountryFeePackageBuilder() {
                             )}
                           </div>
                           <div>
-                            <label className={lbl}>Registration Fee</label>
+                            <label className={lbl}>Registration fee for this plan</label>
                             {editing ? (
                               <div className="flex items-center gap-2">
                                 <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer select-none">
@@ -437,7 +442,7 @@ export function CountryFeePackageBuilder() {
                                     onChange={e => handleDraftChange({ registration_fee: { ...p.registration_fee, enabled: e.target.checked } })}
                                     className="w-4 h-4 rounded text-[#58051E] border-slate-300 cursor-pointer"
                                   />
-                                  Charge
+                                  Override
                                 </label>
                                 <input
                                   type="number"
@@ -453,7 +458,7 @@ export function CountryFeePackageBuilder() {
                               <p className="text-sm font-black text-[#58051E]">
                                 {p.registration_fee.enabled && p.registration_fee.amount > 0
                                   ? money(p.registration_fee.amount, p.currency)
-                                  : <span className="text-slate-400 font-bold">Not charged</span>}
+                                  : <span className="text-slate-400 font-bold">Standard registration fee</span>}
                               </p>
                             )}
                           </div>

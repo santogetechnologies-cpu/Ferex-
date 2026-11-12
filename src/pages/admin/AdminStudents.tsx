@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StudentDiscountEditor } from '../../components/StudentDiscountEditor';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, ShieldCheck, AlertCircle, Clock, FileText, Receipt, ExternalLink, Package, Layers } from 'lucide-react';
+import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, ShieldCheck, AlertCircle, Clock, FileText, Receipt, ExternalLink, Package, Layers , MapPin } from 'lucide-react';
 import {
   getCountryFeePackages, getStudentBillingAssignment, setStudentBillingFlow, money as pkgMoney,
   type CountryFeePackage, type StudentBillingFlowMode, type StudentBillingAssignment
@@ -1005,45 +1005,54 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                       Commercial Billing Flow
                     </span>
                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                      studentBillingAssignment?.flow_mode === 'package'
+                      studentBillingAssignment?.flow_mode !== 'normal'
                         ? 'bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20'
                         : 'bg-slate-100 text-slate-600 border border-slate-200'
                     }`}>
-                      {studentBillingAssignment?.flow_mode === 'package' ? 'Package Flow' : 'Normal Flow'}
+                      {studentBillingAssignment?.flow_mode === 'package' ? 'Pinned Plan' : studentBillingAssignment?.flow_mode === 'normal' ? 'Standard Fees' : 'Auto by Country'}
                     </span>
                   </div>
 
                   <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Assign this student to <strong>Normal Flow</strong> (standard milestone fees) or a custom <strong>Country Package</strong> (all-inclusive bundle with covered services).
+                    The student's <strong>country plan</strong> applies automatically (<strong>By country</strong>). Use <strong>Standard</strong> to bill the standard fees instead, or <strong>Pin plan</strong> to give this student a specific plan (all-inclusive bundle with covered services).
                   </p>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      disabled={isUpdatingBillingFlow}
+                      onClick={() => handleUpdateStudentBillingFlow('auto')}
+                      className={`h-9 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer border ${
+                        (studentBillingAssignment?.flow_mode ?? 'auto') === 'auto'
+                          ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      <MapPin className="w-3.5 h-3.5" /> By country
+                    </button>
                     <button
                       type="button"
                       disabled={isUpdatingBillingFlow}
                       onClick={() => handleUpdateStudentBillingFlow('normal')}
                       className={`h-9 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer border ${
-                        studentBillingAssignment?.flow_mode !== 'package'
+                        studentBillingAssignment?.flow_mode === 'normal'
                           ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm'
                           : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
                       }`}
                     >
-                      <Layers className="w-3.5 h-3.5" /> Normal Flow
+                      <Layers className="w-3.5 h-3.5" /> Standard
                     </button>
                     <button
                       type="button"
                       disabled={isUpdatingBillingFlow || availableCountryPackages.length === 0}
-                      onClick={() => {
-                        const defaultPkg = availableCountryPackages[0]?.id;
-                        if (defaultPkg) handleUpdateStudentBillingFlow('package', defaultPkg);
-                      }}
+                      onClick={() => { const defaultPkg = availableCountryPackages[0]?.id; if (defaultPkg) handleUpdateStudentBillingFlow('package', defaultPkg); }}
                       className={`h-9 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer border ${
                         studentBillingAssignment?.flow_mode === 'package'
                           ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm'
                           : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
                       }`}
                     >
-                      <Package className="w-3.5 h-3.5" /> Package Flow
+                      <Package className="w-3.5 h-3.5" /> Pin plan
                     </button>
                   </div>
 

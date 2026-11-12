@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Target, Search, MapPin, Award, Sparkles, Heart, X, ShieldCheck, Upload, CreditCard, CheckCircle2, Globe, Check, UserCheck, ArrowRight, Lock, AlertCircle, GraduationCap, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUniversities } from '../hooks/useUniversities';
+import { sortByFeatured, isFeaturedCountry } from '../lib/api/destinations';
 import { useDestinations } from '../hooks/useDestinations';
 import { useApplications } from '../hooks/useApplications';
 import { usePayments } from '../hooks/usePayments';
@@ -167,7 +168,7 @@ export const SelectUniversity: React.FC = () => {
       }
     });
 
-    return Array.from(destMap.values());
+    return sortByFeatured(Array.from(destMap.values()), destinations, d => d.country);
   }, [destinations, universities]);
 
   // Default to showing All universities across all countries
@@ -393,7 +394,7 @@ export const SelectUniversity: React.FC = () => {
   }, [availableDestinations, universities]);
 
   const filteredUnis = useMemo(() => {
-    return universities.filter(u => {
+    const matched = universities.filter(u => {
       if (!u) return false;
       const nameStr = (u.name || '').toLowerCase();
       const cityStr = (u.city || '').toLowerCase();
@@ -408,7 +409,9 @@ export const SelectUniversity: React.FC = () => {
       const matchesCountry = selectedCountry === 'All' || countryStr === selectedCountry.trim().toLowerCase();
       return matchesSearch && matchesCountry;
     });
-  }, [universities, searchQuery, selectedCountry]);
+    // Universities in the admin's featured countries come first (stable for everything else).
+    return sortByFeatured(matched, destinations, u => u.country || '');
+  }, [universities, searchQuery, selectedCountry, destinations]);
 
   return (
     <div className="space-y-6 text-left relative min-h-[600px]">
@@ -507,6 +510,7 @@ export const SelectUniversity: React.FC = () => {
               >
                 <span>{d.flag}</span>
                 <span>{d.country}</span>
+                {isFeaturedCountry(destinations, d.country) && <span title="Featured destination" className="text-amber-400">★</span>}
                 {count > 0 && (
                   <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
                     isSelected ? 'bg-white/20 text-white' : 'bg-slate-200/60 text-slate-600'

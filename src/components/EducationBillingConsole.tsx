@@ -32,7 +32,7 @@ import {
   type CountryFeePackage, type StudentBillingAssignment
 } from '../lib/api/feePackages';
 import {
-  studentFees, feeBalance, feeIsDue,
+  studentFees, feeBalance, feeIsDue, resolveStudentPackage,
   educationStages, money, cents, type EducationFee, type PaymentPart
 } from '../lib/educationBilling';
 import {
@@ -97,27 +97,6 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   const [activePackage, setActivePackage] = useState<CountryFeePackage | null>(null);
   const [allPackages, setAllPackages] = useState<CountryFeePackage[]>([]);
 
-  useEffect(() => {
-    if (!targetId) {
-      setStudentAssignment(null);
-      setActivePackage(null);
-      return;
-    }
-    Promise.all([
-      getStudentBillingAssignment(targetId),
-      getCountryFeePackages()
-    ]).then(([assign, pkgs]) => {
-      setStudentAssignment(assign);
-      setAllPackages(pkgs);
-      if (assign?.flow_mode === 'package' && assign.package_id) {
-        const found = pkgs.find(p => p.id === assign.package_id);
-        setActivePackage(found || null);
-      } else {
-        setActivePackage(null);
-      }
-    }).catch(() => {});
-  }, [targetId]);
-
   const load = useCallback(async () => {
     if (!admin && !targetId) return;
     setLoading(true);
@@ -172,6 +151,26 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   const application = studentApps.find(a => a.id === appId) || studentApps[0];
   const university = universities.find(u => u.id === application?.university_id) || application?.universities;
   const country = university?.country || preferredCountry;
+
+  // The plan for the student's country applies automatically unless the admin pinned a plan or chose standard fees.
+  useEffect(() => {
+    if (!targetId) { setStudentAssignment(null); setActivePackage(null); return; }
+    let cancelled = false;
+    const refresh = () => Promise.all([getStudentBillingAssignment(targetId), getCountryFeePackages()]).then(([assign, pkgs]) => {
+      if (cancelled) return;
+      setStudentAssignment(assign);
+      setAllPackages(pkgs);
+      setActivePackage(resolveStudentPackage(assign, pkgs, country));
+    }).catch(() => {});
+    refresh();
+    window.addEventListener('ferex_student_billing_flow_change', refresh);
+    window.addEventListener('ferex_fee_packages_change', refresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('ferex_student_billing_flow_change', refresh);
+      window.removeEventListener('ferex_fee_packages_change', refresh);
+    };
+  }, [targetId, country]);
   const countryOptions = Array.from(new Set([...destinations.map(d => d.name), ...universities.map(u => u.country)])).sort();
   const studentPayments = payments.filter(p => p.student_id === targetId);
   const studentName = admin ? students.find(s => s.id === targetId)?.full_name || 'Student' : profile?.full_name || 'Student';
@@ -229,6 +228,17 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
     }
     return result;
   }, [payments, targetId]);
+
+  // Per-currency position across the fees Ferex collects: what is due, verified, in review and still to pay.
+  const feeSummary = useMemo(() => {
+    const out: Record<string, { due: number; paid: number; pending: number; remaining: number }> = {};
+    for (const fee of fees.filter(f => f.recipient === 'ferex')) {
+      const b = feeBalance(fee, studentPayments);
+      const row = out[fee.currency] ||= { due: 0, paid: 0, pending: 0, remaining: 0 };
+      row.due += fee.amount; row.paid += b.paid; row.pending += b.pending; row.remaining += b.remaining;
+    }
+    return out;
+  }, [fees, studentPayments]);
 
   const studentMap = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
 
@@ -547,7 +557,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
               )}
 
               {/* Package Flow View (When Assigned to Country Fee Package) */}
-              {studentAssignment?.flow_mode === 'package' && activePackage && (
+              {activePackage && (
                 <div className="p-5 bg-gradient-to-br from-[#58051E]/5 via-white to-indigo-50/30 border-2 border-[#58051E]/20 rounded-3xl space-y-5 shadow-xs">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
                     <div>
@@ -640,6 +650,23 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                 </div>
               )}
 
+              {/* Payment position */}
+              {Object.entries(feeSummary).map(([currency, row]) => (
+                <section key={currency} aria-label={`Payment summary ${currency}`} className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    ['Total fees', row.due, 'text-slate-900'],
+                    ['Paid & verified', row.paid, 'text-emerald-700'],
+                    ['In review', row.pending, 'text-amber-700'],
+                    ['Balance to pay', row.remaining, row.remaining > 0 ? 'text-[#58051E]' : 'text-emerald-700'],
+                  ].map(([label, value, tone]) => (
+                    <div key={label as string} className="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
+                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">{label as string}</p>
+                      <p className={`text-lg font-black ${tone}`}>{money(value as number, currency)}</p>
+                    </div>
+                  ))}
+                </section>
+              ))}
+
               {/* Configured Fee Cards */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -667,6 +694,13 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <h3 className="font-black text-sm text-slate-900">{fee.title}</h3>
+                              {!isThirdParty && (() => {
+                                const state = balance.remaining === 0 ? ['Paid in full', 'bg-emerald-50 text-emerald-700 border-emerald-200']
+                                  : balance.pending > 0 && balance.payable === 0 ? ['Awaiting verification', 'bg-amber-50 text-amber-800 border-amber-200']
+                                  : balance.paid > 0 || balance.pending > 0 ? ['Partially paid', 'bg-blue-50 text-blue-800 border-blue-200']
+                                  : ['Unpaid', 'bg-slate-100 text-slate-600 border-slate-200'];
+                                return <span className={`inline-block mt-1 text-[10px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full border ${state[1]}`}>{state[0]}</span>;
+                              })()}
                               <p className="text-[11px] font-semibold text-slate-500 mt-0.5 flex items-center gap-1">
                                 <Clock className="w-3 h-3 text-slate-400" />
                                 <span>{fee.timing === 'before' ? 'Before' : 'After'} {educationStages[fee.stage - 1]}{country ? ` • ${country}` : ''}</span>

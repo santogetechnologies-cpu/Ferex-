@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { packageFees, studentFees, feeBalance } from '../src/lib/educationBilling.ts';
+import { packageFees, studentFees, feeBalance, resolveStudentPackage } from '../src/lib/educationBilling.ts';
 
 const base = [
   { id: 'registration', title: 'Advanced Registration Fee', enabled: true, amount: 1500, currency: 'INR', recipient: 'ferex', timing: 'before', stage: 3, description: '' },
@@ -13,8 +13,9 @@ const pkg = (reg: { enabled: boolean; amount: number }) => ({ id: 'p1', currency
 test('package replaces Ferex fees, keeps direct third-party fees, and honours the registration toggle', () => {
   const on = packageFees(pkg({ enabled: true, amount: 5000 }), base).map(f => [f.id, f.amount]);
   assert.deepEqual(on, [['registration', 5000], ['pkg:p1:i1', 20000], ['vfs', 15000]]);
-  const off = packageFees(pkg({ enabled: false, amount: 5000 }), base).map(f => f.id);
-  assert.deepEqual(off, ['pkg:p1:i1', 'vfs']);
+  // Plan registration off: the standard registration fee still applies to every student.
+  const off = packageFees(pkg({ enabled: false, amount: 5000 }), base).map(f => [f.id, f.amount]);
+  assert.deepEqual(off, [['registration', 1500], ['pkg:p1:i1', 20000], ['vfs', 15000]]);
 });
 
 test('percent discount reduces the student fee and keeps the original for display', () => {
@@ -30,4 +31,13 @@ test('partial payments leave the remaining balance', () => {
   const fee = studentFees(config)[0];
   const paid = [{ payment_type: 'education:registration', currency: 'INR', status: 'Paid', amount: 500 }] as any[];
   assert.equal(feeBalance(fee, paid).remaining, 1000);
+});
+
+test('plans apply automatically by country unless the student is pinned or on the standard flow', () => {
+  const plans = [{ id: 'a', country: 'Poland', is_active: true }, { id: 'b', country: 'Germany', is_active: false }, { id: 'c', country: 'Italy', is_active: true }] as any[];
+  assert.equal(resolveStudentPackage(null, plans, ' poland ')?.id, 'a');
+  assert.equal(resolveStudentPackage({ flow_mode: 'auto' }, plans, 'Germany'), null);
+  assert.equal(resolveStudentPackage({ flow_mode: 'auto' }, plans, undefined), null);
+  assert.equal(resolveStudentPackage({ flow_mode: 'normal' }, plans, 'Poland'), null);
+  assert.equal(resolveStudentPackage({ flow_mode: 'package', package_id: 'c' }, plans, 'Poland')?.id, 'c');
 });

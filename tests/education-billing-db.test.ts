@@ -39,6 +39,7 @@ before(async () => {
   await db.exec(readFileSync('supabase/migrations/20261103150000_education_multicurrency_discounts_direct_fees.sql', 'utf8'));
   await db.exec(readFileSync('supabase/migrations/20261112080000_country_fee_packages.sql', 'utf8'));
   await db.exec(readFileSync('supabase/migrations/20261112190000_package_billing_and_percent_discounts.sql', 'utf8'));
+  await db.exec(readFileSync('supabase/migrations/20261112240000_auto_country_fee_plans.sql', 'utf8'));
   await asUser(admin);
   const fee = (id: string, amount: number, more = {}) => ({ id, title: id === 'registration' ? 'Advanced Registration Fee' : 'Additional fee', enabled: true, amount, currency: 'INR', recipient: 'ferex', stage: 1, timing: 'before', ...more });
   await db.query(`INSERT INTO system_config(key,value) VALUES ('fee_config',$1),('payment_gateways',$2)`, [JSON.stringify({ education_fees: [fee('registration', 1500, { countryAmounts: { Canada: 2000 } }), fee('late', 100, { stage: 10, timing: 'after' }), fee('direct', 100, { recipient: 'direct_third_party' })], payment_gateways: { phonepe_upi_enabled: true } }), JSON.stringify({ upi: { enabled: true }, divisions: { education: { allowUpi: true } } })]);
@@ -110,43 +111,65 @@ test('admin can configure fees in PLN (Polish Zloty) and GBP without trigger rej
   await assert.doesNotReject(db.query(`UPDATE system_config SET value=$1 WHERE key='fee_config'`, [JSON.stringify(plnFee)]));
 });
 
-test('package students are billed from their package; percent discounts and registration toggle are enforced', async () => {
+test('country plans apply automatically; discounts, pinned/normal flow and registration override are enforced', async () => {
   const s2 = '10000000-0000-4000-8000-000000000009';
   const app2 = '30000000-0000-4000-8000-000000000009';
   await db.exec('RESET ROLE');
   await db.exec(`INSERT INTO users (id,role) VALUES ('${s2}','student');
     INSERT INTO applications(id,student_id,university_id,university_name,course,status) VALUES ('${app2}','${s2}','${university}','Example University','Law','Offer Issued');`);
-  const fee = { id: 'registration', title: 'Advanced Registration Fee', enabled: true, amount: 1000, currency: 'INR', recipient: 'ferex', stage: 1, timing: 'before' };
-  await db.query(`UPDATE system_config SET value=$1 WHERE key='fee_config'`, [JSON.stringify({ education_fees: [fee], payment_gateways: { phonepe_upi_enabled: true } })]);
+  const reg = { id: 'registration', title: 'Advanced Registration Fee', enabled: true, amount: 1000, currency: 'INR', recipient: 'ferex', stage: 1, timing: 'before' };
+  const agency = { id: 'agency', title: 'Separate Agency Fee', enabled: true, amount: 8000, currency: 'INR', recipient: 'ferex', stage: 1, timing: 'before' };
+  await db.query(`UPDATE system_config SET value=$1 WHERE key='fee_config'`, [JSON.stringify({ education_fees: [reg, agency], payment_gateways: { phonepe_upi_enabled: true } })]);
   let n = 0;
   const pay = (feeId: string, amount: number) => db.query(`INSERT INTO payments (student_id,ref_no,title,description,amount,currency,payment_type,payment_method,status,utr_number,billing_application_id) VALUES ($1,$2,'t','d',$3,'INR',$4,'UPI','Pending Verification',$5,$6)`, [s2, `PKG-${++n}`, amount, `education:${feeId}`, `PKGUTR-${n}`, app2]);
+  const reset = async () => { await db.exec('RESET ROLE'); await db.exec(`DELETE FROM payments WHERE student_id='${s2}'`); };
 
-  // 10% discount on the standard registration fee: payable is 900, partial payments are allowed.
+  // No plan for Canada yet: standard fees. 10% discount on registration -> 900, partial payments allowed.
   await db.exec(`INSERT INTO education_student_fee_overrides(student_id,fee_id,custom_amount,discount_percent) VALUES ('${s2}','registration',0,10)`);
   await asUser(s2);
   await pay('registration', 400);
   await assert.rejects(pay('registration', 501));
   await pay('registration', 500);
-  await db.exec('RESET ROLE');
-  await db.exec(`DELETE FROM payments WHERE student_id='${s2}'; DELETE FROM education_student_fee_overrides WHERE student_id='${s2}'`);
+  await pay('agency', 8000);
+  await reset();
+  await db.exec(`DELETE FROM education_student_fee_overrides WHERE student_id='${s2}'`);
 
-  // Assign a package: its registration fee and installments replace the standard fees.
-  const pkg = { id: 'p1', currency: 'INR', registration_fee: { enabled: true, amount: 5000 }, installments: [{ id: 'i1', title: 'Legalization', amount: 20000, stage_trigger: 1, timing: 'before' }] };
-  await db.query(`INSERT INTO system_config(key,value) VALUES ('ferex_country_fee_packages',$1)`, [JSON.stringify([pkg])]);
-  await db.exec(`INSERT INTO education_student_preferences(student_id,country,fee_flow_mode,fee_package_id) VALUES ('${s2}','Canada','package','p1')`);
+  // A Canada plan now applies automatically (no assignment row). Registration stays the standard 1000,
+  // the standard agency fee is replaced by the plan's installments.
+  const plan = { id: 'p1', country: 'Canada', is_active: true, currency: 'INR', registration_fee: { enabled: false, amount: 0 }, installments: [{ id: 'i1', title: 'Legalization', amount: 20000, stage_trigger: 1, timing: 'before' }] };
+  await db.query(`INSERT INTO system_config(key,value) VALUES ('ferex_country_fee_packages',$1)`, [JSON.stringify([plan])]);
   await asUser(s2);
-  await pay('registration', 5000);
+  await pay('registration', 1000);
   await assert.rejects(pay('registration', 1));
   await pay('pkg:p1:i1', 12000);
   await pay('pkg:p1:i1', 8000);
   await assert.rejects(pay('pkg:p1:i1', 1));
   await assert.rejects(pay('pkg:p1:missing', 100));
+  await reset();
 
-  // Registration fee switched off in the package: no registration is collectable.
-  await db.exec('RESET ROLE');
-  await db.exec(`DELETE FROM payments WHERE student_id='${s2}'`);
-  await db.query(`UPDATE system_config SET value=$1 WHERE key='ferex_country_fee_packages'`, [JSON.stringify([{ ...pkg, registration_fee: { enabled: false, amount: 5000 } }])]);
+  // The plan may override the registration fee.
+  await db.query(`UPDATE system_config SET value=$1 WHERE key='ferex_country_fee_packages'`, [JSON.stringify([{ ...plan, registration_fee: { enabled: true, amount: 5000 } }])]);
   await asUser(s2);
-  await assert.rejects(pay('registration', 100));
+  await pay('registration', 5000);
+  await assert.rejects(pay('registration', 1));
+  await reset();
+
+  // Forcing the normal flow ignores the country plan; pinning a plan from another country works too.
+  await db.exec(`INSERT INTO education_student_preferences(student_id,country,fee_flow_mode) VALUES ('${s2}','Canada','normal')`);
+  await asUser(s2);
+  await assert.rejects(pay('pkg:p1:i1', 100));
+  await pay('agency', 100);
+  await reset();
+  await db.exec(`UPDATE education_student_preferences SET fee_flow_mode='package', fee_package_id='p1' WHERE student_id='${s2}'`);
+  await asUser(s2);
   await pay('pkg:p1:i1', 100);
+  await assert.rejects(pay('agency', 100));
+
+  // An inactive plan is not applied automatically.
+  await reset();
+  await db.exec(`UPDATE education_student_preferences SET fee_flow_mode='auto', fee_package_id=NULL WHERE student_id='${s2}'`);
+  await db.query(`UPDATE system_config SET value=$1 WHERE key='ferex_country_fee_packages'`, [JSON.stringify([{ ...plan, is_active: false }])]);
+  await asUser(s2);
+  await assert.rejects(pay('pkg:p1:i1', 100));
+  await pay('agency', 100);
 });

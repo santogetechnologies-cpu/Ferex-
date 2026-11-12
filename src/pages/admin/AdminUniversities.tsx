@@ -7,11 +7,12 @@ import {
 } from 'lucide-react';
 import { useUniversities } from '../../hooks/useUniversities';
 import { useDestinations } from '../../hooks/useDestinations';
+import { FeaturedCountriesPanel } from '../../components/FeaturedCountriesPanel';
 import { useCountryWorkflows } from '../../hooks/useCountryWorkflows';
 import { useFeeConfig } from '../../hooks/useFeeConfig';
 import { uploadFileToBucket } from '../../lib/storage';
 import type { University, PaymentInstallment, CourseSemester, CourseProgram } from '../../lib/types';
-import type { DestinationItem } from '../../lib/api/destinations';
+import { sortByFeatured, type DestinationItem } from '../../lib/api/destinations';
 import { ToastNotification } from '../../components/ToastNotification';
 
 export function formatFeeEURandINR(feeStr?: string): string {
@@ -687,7 +688,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
   }, [universities, filteredUniversities.length, search, countryFilter]);
 
   // Filter logic for countries
-  const filteredCountries = countryList.filter(c => {
+  const filteredCountries = sortByFeatured(countryList, countryList, c => c.name).filter(c => {
     const q = search.toLowerCase().trim();
     return !q || c.name.toLowerCase().includes(q) || c.authority.toLowerCase().includes(q) || c.acronym.toLowerCase().includes(q);
   });
@@ -968,6 +969,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
       {/* TAB 2: COUNTRIES & LEGALIZATION WORKFLOWS */}
       {activeMainTab === 'countries' && (
         <div className="space-y-4">
+          {!isStaff && <FeaturedCountriesPanel destinations={countryList} onMessage={showToast} />}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/70 shadow-xs">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />

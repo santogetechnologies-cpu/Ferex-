@@ -43,7 +43,8 @@ export function EducationFeeEditor() {
     setSaving(true);
     setMessage('');
     try {
-      await saveEducationFees(fees, upiEnabled);
+      // Country amounts now live in Country fee plans; drop any old per-country overrides so they cannot apply silently.
+      await saveEducationFees(fees.map(f => ({ ...f, countryAmounts: undefined })), upiEnabled);
       try {
         const currentGw = await getGlobalPaymentGateways();
         await saveGlobalPaymentGateways({
@@ -78,14 +79,14 @@ export function EducationFeeEditor() {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Sliders className="w-5 h-5 text-[#58051E]" /> Education Fee Configuration
+              <Sliders className="w-5 h-5 text-[#58051E]" /> Standard Fees
             </h2>
             <span className="text-[10px] font-extrabold bg-[#58051E]/10 text-[#58051E] px-2.5 py-0.5 rounded-full border border-[#58051E]/20">
               Commercial Governance
             </span>
           </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Configure fee milestones, stage trigger boundaries (before/after), tax inclusion rates, and regional country overrides.
+            The registration fee applies to every student. The other fees here are the separate payments for students whose country has no fee plan; countries with a plan (below) use that plan instead.
           </p>
         </div>
 
@@ -300,85 +301,6 @@ export function EducationFeeEditor() {
                   <span>UPI accepts INR only. This currency can be recorded by an administrator. Configure INR to offer student UPI.</span>
                 </div>
               )}
-
-              {/* Country-Specific Override Section */}
-              <div className="space-y-3 pt-2 border-t border-slate-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                      <Globe className="w-3.5 h-3.5 text-[#58051E]" /> Country-Specific Fee Overrides
-                    </h4>
-                    <p className="text-[11px] text-slate-500">
-                      The common amount applies unless overridden here. Setting 0 waives this fee for that country.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Overrides Table */}
-                {Object.entries(fee.countryAmounts || {}).length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                    {Object.entries(fee.countryAmounts || {}).map(([country, amount]) => (
-                      <div
-                        key={country}
-                        className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl gap-2"
-                      >
-                        <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5 truncate">
-                          <Globe className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span className="truncate">{country}</span>
-                        </span>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            aria-label={`${country} ${fee.title} amount`}
-                            className="w-24 h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-900 text-right focus:outline-none focus:ring-1 focus:ring-[#58051E]"
-                            value={amount}
-                            onChange={e => change(fee.id, {
-                              countryAmounts: { ...fee.countryAmounts, [country]: Number(e.target.value) }
-                            })}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const next = { ...fee.countryAmounts };
-                              delete next[country];
-                              change(fee.id, { countryAmounts: next });
-                            }}
-                            className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                            title={`Remove ${country} override`}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Add Country Override Dropdown */}
-                <div className="max-w-xs">
-                  <select
-                    aria-label={`Add country override for ${fee.title}`}
-                    className={inputClass}
-                    value=""
-                    onChange={e => {
-                      if (e.target.value) {
-                        change(fee.id, {
-                          countryAmounts: { ...fee.countryAmounts, [e.target.value]: fee.amount }
-                        });
-                      }
-                    }}
-                  >
-                    <option value="">+ Add country override…</option>
-                    {countries
-                      .filter(c => !(c in (fee.countryAmounts || {})))
-                      .map(c => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                  </select>
-                </div>
-              </div>
             </article>
           );
         })}

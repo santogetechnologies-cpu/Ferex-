@@ -15,6 +15,8 @@ export interface DestinationItem {
   desk?: string;
   badge?: string;
   is_active?: boolean;
+  /** 1-3 when the admin has featured this country; lower ranks are shown first. */
+  featured_rank?: number | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -202,4 +204,22 @@ export async function clearAllDestinations(): Promise<void> {
   } catch {}
   window.dispatchEvent(new Event('ferex_destinations_change'));
   window.dispatchEvent(new Event('storage'));
+}
+
+/** Featured countries first (by rank), then the rest alphabetically. Works on any list keyed by country name. */
+export function sortByFeatured<T>(items: T[], destinations: DestinationItem[], nameOf: (item: T) => string): T[] {
+  const rank = new Map<string, number>();
+  destinations.forEach(d => { if (d.featured_rank) rank.set(d.name.trim().toLowerCase(), d.featured_rank); });
+  const rankOf = (item: T) => rank.get(nameOf(item).trim().toLowerCase()) ?? 99;
+  return [...items].sort((a, b) => rankOf(a) - rankOf(b) || nameOf(a).localeCompare(nameOf(b)));
+}
+
+export const isFeaturedCountry = (destinations: DestinationItem[], name: string): boolean =>
+  destinations.some(d => d.featured_rank && d.name.trim().toLowerCase() === name.trim().toLowerCase());
+
+/** Sets the featured countries in priority order (first = top). Pass an empty list to clear. */
+export async function setFeaturedDestinations(ids: string[]): Promise<void> {
+  const { error } = await supabase.rpc('set_featured_destinations', { p_ids: ids });
+  if (error) throw new Error(error.message);
+  window.dispatchEvent(new Event('ferex_destinations_change'));
 }
