@@ -31,6 +31,8 @@ DECLARE
   v_user_email TEXT;
   v_user_role TEXT;
   v_caller_email TEXT;
+  v_lead_id UUID;
+  v_lead_email TEXT;
 BEGIN
   v_caller_id := auth.uid();
 
@@ -44,7 +46,9 @@ BEGIN
       INTO v_user_id, v_user_email, v_user_role
       FROM auth.users WHERE id = target_user_id;
     END IF;
-  ELSIF target_email IS NOT NULL AND TRIM(target_email) <> '' THEN
+  END IF;
+
+  IF v_user_id IS NULL AND target_email IS NOT NULL AND TRIM(target_email) <> '' THEN
     SELECT id, email, role INTO v_user_id, v_user_email, v_user_role
     FROM public.users WHERE lower(email) = lower(TRIM(target_email));
 
@@ -53,7 +57,25 @@ BEGIN
       INTO v_user_id, v_user_email, v_user_role
       FROM auth.users WHERE lower(email) = lower(TRIM(target_email));
     END IF;
-  ELSE
+  END IF;
+
+  -- Also resolve from CRM leads (education_leads)
+  SELECT id, email INTO v_lead_id, v_lead_email
+  FROM public.education_leads
+  WHERE (target_user_id IS NOT NULL AND (id = target_user_id OR converted_student_id = target_user_id))
+     OR (target_email IS NOT NULL AND TRIM(target_email) <> '' AND lower(email) = lower(TRIM(target_email)))
+     OR (v_user_id IS NOT NULL AND (id = v_user_id OR converted_student_id = v_user_id))
+     OR (v_user_email IS NOT NULL AND v_user_email <> '' AND lower(email) = lower(v_user_email))
+  LIMIT 1;
+
+  IF v_user_role IS NULL AND v_lead_id IS NOT NULL THEN
+    v_user_role := 'student';
+    IF v_user_email IS NULL OR v_user_email = '' THEN
+      v_user_email := COALESCE(v_lead_email, target_email);
+    END IF;
+  END IF;
+
+  IF v_user_id IS NULL AND (v_user_email IS NULL OR v_user_email = '') AND v_lead_id IS NULL AND target_user_id IS NULL AND (target_email IS NULL OR TRIM(target_email) = '') THEN
     RAISE EXCEPTION 'A valid target_user_id or target_email must be provided';
   END IF;
 
@@ -80,8 +102,8 @@ BEGIN
     END IF;
   END IF;
 
-  -- If target not found anywhere in DB, consider it already deleted
-  IF v_user_id IS NULL AND (v_user_email IS NULL OR v_user_email = '') THEN
+  -- If target not found anywhere in DB (users, auth, or leads), consider it already deleted
+  IF v_user_id IS NULL AND (v_user_email IS NULL OR v_user_email = '') AND v_lead_id IS NULL THEN
     RETURN jsonb_build_object(
       'success', true,
       'message', 'User does not exist or was already deleted',
@@ -91,7 +113,7 @@ BEGIN
   END IF;
 
   -- 3. Self-deletion prevention
-  IF v_caller_id IS NOT NULL AND v_caller_id = v_user_id THEN
+  IF v_caller_id IS NOT NULL AND v_user_id IS NOT NULL AND v_caller_id = v_user_id THEN
     RAISE EXCEPTION 'Security restriction: You cannot delete your own active administrator account';
   END IF;
 
@@ -121,42 +143,101 @@ BEGIN
     UPDATE public.invoices SET student_id = NULL WHERE student_id = v_user_id;
     UPDATE public.receipts SET student_id = NULL WHERE student_id = v_user_id;
     UPDATE public.credit_notes SET student_id = NULL WHERE student_id = v_user_id;
-
-    -- Delete student-specific operational records
-    DELETE FROM public.applications WHERE student_id = v_user_id;
-    DELETE FROM public.education_service_agreements WHERE student_id = v_user_id;
-    DELETE FROM public.education_workflow_progress WHERE student_id = v_user_id;
-    DELETE FROM public.education_student_preferences WHERE student_id = v_user_id;
-    DELETE FROM public.education_student_fee_overrides WHERE student_id = v_user_id;
-    DELETE FROM public.education_direct_payments WHERE student_id = v_user_id;
-    DELETE FROM public.student_documents WHERE student_id = v_user_id;
-    DELETE FROM public.student_payments WHERE student_id = v_user_id;
-    DELETE FROM public.visa_applications WHERE student_id = v_user_id;
-    DELETE FROM public.pre_departure_checklists WHERE student_id = v_user_id;
-    DELETE FROM public.nawa_records WHERE student_id = v_user_id;
-    DELETE FROM public.legalization_records WHERE student_id = v_user_id;
-    DELETE FROM public.tasks WHERE student_id = v_user_id;
-    DELETE FROM public.meetings WHERE student_id = v_user_id;
-    DELETE FROM public.chat_conversations WHERE student_id = v_user_id;
-    DELETE FROM public.support_tickets WHERE student_id = v_user_id OR user_id = v_user_id;
   END IF;
+
+  -- Delete student-specific operational records
+  DELETE FROM public.applications 
+  WHERE (v_user_id IS NOT NULL AND student_id = v_user_id)
+     OR (target_user_id IS NOT NULL AND student_id = target_user_id)
+     OR (v_lead_id IS NOT NULL AND student_id = v_lead_id);
+
+  DELETE FROM public.education_service_agreements 
+  WHERE (v_user_id IS NOT NULL AND student_id = v_user_id)
+     OR (target_user_id IS NOT NULL AND student_id = target_user_id)
+     OR (v_lead_id IS NOT NULL AND student_id = v_lead_id);
+
+  DELETE FROM public.education_workflow_progress 
+  WHERE (v_user_id IS NOT NULL AND student_id = v_user_id)
+     OR (target_user_id IS NOT NULL AND student_id = target_user_id)
+     OR (v_lead_id IS NOT NULL AND student_id = v_lead_id);
+
+  DELETE FROM public.education_student_preferences 
+  WHERE (v_user_id IS NOT NULL AND student_id = v_user_id)
+     OR (target_user_id IS NOT NULL AND student_id = target_user_id)
+     OR (v_lead_id IS NOT NULL AND student_id = v_lead_id);
+
+  DELETE FROM public.education_student_fee_overrides 
+  WHERE (v_user_id IS NOT NULL AND student_id = v_user_id)
+     OR (target_user_id IS NOT NULL AND student_id = target_user_id)
+     OR (v_lead_id IS NOT NULL AND student_id = v_lead_id);
+
+  DELETE FROM public.education_direct_payments 
+  WHERE (v_user_id IS NOT NULL AND student_id = v_user_id)
+     OR (target_user_id IS NOT NULL AND student_id = target_user_id)
+     OR (v_lead_id IS NOT NULL AND student_id = v_lead_id);
+
+  DELETE FROM public.student_documents 
+  WHERE (v_user_id IS NOT NULL AND student_id = v_user_id)
+     OR (target_user_id IS NOT NULL AND student_id = target_user_id)
+     OR (v_lead_id IS NOT NULL AND student_id = v_lead_id);
+
+  DELETE FROM public.student_payments 
+  WHERE (v_user_id IS NOT NULL AND student_id = v_user_id)
+     OR (target_user_id IS NOT NULL AND student_id = target_user_id)
+     OR (v_lead_id IS NOT NULL AND student_id = v_lead_id);
+
+  DELETE FROM public.visa_applications 
+  WHERE (v_user_id IS NOT NULL AND student_id = v_user_id)
+     OR (target_user_id IS NOT NULL AND student_id = target_user_id)
+     OR (v_lead_id IS NOT NULL AND student_id = v_lead_id);
+
+  DELETE FROM public.pre_departure_checklists 
+  WHERE (v_user_id IS NOT NULL AND student_id = v_user_id)
+     OR (target_user_id IS NOT NULL AND student_id = target_user_id)
+     OR (v_lead_id IS NOT NULL AND student_id = v_lead_id);
+
+  DELETE FROM public.nawa_records 
+  WHERE (v_user_id IS NOT NULL AND student_id = v_user_id)
+     OR (target_user_id IS NOT NULL AND student_id = target_user_id)
+     OR (v_lead_id IS NOT NULL AND student_id = v_lead_id);
+
+  DELETE FROM public.legalization_records 
+  WHERE (v_user_id IS NOT NULL AND student_id = v_user_id)
+     OR (target_user_id IS NOT NULL AND student_id = target_user_id)
+     OR (v_lead_id IS NOT NULL AND student_id = v_lead_id);
+
+  DELETE FROM public.tasks 
+  WHERE (v_user_id IS NOT NULL AND student_id = v_user_id)
+     OR (target_user_id IS NOT NULL AND student_id = target_user_id)
+     OR (v_lead_id IS NOT NULL AND student_id = v_lead_id);
+
+  DELETE FROM public.meetings 
+  WHERE (v_user_id IS NOT NULL AND student_id = v_user_id)
+     OR (target_user_id IS NOT NULL AND student_id = target_user_id)
+     OR (v_lead_id IS NOT NULL AND student_id = v_lead_id);
+
+  DELETE FROM public.chat_conversations 
+  WHERE (v_user_id IS NOT NULL AND student_id = v_user_id)
+     OR (target_user_id IS NOT NULL AND student_id = target_user_id)
+     OR (v_lead_id IS NOT NULL AND student_id = v_lead_id);
+
+  DELETE FROM public.support_tickets 
+  WHERE (v_user_id IS NOT NULL AND (student_id = v_user_id OR user_id = v_user_id))
+     OR (target_user_id IS NOT NULL AND (student_id = target_user_id OR user_id = target_user_id))
+     OR (v_lead_id IS NOT NULL AND (student_id = v_lead_id OR user_id = v_lead_id));
 
   -- 6. Unlink and archive corresponding education_leads record so getStudents() does not re-synthesize or resurrect the deleted student!
-  IF v_user_id IS NOT NULL THEN
-    UPDATE public.education_leads
-    SET converted_student_id = NULL,
-        status = CASE WHEN status = 'Enrolled' THEN 'Archived' ELSE status END,
-        updated_at = NOW()
-    WHERE converted_student_id = v_user_id;
-  END IF;
+  UPDATE public.education_leads
+  SET converted_student_id = NULL,
+      status = CASE WHEN status = 'Enrolled' THEN 'Archived' ELSE status END,
+      updated_at = NOW()
+  WHERE (v_lead_id IS NOT NULL AND id = v_lead_id)
+     OR (target_user_id IS NOT NULL AND (id = target_user_id OR converted_student_id = target_user_id))
+     OR (target_email IS NOT NULL AND TRIM(target_email) <> '' AND lower(email) = lower(TRIM(target_email)))
+     OR (v_user_id IS NOT NULL AND (id = v_user_id OR converted_student_id = v_user_id))
+     OR (v_user_email IS NOT NULL AND v_user_email <> '' AND lower(email) = lower(v_user_email));
 
   IF v_user_email IS NOT NULL AND v_user_email <> '' THEN
-    UPDATE public.education_leads
-    SET converted_student_id = NULL,
-        status = CASE WHEN status = 'Enrolled' THEN 'Archived' ELSE status END,
-        updated_at = NOW()
-    WHERE lower(email) = lower(v_user_email);
-
     -- Clear counselor assignment string if student is assigned to this staff
     UPDATE public.users 
     SET assigned_counselor = '' 
@@ -167,6 +248,23 @@ BEGIN
   -- 7. Permanently delete from public.users
   IF v_user_id IS NOT NULL THEN
     DELETE FROM public.users WHERE id = v_user_id;
+  END IF;
+  IF target_user_id IS NOT NULL THEN
+    DELETE FROM public.users WHERE id = target_user_id;
+  END IF;
+  IF v_user_email IS NOT NULL AND v_user_email <> '' THEN
+    DELETE FROM public.users WHERE lower(email) = lower(v_user_email);
+  END IF;
+
+  -- 8. Permanently delete from auth.users (cascades sessions, identities, tokens)
+  IF v_user_id IS NOT NULL THEN
+    DELETE FROM auth.users WHERE id = v_user_id;
+  END IF;
+  IF target_user_id IS NOT NULL THEN
+    DELETE FROM auth.users WHERE id = target_user_id;
+  END IF;
+  IF v_user_email IS NOT NULL AND v_user_email <> '' THEN
+    DELETE FROM auth.users WHERE lower(email) = lower(v_user_email);
   END IF;
   IF v_user_email IS NOT NULL AND v_user_email <> '' THEN
     DELETE FROM public.users WHERE lower(email) = lower(v_user_email);

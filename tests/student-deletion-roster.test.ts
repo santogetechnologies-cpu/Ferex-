@@ -278,6 +278,24 @@ test('Counselor cannot delete any user account', async () => {
   );
 });
 
+test('Education Admin can delete an enrolled CRM lead who is not yet in public.users', async () => {
+  await asUser(eduAdminId);
+
+  const unprovisionedLeadId = '8181476c-3b80-4426-9a3b-28f01b1b9e01';
+  await db.query(`
+    INSERT INTO public.education_leads (id, name, email, status, converted_student_id)
+    VALUES ('${unprovisionedLeadId}', 'Jenish', 'jenish@gmail.com', 'Enrolled', NULL);
+  `);
+
+  const res = await db.query(`SELECT public.delete_user_by_admin('${unprovisionedLeadId}'::uuid, 'jenish@gmail.com') AS result;`);
+  const result = res.rows[0].result;
+  assert.equal(result.success, true);
+
+  const leadCheck = await db.query(`SELECT status, converted_student_id FROM public.education_leads WHERE id = '${unprovisionedLeadId}';`);
+  assert.equal(leadCheck.rows[0].status, 'Archived', 'Unprovisioned enrolled lead must be archived on deletion');
+  assert.equal(leadCheck.rows[0].converted_student_id, null, 'Unprovisioned enrolled lead must be unlinked');
+});
+
 test('Self-deletion of administrator is strictly blocked', async () => {
   await asUser(superAdminId);
 
