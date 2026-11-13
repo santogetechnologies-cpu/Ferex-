@@ -32,7 +32,7 @@ const getStatusStyle = (status: string) => {
     case 'Rejected':
       return 'bg-red-50 text-red-700 border-red-100 font-bold';
     case 'Withdrawn':
-      return 'bg-slate-100 text-slate-500 border-slate-200 font-bold';
+      return 'bg-red-50 text-red-700 border-red-200 font-bold';
     default:
       return 'bg-amber-50 text-amber-700 border-amber-100 font-bold';
   }
@@ -75,7 +75,9 @@ export const UniversityApplications: React.FC = () => {
   const handleWithdraw = async (appId: string, uniName: string) => {
     try {
       setIsWithdrawing(appId);
-      await changeStatus(appId, 'Withdrawn');
+      const app = applications.find(a => a.id === appId);
+      const prevStatus = app?.status || 'Submitted';
+      await changeStatus(appId, 'Withdrawn', `Withdrawn from ${prevStatus}`);
       showToast(`Application for ${uniName} has been withdrawn.`);
     } catch (err: any) {
       showToast(`Error withdrawing application: ${err.message || 'Failed'}`);
@@ -257,57 +259,169 @@ export const UniversityApplications: React.FC = () => {
                     Admission Progress Milestones
                   </h4>
 
-                  <div className="space-y-4 relative before:absolute before:left-3.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-100">
-                    {[
-                      { 
-                        name: 'Application Form Submission', 
-                        done: true, 
-                        time: 'Completed' 
-                      },
-                      { 
-                        name: 'University Document Review', 
-                        done: activeApp.status !== 'Submitted' && activeApp.status !== 'Withdrawn', 
-                        time: activeApp.status === 'Submitted' ? 'In Progress' : 'Completed' 
-                      },
-                      { 
-                        name: 'Faculty Admissions Board Evaluation', 
-                        done: ['Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status), 
-                        time: ['Submitted', 'Under Review'].includes(activeApp.status) ? 'In Progress' : 'Completed' 
-                      },
-                      { 
-                        name: 'Official Offer Letter Issuance', 
-                        done: ['Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status), 
-                        time: ['Submitted', 'Under Review'].includes(activeApp.status) ? 'Pending' : 'Completed' 
-                      },
-                      { 
-                        name: 'Final Acceptance Letter Released', 
-                        done: ['Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status), 
-                        time: ['Submitted', 'Under Review', 'Offer Issued', 'Accepted'].includes(activeApp.status) ? 'Pending' : 'Completed' 
-                      },
-                      { 
-                        name: 'VFS Visa Processing & Embassy Submission', 
-                        done: ['Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status), 
-                        time: ['Submitted', 'Under Review', 'Offer Issued', 'Accepted', 'Final Acceptance Issued'].includes(activeApp.status) ? 'Pending' : 'Completed' 
-                      },
-                      { 
-                        name: 'Visa Stamped & Admission Finalized', 
-                        done: ['Visa Approved', 'Approved', 'Closed'].includes(activeApp.status), 
-                        time: ['Visa Approved', 'Approved', 'Closed'].includes(activeApp.status) ? 'Completed' : 'Pending' 
+                  <div className="space-y-4 relative">
+                    {(() => {
+                      const isWithdrawn = activeApp.status === 'Withdrawn';
+                      const notes = (activeApp.notes || '').toLowerCase();
+                      
+                      let withdrawnIdx = -1;
+                      if (isWithdrawn) {
+                        if (notes.includes('visa stamped') || notes.includes('admission finalized') || notes.includes('visa approved') || notes.includes('enrolled') || notes.includes('stage 6')) {
+                          withdrawnIdx = 6;
+                        } else if (notes.includes('vfs') || notes.includes('visa processing') || notes.includes('embassy') || notes.includes('stage 5') || activeApp.final_acceptance_url) {
+                          withdrawnIdx = 5;
+                        } else if (notes.includes('final acceptance') || notes.includes('accepted') || notes.includes('stage 4') || activeApp.offer_letter_url) {
+                          withdrawnIdx = 4;
+                        } else if (notes.includes('offer issued') || notes.includes('offer letter') || notes.includes('stage 3') || notes.includes('offer')) {
+                          withdrawnIdx = 3;
+                        } else if (notes.includes('board') || notes.includes('faculty') || notes.includes('evaluation') || notes.includes('under review') || notes.includes('stage 2')) {
+                          withdrawnIdx = 2;
+                        } else if (notes.includes('application form') || notes.includes('draft') || notes.includes('stage 0')) {
+                          withdrawnIdx = 0;
+                        } else {
+                          // Default for submitted application is Stage 1 (University Document Review)
+                          withdrawnIdx = 1;
+                        }
                       }
-                    ].map((step, idx) => (
-                      <div key={idx} className="relative flex items-center justify-between gap-3 text-xs">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-7 h-7 rounded-full flex items-center justify-center z-10 transition-colors ${step.done ? 'bg-emerald-500 text-white shadow-xs' : 'bg-slate-100 text-slate-400 border border-slate-200'
-                            }`}>
-                            {step.done ? <Check className="w-4 h-4 stroke-[3]" /> : <span className="text-[10px] font-bold">{idx + 1}</span>}
+
+                      const stepsDef = [
+                        { name: 'Application Form Submission' },
+                        { name: 'University Document Review' },
+                        { name: 'Faculty Admissions Board Evaluation' },
+                        { name: 'Official Offer Letter Issuance' },
+                        { name: 'Final Acceptance Letter Released' },
+                        { name: 'VFS Visa Processing & Embassy Submission' },
+                        { name: 'Visa Stamped & Admission Finalized' },
+                      ];
+
+                      const milestones = isWithdrawn
+                        ? stepsDef.slice(0, withdrawnIdx + 1).map((step, idx) => {
+                            if (idx < withdrawnIdx) {
+                              return {
+                                name: step.name,
+                                time: 'Completed',
+                                icon: <Check className="w-4 h-4 stroke-[3]" />,
+                                circleClass: 'bg-emerald-500 text-white shadow-xs',
+                                titleClass: 'text-slate-900 font-extrabold',
+                                timeClass: 'font-bold text-slate-400',
+                                lineColor: idx === withdrawnIdx - 1 ? 'bg-red-500' : 'bg-emerald-500',
+                              };
+                            }
+                            return {
+                              name: step.name,
+                              time: 'Withdrawn',
+                              icon: <X className="w-4 h-4 stroke-[3]" />,
+                              circleClass: 'bg-red-500 text-white shadow-xs ring-4 ring-red-100',
+                              titleClass: 'text-red-700 font-extrabold',
+                              timeClass: 'font-extrabold text-red-600',
+                              lineColor: 'bg-slate-100',
+                            };
+                          })
+                        : [
+                            {
+                              name: 'Application Form Submission',
+                              time: 'Completed',
+                              icon: <Check className="w-4 h-4 stroke-[3]" />,
+                              circleClass: 'bg-emerald-500 text-white shadow-xs',
+                              titleClass: 'text-slate-900 font-extrabold',
+                              timeClass: 'font-bold text-slate-400',
+                              lineColor: !['Submitted', 'Draft'].includes(activeApp.status) ? 'bg-emerald-500' : 'bg-slate-100',
+                            },
+                            {
+                              name: 'University Document Review',
+                              time: activeApp.status === 'Submitted' ? 'In Progress' : 'Completed',
+                              icon: !['Submitted', 'Draft'].includes(activeApp.status) ? <Check className="w-4 h-4 stroke-[3]" /> : <span className="text-[10px] font-bold">2</span>,
+                              circleClass: !['Submitted', 'Draft'].includes(activeApp.status) ? 'bg-emerald-500 text-white shadow-xs' : 'bg-[#58051E] text-white shadow-xs',
+                              titleClass: 'text-slate-900 font-extrabold',
+                              timeClass: activeApp.status === 'Submitted' ? 'font-bold text-[#58051E]' : 'font-bold text-slate-400',
+                              lineColor: ['Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status) ? 'bg-emerald-500' : 'bg-slate-100',
+                            },
+                            {
+                              name: 'Faculty Admissions Board Evaluation',
+                              time: activeApp.status === 'Submitted' ? 'Pending' : activeApp.status === 'Under Review' ? 'In Progress' : 'Completed',
+                              icon: ['Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status)
+                                ? <Check className="w-4 h-4 stroke-[3]" />
+                                : <span className="text-[10px] font-bold">3</span>,
+                              circleClass: ['Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status)
+                                ? 'bg-emerald-500 text-white shadow-xs'
+                                : activeApp.status === 'Under Review' ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-400 border border-slate-200',
+                              titleClass: ['Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed', 'Under Review'].includes(activeApp.status) ? 'text-slate-900 font-extrabold' : 'text-slate-400',
+                              timeClass: activeApp.status === 'Under Review' ? 'font-bold text-[#58051E]' : 'font-bold text-slate-400',
+                              lineColor: ['Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status) ? 'bg-emerald-500' : 'bg-slate-100',
+                            },
+                            {
+                              name: 'Official Offer Letter Issuance',
+                              time: ['Submitted', 'Under Review'].includes(activeApp.status) ? 'Pending' : 'Completed',
+                              icon: ['Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status)
+                                ? <Check className="w-4 h-4 stroke-[3]" />
+                                : <span className="text-[10px] font-bold">4</span>,
+                              circleClass: ['Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status)
+                                ? 'bg-emerald-500 text-white shadow-xs'
+                                : 'bg-slate-100 text-slate-400 border border-slate-200',
+                              titleClass: ['Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status) ? 'text-slate-900 font-extrabold' : 'text-slate-400',
+                              timeClass: 'font-bold text-slate-400',
+                              lineColor: ['Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status) ? 'bg-emerald-500' : 'bg-slate-100',
+                            },
+                            {
+                              name: 'Final Acceptance Letter Released',
+                              time: ['Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status) ? 'Completed' : 'Pending',
+                              icon: ['Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status)
+                                ? <Check className="w-4 h-4 stroke-[3]" />
+                                : <span className="text-[10px] font-bold">5</span>,
+                              circleClass: ['Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status)
+                                ? 'bg-emerald-500 text-white shadow-xs'
+                                : 'bg-slate-100 text-slate-400 border border-slate-200',
+                              titleClass: ['Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status) ? 'text-slate-900 font-extrabold' : 'text-slate-400',
+                              timeClass: 'font-bold text-slate-400',
+                              lineColor: ['Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status) ? 'bg-emerald-500' : 'bg-slate-100',
+                            },
+                            {
+                              name: 'VFS Visa Processing & Embassy Submission',
+                              time: ['Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status) ? 'Completed' : 'Pending',
+                              icon: ['Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status)
+                                ? <Check className="w-4 h-4 stroke-[3]" />
+                                : <span className="text-[10px] font-bold">6</span>,
+                              circleClass: ['Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status)
+                                ? 'bg-emerald-500 text-white shadow-xs'
+                                : 'bg-slate-100 text-slate-400 border border-slate-200',
+                              titleClass: ['Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status) ? 'text-slate-900 font-extrabold' : 'text-slate-400',
+                              timeClass: 'font-bold text-slate-400',
+                              lineColor: ['Visa Approved', 'Approved', 'Closed'].includes(activeApp.status) ? 'bg-emerald-500' : 'bg-slate-100',
+                            },
+                            {
+                              name: 'Visa Stamped & Admission Finalized',
+                              time: ['Visa Approved', 'Approved', 'Closed'].includes(activeApp.status) ? 'Completed' : 'Pending',
+                              icon: ['Visa Approved', 'Approved', 'Closed'].includes(activeApp.status)
+                                ? <Check className="w-4 h-4 stroke-[3]" />
+                                : <span className="text-[10px] font-bold">7</span>,
+                              circleClass: ['Visa Approved', 'Approved', 'Closed'].includes(activeApp.status)
+                                ? 'bg-emerald-500 text-white shadow-xs'
+                                : 'bg-slate-100 text-slate-400 border border-slate-200',
+                              titleClass: ['Visa Approved', 'Approved', 'Closed'].includes(activeApp.status) ? 'text-slate-900 font-extrabold' : 'text-slate-400',
+                              timeClass: 'font-bold text-slate-400',
+                              lineColor: 'bg-slate-100',
+                            },
+                          ];
+
+                      return milestones.map((step, idx) => (
+                        <div key={idx} className="relative flex items-center justify-between gap-3 text-xs">
+                          {idx < milestones.length - 1 && (
+                            <div
+                              className={`absolute left-[13px] top-7 h-4 w-0.5 z-0 transition-colors ${step.lineColor}`}
+                            />
+                          )}
+                          <div className="flex items-center gap-3 relative z-10">
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${step.circleClass}`}>
+                              {step.icon}
+                            </div>
+                            <span className={`font-semibold ${step.titleClass}`}>
+                              {step.name}
+                            </span>
                           </div>
-                          <span className={`font-semibold ${step.done ? 'text-slate-900 font-extrabold' : 'text-slate-400'}`}>
-                            {step.name}
-                          </span>
+                          <span className={`text-[10px] ${step.timeClass}`}>{step.time}</span>
                         </div>
-                        <span className="text-[10px] font-bold text-slate-400">{step.time}</span>
-                      </div>
-                    ))}
+                      ));
+                    })()}
                   </div>
                 </div>
               </div>
@@ -315,7 +429,17 @@ export const UniversityApplications: React.FC = () => {
               {/* Drawer Footer */}
               <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex flex-col gap-2.5">
                 {/* Official Offer Letter Card */}
-                {(activeApp.offer_letter_url || activeApp.status === 'Offer Issued' || activeApp.status === 'Accepted') ? (
+                {activeApp.status === 'Withdrawn' ? (
+                  <div className="p-3.5 bg-red-50/70 border border-red-200 rounded-xl space-y-1 text-left shadow-xs">
+                    <span className="text-[10px] font-black uppercase text-red-800 tracking-wider flex items-center gap-1.5">
+                      <X className="w-3.5 h-3.5 text-red-600" />
+                      Application Withdrawn
+                    </span>
+                    <p className="text-[11px] text-red-950 font-medium">
+                      This application has been formally withdrawn. No further admissions evaluation or visa processing will be conducted.
+                    </p>
+                  </div>
+                ) : (activeApp.offer_letter_url || activeApp.status === 'Offer Issued' || activeApp.status === 'Accepted') ? (
                   <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2 text-left">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider flex items-center gap-1.5">

@@ -2,110 +2,35 @@ import { supabase } from '../supabase';
 import type { Notification } from '../types';
 import { generateUUID } from '../../utils/uuid';
 
-const DEFAULT_STUDENT_NOTIFICATIONS = (userId: string): Notification[] => [
-  {
-    id: `notif-welcome-${userId}`,
-    user_id: userId,
-    title: 'Welcome to FEREX International Student Portal',
-    body: 'Your international student portal is active. You can now track your university applications, legalizations, VFS visa filing, and pre-departure arrangements.',
-    category: 'System',
-    is_read: false,
-    link: '/student/dashboard',
-    created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-  },
-  {
-    id: `notif-nawa-${userId}`,
-    user_id: userId,
-    title: 'Document Legalization & Compliance Check',
-    body: 'Please make sure all mandatory academic transcripts and passport color scans are uploaded to your Document Vault for verification.',
-    category: 'Document',
-    is_read: false,
-    link: '/student/documents',
-    created_at: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-  },
-  {
-    id: `notif-app-${userId}`,
-    user_id: userId,
-    title: 'University Application Tracker Active',
-    body: 'Track your university shortlisting, application preparation, and unconditional offer letters in real-time under Journey Tracker.',
-    category: 'Application',
-    is_read: false,
-    link: '/student/journey-tracker',
-    created_at: new Date(Date.now() - 1000 * 60 * 300).toISOString(),
-  },
-  {
-    id: `notif-vfs-${userId}`,
-    user_id: userId,
-    title: 'VFS Visa Processing & Checklist Ready',
-    body: 'Review the VFS Global Visa roadmap and required embassy documents in your dedicated Visa Tracker.',
-    category: 'VFS Visa',
-    is_read: true,
-    link: '/student/visa-tracker',
-    created_at: new Date(Date.now() - 1000 * 60 * 1440).toISOString(),
-  },
-];
-
+/**
+ * The signed-in person's real notifications, newest first. Staff also receive the staff-wide alerts (no owner).
+ * The database is the only source: made-up sample notifications and browser copies are gone.
+ */
 export async function getNotifications(userId: string): Promise<Notification[]> {
-  try {
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId || '');
-    if (!isUuid) {
-      const local = localStorage.getItem(`ferex_notifications_${userId}`);
-      if (local) {
-        try {
-          const parsed = JSON.parse(local);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        } catch (e) {}
-      }
-      return DEFAULT_STUDENT_NOTIFICATIONS(userId);
-    }
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId || '');
+  if (!isUuid) return [];
 
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (!error && data && data.length > 0) {
-      const normalized = data.map(n => ({
-        id: n.id,
-        user_id: n.user_id || userId,
-        title: n.title,
-        body: n.body || n.message || '',
-        category: n.category || n.type || 'Support',
-        is_read: n.is_read ?? n.read ?? false,
-        link: n.link || n.action_url || '',
-        created_at: n.created_at || new Date().toISOString()
-      }));
-      try {
-        localStorage.setItem(`ferex_notifications_${userId}`, JSON.stringify(normalized));
-      } catch (e) {}
-      return normalized;
-    }
-
-    const local = localStorage.getItem(`ferex_notifications_${userId}`);
-    if (local) {
-      try {
-        const parsed = JSON.parse(local);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-
-    // Default notifications for active student experience
-    const defaults = DEFAULT_STUDENT_NOTIFICATIONS(userId);
-    try {
-      localStorage.setItem(`ferex_notifications_${userId}`, JSON.stringify(defaults));
-    } catch (e) {}
-    return defaults;
-  } catch (err) {
-    const local = localStorage.getItem(`ferex_notifications_${userId}`);
-    if (local) {
-      try {
-        const parsed = JSON.parse(local);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return DEFAULT_STUDENT_NOTIFICATIONS(userId);
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .or(`user_id.eq.${userId},user_id.is.null`)
+    .order('created_at', { ascending: false })
+    .limit(200);
+  if (error) {
+    console.warn('[getNotifications]', error.message);
+    return [];
   }
+
+  return (data || []).map(n => ({
+    id: n.id,
+    user_id: n.user_id || userId,
+    title: n.title,
+    body: n.body || n.message || '',
+    category: n.category || n.type || 'Support',
+    is_read: n.is_read ?? n.read ?? false,
+    link: n.link || n.action_url || '',
+    created_at: n.created_at || new Date().toISOString(),
+  }));
 }
 
 export async function markNotificationAsRead(id: string) {

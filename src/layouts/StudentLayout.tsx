@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -75,6 +75,11 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [activeSearchIndex, setActiveSearchIndex] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const [studentApps, setStudentApps] = useState<any[]>([]);
 
   // Live database profile resolution
   const [studentDetail, setStudentDetail] = useState<{ name: string; email: string }>({
@@ -251,6 +256,352 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
 
   const activeItem = menuItems.find(item => location.pathname === item.path)?.name || 'Dashboard';
 
+  // Live student application tracking for search portal
+  useEffect(() => {
+    if (!effectiveStudentId) return;
+    const fetchStudentApps = async () => {
+      try {
+        const { data } = await supabase
+          .from('applications')
+          .select('id, university_name, course, program_name, status, intake')
+          .eq('student_id', effectiveStudentId);
+        if (data && data.length > 0) {
+          setStudentApps(data);
+          return;
+        }
+      } catch {}
+      try {
+        const raw = localStorage.getItem('ferex_applications_backup');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            setStudentApps(parsed.filter((a: any) => a.student_id === effectiveStudentId));
+          }
+        }
+      } catch {}
+    };
+    fetchStudentApps();
+    window.addEventListener('ferex_application_change', fetchStudentApps);
+    return () => window.removeEventListener('ferex_application_change', fetchStudentApps);
+  }, [effectiveStudentId]);
+
+  // Global keyboard shortcut (⌘K / Ctrl+K / Escape) & click-outside
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        setShowProfileDropdown(false);
+        setShowNotifications(false);
+        setIsSearchOpen(true);
+        setTimeout(() => searchInputRef.current?.focus(), 30);
+      } else if (e.key === 'Escape') {
+        setIsSearchOpen(false);
+        searchInputRef.current?.blur();
+      }
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setIsSearchOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    window.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+      window.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const baseSearchItems: {
+    id: string;
+    title: string;
+    subtitle: string;
+    path: string;
+    category: 'Page' | 'Application' | 'Document' | 'Financial';
+    icon: any;
+    keywords: string[];
+  }[] = [
+    {
+      id: 'page-dashboard',
+      title: 'Student Dashboard',
+      subtitle: 'Overview, quick metrics, announcements & next steps',
+      path: '/student/dashboard',
+      category: 'Page',
+      icon: Home,
+      keywords: ['dashboard', 'home', 'overview', 'summary', 'status', 'metrics'],
+    },
+    {
+      id: 'page-agreement',
+      title: 'Service Agreement',
+      subtitle: 'Review & sign your educational consultancy contract',
+      path: '/student/agreement',
+      category: 'Page',
+      icon: FileCheck,
+      keywords: ['agreement', 'service agreement', 'sign', 'contract', 'legal', 'terms'],
+    },
+    {
+      id: 'page-journey',
+      title: 'Journey Tracker',
+      subtitle: 'Step-by-step roadmap from admission to campus arrival',
+      path: '/student/journey-tracker',
+      category: 'Page',
+      icon: Milestone,
+      keywords: ['journey', 'tracker', 'roadmap', 'milestones', 'stages', 'timeline', 'progress'],
+    },
+    {
+      id: 'page-select-uni',
+      title: 'Select University',
+      subtitle: 'Browse accredited partner universities & academic programs',
+      path: '/student/select-university',
+      category: 'Page',
+      icon: Target,
+      keywords: ['select university', 'browse', 'universities', 'programs', 'degrees', 'courses', 'europe', 'medicine', 'engineering'],
+    },
+    {
+      id: 'page-applications',
+      title: 'University Applications',
+      subtitle: 'Track submitted applications, timelines & admission reviews',
+      path: '/student/applications',
+      category: 'Page',
+      icon: GraduationCap,
+      keywords: ['applications', 'university applications', 'apply', 'submitted', 'review', 'withdraw', 'track timeline', 'admission'],
+    },
+    {
+      id: 'page-offers',
+      title: 'Offer Letters & Acceptance',
+      subtitle: 'Download official admission offer letters & accept seats',
+      path: '/student/offers',
+      category: 'Page',
+      icon: FileText,
+      keywords: ['offers', 'offer letter', 'acceptance', 'admission letter', 'download offer', 'accept offer'],
+    },
+    {
+      id: 'page-documents',
+      title: 'Compliance Documents Vault',
+      subtitle: 'Upload mandatory passports, academic records & legalizations',
+      path: '/student/documents',
+      category: 'Page',
+      icon: Folder,
+      keywords: ['documents', 'docs', 'vault', 'upload document', 'compliance', 'checklist', 'files'],
+    },
+    {
+      id: 'page-payments',
+      title: 'Payments & Tuition Fees',
+      subtitle: 'Pay tuition, agency fees, installment plans & billing',
+      path: '/student/payments',
+      category: 'Financial',
+      icon: CreditCard,
+      keywords: ['payments', 'tuition', 'fees', 'pay fees', 'installment', 'agency fee', 'billing', 'stripe', 'bank transfer'],
+    },
+    {
+      id: 'page-receipts',
+      title: 'Official Receipts',
+      subtitle: 'Download payment receipts, transaction proofs & vouchers',
+      path: '/student/receipts',
+      category: 'Financial',
+      icon: Receipt,
+      keywords: ['receipts', 'receipt', 'voucher', 'payment proof', 'paid', 'transaction'],
+    },
+    {
+      id: 'page-visa',
+      title: 'VFS Visa Tracker',
+      subtitle: 'Schengen National D-Visa appointment, filing & stamping',
+      path: '/student/visa-tracker',
+      category: 'Page',
+      icon: ShieldCheck,
+      keywords: ['visa', 'vfs', 'schengen', 'd-visa', 'embassy', 'visa appointment', 'visa tracking', 'stamped'],
+    },
+    {
+      id: 'page-predeparture',
+      title: 'Pre-Departure Guide',
+      subtitle: 'Flight booking, packing checklists, housing & arrival guidance',
+      path: '/student/pre-departure',
+      category: 'Page',
+      icon: Plane,
+      keywords: ['pre-departure', 'travel', 'flight', 'housing', 'packing', 'arrival', 'airport'],
+    },
+    {
+      id: 'page-invoices',
+      title: 'Invoices & Fee Statements',
+      subtitle: 'View detailed itemized fee invoices & payment statuses',
+      path: '/student/invoices',
+      category: 'Financial',
+      icon: FileSpreadsheet,
+      keywords: ['invoices', 'invoice', 'statement', 'charges', 'bills'],
+    },
+    {
+      id: 'page-meetings',
+      title: 'Meetings & Video Calls',
+      subtitle: 'Schedule 1-on-1 counseling calls & video consultations',
+      path: '/student/meetings',
+      category: 'Page',
+      icon: Calendar,
+      keywords: ['meetings', 'counseling', 'book call', 'video consultation', 'google meet', 'schedule appointment'],
+    },
+    {
+      id: 'page-chat',
+      title: 'Counselor Direct Chat',
+      subtitle: 'Real-time messaging with your dedicated student advisor',
+      path: '/student/chat',
+      category: 'Page',
+      icon: MessageCircle,
+      keywords: ['chat', 'counselor chat', 'messages', 'advisor', 'inbox', 'talk to counselor'],
+    },
+    {
+      id: 'page-tickets',
+      title: 'Support Tickets Helpdesk',
+      subtitle: 'Submit support inquiries, report issues & get rapid help',
+      path: '/student/support',
+      category: 'Page',
+      icon: LifeBuoy,
+      keywords: ['support', 'tickets', 'helpdesk', 'inquiry', 'help', 'report issue'],
+    },
+    {
+      id: 'page-profile',
+      title: 'My Profile & Account',
+      subtitle: 'Manage personal details, contact info & passport profile',
+      path: '/student/profile',
+      category: 'Page',
+      icon: User,
+      keywords: ['profile', 'account', 'personal info', 'settings', 'passport number', 'email', 'phone'],
+    },
+    {
+      id: 'page-notifications',
+      title: 'Notifications Hub',
+      subtitle: 'View all recent admission updates, status changes & alerts',
+      path: '/student/notifications',
+      category: 'Page',
+      icon: Bell,
+      keywords: ['notifications', 'alerts', 'announcements', 'updates', 'bell'],
+    },
+    // Specific Compliance Checklist Documents
+    {
+      id: 'doc-passport',
+      title: 'Passport (Valid min. 18 months)',
+      subtitle: 'Upload color biometric scan of all passport pages',
+      path: '/student/documents',
+      category: 'Document',
+      icon: Folder,
+      keywords: ['passport', 'biometric', 'id', 'identification', 'upload passport'],
+    },
+    {
+      id: 'doc-diploma',
+      title: 'Academic Diplomas & Marksheets',
+      subtitle: 'Upload high school certificates or bachelor transcripts',
+      path: '/student/documents',
+      category: 'Document',
+      icon: Folder,
+      keywords: ['diploma', 'academic', 'marksheet', 'transcript', 'degree', '10th', '12th'],
+    },
+    {
+      id: 'doc-apostille',
+      title: 'Apostille / Legalization Attestation',
+      subtitle: 'Upload MEA Apostille stamp on original certificates',
+      path: '/student/documents',
+      category: 'Document',
+      icon: Folder,
+      keywords: ['apostille', 'attestation', 'mea', 'stamp', 'legalization'],
+    },
+    {
+      id: 'doc-recognition',
+      title: 'Legalization Recognition Certificate',
+      subtitle: 'Higher education qualification recognition confirmation',
+      path: '/student/documents',
+      category: 'Document',
+      icon: Folder,
+      keywords: ['recognition', 'kuratorium', 'nawa', 'legalization recognition'],
+    },
+    {
+      id: 'doc-moi',
+      title: 'Medium of Instruction (MOI) / English',
+      subtitle: 'Official MOI certificate or IELTS / TOEFL score card',
+      path: '/student/documents',
+      category: 'Document',
+      icon: Folder,
+      keywords: ['moi', 'medium of instruction', 'english', 'ielts', 'toefl', 'language proficiency'],
+    },
+    {
+      id: 'doc-bank',
+      title: 'Bank Solvency & Sponsor Affidavit',
+      subtitle: '6-month bank statement & notarized sponsor affidavit',
+      path: '/student/documents',
+      category: 'Document',
+      icon: Folder,
+      keywords: ['bank', 'solvency', 'statement', 'funds', 'sponsor', 'affidavit', 'financial proof'],
+    },
+    {
+      id: 'doc-insurance',
+      title: 'Schengen International Health Insurance',
+      subtitle: 'Min. €30,000 medical coverage policy across Schengen states',
+      path: '/student/documents',
+      category: 'Document',
+      icon: Folder,
+      keywords: ['insurance', 'health insurance', 'schengen insurance', 'medical coverage'],
+    },
+  ];
+
+  const allSearchItems = useMemo(() => {
+    const dynamicApps = (studentApps || []).map((app: any, idx: number) => ({
+      id: `app-${app.id || idx}`,
+      title: app.university_name || app.program_name || 'University Application',
+      subtitle: `${app.course || app.program_name || 'Program'}${app.intake ? ` (${app.intake})` : ''} • Status: ${app.status || 'Submitted'}`,
+      path: '/student/applications',
+      category: 'Application' as const,
+      icon: GraduationCap,
+      keywords: [
+        'application',
+        'university',
+        (app.university_name || '').toLowerCase(),
+        (app.course || '').toLowerCase(),
+        (app.program_name || '').toLowerCase(),
+        (app.status || '').toLowerCase(),
+        (app.intake || '').toLowerCase(),
+      ],
+    }));
+
+    return [...dynamicApps, ...baseSearchItems];
+  }, [studentApps]);
+
+  const searchResults = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) {
+      return allSearchItems.slice(0, 8);
+    }
+    return allSearchItems.filter(item => {
+      if (item.title.toLowerCase().includes(q)) return true;
+      if (item.subtitle.toLowerCase().includes(q)) return true;
+      if (item.category.toLowerCase().includes(q)) return true;
+      return item.keywords.some(k => k.toLowerCase().includes(q));
+    }).slice(0, 10);
+  }, [allSearchItems, searchQuery]);
+
+  const handleSelectSearchResult = (item: { path: string }) => {
+    setIsSearchOpen(false);
+    setSearchQuery('');
+    searchInputRef.current?.blur();
+    navigate(item.path);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveSearchIndex(prev => (prev + 1 < searchResults.length ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveSearchIndex(prev => (prev - 1 >= 0 ? prev - 1 : searchResults.length - 1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (searchResults.length > 0 && activeSearchIndex >= 0 && activeSearchIndex < searchResults.length) {
+        handleSelectSearchResult(searchResults[activeSearchIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      setIsSearchOpen(false);
+      searchInputRef.current?.blur();
+    }
+  };
+
   const handleSignOut = async () => {
     stopImpersonatingStudent();
     await signOut();
@@ -409,18 +760,136 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
           <div className="flex items-center gap-2 sm:gap-3">
 
             {/* Global Search Box */}
-            <div className="relative hidden md:block w-56">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <div className="relative hidden md:block w-56" ref={searchContainerRef}>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
               <input
+                ref={searchInputRef}
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setIsSearchOpen(true);
+                  setActiveSearchIndex(0);
+                }}
+                onFocus={() => {
+                  setIsSearchOpen(true);
+                  setShowNotifications(false);
+                  setShowProfileDropdown(false);
+                }}
+                onKeyDown={handleSearchKeyDown}
                 placeholder="Search portal..."
                 className="w-full h-8.5 pl-8.5 pr-8 bg-slate-50 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-[#58051E]/40 dark:focus:border-rose-400 focus:ring-2 focus:ring-[#58051E]/5 transition-all"
               />
-              <kbd className="absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-0.2 text-[9px] font-bold text-slate-400 dark:text-slate-400 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded">
-                ⌘K
-              </kbd>
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    searchInputRef.current?.focus();
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              ) : (
+                <kbd
+                  onClick={() => {
+                    searchInputRef.current?.focus();
+                    setIsSearchOpen(true);
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-0.2 text-[9px] font-bold text-slate-400 dark:text-slate-400 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded select-none cursor-pointer"
+                  title="Press ⌘K or Ctrl+K to search"
+                >
+                  ⌘K
+                </kbd>
+              )}
+
+              {/* Search Dropdown Results */}
+              <AnimatePresence>
+                {isSearchOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                    transition={{ duration: 0.12 }}
+                    className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl shadow-2xl p-2 z-50 text-left overflow-hidden"
+                  >
+                    <div className="px-2.5 py-1.5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 mb-1">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                        {searchQuery.trim() ? `Search Results (${searchResults.length})` : 'Quick Portal Navigation'}
+                      </span>
+                      <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
+                        <kbd className="px-1 py-0.2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[9px]">ESC</kbd> to close
+                      </span>
+                    </div>
+
+                    <div className="max-h-72 overflow-y-auto space-y-1 py-0.5">
+                      {searchResults.length === 0 ? (
+                        <div className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
+                          <Search className="w-5 h-5 mx-auto mb-1.5 opacity-40 text-slate-400" />
+                          <p className="font-bold text-slate-600 dark:text-slate-400">No portal results found</p>
+                          <p className="text-[10px] mt-0.5 text-slate-400">Try searching for "documents", "visa", "applications", or "fees"</p>
+                        </div>
+                      ) : (
+                        searchResults.map((item, idx) => {
+                          const Icon = item.icon;
+                          const isSelected = idx === activeSearchIndex;
+                          return (
+                            <div
+                              key={item.id}
+                              onClick={() => handleSelectSearchResult(item)}
+                              onMouseEnter={() => setActiveSearchIndex(idx)}
+                              className={`p-2 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition-colors ${
+                                isSelected
+                                  ? 'bg-[#58051E]/5 dark:bg-[#58051E]/20 text-[#58051E] dark:text-rose-300'
+                                  : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-200'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                                  isSelected
+                                    ? 'bg-[#58051E] text-white shadow-xs'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                                }`}>
+                                  <Icon className="w-3.5 h-3.5" />
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-xs font-bold truncate text-slate-900 dark:text-white">
+                                    {item.title}
+                                  </div>
+                                  <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate">
+                                    {item.subtitle}
+                                  </div>
+                                </div>
+                              </div>
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0">
+                                {item.category}
+                              </span>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    <div className="px-2.5 pt-2 pb-1 border-t border-slate-100 dark:border-slate-800 mt-1 flex items-center justify-between text-[10px] font-semibold text-slate-400">
+                      <div className="flex items-center gap-1.5">
+                        <span className="flex items-center gap-0.5">
+                          <kbd className="px-1 py-0.2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[9px]">↑</kbd>
+                          <kbd className="px-1 py-0.2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[9px]">↓</kbd>
+                          <span className="ml-0.5">navigate</span>
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-0.5">
+                          <kbd className="px-1 py-0.2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[9px]">↵</kbd>
+                          <span className="ml-0.5">select</span>
+                        </span>
+                      </div>
+                      <span>Student Portal</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Notification Bell Button */}

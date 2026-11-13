@@ -88,24 +88,16 @@ export const JourneyTracker: React.FC = () => {
   const isStageDone = (n: number) => dbStages.some(s => s.stage_number === n && s.status === 'Completed');
   const isProfileDone = Boolean(profile?.full_name);
 
-  // Agreement and Registration states
-  const isAgreementDone = useStudentAgreement(activeStudentId);
-  const isRegPaid = registrationSettled(feeConfig, payments, applications[0]?.universities?.country);
-
-  // Meeting verification states for Counselling stage
-  const hasCompletedMeeting = meetings.some(m =>
-    m.status === 'Completed' || (m.status as string) === 'Done' || (m.status as string) === 'Attended'
-  );
-  const hasScheduledMeeting = meetings.some(m =>
-    m.status === 'Scheduled' || (m.status as string) === 'Confirmed'
-  );
-
   const realApps = applications.filter(isRealApplication);
   const activeApp = realApps[0];
   const targetCountry = (activeStudentId ? localStorage.getItem(`ferex_student_target_country_${activeStudentId}`) : null) || activeApp?.universities?.country || (activeApp as any)?.country || (profile as any)?.target_country || '';
   const targetUniversity = activeApp?.university_name || 
     activeApp?.universities?.name || 
     (targetCountry && targetCountry !== '' ? `${targetCountry} Partner University` : 'No University Selected');
+
+  // Agreement and Registration states
+  const isAgreementDone = useStudentAgreement(activeStudentId);
+  const isRegPaid = registrationSettled(feeConfig, payments, targetCountry || applications[0]?.universities?.country);
 
   // Verification helper states
   const hasUploadedDocs = documents.length > 0;
@@ -158,7 +150,7 @@ export const JourneyTracker: React.FC = () => {
       id: 'u3',
       num: 3,
       title: 'Advanced Registration Fee',
-      status: (isRegPaid || isStageDone(3)) ? 'completed' : (isAgreementDone ? 'current' : 'upcoming'),
+      status: isRegPaid ? 'completed' : 'pending',
       desc: 'Initial intake deposit & compliance seat reservation.',
       actionLabel: isRegPaid ? 'View Invoice' : 'Pay Registration',
       actionRoute: '/student/payments',

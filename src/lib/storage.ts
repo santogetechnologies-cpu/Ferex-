@@ -67,13 +67,8 @@ export async function uploadFileToBucket(
     }
 
     if (uploadError) {
-      console.warn(`[Storage Upload Notice - ${bucket}]:`, uploadError.message);
-      if (fileOrBlob instanceof File || fileOrBlob instanceof Blob) {
-        return {
-          url: URL.createObjectURL(fileOrBlob),
-          path: filePath,
-        };
-      }
+      // Never hand back a temporary local link: it would be saved as the document and be dead for everyone else.
+      console.warn(`[Storage Upload - ${bucket}]:`, uploadError.message);
       return { url: '', path: filePath, error: uploadError.message };
     }
 
@@ -100,11 +95,7 @@ export async function uploadFileToBucket(
     };
   } catch (err: any) {
     console.error(`[uploadFileToBucket Error - ${bucket}]:`, err);
-    return {
-      url: fileOrBlob instanceof File || fileOrBlob instanceof Blob ? URL.createObjectURL(fileOrBlob) : '',
-      path: '',
-      error: err?.message || 'Upload failed',
-    };
+    return { url: '', path: '', error: err?.message || 'Upload failed' };
   }
 }
 

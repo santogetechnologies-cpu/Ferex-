@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Folder, Search, Upload, Eye, FileText, X, AlertCircle,
   ShieldCheck, Globe, CheckCircle2, Download, ExternalLink, Clock,
-  FilePlus, PlusCircle
+  FilePlus, PlusCircle, Pencil
 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
@@ -195,6 +195,15 @@ export const Documents: React.FC = () => {
   const dossierStatus = useMemo(() => {
     return calculateDossierStatus(configuredReqs, documents);
   }, [configuredReqs, documents]);
+
+  const additionalDocs = useMemo(() => {
+    const matchedDocIds = new Set(
+      dossierStatus.results
+        .map(r => r.doc?.id)
+        .filter(Boolean)
+    );
+    return documents.filter(d => !matchedDocIds.has(d.id));
+  }, [documents, dossierStatus.results]);
 
   const handleOpenUploadForReq = (req: DocumentRequirement) => {
     setReuploadTargetDocId(null);
@@ -799,16 +808,126 @@ export const Documents: React.FC = () => {
                             <Upload className="w-3 h-3" /> Upload
                           </button>
                         ) : (
-                          item.doc && (
+                          <div className="flex items-center gap-1.5 shrink-0">
                             <button
                               type="button"
-                              onClick={() => handleOpenPreview(item.doc)}
-                              className="text-[10px] font-bold text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer"
+                              title="Edit uploaded file"
+                              onClick={() => {
+                                if (item.doc) {
+                                  setReuploadTargetDocId(item.doc.id);
+                                  setSelectedReq(reqDoc);
+                                  setUploadName(item.doc.name);
+                                  setUploadType(item.doc.type);
+                                  setSelectedFile(null);
+                                  setShowUploadModal(true);
+                                } else {
+                                  handleOpenUploadForReq(reqDoc);
+                                }
+                              }}
+                              className="p-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 hover:border-slate-300 text-slate-600 hover:text-[#58051E] flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+                              aria-label="Edit uploaded file"
                             >
-                              <Eye className="w-3 h-3" /> Preview
+                              <Pencil className="w-3 h-3" />
                             </button>
-                          )
+
+                            {item.doc && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenPreview(item.doc)}
+                                className="px-2.5 py-1 bg-[#58051E] hover:bg-[#430316] text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+                              >
+                                <Eye className="w-3 h-3" /> Preview
+                              </button>
+                            )}
+                          </div>
                         )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {additionalDocs.map((doc) => {
+                  const displayStatus = 
+                    (doc.status as string) === 'Pending Verification' || (doc.status as string) === 'Pending' ? 'Submitted' :
+                    (doc.status as string) === 'Re-upload Requested' ? 'Rejected' :
+                    (doc.status as string) === 'Verified' ? 'Approved' :
+                    (doc.status as string) === 'Under Review' ? 'In Review' :
+                    doc.status || 'Submitted';
+
+                  const badgeColor =
+                    displayStatus === 'Approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                    displayStatus === 'In Review' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                    displayStatus === 'Submitted' ? 'bg-slate-100 text-slate-700 border-slate-200' :
+                    displayStatus === 'Rejected' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                    'bg-slate-100 text-slate-700 border-slate-200';
+
+                  return (
+                    <div 
+                      key={doc.id}
+                      className="p-3.5 rounded-xl border text-xs flex flex-col justify-between transition-all bg-emerald-50/40 border-emerald-200 text-slate-800"
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                              <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-slate-200 text-slate-700 font-bold uppercase">
+                                {doc.type || 'Other'}
+                              </span>
+                              <span className="text-[9.5px] font-medium px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 border border-slate-200 shrink-0">
+                                ADDITIONAL
+                              </span>
+                            </div>
+                            <span className="font-bold text-xs leading-tight text-slate-900 block truncate" title={doc.name}>
+                              {doc.name}
+                            </span>
+                          </div>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${badgeColor}`}>
+                            {displayStatus}
+                          </span>
+                        </div>
+
+                        {doc.reviewerNotes || (doc as any).notes || (doc as any).comment ? (
+                          <p className="text-[10px] text-slate-500 leading-snug line-clamp-2 mt-1">
+                            {doc.reviewerNotes || (doc as any).notes || (doc as any).comment}
+                          </p>
+                        ) : (
+                          <p className="text-[10px] text-slate-400 leading-snug line-clamp-2 mt-1">
+                            Additional supporting certificate.
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="pt-2.5 mt-2 border-t border-slate-200/60 flex items-center justify-between gap-2">
+                        <div className="text-[9.5px] text-slate-400">
+                          <span>{doc.size || '1.0 MB'}</span> • <span>{doc.date || 'Uploaded'}</span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            title="Edit uploaded file"
+                            onClick={() => {
+                              setReuploadTargetDocId(doc.id);
+                              setSelectedReq(null);
+                              setUploadName(doc.name);
+                              setUploadType(doc.type || 'Other');
+                              setSelectedFile(null);
+                              setShowUploadModal(true);
+                            }}
+                            className="p-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 hover:border-slate-300 text-slate-600 hover:text-[#58051E] flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+                            aria-label="Edit uploaded file"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPreview(doc)}
+                            className="px-2.5 py-1 bg-[#58051E] hover:bg-[#430316] text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+                          >
+                            <Eye className="w-3 h-3" /> Preview
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -890,118 +1009,7 @@ export const Documents: React.FC = () => {
         </div>
       )}
 
-      {/* ── 4. UPLOADED DOCUMENTS LIST SECTION (DESIGNATED POSITION BELOW SUMMARY & FILTERS) ── */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-              <FileText className="w-4 h-4 text-[#58051E]" />
-              Uploaded Document Vault ({filteredDocs.length})
-            </h2>
-            <p className="text-[11px] text-slate-500">
-              Verified files and documents uploaded for academic and visa verification
-            </p>
-          </div>
-        </div>
 
-        {/* Documents Grid */}
-        {loading && dbDocs.length === 0 ? (
-          <div className="py-16 text-center text-xs font-semibold text-slate-400 bg-white rounded-xl border border-slate-200/80">
-            Loading documents...
-          </div>
-        ) : filteredDocs.length === 0 ? (
-          <div className="bg-white border border-slate-200/80 rounded-xl p-12 text-center shadow-subtle">
-            <FileText className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <h3 className="text-sm font-semibold text-slate-800">No Documents Found</h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto mb-5">
-              {searchQuery || statusFilter !== 'All'
-                ? 'No documents match your current search query or status filter.'
-                : 'Upload academic transcripts, passport copies, and required compliance files to initiate your admissions review.'}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredDocs.map((doc) => {
-              const displayStatus = 
-                (doc.status as string) === 'Pending Verification' || (doc.status as string) === 'Pending' ? 'Submitted' :
-                (doc.status as string) === 'Re-upload Requested' ? 'Rejected' :
-                (doc.status as string) === 'Verified' ? 'Approved' :
-                (doc.status as string) === 'Under Review' ? 'Under Review' :
-                doc.status || 'Submitted';
-
-              const isReupload = displayStatus === 'Rejected';
-
-              return (
-                <Card key={doc.id} className="p-4 border border-slate-200/80 hover:border-slate-300 transition-all flex flex-col justify-between bg-white">
-                  <div>
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      <div className="w-9 h-9 rounded-lg bg-slate-50 border border-slate-200/70 flex items-center justify-center shrink-0 text-[#58051E]">
-                        <FileText className="w-4 h-4" />
-                      </div>
-                      {getStatusBadge(doc.status)}
-                    </div>
-
-                    <h3 className="text-sm font-semibold text-slate-900 leading-snug mb-1 truncate" title={doc.name}>
-                      {doc.name}
-                    </h3>
-                    <p className="text-xs font-medium text-slate-500 mb-3">{doc.type}</p>
-
-                    <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100 text-xs text-slate-500 space-y-1">
-                      <div className="flex justify-between"><span>File Size:</span><span className="font-semibold text-slate-800">{doc.size}</span></div>
-                      <div className="flex justify-between"><span>Uploaded:</span><span className="font-semibold text-slate-800">{doc.date}</span></div>
-                    </div>
-
-                    {(doc.reviewerNotes || (doc as any).rejection_reason || (doc as any).notes || (doc as any).comment) && (
-                      <div className="mt-3 p-3 bg-red-50/70 border border-red-200/70 rounded-lg text-left">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-red-800 flex items-center gap-1.5 mb-1">
-                          <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                          Admin Feedback
-                        </p>
-                        <p className="text-xs text-red-950 leading-relaxed">
-                          {doc.reviewerNotes || (doc as any).rejection_reason || (doc as any).notes || (doc as any).comment}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 mt-4">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenPreview(doc)}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#58051E] hover:underline cursor-pointer"
-                    >
-                      <Eye className="w-3.5 h-3.5" /> Preview
-                    </button>
-
-                    {isReupload && (
-                      <Button
-                        size="xs"
-                        variant="destructive"
-                        onClick={() => {
-                          setReuploadTargetDocId(doc.id);
-                          const matchedReq = configuredReqs.find(r => 
-                            (doc as any).requirement_id === r.id ||
-                            r.document_name === doc.name ||
-                            r.document_name === (doc as any).file_name
-                          );
-                          setSelectedReq(matchedReq || null);
-                          setUploadName(doc.name);
-                          setUploadType(doc.type);
-                          setSelectedFile(null);
-                          setShowUploadModal(true);
-                        }}
-                        leftIcon={<Upload className="w-3.5 h-3.5" />}
-                      >
-                        Re-upload
-                      </Button>
-                    )}
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
 
       {/* Upload File Modal */}
       <AnimatePresence>
@@ -1061,30 +1069,6 @@ export const Documents: React.FC = () => {
                     required
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E] focus:bg-white"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Document Category</label>
-                  <select
-                    value={uploadType}
-                    onChange={(e) => setUploadType(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E] focus:bg-white"
-                  >
-                    {configuredReqs.length > 0 ? (
-                      Array.from(new Set(configuredReqs.map(r => r.document_type || 'Academic'))).map(t => (
-                        <option key={t} value={t}>{t}</option>
-                      ))
-                    ) : (
-                      <>
-                        <option value="Academic">Academic</option>
-                        <option value="Identification">Identification</option>
-                        <option value="Financial">Financial</option>
-                        <option value="Language">Language</option>
-                        <option value="Legalization">Legalization</option>
-                        <option value="Other">Other</option>
-                      </>
-                    )}
-                  </select>
                 </div>
 
                 <input

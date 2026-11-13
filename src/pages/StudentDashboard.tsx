@@ -208,7 +208,7 @@ export const StudentDashboard: React.FC = () => {
       path: '/student/agreement',
       tag: isAgreementDone ? 'Signed' : 'Signature Required'
     },
-    { title: `3. Advanced Registration Fee Payment`, isDone: inst1Paid || isStageDone(3), path: '/student/payments', tag: inst1Paid ? 'Paid' : 'Due' },
+    { title: `3. Advanced Registration Fee Payment`, isDone: inst1Paid, path: '/student/payments', tag: inst1Paid ? 'Completed' : 'Pending' },
     {
       title: '4. Required Academic Documents',
       isDone: dossierStatus.isComplete || isStageDone(4),

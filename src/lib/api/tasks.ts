@@ -44,14 +44,10 @@ export async function getMyTasks(counselor?: CounselorIdentity): Promise<Task[]>
     filters.push(`assigned_staff_id.eq.${counselorId}`);
     filters.push(`assigned_to.eq.${counselorId}`);
   }
-  if (counselorEmail) {
-    filters.push(`assigned_to.eq.${counselorEmail}`);
-    filters.push(`assigned_to.ilike.%${counselorEmail}%`);
-  }
-  if (counselorName) {
-    filters.push(`assigned_to.eq.${counselorName}`);
-    filters.push(`assigned_to.ilike.%${counselorName}%`);
-  }
+  // Exact matches only: a partial name match ("Ann") would also pick up other people's tasks ("Joanne").
+  const quote = (v: string) => `"${v.replace(/"/g, '')}"`;
+  if (counselorEmail) filters.push(`assigned_to.eq.${quote(counselorEmail)}`);
+  if (counselorName) filters.push(`assigned_to.eq.${quote(counselorName)}`);
 
   if (filters.length > 0) {
     query = query.or(filters.join(','));
@@ -145,7 +141,7 @@ export async function createTask(payload: {
   const client = admin || supabase;
 
   // 1. Insert into core tasks table
-  let { error } = await client.from('tasks').insert({
+  const { error } = await client.from('tasks').insert({
     id: newId,
     student_id: validStudentId,
     student_name: payload.student_name || '',
@@ -162,25 +158,20 @@ export async function createTask(payload: {
     updated_at: now,
   });
 
-  if (error) {
-    console.warn('[createTask] Primary insert error, retrying with schema-safe fallback:', error.message);
-    const retryResult = await client.from('tasks').insert({
-      id: newId,
-      student_name: payload.student_name || '',
-      assigned_to: assignedToText,
-      created_by: createdBy,
-      title: payload.title.trim(),
-      description: payload.description?.trim() || '',
-      priority: payload.priority || 'Medium',
-      due_date: dueDateFormatted,
-      category,
-      status: 'Pending',
-      created_at: now,
-      updated_at: now,
-    });
-    if (retryResult.error) {
-      console.warn('[createTask] Schema-safe insert also encountered notice:', retryResult.error.message);
-    }
+  // A failed save must be reported. The old retry dropped the student and assignee links and still said "created".
+  if (error) throw new Error(`Could not create the task: ${error.message}`);
+
+  // Tell the person it was assigned to.
+  if (assignedStaffId) {
+    try {
+      const { createNotification } = await import('./notifications');
+      await createNotification({
+        user_id: assignedStaffId,
+        title: 'New task assigned',
+        body: `${payload.title.trim()}${payload.student_name ? ` (student: ${payload.student_name})` : ''}${dueDateFormatted ? `, due ${dueDateFormatted}` : ''}`,
+        category: 'Task',
+      });
+    } catch { /* the task itself is saved; the notice is best effort */ }
   }
 
   // 2. Cross-replicate to Subsidiary Specific Tables for immediate availability in subsidiary apps
