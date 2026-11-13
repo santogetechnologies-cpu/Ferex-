@@ -449,6 +449,15 @@ export async function bulkAssignLeadsToCounselor(
     .in('id', leadIds);
   if (assignError) throw new Error(`Could not assign leads: ${assignError.message}`);
 
+  // Leads already closed into student accounts: their counselor follows the new assignment.
+  try {
+    const { data: closed } = await supabase.from('education_leads').select('converted_student_id').in('id', leadIds).not('converted_student_id', 'is', null);
+    const studentIds = (closed || []).map((r: any) => r.converted_student_id).filter(Boolean);
+    if (studentIds.length) {
+      await supabase.from('users').update({ assigned_counselor: counselor.name, updated_at: nowIso }).in('id', studentIds);
+    }
+  } catch { /* the lead assignment above is the source of truth; students can be reassigned from the directory */ }
+
   // Log assignment activity for each lead
   for (const id of leadIds) {
     addEducationLeadActivity({
@@ -472,8 +481,9 @@ export async function bulkAssignLeadsToCounselor(
 export async function convertLeadToStudentAccount(
   leadId: string,
   tempPassword?: string,
-  performerName = 'Counselor'
-): Promise<{ success: boolean; studentId?: string; email?: string; tempPassword?: string; error?: string }> {
+  performerName = 'Counselor',
+  counselor?: { id?: string; name: string; email?: string }
+): Promise<{ success: boolean; studentId?: string; email?: string; tempPassword?: string; error?: string; warnings?: string[] }> {
   const local = getLocalLeads();
   let lead = local.find((l) => l.id === leadId);
 
@@ -497,6 +507,13 @@ export async function convertLeadToStudentAccount(
   }
 
   if (!lead) return { success: false, error: 'Lead not found' };
+
+  // The student's counselor is the lead's counselor (or the one chosen at closing). Never an invented name.
+  const counselorName = (counselor?.name || lead.assigned_counselor_name || '').trim();
+  if (!counselorName) {
+    return { success: false, error: 'Assign a counselor to this enquiry before closing it, so the student has someone to guide them.' };
+  }
+  const warnings: string[] = [];
 
   const finalPassword = tempPassword && tempPassword.trim().length >= 8
     ? tempPassword.trim()
@@ -523,7 +540,7 @@ export async function convertLeadToStudentAccount(
       phone: lead.phone,
       department: 'Education',
       country: lead.preferred_country || 'Poland',
-      assigned_counselor: lead.assigned_counselor_name || 'Senior Admissions Counselor',
+      assigned_counselor: counselorName,
     });
 
     if (result && (result.id || (result as any).user?.id)) {
@@ -539,54 +556,20 @@ export async function convertLeadToStudentAccount(
     return { success: false, error: provisionError || 'Could not create the student login. The lead was not closed.' };
   }
 
-  // Ensure record in public.users has the right metadata using admin client to bypass counselor RLS 42501
+  // Destination (decides the fee plan) and a Draft application the student completes next.
   try {
-    const admin = await getAdminSupabaseClient();
-    const client = admin || supabase;
-    await client.from('users').upsert({
-      id: createdStudentId,
-      email: targetEmail,
-      full_name: fullName,
-      role: 'student',
-      phone: lead.phone,
-      department: 'Education',
-      country: lead.preferred_country || 'Poland',
-      assigned_counselor: lead.assigned_counselor_name || 'Senior Admissions Counselor',
-      must_change_password: true,
-      updated_at: nowIso,
-    }, { onConflict: 'id' });
-  } catch (upsertErr) {
-    console.warn('User table update notice:', upsertErr);
-  }
-
-  // Ensure initial application record in public.applications so student immediately has an active file
-  try {
-    const admin = await getAdminSupabaseClient();
-    const client = admin || supabase;
-    const { data: existingApp } = await client
-      .from('applications')
-      .select('id')
-      .eq('student_id', createdStudentId)
-      .maybeSingle();
-
-    if (!existingApp) {
-      await client.from('applications').insert({
-        student_id: createdStudentId,
-        student_name: fullName,
-        student_email: targetEmail,
-        university_name: 'Pending University Selection',
-        program_name: lead.degree_level ? `${lead.degree_level} Degree` : 'Undergraduate / Postgraduate Program',
-        country: lead.preferred_country || 'Poland',
-        counselor: lead.assigned_counselor_name || 'Senior Admissions Counselor',
-        status: 'Enrolled',
-        stage: 'Stage 1: Profile & Target Selection',
-        intake: 'Upcoming Intake 2026',
-        created_at: nowIso,
-        updated_at: nowIso,
-      });
+    if (lead.preferred_country) {
+      const { setStudentDestination } = await import('./students');
+      await setStudentDestination(createdStudentId, lead.preferred_country);
     }
-  } catch (appErr) {
-    console.warn('Application creation notice:', appErr);
+  } catch (e) {
+    warnings.push(`Destination "${lead.preferred_country}" is not a registered destination yet; set it on the student's profile so the right fees apply.`);
+  }
+  try {
+    const { ensureDraftApplication } = await import('./applications');
+    await ensureDraftApplication(createdStudentId, lead.degree_level ? `${lead.degree_level} Degree` : undefined);
+  } catch (e) {
+    warnings.push((e as Error).message);
   }
 
   // Initialize education workflow progress stages
@@ -604,6 +587,9 @@ export async function convertLeadToStudentAccount(
       converted_student_id: createdStudentId,
       converted_at: nowIso,
       converted_by: performerName,
+      assigned_counselor_name: counselorName,
+      ...(counselor?.id ? { assigned_counselor_id: counselor.id } : {}),
+      ...(counselor?.email ? { assigned_counselor_email: counselor.email } : {}),
       tags: Array.from(new Set([...(lead.tags || []), 'Account Activated', 'Enrolled'])),
     },
     performerName
@@ -639,6 +625,7 @@ export async function convertLeadToStudentAccount(
     studentId: createdStudentId,
     email: targetEmail,
     tempPassword: finalPassword,
+    warnings,
   };
 }
 

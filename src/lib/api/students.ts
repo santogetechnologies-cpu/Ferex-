@@ -189,18 +189,62 @@ export async function getStudentById(id: string): Promise<UserProfile> {
   return data as UserProfile;
 }
 
+// ─── Shared student-account helpers ───────────────────────────────────────────
+
+/** A readable temporary password (min 8 chars) for a new student login; the student must change it at first sign-in. */
+export function generateTempPassword(): string {
+  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  const pick = (set: string, n: number) => Array.from(crypto.getRandomValues(new Uint32Array(n)), v => set[v % set.length]).join('');
+  return `${pick(letters, 6)}@${pick('23456789', 4)}`;
+}
+
+/**
+ * The real counselor with the fewest assigned students, or '' when no counselor exists.
+ * (A made-up "Country Desk" name used to be stored instead, which matched no real person.)
+ */
+export async function pickCounselorForNewStudent(): Promise<string> {
+  try {
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+    const [{ data: staff }, { data: students }] = await Promise.all([
+      client.from('users').select('full_name, email, role, status, is_active').in('role', ['counselor', 'staff']),
+      client.from('users').select('assigned_counselor').eq('role', 'student'),
+    ]);
+    const active = (staff || []).filter((u: any) => u.is_active !== false && !['inactive', 'deleted', 'suspended'].includes((u.status || '').toLowerCase()));
+    if (!active.length) return '';
+    const load = new Map<string, number>();
+    for (const st of students || []) {
+      const key = (st.assigned_counselor || '').toLowerCase().trim();
+      if (key) load.set(key, (load.get(key) || 0) + 1);
+    }
+    const loadOf = (u: any) => (load.get((u.full_name || '').toLowerCase().trim()) || 0) + (load.get((u.email || '').toLowerCase().trim()) || 0);
+    active.sort((a: any, b: any) => loadOf(a) - loadOf(b));
+    return active[0].full_name || active[0].email;
+  } catch {
+    return '';
+  }
+}
+
+/** Saves a student's destination where billing reads it (decides which fee plan applies). */
+export async function setStudentDestination(studentId: string, country: string): Promise<void> {
+  const { error } = await supabase.rpc('set_student_destination', { p_student: studentId, p_country: country });
+  if (error) throw new Error(error.message);
+  window.dispatchEvent(new Event('ferex_country_change'));
+}
+
 // ─── Create a new student profile in public.users ─────────────────────────────
 export async function createStudent(payload: {
   email: string;
   full_name: string;
   phone?: string;
+  password?: string;
   assigned_counselor?: string;
   target_country?: string;
   destination_country?: string;
   country?: string;
-}): Promise<UserProfile> {
+}): Promise<UserProfile & { warnings?: string[] }> {
   const cleanEmail = payload.email.trim().toLowerCase();
-  const chosenCountry = payload.target_country || payload.destination_country || payload.country || 'Poland';
+  const chosenCountry = payload.target_country || payload.destination_country || payload.country || '';
 
   // Clear any tombstone records so new user can be registered cleanly
   unmarkStudentDeleted(undefined, cleanEmail);
@@ -208,26 +252,23 @@ export async function createStudent(payload: {
   const student = await provisionAccount({
     ...payload,
     email: cleanEmail,
-    country: chosenCountry,
+    country: chosenCountry || undefined,
     role: 'student',
   });
 
+  const warnings: string[] = [];
   if (student?.id) {
     unmarkStudentDeleted(student.id, cleanEmail);
-    try {
-      const admin = await getAdminSupabaseClient();
-      const client = admin || supabase;
-      await client.from('users').update({
-        target_country: chosenCountry,
-        destination_country: chosenCountry,
-        country: chosenCountry,
-        status: 'active',
-        is_active: true,
-      }).eq('id', student.id);
-    } catch {}
+    if (chosenCountry) {
+      try {
+        await setStudentDestination(student.id, chosenCountry);
+      } catch (e) {
+        warnings.push(`The destination "${chosenCountry}" could not be saved (${(e as Error).message}). Set it on the student's profile so the right fees apply.`);
+      }
+    }
   }
 
-  return student;
+  return Object.assign(student, { warnings });
 }
 
 // ─── Create a new staff member profile in public.users & credentials ──────────
@@ -250,19 +291,9 @@ export async function updateStudent(id: string, updates: Partial<UserProfile> & 
   const admin = await getAdminSupabaseClient();
   const client = admin || supabase;
   const destCountry = updates.target_country || updates.destination_country || updates.country;
-  if (destCountry && typeof localStorage !== 'undefined') {
-    try {
-      localStorage.setItem(`ferex_student_target_country_${id}`, destCountry);
-      localStorage.setItem(`ferex_student_country_${id}`, destCountry);
-    } catch {}
-  }
 
-  const dbUpdates: any = { ...updates, updated_at: new Date().toISOString() };
-  if (destCountry) {
-    dbUpdates.country = destCountry;
-    dbUpdates.target_country = destCountry;
-    dbUpdates.destination_country = destCountry;
-  }
+  const { country: _c, target_country: _t, destination_country: _d, ...profileUpdates } = updates as any;
+  const dbUpdates: any = { ...profileUpdates, updated_at: new Date().toISOString() };
 
   const { data, error } = await client
     .from('users')
@@ -274,19 +305,8 @@ export async function updateStudent(id: string, updates: Partial<UserProfile> & 
     throw new Error(`Failed to update student profile: ${error?.message || 'Database error'}`);
   }
 
-  // Synchronize applications table
-  try {
-    const appUpdates: any = { updated_at: new Date().toISOString() };
-    if (destCountry) appUpdates.country = destCountry;
-    if (updates.assigned_counselor) appUpdates.counselor = updates.assigned_counselor;
-    if (updates.full_name) appUpdates.student_name = updates.full_name;
-
-    if (Object.keys(appUpdates).length > 1) {
-      await client.from('applications').update(appUpdates).eq('student_id', id);
-    }
-  } catch (appErr) {
-    console.warn('[updateStudent app sync warning]:', appErr);
-  }
+  // The destination decides the fee plan, so it is saved through the same function everywhere.
+  if (destCountry) await setStudentDestination(id, destCountry);
 
   window.dispatchEvent(new Event('ferex_staff_change'));
   window.dispatchEvent(new Event('ferex_students_change'));

@@ -16,6 +16,8 @@ import {
   type StudentOversightItem
 } from '../../lib/api/students';
 import { supabase } from '../../lib/supabase';
+import { useDestinations } from '../../hooks/useDestinations';
+import { generateTempPassword, pickCounselorForNewStudent } from '../../lib/api/students';
 
 export const CentralStudents: React.FC = () => {
   const navigate = useNavigate();
@@ -31,12 +33,13 @@ export const CentralStudents: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [stageFilter, setStageFilter] = useState('All');
 
+  const { destinations } = useDestinations();
   const [newStudent, setNewStudent] = useState({
     name: '',
     email: '',
     phone: '',
-    targetUni: 'University of Warsaw',
-    course: 'M.Sc. Computer Science',
+    country: '',
+    password: generateTempPassword(),
     counselor: ''
   });
 
@@ -92,16 +95,27 @@ export const CentralStudents: React.FC = () => {
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStudent.name || !newStudent.email) return;
+    if (!newStudent.country) { showToastMsg('Choose the destination country. It decides which fees apply.'); return; }
+    if (newStudent.password.trim().length < 8) { showToastMsg('The temporary password must be at least 8 characters.'); return; }
     try {
-      await createStudent({
+      const counselor = newStudent.counselor || await pickCounselorForNewStudent();
+      const created: any = await createStudent({
         full_name: newStudent.name.trim(),
         email: newStudent.email.trim(),
         phone: newStudent.phone.trim(),
-        assigned_counselor: newStudent.counselor,
+        password: newStudent.password.trim(),
+        assigned_counselor: counselor || undefined,
+        target_country: newStudent.country,
       });
+      try {
+        const { ensureDraftApplication } = await import('../../lib/api/applications');
+        await ensureDraftApplication(created.id);
+      } catch (appErr: any) {
+        created.warnings = [...(created.warnings || []), `The application could not be created: ${appErr.message}`];
+      }
       setShowAddModal(false);
-      showToastMsg(`Enrolled student ${newStudent.name}`);
-      setNewStudent({ name: '', email: '', phone: '', targetUni: 'University of Warsaw', course: 'M.Sc. Computer Science', counselor: counselorsList[0]?.full_name || '' });
+      showToastMsg(`Enrolled ${newStudent.name}. Login: ${newStudent.email.trim().toLowerCase()} / ${newStudent.password.trim()}${created.warnings?.length ? ' — ' + created.warnings.join(' ') : ''}`);
+      setNewStudent({ name: '', email: '', phone: '', country: '', password: generateTempPassword(), counselor: '' });
       await loadData();
     } catch (err: any) {
       showToastMsg(`Error: ${err.message || 'Failed to create student'}`);
@@ -392,8 +406,20 @@ export const CentralStudents: React.FC = () => {
                   <input type="text" value={newStudent.phone} onChange={(e) => setNewStudent({ ...newStudent, phone: e.target.value })} placeholder="e.g. +91 98765 43210" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                 </div>
                 <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Destination Country *</label>
+                  <select required aria-label="Destination country" value={newStudent.country} onChange={(e) => setNewStudent({ ...newStudent, country: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+                    <option value="">Select destination…</option>
+                    {destinations.filter(d => d.is_active !== false).map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Temporary Password *</label>
+                  <input type="text" required minLength={8} aria-label="Temporary password" value={newStudent.password} onChange={(e) => setNewStudent({ ...newStudent, password: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" />
+                </div>
+                <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Assigned Counselor</label>
                   <select value={newStudent.counselor} onChange={(e) => setNewStudent({ ...newStudent, counselor: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+                    <option value="">Auto-assign the least busy counselor</option>
                     {counselorsList.map((c: any) => (
                       <option key={c.id || c.email} value={c.full_name || c.name || c.email}>
                         {c.full_name || c.name || c.email}

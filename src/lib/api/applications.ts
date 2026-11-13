@@ -420,3 +420,32 @@ export async function ensureStudentApplication(studentId: string, studentName: s
     console.warn('[ensureStudentApplication notice]:', err);
   }
 }
+
+
+/**
+ * Gives a new student a Draft application they can complete (university chosen later). Uses only real columns.
+ * Never "Enrolled": that status means the university enrollment is complete and would unlock every stage and fee.
+ */
+export async function ensureDraftApplication(studentId: string, programName = 'Undergraduate / Postgraduate Program'): Promise<void> {
+  const admin = await getAdminSupabaseClient();
+  const client = admin || supabase;
+  const { data: existing, error: readError } = await client.from('applications').select('id').eq('student_id', studentId).limit(1);
+  if (readError) throw new Error(`Could not check applications: ${readError.message}`);
+  if (existing && existing.length > 0) return;
+  const now = new Date().toISOString();
+  const { error } = await client.from('applications').insert({
+    id: generateUUID(),
+    student_id: studentId,
+    university_name: 'Pending University Selection',
+    program_name: programName,
+    course: programName,
+    intake: 'Upcoming Intake',
+    status: 'Draft',
+    notes: 'Created automatically. The student chooses a university next.',
+    applied_date: now.split('T')[0],
+    created_at: now,
+    updated_at: now,
+  });
+  if (error) throw new Error(`Could not create the draft application: ${error.message}`);
+  window.dispatchEvent(new Event('ferex_applications_change'));
+}

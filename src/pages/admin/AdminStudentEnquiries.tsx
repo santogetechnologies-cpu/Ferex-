@@ -1,4 +1,5 @@
 import { closuresForMonth, monthKey } from '../../lib/leadClosures';
+import { generateTempPassword } from '../../lib/api/students';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -89,7 +90,8 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
 
   // Convert Deal & Create Student Login Modal
   const [convertModalLead, setConvertModalLead] = useState<EducationLead | null>(null);
-  const [tempPassword, setTempPassword] = useState('Student@2026');
+  const [tempPassword, setTempPassword] = useState('');
+  const [convertCounselorId, setConvertCounselorId] = useState('');
   const [converting, setConverting] = useState(false);
   const [createdCredentials, setCreatedCredentials] = useState<{ email: string; pass: string } | null>(null);
 
@@ -186,17 +188,8 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
   const handleQuickStatusChange = async (lead: EducationLead, newStatus: EducationLead['status']) => {
     try {
       if (newStatus === 'Enrolled' && !lead.converted_student_id) {
-        showToastMsg(`Enrolling "${lead.name || lead.phone}" & syncing to Student Directory...`);
-        const res = await convertLeadToStudentAccount(
-          lead.id,
-          undefined,
-          profile?.full_name || 'Admissions Counselor'
-        );
-        if (res.success) {
-          showToastMsg(`🎉 Lead Enrolled! Student profile active and synced to Student Directory.`);
-        } else {
-          showToastMsg(`Could not create the student login for "${lead.name || lead.phone}": ${res.error || 'unknown error'}. The lead was not closed; try again.`);
-        }
+        // Closing creates a login, so the credentials must be shown to the person closing the deal.
+        setConvertModalLead(lead);
       } else {
         await updateEducationLead(lead.id, { status: newStatus }, profile?.full_name || 'Staff');
         showToastMsg(`Updated "${lead.name || lead.phone}" status to "${newStatus}"`);
@@ -244,15 +237,32 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
     }
   };
 
+  useEffect(() => {
+    if (convertModalLead) {
+      setTempPassword(generateTempPassword());
+      setConvertCounselorId('');
+    }
+  }, [convertModalLead]);
+
   // Convert Lead Deal to Student Account with Temporary Password
   const handleConvertDeal = async () => {
     if (!convertModalLead) return;
+    const chosen = counselors.find(c => c.id === convertCounselorId);
+    if (!convertModalLead.assigned_counselor_name && !chosen) {
+      showToastMsg('Choose the counselor who will guide this student before closing the deal.');
+      return;
+    }
+    if (tempPassword.trim().length < 8) {
+      showToastMsg('The temporary password must be at least 8 characters.');
+      return;
+    }
     setConverting(true);
     try {
       const res = await convertLeadToStudentAccount(
         convertModalLead.id,
-        tempPassword.trim() || 'Student@2026',
-        profile?.full_name || 'Admissions Counselor'
+        tempPassword.trim(),
+        profile?.full_name || 'Admissions Counselor',
+        chosen ? { id: chosen.id, name: chosen.name, email: chosen.email } : undefined
       );
 
       if (res.success) {
@@ -260,7 +270,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
           email: res.email || convertModalLead.email || 'student@ferexstudent.org',
           pass: res.tempPassword || tempPassword,
         });
-        showToastMsg(`🎉 Deal Closed! Student portal account created for "${convertModalLead.name || convertModalLead.phone}".`);
+        showToastMsg(`🎉 Deal Closed! Student portal account created for "${convertModalLead.name || convertModalLead.phone}".${res.warnings?.length ? ' Note: ' + res.warnings.join(' ') : ''}`);
         await loadData();
       } else {
         showToastMsg(`Conversion error: ${res.error}`);
@@ -891,9 +901,26 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
                     </div>
                     <div className="flex justify-between font-semibold text-slate-600">
                       <span>Counselor:</span>
-                      <span>{convertModalLead.assigned_counselor_name || currentCounselorName}</span>
+                      <span>{convertModalLead.assigned_counselor_name || (convertCounselorId ? '' : 'Not assigned')}</span>
                     </div>
                   </div>
+
+                  {!convertModalLead.assigned_counselor_name && (
+                    <div>
+                      <label className="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wider mb-1">
+                        Assign Counselor *
+                      </label>
+                      <select
+                        aria-label="Assign counselor"
+                        value={convertCounselorId}
+                        onChange={(e) => setConvertCounselorId(e.target.value)}
+                        className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                      >
+                        <option value="">Select the counselor for this student…</option>
+                        {counselors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wider mb-1">
@@ -919,7 +946,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
                       required
                       value={tempPassword}
                       onChange={(e) => setTempPassword(e.target.value)}
-                      placeholder="e.g. Student@2026"
+                      minLength={8}
                       className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                     />
                     <span className="text-[10px] text-slate-400 mt-1 block">

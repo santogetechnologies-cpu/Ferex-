@@ -10,7 +10,9 @@ import {
 import { useStudents } from '../../hooks/useStudents';
 import { useApplications } from '../../hooks/useApplications';
 import { useDocuments } from '../../hooks/useDocuments';
-import { getStaffMembers, DEFAULT_COUNSELOR_ROSTER, assignCounselorToStudent, getDefaultCounselorForCountry } from '../../lib/api/students';
+import { getStaffMembers, DEFAULT_COUNSELOR_ROSTER, assignCounselorToStudent, generateTempPassword, pickCounselorForNewStudent } from '../../lib/api/students';
+import { useDestinations } from '../../hooks/useDestinations';
+import { useUniversities } from '../../hooks/useUniversities';
 import { getAllDocumentRequirements, calculateDossierStatus, type DocumentRequirement } from '../../lib/api/documentRequirements';
 import type { UserProfile } from '../../lib/types';
 import { ToastNotification } from '../../components/ToastNotification';
@@ -97,9 +99,13 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
   const [addName, setAddName] = useState('');
   const [addEmail, setAddEmail] = useState('');
   const [addPhone, setAddPhone] = useState('');
-  const [addTargetCountry, setAddTargetCountry] = useState('Poland');
-  const [addUniversity, setAddUniversity] = useState('Warsaw University of Technology');
-  const [addCourse, setAddCourse] = useState('B.Sc Computer Science & Engineering');
+  const { destinations: registeredDestinations } = useDestinations();
+  const { universities: allUniversities } = useUniversities();
+  const [addTargetCountry, setAddTargetCountry] = useState('');
+  const [addUniversityId, setAddUniversityId] = useState('');
+  const [addPassword, setAddPassword] = useState('');
+  const [createdCreds, setCreatedCreds] = useState<{ name: string; email: string; password: string } | null>(null);
+  const [addCourse, setAddCourse] = useState('');
   const [addCounselor, setAddCounselor] = useState('');
   const [addIntake, setAddIntake] = useState('October 2026');
   const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
@@ -187,46 +193,19 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
     const mapped = uniqueDbStudents.map((s) => {
       const studentApp = dbApps.find(a => a.student_id === s.id);
       
-      const savedCountry = typeof localStorage !== 'undefined'
-        ? (localStorage.getItem(`ferex_student_target_country_${s.id}`) || localStorage.getItem(`ferex_student_country_${s.id}`))
-        : null;
-      
-      const appUniv = (studentApp?.university_name || studentApp?.universities?.name || '').toLowerCase();
-
-      const inferredCountry = 
-        appUniv.includes('munich') || appUniv.includes('berlin') || appUniv.includes('tum') || appUniv.includes('heidelberg') || appUniv.includes('germany') ? 'Germany' :
-        appUniv.includes('oxford') || appUniv.includes('cambridge') || appUniv.includes('london') || appUniv.includes('uk') || appUniv.includes('manchester') ? 'United Kingdom' :
-        appUniv.includes('sorbonne') || appUniv.includes('paris') || appUniv.includes('france') || appUniv.includes('lyon') ? 'France' :
-        appUniv.includes('bologna') || appUniv.includes('milan') || appUniv.includes('rome') || appUniv.includes('italy') || appUniv.includes('politecnico') ? 'Italy' :
-        appUniv.includes('harvard') || appUniv.includes('mit') || appUniv.includes('stanford') || appUniv.includes('usa') || appUniv.includes('states') ? 'United States' :
-        appUniv.includes('toronto') || appUniv.includes('mcgill') || appUniv.includes('ubc') || appUniv.includes('canada') ? 'Canada' :
-        appUniv.includes('budapest') || appUniv.includes('debrecen') || appUniv.includes('hungary') ? 'Hungary' :
-        appUniv.includes('warsaw') || appUniv.includes('krakow') || appUniv.includes('wroclaw') || appUniv.includes('poland') || appUniv.includes('poznan') ? 'Poland' :
-        null;
-
-      const rawCountry = 
-        (s as any).target_country || 
-        (s as any).destination_country || 
-        savedCountry || 
+      // The destination is what was saved for the student (it decides their fees); never guessed from names.
+      const rawCountry =
+        (s as any).target_country ||
+        (s as any).destination_country ||
         ((s as any).country && (s as any).country !== 'India' && (s as any).country !== 'Global' ? (s as any).country : null) ||
-        studentApp?.universities?.country || 
-        (studentApp as any)?.country || 
-        (studentApp as any)?.target_country || 
-        inferredCountry || 
-        (s.assigned_counselor?.includes('Germany') ? 'Germany' :
-         s.assigned_counselor?.includes('UK') || s.assigned_counselor?.includes('United Kingdom') ? 'United Kingdom' :
-         s.assigned_counselor?.includes('France') ? 'France' :
-         s.assigned_counselor?.includes('Italy') ? 'Italy' :
-         s.assigned_counselor?.includes('USA') || s.assigned_counselor?.includes('United States') ? 'United States' :
-         s.assigned_counselor?.includes('Canada') ? 'Canada' :
-         s.assigned_counselor?.includes('Hungary') ? 'Hungary' :
-         (s as any).country || 'Poland');
+        studentApp?.universities?.country ||
+        'Not set';
 
       const countryMeta = COUNTRY_FLAGS[rawCountry] || { flag: rawCountry ? rawCountry.substring(0, 2).toUpperCase() : 'EU', authority: 'Academic Legalization' };
       
       const assignedCounselor = (s.assigned_counselor && s.assigned_counselor !== 'Admin' && s.assigned_counselor !== '--')
         ? s.assigned_counselor
-        : getDefaultCounselorForCountry(rawCountry);
+        : 'Unassigned';
 
       return {
         id: s.id,
@@ -449,45 +428,59 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
       showToast('Student name and email are required.');
       return;
     }
+    if (!addTargetCountry) {
+      showToast('Choose the destination country. It decides which fees apply to this student.');
+      return;
+    }
+    if (addPassword.trim().length < 8) {
+      showToast('The temporary password must be at least 8 characters.');
+      return;
+    }
 
     try {
       setIsSubmittingAdd(true);
-      const chosenCounselor = addCounselor || getDefaultCounselorForCountry(addTargetCountry);
+      // A counselor adds students to their own desk; admins pick one or let the least busy counselor take it.
+      const chosenCounselor = isStaff
+        ? (profile?.full_name || '')
+        : (addCounselor || await pickCounselorForNewStudent());
       const created = await addStudent({
         full_name: addName.trim(),
         email: addEmail.trim(),
         phone: addPhone.trim() || '',
-        assigned_counselor: chosenCounselor,
+        password: addPassword.trim(),
+        assigned_counselor: chosenCounselor || undefined,
         target_country: addTargetCountry,
-        destination_country: addTargetCountry,
-        country: addTargetCountry,
       } as any);
 
-      // Persist chosen country locally
-      if (typeof localStorage !== 'undefined' && created?.id) {
-        localStorage.setItem(`ferex_student_target_country_${created.id}`, addTargetCountry);
-        localStorage.setItem(`ferex_student_country_${created.id}`, addTargetCountry);
+      const notes: string[] = [...((created as any)?.warnings || [])];
+      try {
+        const { createApplication, ensureDraftApplication } = await import('../../lib/api/applications');
+        const uni = allUniversities.find(u => u.id === addUniversityId);
+        if (uni) {
+          await createApplication({
+            student_id: created.id,
+            student_name: addName.trim(),
+            university_id: uni.id,
+            university_name: uni.name,
+            program_name: addCourse.trim() || 'Higher Degree Studies',
+            intake: addIntake.trim() || 'October 2026',
+          } as any);
+        } else {
+          await ensureDraftApplication(created.id, addCourse.trim() || undefined);
+        }
+      } catch (appErr: any) {
+        notes.push(`The application could not be created: ${appErr.message}`);
       }
 
-      // Create a valid application record with the selected country and university
-      try {
-        const { createApplication } = await import('../../lib/api/applications');
-        const univName = addUniversity?.trim() || `${addTargetCountry} Partner University`;
-        await createApplication({
-          student_id: created.id,
-          student_name: addName.trim(),
-          university_name: univName,
-          program_name: addCourse.trim() || 'Higher Degree Studies',
-          intake: addIntake.trim() || 'October 2026',
-          country: addTargetCountry,
-        } as any);
-      } catch (e) {}
-
+      setCreatedCreds({ name: addName.trim(), email: addEmail.trim().toLowerCase(), password: addPassword.trim() });
       setShowAddModal(false);
       setAddName('');
       setAddEmail('');
       setAddPhone('');
-      showToast(`Student ${addName} added successfully for ${addTargetCountry}. Assigned to ${chosenCounselor}.`);
+      setAddUniversityId('');
+      setAddCourse('');
+      setAddCounselor('');
+      showToast(`Student ${addName} added for ${addTargetCountry}. ${chosenCounselor ? `Counselor: ${chosenCounselor}.` : 'No counselor is assigned yet.'}${notes.length ? ' ' + notes.join(' ') : ''}`);
       await refreshStudents();
     } catch (err: any) {
       showToast(`Error adding student: ${err.message || 'Failed'}`);
@@ -570,7 +563,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
         {!isStaff && (
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowAddModal(true)}
+              onClick={() => { setAddPassword(generateTempPassword()); setAddTargetCountry(''); setShowAddModal(true); }}
               className="flex items-center gap-1.5 h-9.5 px-4 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] active:scale-98 transition-all shadow-md shadow-[#58051E]/20 cursor-pointer"
             >
               <UserPlus className="w-4 h-4" /> Add Student
@@ -997,8 +990,8 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                   <StudentDiscountEditor studentId={viewStudent.id} country={viewStudent.targetCountry} onChanged={showToast} />
                 )}
 
-                {/* Country Package & Billing Flow Assignment Card */}
-                <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-3 shadow-xs">
+                {/* Country Package & Billing Flow Assignment Card (admins only) */}
+                {!isStaff && <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-3 shadow-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                       <Package className="w-3.5 h-3.5 text-[#58051E]" />
@@ -1096,7 +1089,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                       })()}
                     </div>
                   )}
-                </div>
+                </div>}
 
                 {/* Stepper with Confirm buttons */}
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
@@ -1263,17 +1256,15 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Target Country *</label>
                     <select
+                      aria-label="Target country"
+                      required
                       value={addTargetCountry}
-                      onChange={(e) => {
-                        setAddTargetCountry(e.target.value);
-                        if (!addCounselor) {
-                          setAddCounselor(getDefaultCounselorForCountry(e.target.value));
-                        }
-                      }}
+                      onChange={(e) => { setAddTargetCountry(e.target.value); setAddUniversityId(''); }}
                       className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
                     >
-                      {['Poland', 'Germany', 'United Kingdom', 'France', 'Italy', 'United States', 'Canada', 'Hungary'].map(c => (
-                        <option key={c} value={c}>{c}</option>
+                      <option value="">Select destination…</option>
+                      {registeredDestinations.filter(d => d.is_active !== false).map(d => (
+                        <option key={d.id} value={d.name}>{d.name}</option>
                       ))}
                     </select>
                   </div>
@@ -1293,14 +1284,18 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Target University</label>
-                  <input
-                    type="text"
-                    value={addUniversity}
-                    onChange={(e) => setAddUniversity(e.target.value)}
-                    placeholder="e.g. Warsaw University of Technology"
-                    className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
-                  />
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Target University (optional)</label>
+                  <select
+                    aria-label="Target university"
+                    value={addUniversityId}
+                    onChange={(e) => setAddUniversityId(e.target.value)}
+                    className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
+                  >
+                    <option value="">Student will choose later</option>
+                    {allUniversities.filter(u => (u.country || '').toLowerCase() === addTargetCountry.toLowerCase()).map(u => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -1316,17 +1311,42 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
 
                 <div>
                   <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Assigned Counselor</label>
-                  <select
-                    value={addCounselor}
-                    onChange={(e) => setAddCounselor(e.target.value)}
-                    className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
-                  >
-                    <option value="">Auto-Assign by Country Desk</option>
-                    {staffMembers.map(s => {
-                      const label = `${s.full_name || s.email} (${s.department?.split(':')[1] || s.role})`;
-                      return <option key={s.id} value={s.full_name || s.email}>{label}</option>;
-                    })}
-                  </select>
+                  {isStaff ? (
+                    <p className="h-9.5 px-3 flex items-center bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700">
+                      {profile?.full_name || 'You'} (your desk)
+                    </p>
+                  ) : (
+                    <select
+                      aria-label="Assigned counselor"
+                      value={addCounselor}
+                      onChange={(e) => setAddCounselor(e.target.value)}
+                      className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
+                    >
+                      <option value="">Auto-assign the least busy counselor</option>
+                      {staffMembers.filter(s => ['counselor', 'staff'].includes((s.role || '').toLowerCase())).map(s => (
+                        <option key={s.id} value={s.full_name || s.email}>{s.full_name || s.email}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Temporary Password *</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      required
+                      minLength={8}
+                      aria-label="Temporary password"
+                      value={addPassword}
+                      onChange={(e) => setAddPassword(e.target.value)}
+                      className="flex-1 h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                    />
+                    <button type="button" onClick={() => setAddPassword(generateTempPassword())} className="h-9.5 px-3 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">
+                      Generate
+                    </button>
+                  </div>
+                  <span className="text-[10px] text-slate-400 mt-1 block">The student must change it at first sign-in. Share it securely.</span>
                 </div>
 
                 <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
@@ -1347,6 +1367,24 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                 </div>
               </form>
             </motion.div>
+          </div>
+        )}
+
+        {createdCreds && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-label="Student login created">
+            <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs" onClick={() => setCreatedCreds(null)} />
+            <div className="relative bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-left">
+              <h3 className="text-base font-black text-slate-900">Student login created</h3>
+              <p className="text-xs font-semibold text-slate-500">Share these details with {createdCreds.name} securely. They must change the password at first sign-in.</p>
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 text-xs">
+                <div className="flex justify-between"><span className="font-bold text-slate-500">Email (username)</span><span className="font-black text-slate-900 select-all">{createdCreds.email}</span></div>
+                <div className="flex justify-between"><span className="font-bold text-slate-500">Temporary password</span><span className="font-black text-slate-900 select-all">{createdCreds.password}</span></div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => navigator.clipboard?.writeText(`Email: ${createdCreds.email}\nPassword: ${createdCreds.password}`)} className="h-9 px-4 border border-slate-200 text-xs font-bold text-slate-700 rounded-xl hover:bg-slate-50 cursor-pointer">Copy</button>
+                <button type="button" onClick={() => setCreatedCreds(null)} className="h-9 px-5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] cursor-pointer">Done</button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1371,23 +1409,6 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
               </div>
 
               <div className="space-y-3">
-                <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-2xl flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-700 shrink-0" />
-                    <div>
-                      <p className="text-xs font-bold text-amber-950">Recommended Desk for {counselorModalStudent.targetCountry}</p>
-                      <p className="text-[10px] font-semibold text-amber-700">{getDefaultCounselorForCountry(counselorModalStudent.targetCountry)}</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCounselorToAssign(getDefaultCounselorForCountry(counselorModalStudent.targetCountry))}
-                    className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[10px] font-black cursor-pointer"
-                  >
-                    Select
-                  </button>
-                </div>
-
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                     Available Admissions Counselors & Specialized Desks:
