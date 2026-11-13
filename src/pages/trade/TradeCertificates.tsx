@@ -33,9 +33,9 @@ export const TradeCertificates: React.FC = () => {
     shipment_no: '',
     cert_type: 'Certificate of Origin (Non-Preferential)',
     title: '',
-    authority: 'Polish Chamber of Commerce (KIG), Warsaw',
-    country: 'Poland',
-    exporter: 'FEREX Global Trade Operations Ltd',
+    authority: '',
+    country: '',
+    exporter: '',
     importer: '',
     issue_date: new Date().toISOString().split('T')[0],
     expiry_date: new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0],
@@ -62,14 +62,14 @@ export const TradeCertificates: React.FC = () => {
           id: c.certificate_no || c.id,
           rawId: c.id,
           shipment_no: c.shipment_no || '',
-          certType: c.cert_type || 'Certificate of Origin',
-          title: c.title || 'Trade Compliance Certificate',
-          authority: c.authority || 'State Authority',
-          country: c.country || 'Poland',
-          exporter: c.exporter || 'FEREX Global Trade Operations Ltd',
-          importer: c.importer || 'Consignee Entity',
-          issueDate: c.issue_date || '2026-09-02',
-          expiryDate: c.expiry_date || '2027-09-02',
+          certType: c.cert_type || '',
+          title: c.title || c.cert_type || '',
+          authority: c.authority || '',
+          country: c.country || '',
+          exporter: c.exporter || '',
+          importer: c.importer || '',
+          issueDate: c.issue_date || '',
+          expiryDate: c.expiry_date || '',
           status: c.status || 'Verified & Active',
           statusBadge: (c.status === 'Verified & Active' || c.status === 'Active')
             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
@@ -419,7 +419,7 @@ export const TradeCertificates: React.FC = () => {
                       className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
                     >
                       <option value="">No linked shipment (Master Certificate)</option>
-                      {shipments.map(s => <option key={s.id} value={s.id}>{s.id} ({s.cargo})</option>)}
+                      {shipments.map(s => <option key={s.id} value={s.order_no}>{s.order_no} · {s.commodity} · {s.client_name} ({s.currency})</option>)}
                     </select>
                   </div>
                   <div>

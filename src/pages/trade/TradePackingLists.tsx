@@ -33,12 +33,12 @@ export const TradePackingLists: React.FC = () => {
     invoice_no: '',
     buyer_name: '',
     cargo_description: '',
-    package_type: 'Palletised Cargo Units',
-    total_packages: '48',
-    gross_weight: '24500',
-    net_weight: '23800',
-    dimensions: '40ft Standard High Cube Container',
-    volume_cbm: '67.5',
+    package_type: '',
+    total_packages: '',
+    gross_weight: '',
+    net_weight: '',
+    dimensions: '',
+    volume_cbm: '',
     marks_numbers: '',
   };
 
@@ -63,21 +63,21 @@ export const TradePackingLists: React.FC = () => {
         const formatted = data.map((d: any) => ({
           id: d.pl_number || d.id,
           rawId: d.id,
-          shipment_no: d.shipment_no || 'SHP-9821',
+          shipment_no: d.shipment_no || '',
           invoice_no: d.invoice_no || '',
-          items: `${d.total_packages || 48} Pkgs · ${d.cargo_description || 'Trade Cargo'}`,
-          cargo_description: d.cargo_description || 'General Cargo',
-          package_type: d.package_type || 'Standard Pallets',
-          total_packages: d.total_packages || 48,
-          grossWeight: `${Number(d.gross_weight_kg || 24500).toLocaleString()} kg`,
-          rawGrossWeight: Number(d.gross_weight_kg || 24500),
-          netWeight: `${Number(d.net_weight_kg || 22800).toLocaleString()} kg`,
-          rawNetWeight: Number(d.net_weight_kg || 22800),
-          dimensions: d.dimensions || '40ft Standard High Cube Container',
-          volume_cbm: d.volume_cbm || 65.0,
-          marks_numbers: d.marks_numbers || `FEREX/${d.shipment_no || 'EXP'}/2026`,
-          consignee: d.buyer_name || 'Trade Partner Consignee',
-          status: d.container_status || 'Loaded & Sealed (Customs Inspected)',
+          items: `${d.total_packages || 0} Pkgs · ${d.cargo_description || ''}`,
+          cargo_description: d.cargo_description || '',
+          package_type: d.package_type || '',
+          total_packages: d.total_packages || 0,
+          grossWeight: `${Number(d.gross_weight_kg || 0).toLocaleString()} kg`,
+          rawGrossWeight: Number(d.gross_weight_kg || 0),
+          netWeight: `${Number(d.net_weight_kg || 0).toLocaleString()} kg`,
+          rawNetWeight: Number(d.net_weight_kg || 0),
+          dimensions: d.dimensions || '',
+          volume_cbm: d.volume_cbm || 0,
+          marks_numbers: d.marks_numbers || '',
+          consignee: d.buyer_name || '',
+          status: d.container_status || 'Recorded',
           statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
         }));
         setLists(formatted);
@@ -122,7 +122,7 @@ export const TradePackingLists: React.FC = () => {
       order_no: newPL.shipment_no,
       shipment_no: newPL.shipment_no,
       invoice_no: newPL.invoice_no,
-      buyer_name: newPL.buyer_name || 'Trade Partner Consignee',
+      buyer_name: newPL.buyer_name,
       cargo_description: newPL.cargo_description,
       package_type: newPL.package_type,
       total_packages: Number(newPL.total_packages) || 1,
@@ -184,15 +184,13 @@ export const TradePackingLists: React.FC = () => {
 
   // Auto-fill cargo and buyer when shipment is selected
   const handleShipmentSelect = (shpId: string) => {
-    const shp = shipments.find(s => s.id === shpId || s.shipment_no === shpId);
+    const shp = shipments.find(s => s.order_no === shpId);
     if (shp) {
       setNewPL(prev => ({
         ...prev,
-        shipment_no: shp.shipment_no || shp.id,
-        buyer_name: shp.partner_name || prev.buyer_name,
-        cargo_description: shp.cargo_description || shp.cargo || prev.cargo_description,
-        gross_weight: String(shp.cargo_weight_kg || prev.gross_weight),
-        net_weight: String(Math.round((shp.cargo_weight_kg || 24000) * 0.95)),
+        shipment_no: shp.order_no,
+        buyer_name: shp.client_name || prev.buyer_name,
+        cargo_description: shp.commodity || prev.cargo_description,
       }));
     } else {
       setNewPL(prev => ({ ...prev, shipment_no: shpId }));
@@ -365,7 +363,7 @@ export const TradePackingLists: React.FC = () => {
                       className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
                     >
                       <option value="">Select Booked Shipment...</option>
-                      {shipments.map(s => <option key={s.id} value={s.id}>{s.id} ({s.cargo})</option>)}
+                      {shipments.map(s => <option key={s.id} value={s.order_no}>{s.order_no} · {s.commodity} · {s.client_name} ({s.currency})</option>)}
                     </select>
                   </div>
                   <div>

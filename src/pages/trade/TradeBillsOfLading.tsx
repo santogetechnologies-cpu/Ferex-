@@ -34,19 +34,19 @@ export const TradeBillsOfLading: React.FC = () => {
 
   const initialBL = {
     shipment_no: '',
-    vessel: 'MSC Gülsün (IMO: 9839438)',
-    voyage_no: 'VY-2026-088',
-    carrier: 'MSC (Mediterranean Shipping Company)',
-    pol: 'Port of Gdansk, Poland',
-    pod: 'Port of Nhava Sheva (JNPT), India',
+    vessel: '',
+    voyage_no: '',
+    carrier: '',
+    pol: '',
+    pod: '',
     consignee: '',
-    shipper: 'FEREX Global Trade Operations Ltd',
+    shipper: '',
     notify_party: '',
     container_no: '',
     cargo_description: '',
-    total_packages: '48',
-    gross_weight_kg: '26500',
-    freight_terms: 'Freight Prepaid',
+    total_packages: '',
+    gross_weight_kg: '',
+    freight_terms: '',
     status: 'Issued'
   };
 
@@ -69,22 +69,22 @@ export const TradeBillsOfLading: React.FC = () => {
         setBills(data.map((b: any) => ({
           id: b.bl_number || b.id,
           rawId: b.id,
-          shipment_no: b.shipment_no || 'SHP-9821',
-          vessel: b.vessel_name || b.vessel || 'MSC Gülsün',
-          voyage: b.voyage_no || 'VY-2026-088',
-          carrier: b.carrier || 'MSC',
-          pol: b.port_of_loading || b.pol || 'Port of Gdansk, Poland',
-          pod: b.port_of_discharge || b.pod || 'Port of Nhava Sheva, India',
-          consignee: b.consignee || 'Trade Partner Consignee',
-          shipper: b.shipper || 'FEREX Global Trade Operations Ltd',
-          notifyParty: b.notify_party || 'Same as Consignee',
-          container: b.container_no || 'MSCU-902184-7',
-          cargo: b.cargo_description || 'General Trade Cargo',
-          totalPackages: b.total_packages || 48,
-          packageType: b.package_type || 'Bulk Pallets',
-          grossWeight: `${Number(b.gross_weight_kg || 20000).toLocaleString()} kg`,
-          freightTerms: b.freight_terms || 'Freight Prepaid',
-          issueDate: b.issue_date || '2026-09-02',
+          shipment_no: b.shipment_no || '',
+          vessel: b.vessel_name || '',
+          voyage: b.voyage_no || '',
+          carrier: b.carrier || '',
+          pol: b.port_of_loading || '',
+          pod: b.port_of_discharge || '',
+          consignee: b.consignee || '',
+          shipper: b.shipper || '',
+          notifyParty: b.notify_party || '',
+          container: b.container_no || '',
+          cargo: b.cargo_description || '',
+          totalPackages: b.total_packages || 0,
+          packageType: b.package_type || '',
+          grossWeight: `${Number(b.gross_weight_kg || 0).toLocaleString()} kg`,
+          freightTerms: b.freight_terms || '',
+          issueDate: b.issue_date || '',
           status: b.status || 'Issued',
           statusBadge: (b.status === 'Issued' || b.status === 'Released' || b.status === 'Clean On-Board Signed')
             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
@@ -125,21 +125,20 @@ export const TradeBillsOfLading: React.FC = () => {
   };
 
   const handleShipmentSelect = (shpId: string) => {
-    const shp = shipments.find(s => s.id === shpId || s.shipment_no === shpId);
+    const shp = shipments.find(s => s.order_no === shpId);
     if (shp) {
+      // Pre-fill from the real order; the user can still change anything.
       setNewBL(prev => ({
         ...prev,
-        shipment_no: shp.shipment_no || shp.id,
-        consignee: shp.partner_name || prev.consignee,
-        notify_party: `${shp.partner_name || 'Consignee'} Operations Desk`,
+        shipment_no: shp.order_no,
+        consignee: shp.client_name || prev.consignee,
         carrier: shp.carrier || prev.carrier,
-        vessel: shp.carrier_vessel || prev.vessel,
+        vessel: shp.vessel_flight || prev.vessel,
         voyage_no: shp.voyage_no || prev.voyage_no,
         pol: shp.origin_port || prev.pol,
         pod: shp.destination_port || prev.pod,
-        container_no: shp.container_no || prev.container_no,
-        cargo_description: shp.cargo_description || shp.cargo || prev.cargo_description,
-        gross_weight_kg: String(shp.cargo_weight_kg || prev.gross_weight_kg),
+        container_no: shp.tracking_number || prev.container_no,
+        cargo_description: shp.commodity || prev.cargo_description,
       }));
     } else {
       setNewBL(prev => ({ ...prev, shipment_no: shpId }));
@@ -164,8 +163,8 @@ export const TradeBillsOfLading: React.FC = () => {
       notify_party: newBL.notify_party,
       container_no: newBL.container_no,
       cargo_description: newBL.cargo_description,
-      total_packages: Number(newBL.total_packages) || 48,
-      gross_weight_kg: Number(newBL.gross_weight_kg) || 20000,
+      total_packages: Number(newBL.total_packages) || 0,
+      gross_weight_kg: Number(newBL.gross_weight_kg) || 0,
       freight_terms: newBL.freight_terms,
       status: newBL.status,
     });
@@ -420,7 +419,7 @@ export const TradeBillsOfLading: React.FC = () => {
                       className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
                     >
                       <option value="">Select active shipment...</option>
-                      {shipments.map(s => <option key={s.id} value={s.id}>{s.id} ({s.cargo})</option>)}
+                      {shipments.map(s => <option key={s.id} value={s.order_no}>{s.order_no} · {s.commodity} · {s.client_name} ({s.currency})</option>)}
                     </select>
                   </div>
                   <div>

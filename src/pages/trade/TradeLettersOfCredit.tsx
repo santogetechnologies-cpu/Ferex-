@@ -61,10 +61,10 @@ export const TradeLettersOfCredit: React.FC = () => {
   const initialLC = {
     bank: TRADE_MASTER_BANKS[0],
     advising_bank: TRADE_MASTER_BANKS[1],
-    applicant: 'Ferex Global Trade Corp',
+    applicant: '',
     beneficiary: '',
     amount: '',
-    currency: 'INR',
+    currency: '',
     expiryDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     shipment_no: '',
     invoice_no: '',
@@ -93,17 +93,17 @@ export const TradeLettersOfCredit: React.FC = () => {
           id: d.lc_number || d.id,
           rawId: d.id,
           bank: d.issuing_bank || d.bank,
-          advising_bank: d.advising_bank || 'State Bank of India Overseas',
+          advising_bank: d.advising_bank || '',
           beneficiary: d.beneficiary,
-          applicant: d.applicant || 'Ferex Global Trade Corp',
+          applicant: d.applicant || '',
           rawAmount: Number(d.amount) || 0,
-          currency: d.currency || 'INR',
-          amount: `${d.currency === 'USD' ? '$' : d.currency === 'EUR' ? '€' : '₹'}${Number(d.amount).toLocaleString('en-IN')}`,
-          issueDate: d.issue_date || d.created_at?.split('T')[0] || '2026-08-15',
-          expiryDate: d.expiry_date || '2026-10-30',
+          currency: d.currency || '',
+          amount: `${d.currency || ''} ${Number(d.amount).toLocaleString('en-IN')}`,
+          issueDate: d.issue_date || d.created_at?.split('T')[0] || '',
+          expiryDate: d.expiry_date || '',
           shipment_no: d.shipment_no || '',
           invoice_no: d.invoice_no || '',
-          lc_type: d.lc_type || 'Irrevocable Confirmed at Sight',
+          lc_type: d.lc_type || '',
           status: d.status || 'Issued',
           statusBadge:
             d.status === 'Settled' || d.status === 'Accepted' || d.status === 'HSBC Cleared'
@@ -557,13 +557,17 @@ export const TradeLettersOfCredit: React.FC = () => {
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Linked Shipment</label>
                     <select
                       value={newLC.shipment_no}
-                      onChange={(e) => setNewLC({ ...newLC, shipment_no: e.target.value })}
+                      onChange={(e) => {
+                        const ord = shipments.find(s => s.order_no === e.target.value);
+                        // The LC is in the order's currency, issued for the order's client.
+                        setNewLC({ ...newLC, shipment_no: e.target.value, currency: ord?.currency || newLC.currency, applicant: ord?.client_name || newLC.applicant });
+                      }}
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
                     >
-                      <option value="">-- Optional Shipment Link --</option>
+                      <option value="">-- Select Shipment / Order * --</option>
                       {shipments.map((s) => (
-                        <option key={s.id} value={s.shipment_no || s.id}>
-                          {s.shipment_no || s.id} ({s.carrier || 'Ocean'})
+                        <option key={s.id} value={s.order_no}>
+                          {s.order_no} · {s.commodity} · {s.client_name} ({s.currency})
                         </option>
                       ))}
                     </select>

@@ -52,20 +52,22 @@ export const TradeInvoices: React.FC = () => {
           id: d.invoice_no || d.id,
           rawId: d.id,
           shipment_no: d.shipment_no || '',
-          buyer: d.buyer_name || 'Trade Partner Buyer',
-          seller: d.seller_name || 'FEREX Global Trade Operations Ltd',
-          incoterms: d.incoterms || 'CIF (Cost, Insurance and Freight)',
+          order_no: d.order_no || '',
+          currency: d.currency || '',
+          buyer: d.buyer_name || '',
+          seller: d.seller_name || '',
+          incoterms: d.incoterms || '',
           rawAmount: Number(d.amount || 0),
-          amount: `₹${Number(d.amount || 0).toLocaleString('en-IN')}`,
+          amount: `${d.currency || ''} ${Number(d.amount || 0).toLocaleString('en-IN')}`,
           subtotal: Number(d.subtotal || d.amount || 0),
           freight: Number(d.freight_charges || 0),
           insurance: Number(d.insurance_charges || 0),
           tax: Number(d.tax_charges || 0),
           amountPaid: Number(d.amount_paid || 0),
           outstandingAmount: Number(d.outstanding_amount !== undefined ? d.outstanding_amount : (d.status === 'Paid' ? 0 : d.amount)),
-          dueDate: d.due_date || '2026-10-15',
-          issueDate: d.issue_date || '2026-09-01',
-          paymentTerms: d.payment_terms || 'Letter of Credit (LC) at Sight',
+          dueDate: d.due_date || '',
+          issueDate: d.issue_date || '',
+          paymentTerms: d.payment_terms || '',
           lcReference: d.lc_reference || '',
           items: d.items || [],
           status: d.status || d.payment_status || 'Issued',
@@ -111,19 +113,19 @@ export const TradeInvoices: React.FC = () => {
   const initialInv = {
     shipment_no: '',
     buyer: '',
-    seller: 'FEREX Global Trade Operations Ltd',
-    incoterms: 'CIF (Cost, Insurance and Freight)',
+    seller: '',
+    incoterms: '',
     dueDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-    paymentTerms: 'Letter of Credit (LC) at Sight',
+    paymentTerms: '',
     lcReference: '',
     freight_charges: '0',
     insurance_charges: '0',
     tax_charges: '0',
-    item_desc: 'Agricultural Milling Wheat Grade-A',
-    item_hs: '1001.99',
-    item_qty: '20',
+    item_desc: '',
+    item_hs: '',
+    item_qty: '',
     item_unit: 'Metric Tons',
-    item_price: '135000',
+    item_price: '',
   };
 
   const [newInv, setNewInv] = useState(initialInv);
@@ -133,8 +135,8 @@ export const TradeInvoices: React.FC = () => {
   const [paymentForm, setPaymentForm] = useState({
     amount: '',
     payment_type: 'SWIFT Wire Transfer',
-    bank_name: 'HSBC London Trade Banking',
-    account_no: 'GB29HSBC40051512345678',
+    bank_name: '',
+    account_no: '',
     settlement_date: new Date().toISOString().split('T')[0],
     desc: 'Invoice settlement payment'
   });
@@ -412,7 +414,7 @@ export const TradeInvoices: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       <span className={`font-black ${inv.outstandingAmount > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
-                        ₹{Number(inv.outstandingAmount || 0).toLocaleString('en-IN')}
+                        {inv.currency} {Number(inv.outstandingAmount || 0).toLocaleString('en-IN')}
                       </span>
                     </td>
                     <td className="py-3.5 px-4 whitespace-nowrap text-slate-500 text-[11px]">
@@ -424,8 +426,9 @@ export const TradeInvoices: React.FC = () => {
                         onChange={(e) => handleStatusChange(inv.id, inv.rawId, e.target.value)}
                         className={`text-[10.5px] font-extrabold px-2.5 py-1 rounded-full border cursor-pointer focus:outline-none ${inv.statusBadge}`}
                       >
+                        {/* Paid / Partially Paid / Overdue follow from the recorded payments and the due date. */}
                         {TRADE_INVOICE_STATUSES.map(st => (
-                          <option key={st} value={st}>{st}</option>
+                          <option key={st} value={st} disabled={!['Draft', 'Issued', 'Cancelled'].includes(st)}>{st}</option>
                         ))}
                       </select>
                     </td>
@@ -537,11 +540,14 @@ export const TradeInvoices: React.FC = () => {
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Linked Shipment</label>
                     <select
                       value={newInv.shipment_no}
-                      onChange={(e) => setNewInv({ ...newInv, shipment_no: e.target.value })}
+                      onChange={(e) => {
+                        const ord = shipments.find(s => s.order_no === e.target.value);
+                        setNewInv({ ...newInv, shipment_no: e.target.value, incoterms: ord ? String(ord.incoterm || '') : newInv.incoterms, buyer: newInv.buyer || ord?.client_name || '' });
+                      }}
                       className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
                     >
-                      <option value="">No linked shipment (Direct)</option>
-                      {shipments.map(s => <option key={s.id} value={s.id}>{s.id} ({s.cargo})</option>)}
+                      <option value="">Select shipment / order *</option>
+                      {shipments.map(s => <option key={s.id} value={s.order_no}>{s.order_no} · {s.commodity} · {s.client_name} ({s.currency})</option>)}
                     </select>
                   </div>
                 </div>
@@ -580,7 +586,7 @@ export const TradeInvoices: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Unit Price (INR ₹)</label>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Unit Price ({(shipments.find(o => o.order_no === newInv.shipment_no)?.currency || 'order currency')})</label>
                       <input
                         type="number"
                         required
@@ -594,7 +600,7 @@ export const TradeInvoices: React.FC = () => {
 
                 <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Freight (INR ₹)</label>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Freight ({(shipments.find(o => o.order_no === newInv.shipment_no)?.currency || 'order currency')})</label>
                     <input
                       type="number"
                       value={newInv.freight_charges}
@@ -603,7 +609,7 @@ export const TradeInvoices: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Insurance (INR ₹)</label>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Insurance ({(shipments.find(o => o.order_no === newInv.shipment_no)?.currency || 'order currency')})</label>
                     <input
                       type="number"
                       value={newInv.insurance_charges}
@@ -612,7 +618,7 @@ export const TradeInvoices: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Tax / Duty (INR ₹)</label>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Tax / Duty ({(shipments.find(o => o.order_no === newInv.shipment_no)?.currency || 'order currency')})</label>
                     <input
                       type="number"
                       value={newInv.tax_charges}
@@ -625,7 +631,7 @@ export const TradeInvoices: React.FC = () => {
                 {/* Grand Total Bar */}
                 <div className="p-3 bg-slate-900 text-white rounded-xl flex items-center justify-between">
                   <span className="text-xs font-extrabold">Calculated Grand Total</span>
-                  <span className="text-base font-black text-amber-300">₹{Number(calculatedGrandTotal || 0).toLocaleString('en-IN')}</span>
+                  <span className="text-base font-black text-amber-300">{(shipments.find(o => o.order_no === newInv.shipment_no)?.currency || '')} {Number(calculatedGrandTotal || 0).toLocaleString('en-IN')}</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -676,11 +682,11 @@ export const TradeInvoices: React.FC = () => {
               <form onSubmit={handleRecordInvoicePayment} className="space-y-3">
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs">
                   <div className="text-slate-500">Buyer: <strong>{payingInvoice.buyer}</strong></div>
-                  <div className="text-slate-500 mt-0.5">Outstanding Balance: <strong className="text-amber-700">₹{Number(payingInvoice.outstandingAmount || 0).toLocaleString('en-IN')}</strong></div>
+                  <div className="text-slate-500 mt-0.5">Outstanding Balance: <strong className="text-amber-700">{payingInvoice.currency} {Number(payingInvoice.outstandingAmount || 0).toLocaleString('en-IN')}</strong></div>
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Settlement Amount (INR ₹) *</label>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Settlement Amount ({payingInvoice?.currency || ''}) *</label>
                   <input
                     type="number"
                     required
@@ -778,20 +784,20 @@ export const TradeInvoices: React.FC = () => {
 
                 {/* Financial Summary */}
                 <div className="border border-slate-200 rounded-xl p-3 space-y-2">
-                  <div className="flex justify-between text-slate-600"><span>Commodity Subtotal:</span> <span>₹{Number(selectedInv.subtotal || 0).toLocaleString('en-IN')}</span></div>
-                  <div className="flex justify-between text-slate-600"><span>Ocean Freight:</span> <span>₹{Number(selectedInv.freight || 0).toLocaleString('en-IN')}</span></div>
-                  <div className="flex justify-between text-slate-600"><span>Marine Insurance:</span> <span>₹{Number(selectedInv.insurance || 0).toLocaleString('en-IN')}</span></div>
+                  <div className="flex justify-between text-slate-600"><span>Commodity Subtotal:</span> <span>{selectedInv.currency} {Number(selectedInv.subtotal || 0).toLocaleString('en-IN')}</span></div>
+                  <div className="flex justify-between text-slate-600"><span>Ocean Freight:</span> <span>{selectedInv.currency} {Number(selectedInv.freight || 0).toLocaleString('en-IN')}</span></div>
+                  <div className="flex justify-between text-slate-600"><span>Marine Insurance:</span> <span>{selectedInv.currency} {Number(selectedInv.insurance || 0).toLocaleString('en-IN')}</span></div>
                   <div className="border-t border-slate-100 pt-2 flex justify-between font-black text-sm text-slate-900">
                     <span>Total Invoice Value:</span>
                     <span>{selectedInv.amount}</span>
                   </div>
                   <div className="flex justify-between text-emerald-700 font-bold">
                     <span>Amount Cleared:</span>
-                    <span>₹{Number(selectedInv.amountPaid || 0).toLocaleString('en-IN')}</span>
+                    <span>{selectedInv.currency} {Number(selectedInv.amountPaid || 0).toLocaleString('en-IN')}</span>
                   </div>
                   <div className="flex justify-between text-amber-700 font-black">
                     <span>Outstanding Receivable:</span>
-                    <span>₹{Number(selectedInv.outstandingAmount || 0).toLocaleString('en-IN')}</span>
+                    <span>{selectedInv.currency} {Number(selectedInv.outstandingAmount || 0).toLocaleString('en-IN')}</span>
                   </div>
                 </div>
               </div>

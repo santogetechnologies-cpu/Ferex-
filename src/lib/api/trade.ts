@@ -1172,6 +1172,7 @@ export async function createTradePayment(payment: Partial<TradePaymentRecord>): 
       payment_method: payment.payment_method || 'Bank Wire / SWIFT',
       transaction_ref: payment.transaction_ref || '',
       lc_reference: payment.lc_reference || '',
+      invoice_no: payment.invoice_no || null,
       receipt_no: payment.receipt_no || `REC-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`,
       payment_date: payment.payment_date || new Date().toISOString().split('T')[0],
       notes: payment.notes || '',
@@ -1698,138 +1699,6 @@ export async function globalSearchTrade(query: string): Promise<any[]> {
   }
 }
 
-export async function getTradeLettersOfCredit(): Promise<TradeLetterOfCreditRecord[]> {
-  const [docs, orders] = await Promise.all([getTradeDocuments(), getTradeOrders()]);
-  return docs.filter(d => d.doc_type === 'Letter of Credit').map(d => {
-    const order = orders.find(o => o.order_no === d.order_no);
-    return {
-      id: d.id,
-      lc_number: d.doc_number || '',
-      order_no: d.order_no,
-      applicant: d.client_name,
-      beneficiary: '',
-      issuing_bank: '',
-      advising_bank: '',
-      amount: order ? order.total_amount : 0,
-      currency: order ? String(order.currency) : '',
-      expiry_date: '',
-      status: d.status,
-      file_url: d.file_url,
-      notes: d.notes,
-      created_at: d.created_at,
-    } as TradeLetterOfCreditRecord;
-  });
-}
-
-export async function createTradeLetterOfCredit(lc: Partial<TradeLetterOfCreditRecord>): Promise<any> {
-  return uploadTradeDocument({
-    order_no: lc.order_no || 'TRD-GENERAL',
-    client_name: lc.applicant || 'Trade Partner',
-    doc_type: 'Letter of Credit',
-    doc_number: lc.lc_number || `LC-${Math.floor(1000 + Math.random() * 9000)}`,
-    file_name: `LC_${lc.lc_number || 'Doc'}.pdf`,
-    notes: lc.notes || `LC issued by ${lc.issuing_bank || 'Bank'}`,
-    status: (lc.status as any) || 'Verified'
-  });
-}
-
-export async function updateTradeLetterOfCreditStatus(id: string, status: string, notes?: string): Promise<any> {
-  if (notes) {
-    return updateTradeDocument(id, { status: status as any, notes });
-  }
-  return updateTradeDocumentStatus(id, status as any);
-}
-
-export async function deleteTradeLetterOfCredit(id: string): Promise<boolean> {
-  return deleteTradeDocument(id);
-}
-
-export async function getTradeCertificates(): Promise<TradeDocument[]> {
-  const docs = await getTradeDocuments();
-  return docs.filter(d => d.doc_type === 'Certificate of Origin' || d.doc_type === 'Inspection Certificate' || d.doc_type.toLowerCase().includes('cert'));
-}
-
-export async function deleteTradeCertificate(id: string): Promise<boolean> {
-  return deleteTradeDocument(id);
-}
-
-export async function getTradeInvoices(): Promise<TradeInvoiceRecord[]> {
-  const [orders, docs] = await Promise.all([getTradeOrders(), getTradeDocuments()]);
-  return docs.filter(d => d.doc_type === 'Commercial Invoice' || d.doc_type === 'Proforma Invoice').map(d => {
-    const order = orders.find(o => o.order_no === d.order_no);
-    const paid = order ? order.advance_paid + order.balance_paid : 0;
-    const total = order ? order.total_amount : 0;
-    return {
-      id: d.id,
-      invoice_number: d.doc_number || '',
-      order_no: d.order_no,
-      client_name: d.client_name,
-      issue_date: d.created_at ? d.created_at.split('T')[0] : '',
-      due_date: '',
-      amount: total,
-      currency: order ? String(order.currency) : '',
-      incoterm: order ? String(order.incoterm) : '',
-      // Paid is real: the order's recorded payments cover its value. Otherwise the invoice is simply issued.
-      status: total > 0 && paid >= total ? 'Paid' : 'Issued',
-      paid_amount: paid,
-      notes: d.notes,
-      created_at: d.created_at,
-    } as TradeInvoiceRecord;
-  });
-}
-
-export async function createTradeInvoice(invoice: Partial<TradeInvoiceRecord>): Promise<any> {
-  return uploadTradeDocument({
-    order_no: invoice.order_no || 'TRD-GENERAL',
-    client_name: invoice.client_name || 'Trade Partner',
-    doc_type: 'Commercial Invoice',
-    doc_number: invoice.invoice_number || `INV-${Math.floor(1000 + Math.random() * 9000)}`,
-    file_name: `Commercial_Invoice_${invoice.invoice_number || 'Doc'}.pdf`,
-    notes: invoice.notes || '',
-    status: 'Verified'
-  });
-}
-
-export async function updateTradeInvoiceStatus(id: string, status: string): Promise<any> {
-  return updateTradeDocumentStatus(id, status === 'Paid' ? 'Verified' : 'Submitted');
-}
-
-export async function deleteTradeInvoice(id: string): Promise<boolean> {
-  return deleteTradeDocument(id);
-}
-
-export async function getTradePackingLists(): Promise<TradePackingListRecord[]> {
-  const docs = await getTradeDocuments();
-  return docs.filter(d => d.doc_type === 'Packing List').map(d => ({
-    id: d.id,
-    packing_list_no: d.doc_number || '',
-    order_no: d.order_no,
-    client_name: d.client_name,
-    total_packages: 0,
-    gross_weight_kg: 0,
-    net_weight_kg: 0,
-    volume_cbm: 0,
-    status: d.status,
-    file_url: d.file_url,
-    created_at: d.created_at,
-  } as TradePackingListRecord));
-}
-
-export async function createTradePackingList(pl: Partial<TradePackingListRecord>): Promise<any> {
-  return uploadTradeDocument({
-    order_no: pl.order_no || 'TRD-GENERAL',
-    client_name: pl.client_name || 'Trade Partner',
-    doc_type: 'Packing List',
-    doc_number: pl.packing_list_no || `PL-${Math.floor(1000 + Math.random() * 9000)}`,
-    file_name: `Packing_List_${pl.packing_list_no || 'Doc'}.pdf`,
-    status: (pl.status as any) || 'Verified'
-  });
-}
-
-export async function deleteTradePackingList(id: string): Promise<boolean> {
-  return deleteTradeDocument(id);
-}
-
 export async function getTradeDossier(orderNoOrType: string, docId?: string): Promise<{
   order: TradeOrder | null;
   documents: TradeDocument[];
@@ -1858,68 +1727,6 @@ export async function getTradeDossier(orderNoOrType: string, docId?: string): Pr
 export const createTradeCRMContact = createTradeClient;
 export const updateTradeCRMContact = updateTradeClient;
 export const deleteTradeCRMContact = deleteTradeClient;
-
-export async function getTradeBillsOfLading(): Promise<TradeBillOfLadingRecord[]> {
-  const [docs, orders] = await Promise.all([getTradeDocuments(), getTradeOrders()]);
-  return docs.filter(d => d.doc_type === 'Bill of Lading / Airway Bill' || d.doc_type.toLowerCase().includes('lading')).map(d => {
-    const order = orders.find(o => o.order_no === d.order_no);
-    return {
-      id: d.id,
-      bl_number: d.doc_number || '',
-      order_no: d.order_no,
-      carrier: order?.carrier || '',
-      vessel_name: order?.vessel_flight || '',
-      voyage_number: order?.voyage_no || '',
-      port_of_loading: order?.origin_port || '',
-      port_of_discharge: order?.destination_port || '',
-      shipper: '',
-      consignee: d.client_name,
-      issue_date: d.created_at ? d.created_at.split('T')[0] : '',
-      status: d.status === 'Verified' ? 'Issued' : 'Draft',
-      file_url: d.file_url,
-      notes: d.notes,
-      created_at: d.created_at,
-    } as TradeBillOfLadingRecord;
-  });
-}
-
-export async function createTradeBillOfLading(bl: Partial<TradeBillOfLadingRecord>): Promise<any> {
-  return uploadTradeDocument({
-    order_no: bl.order_no || bl.shipment_no || 'TRD-GENERAL',
-    client_name: bl.consignee || 'Trade Partner',
-    doc_type: 'Bill of Lading / Airway Bill',
-    doc_number: bl.bl_number || `BL-${Math.floor(1000 + Math.random() * 9000)}`,
-    file_name: `Bill_of_Lading_${bl.bl_number || 'Doc'}.pdf`,
-    notes: bl.notes || `Carrier: ${bl.carrier || 'Ocean Line'}`,
-    status: 'Verified'
-  });
-}
-
-export async function updateTradeBillOfLadingStatus(id: string, status: string): Promise<any> {
-  return updateTradeDocumentStatus(id, status === 'Issued' ? 'Verified' : 'Submitted');
-}
-
-export async function deleteTradeBillOfLading(id: string): Promise<boolean> {
-  return deleteTradeDocument(id);
-}
-
-export async function createTradeCertificate(cert: Partial<TradeDocument> & Record<string, any>): Promise<any> {
-  const rawStatus = String(cert.status || 'Submitted').toLowerCase();
-  const normStatus = (rawStatus.includes('verif') || rawStatus.includes('issu') || rawStatus.includes('appr')) ? 'Verified' : 'Submitted';
-  return uploadTradeDocument({
-    order_no: cert.order_no || cert.shipment_no || 'TRD-GENERAL',
-    client_name: cert.client_name || cert.importer || 'Trade Partner',
-    doc_type: (cert.doc_type || (cert.cert_type ? String(cert.cert_type) : 'Certificate of Origin')) as any,
-    doc_number: cert.doc_number || cert.certificate_no || `CERT-${Math.floor(1000 + Math.random() * 9000)}`,
-    file_name: cert.file_name || `Certificate_${cert.doc_number || cert.certificate_no || 'Doc'}.pdf`,
-    notes: cert.notes || `Authority: ${cert.authority || 'Chamber of Commerce'}`,
-    status: normStatus as any
-  });
-}
-
-export async function updateTradeCertificateStatus(id: string, status: string): Promise<any> {
-  return updateTradeDocumentStatus(id, status as any);
-}
 
 export async function sendPaymentReminder(
   paymentIdOrOrderNo: string,
@@ -1992,4 +1799,360 @@ export async function sendTradeMessage(msg: Partial<TradeChatMessage>): Promise<
   );
   triggerSync('ferex_trade_messages_change');
   return data as TradeChatMessage;
+}
+
+
+// ─────────────────────────────────────────────────
+// TRADE DOCUMENT RECORDS: invoices, letters of credit, bills of lading, packing lists, certificates.
+// Each is a real record in its own table, tied to an order.
+// ─────────────────────────────────────────────────
+
+/** Finds the order a record belongs to by order number (or id). */
+async function requireTradeOrder(ref?: string): Promise<TradeOrder> {
+  if (!ref?.trim()) throw new Error('Choose the shipment / order this record belongs to');
+  const order = await getTradeOrderById(ref.trim());
+  if (!order) throw new Error(`Order ${ref} was not found`);
+  return order;
+}
+
+const nextNo = (prefix: string) => `${prefix}-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
+const dateOrNull = (v?: string | null) => (v && String(v).trim() ? String(v).slice(0, 10) : null);
+
+// ── Invoices ──
+
+function invoiceStatus(row: any, paid: number): string {
+  if (row.status === 'Draft' || row.status === 'Cancelled') return row.status;
+  const amount = tnum(row.amount);
+  if (amount > 0 && paid >= amount) return 'Paid';
+  if (paid > 0) return 'Partially Paid';
+  if (row.due_date && new Date(row.due_date).getTime() < new Date(new Date().toISOString().slice(0, 10)).getTime()) return 'Overdue';
+  return 'Issued';
+}
+
+export async function getTradeInvoices(): Promise<TradeInvoiceRecord[]> {
+  const [rows, pays] = await Promise.all([
+    supabase.from('trade_invoices').select('*').order('created_at', { ascending: false }),
+    supabase.from('trade_payments').select('invoice_no, amount').not('invoice_no', 'is', null),
+  ]);
+  const paidBy = new Map<string, number>();
+  for (const p of (pays.data || []) as any[]) paidBy.set(p.invoice_no, (paidBy.get(p.invoice_no) || 0) + tnum(p.amount));
+  return ((tok(rows) || []) as any[]).map(r => {
+    const paid = paidBy.get(r.invoice_no) || 0;
+    const amount = tnum(r.amount);
+    return {
+      id: r.id,
+      invoice_no: r.invoice_no,
+      invoice_number: r.invoice_no,
+      order_no: r.order_no,
+      shipment_no: r.order_no,
+      client_name: r.client_name,
+      buyer_name: r.buyer_name,
+      seller_name: r.seller_name,
+      issue_date: r.issue_date || '',
+      due_date: r.due_date || '',
+      amount,
+      subtotal: tnum(r.subtotal),
+      freight_charges: tnum(r.freight_charges),
+      insurance_charges: tnum(r.insurance_charges),
+      tax_charges: tnum(r.tax_charges),
+      payment_terms: r.payment_terms,
+      lc_reference: r.lc_reference,
+      currency: r.currency,
+      incoterm: r.incoterms,
+      incoterms: r.incoterms,
+      status: invoiceStatus(r, paid),
+      paid_amount: paid,
+      amount_paid: paid,
+      outstanding_amount: Math.max(0, amount - paid),
+      notes: r.notes,
+      items: Array.isArray(r.items) ? r.items : [],
+      created_at: r.created_at,
+    } as any;
+  });
+}
+
+export async function createTradeInvoice(invoice: Partial<TradeInvoiceRecord> & Record<string, any>): Promise<any> {
+  const order = await requireTradeOrder(invoice.order_no || invoice.shipment_no);
+  const amount = Number(invoice.amount);
+  if (!(amount > 0)) throw new Error('Enter the invoice amount');
+  if (!invoice.buyer_name?.trim()) throw new Error('Enter the buyer');
+  const row = tok(
+    await supabase.from('trade_invoices').insert({
+      invoice_no: invoice.invoice_number || invoice.invoice_no || nextNo('INV'),
+      order_id: order.id,
+      order_no: order.order_no,
+      client_name: order.client_name,
+      buyer_name: invoice.buyer_name.trim(),
+      seller_name: invoice.seller_name || '',
+      invoice_type: invoice.invoice_type === 'Proforma' ? 'Proforma' : 'Commercial',
+      incoterms: invoice.incoterms || invoice.incoterm || String(order.incoterm || ''),
+      currency: order.currency,
+      subtotal: Number(invoice.subtotal) || amount,
+      freight_charges: Number(invoice.freight_charges) || 0,
+      insurance_charges: Number(invoice.insurance_charges) || 0,
+      tax_charges: Number(invoice.tax_charges) || 0,
+      amount,
+      payment_terms: invoice.payment_terms || '',
+      lc_reference: invoice.lc_reference || '',
+      items: invoice.items || [],
+      issue_date: dateOrNull(invoice.issue_date) || new Date().toISOString().slice(0, 10),
+      due_date: dateOrNull(invoice.due_date),
+      status: invoice.status === 'Draft' ? 'Draft' : 'Issued',
+      notes: invoice.notes || '',
+    }).select().single(),
+    'Could not save the invoice'
+  ) as any;
+  triggerSync('ferex_trade_invoices_change');
+  return { ...row, invoice_number: row.invoice_no };
+}
+
+export async function updateTradeInvoiceStatus(id: string, status: string): Promise<any> {
+  // Paid / Partially Paid / Overdue follow from the recorded payments and the due date; only Draft, Issued and Cancelled are set by hand.
+  if (!['Draft', 'Issued', 'Cancelled'].includes(status)) {
+    throw new Error('Payment status follows the recorded payments. Record a payment against this invoice instead.');
+  }
+  const row = tok(await supabase.from('trade_invoices').update({ status, updated_at: new Date().toISOString() }).eq('id', id).select().maybeSingle(), 'Could not update the invoice');
+  if (!row) throw new Error('This invoice no longer exists. Refresh the page.');
+  triggerSync('ferex_trade_invoices_change');
+  return row;
+}
+
+export async function deleteTradeInvoice(id: string): Promise<boolean> {
+  const { error } = await supabase.from('trade_invoices').delete().eq('id', id);
+  if (error) tfail(error, 'Could not delete the invoice');
+  triggerSync('ferex_trade_invoices_change');
+  return true;
+}
+
+// ── Letters of credit ──
+
+export async function getTradeLettersOfCredit(): Promise<TradeLetterOfCreditRecord[]> {
+  const rows = tok(await supabase.from('trade_letters_of_credit').select('*').order('created_at', { ascending: false })) as any[];
+  return (rows || []).map(r => ({
+    ...r,
+    shipment_no: r.order_no,
+    amount: tnum(r.amount),
+    expiry_date: r.expiry_date || '',
+    issue_date: r.issue_date || '',
+  })) as any;
+}
+
+export async function createTradeLetterOfCredit(lc: Partial<TradeLetterOfCreditRecord> & Record<string, any>): Promise<any> {
+  const order = await requireTradeOrder(lc.order_no || lc.shipment_no);
+  const amount = Number(lc.amount);
+  if (!(amount > 0)) throw new Error('Enter the LC amount');
+  if (!lc.issuing_bank?.trim()) throw new Error('Enter the issuing bank');
+  if (!lc.beneficiary?.trim()) throw new Error('Enter the beneficiary');
+  if (lc.expiry_date && new Date(lc.expiry_date) < new Date(new Date().toISOString().slice(0, 10))) throw new Error('The LC expiry date is in the past');
+  const row = tok(
+    await supabase.from('trade_letters_of_credit').insert({
+      lc_number: lc.lc_number || nextNo('LC'),
+      order_id: order.id,
+      order_no: order.order_no,
+      invoice_no: lc.invoice_no || '',
+      lc_type: lc.lc_type || '',
+      applicant: lc.applicant || order.client_name,
+      beneficiary: lc.beneficiary.trim(),
+      issuing_bank: lc.issuing_bank.trim(),
+      advising_bank: lc.advising_bank || '',
+      amount,
+      currency: lc.currency || order.currency,
+      expiry_date: dateOrNull(lc.expiry_date),
+      status: lc.status || 'Issued',
+      notes: lc.notes || '',
+    }).select().single(),
+    'Could not save the Letter of Credit'
+  );
+  // Link the LC reference onto the order so it shows in payments and the order detail.
+  await supabase.from('trade_orders').update({ lc_reference: (row as any).lc_number, updated_at: new Date().toISOString() }).eq('id', order.id);
+  triggerSync('ferex_trade_lcs_change');
+  triggerSync('ferex_trade_orders_change');
+  return row;
+}
+
+export async function updateTradeLetterOfCreditStatus(id: string, status: string, notes?: string): Promise<any> {
+  const row = tok(
+    await supabase.from('trade_letters_of_credit').update({ status, ...(notes ? { notes } : {}), updated_at: new Date().toISOString() }).eq('id', id).select().maybeSingle(),
+    'Could not update the Letter of Credit'
+  );
+  if (!row) throw new Error('This Letter of Credit no longer exists. Refresh the page.');
+  triggerSync('ferex_trade_lcs_change');
+  return row;
+}
+
+export async function deleteTradeLetterOfCredit(id: string): Promise<boolean> {
+  const { error } = await supabase.from('trade_letters_of_credit').delete().eq('id', id);
+  if (error) tfail(error, 'Could not delete the Letter of Credit');
+  triggerSync('ferex_trade_lcs_change');
+  return true;
+}
+
+// ── Bills of lading ──
+
+export async function getTradeBillsOfLading(): Promise<TradeBillOfLadingRecord[]> {
+  const rows = tok(await supabase.from('trade_bills_of_lading').select('*').order('created_at', { ascending: false })) as any[];
+  return (rows || []).map(r => ({
+    ...r,
+    shipment_no: r.order_no,
+    voyage_number: r.voyage_no,
+    gross_weight_kg: tnum(r.gross_weight_kg),
+    total_packages: tnum(r.total_packages),
+    issue_date: r.issue_date || '',
+  })) as any;
+}
+
+export async function createTradeBillOfLading(bl: Partial<TradeBillOfLadingRecord> & Record<string, any>): Promise<any> {
+  const order = await requireTradeOrder(bl.order_no || bl.shipment_no);
+  if (!bl.carrier?.trim()) throw new Error('Enter the carrier');
+  if (!(bl.vessel_name || bl.vessel)?.trim?.()) throw new Error('Enter the vessel');
+  if (!bl.consignee?.trim()) throw new Error('Enter the consignee');
+  const row = tok(
+    await supabase.from('trade_bills_of_lading').insert({
+      bl_number: bl.bl_number || nextNo('BL'),
+      order_id: order.id,
+      order_no: order.order_no,
+      carrier: bl.carrier.trim(),
+      vessel_name: String(bl.vessel_name || bl.vessel).trim(),
+      voyage_no: bl.voyage_no || bl.voyage_number || '',
+      port_of_loading: bl.port_of_loading || order.origin_port || '',
+      port_of_discharge: bl.port_of_discharge || order.destination_port || '',
+      shipper: bl.shipper || '',
+      consignee: bl.consignee.trim(),
+      notify_party: bl.notify_party || '',
+      container_no: bl.container_no || '',
+      cargo_description: bl.cargo_description || order.commodity,
+      total_packages: Number(bl.total_packages) || 0,
+      package_type: bl.package_type || '',
+      gross_weight_kg: Number(bl.gross_weight_kg) || 0,
+      freight_terms: bl.freight_terms || '',
+      status: bl.status || 'Issued',
+      notes: bl.notes || '',
+    }).select().single(),
+    'Could not save the Bill of Lading'
+  );
+  // The order tracks the carrier details it ships under.
+  await supabase.from('trade_orders').update({
+    carrier: (row as any).carrier, vessel_flight: (row as any).vessel_name, voyage_no: (row as any).voyage_no,
+    tracking_number: (row as any).container_no || order.tracking_number || '', updated_at: new Date().toISOString(),
+  }).eq('id', order.id);
+  triggerSync('ferex_trade_bls_change');
+  triggerSync('ferex_trade_orders_change');
+  return row;
+}
+
+export async function updateTradeBillOfLadingStatus(id: string, status: string): Promise<any> {
+  const row = tok(await supabase.from('trade_bills_of_lading').update({ status, updated_at: new Date().toISOString() }).eq('id', id).select().maybeSingle(), 'Could not update the Bill of Lading');
+  if (!row) throw new Error('This Bill of Lading no longer exists. Refresh the page.');
+  triggerSync('ferex_trade_bls_change');
+  return row;
+}
+
+export async function deleteTradeBillOfLading(id: string): Promise<boolean> {
+  const { error } = await supabase.from('trade_bills_of_lading').delete().eq('id', id);
+  if (error) tfail(error, 'Could not delete the Bill of Lading');
+  triggerSync('ferex_trade_bls_change');
+  return true;
+}
+
+// ── Packing lists ──
+
+export async function getTradePackingLists(): Promise<TradePackingListRecord[]> {
+  const rows = tok(await supabase.from('trade_packing_lists').select('*').order('created_at', { ascending: false })) as any[];
+  return (rows || []).map(r => ({
+    ...r,
+    shipment_no: r.order_no,
+    packing_list_no: r.pl_number,
+    client_name: r.buyer_name,
+    gross_weight_kg: tnum(r.gross_weight_kg),
+    net_weight_kg: tnum(r.net_weight_kg),
+    volume_cbm: tnum(r.volume_cbm),
+    total_packages: tnum(r.total_packages),
+    status: r.container_status,
+  })) as any;
+}
+
+export async function createTradePackingList(pl: Partial<TradePackingListRecord> & Record<string, any>): Promise<any> {
+  const order = await requireTradeOrder(pl.order_no || pl.shipment_no);
+  const gross = Number(pl.gross_weight_kg) || 0;
+  const net = Number(pl.net_weight_kg) || 0;
+  if (!(Number(pl.total_packages) > 0)) throw new Error('Enter the number of packages');
+  if (gross > 0 && net > gross) throw new Error('Net weight cannot be more than gross weight');
+  const row = tok(
+    await supabase.from('trade_packing_lists').insert({
+      pl_number: pl.packing_list_no || pl.pl_number || nextNo('PL'),
+      order_id: order.id,
+      order_no: order.order_no,
+      invoice_no: pl.invoice_no || '',
+      buyer_name: pl.buyer_name || order.client_name,
+      cargo_description: pl.cargo_description || order.commodity,
+      package_type: pl.package_type || '',
+      total_packages: Number(pl.total_packages),
+      gross_weight_kg: gross,
+      net_weight_kg: net,
+      dimensions: pl.dimensions || '',
+      volume_cbm: Number(pl.volume_cbm) || 0,
+      marks_numbers: pl.marks_numbers || '',
+      container_status: pl.container_status || '',
+      notes: pl.notes || '',
+    }).select().single(),
+    'Could not save the packing list'
+  );
+  triggerSync('ferex_trade_pls_change');
+  return row;
+}
+
+export async function deleteTradePackingList(id: string): Promise<boolean> {
+  const { error } = await supabase.from('trade_packing_lists').delete().eq('id', id);
+  if (error) tfail(error, 'Could not delete the packing list');
+  triggerSync('ferex_trade_pls_change');
+  return true;
+}
+
+// ── Certificates ──
+
+export async function getTradeCertificates(): Promise<any[]> {
+  const rows = tok(await supabase.from('trade_certificates').select('*').order('created_at', { ascending: false })) as any[];
+  return (rows || []).map(r => ({ ...r, shipment_no: r.order_no, issue_date: r.issue_date || '', expiry_date: r.expiry_date || '' }));
+}
+
+export async function createTradeCertificate(cert: Record<string, any>): Promise<any> {
+  const orderRef = cert.order_no || cert.shipment_no;
+  const order = orderRef ? await requireTradeOrder(orderRef) : null; // a master certificate is not tied to one order
+  if (!String(cert.cert_type || '').trim()) throw new Error('Choose the certificate type');
+  if (!String(cert.authority || '').trim()) throw new Error('Enter the issuing authority');
+  if (cert.issue_date && cert.expiry_date && new Date(cert.expiry_date) <= new Date(cert.issue_date)) throw new Error('Expiry date must be after the issue date');
+  const row = tok(
+    await supabase.from('trade_certificates').insert({
+      certificate_no: cert.certificate_no || cert.doc_number || nextNo('CERT'),
+      order_id: order?.id || null,
+      order_no: order?.order_no || '',
+      cert_type: cert.cert_type,
+      title: cert.title || cert.cert_type,
+      authority: cert.authority,
+      country: cert.country || '',
+      exporter: cert.exporter || '',
+      importer: cert.importer || order?.client_name || '',
+      issue_date: dateOrNull(cert.issue_date),
+      expiry_date: dateOrNull(cert.expiry_date),
+      status: ['Verified & Active', 'Under Inspection', 'Expired', 'Revoked'].includes(cert.status) ? cert.status : 'Verified & Active',
+      notes: cert.notes || '',
+    }).select().single(),
+    'Could not save the certificate'
+  );
+  triggerSync('ferex_trade_certs_change');
+  return row;
+}
+
+export async function updateTradeCertificateStatus(id: string, status: string): Promise<any> {
+  const row = tok(await supabase.from('trade_certificates').update({ status, updated_at: new Date().toISOString() }).eq('id', id).select().maybeSingle(), 'Could not update the certificate');
+  if (!row) throw new Error('This certificate no longer exists. Refresh the page.');
+  triggerSync('ferex_trade_certs_change');
+  return row;
+}
+
+export async function deleteTradeCertificate(id: string): Promise<boolean> {
+  const { error } = await supabase.from('trade_certificates').delete().eq('id', id);
+  if (error) tfail(error, 'Could not delete the certificate');
+  triggerSync('ferex_trade_certs_change');
+  return true;
 }
