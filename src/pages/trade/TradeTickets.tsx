@@ -52,7 +52,7 @@ export const TradeTickets: React.FC = () => {
     priority: 'Medium' as TicketPriority,
     status: 'Open' as TicketStatus,
     assigned_staff_name: staffList[0]?.name || userName,
-    assigned_staff_email: staffList[0]?.email || 'trade@ferex.com',
+    assigned_staff_email: staffList[0]?.email || '',
   };
 
   const [formData, setFormData] = useState(initialForm);
@@ -66,6 +66,8 @@ export const TradeTickets: React.FC = () => {
       ]);
       setTickets(Array.isArray(allTickets) ? allTickets : []);
       setOrders(Array.isArray(allOrders) ? allOrders : []);
+    } catch (err: any) {
+      setToast(`Could not load tickets: ${err.message || 'Database error'}`);
     } finally {
       setLoading(false);
     }
@@ -141,10 +143,17 @@ export const TradeTickets: React.FC = () => {
   };
 
   const handleDelete = async (id: string, no: string) => {
-    if (!window.confirm(`Delete ticket ${no}?`)) return;
-    await deleteTradeTicket(id);
-    showToastMsg(`Ticket ${no} deleted.`);
-    await loadData();
+    if (!window.confirm(`Delete ticket ${no}? This cannot be undone.`)) return;
+    try {
+      await deleteTradeTicket(id);
+      // Remove it from the screen only after the database confirmed the deletion.
+      setTickets(prev => prev.filter(t => t.id !== id));
+      showToastMsg(`Ticket ${no} deleted.`);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Could not delete ticket ${no}: ${err.message || 'Database error'}`);
+      await loadData();
+    }
   };
 
   const getChannelIcon = (ch: TicketChannel) => {

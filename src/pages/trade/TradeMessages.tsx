@@ -96,16 +96,20 @@ export const TradeMessages: React.FC = () => {
     const textToSend = inputText;
     setInputText('');
 
-    await sendTradeMessage({
-      conversation_id: currConv.id,
-      contact_name: currConv.name,
-      contact_role: currConv.role,
-      sender_name: senderName,
-      message: textToSend,
-      is_self: true
-    });
-
-    await loadMessages(currConv.id);
+    try {
+      await sendTradeMessage({
+        conversation_id: currConv.id,
+        contact_name: currConv.name,
+        contact_role: currConv.role,
+        sender_name: senderName,
+        message: textToSend,
+        is_self: true
+      });
+      await loadMessages(currConv.id);
+    } catch {
+      // Put the text back so nothing the user typed is lost when sending fails.
+      setInputText(textToSend);
+    }
   };
 
   const filteredContacts = contacts.filter(c =>

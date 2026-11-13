@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDraftState } from '../../hooks/useDraftState';
 import { Package, Search, Plus, Eye, Edit3, Trash2, X, CheckCircle2, Thermometer, FolderPlus, Tag, Layers } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -24,7 +25,8 @@ export const RimiProducts: React.FC = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
+  // The Add SKU form and its data survive switching to another tab and coming back.
+  const [showAddModal, setShowAddModal, clearAddOpen] = useDraftState<boolean>('rimi_product_form_open', false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [newCatInput, setNewCatInput] = useState('');
   const [toast, setToast] = useState('');
@@ -90,7 +92,7 @@ export const RimiProducts: React.FC = () => {
     };
   }, [loadData]);
 
-  const [newProd, setNewProd] = useState({
+  const [newProd, setNewProd, clearNewProd] = useDraftState('rimi_product_form', {
     name: '',
     category: '',
     unit: 'KG',
@@ -168,9 +170,9 @@ export const RimiProducts: React.FC = () => {
         expiry_date: newProd.expiry_date || undefined
       });
 
-      setShowAddModal(false);
+      clearAddOpen();
+      clearNewProd();
       showToastMsg(`Added frozen SKU ${created?.sku || newSku} (Opening Stock: ${newProd.quantity} ${newProd.unit})`);
-      setNewProd({ name: '', category: categories[0] || '', unit: 'KG', price: '', temp: '-18°C', minStock: 50, quantity: 0, warehouse_id: '', batch_no: '', mfg_date: '', expiry_date: '' });
       await loadData();
     } catch (err: any) {
       console.error('[RimiProducts] Error saving product SKU:', err);

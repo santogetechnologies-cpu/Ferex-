@@ -36,8 +36,8 @@ export const TradePayments: React.FC = () => {
     order_no: '',
     client_name: '',
     type: 'Advance Paid' as 'Advance Paid' | 'Settlement' | 'Completed' | 'Balance Payment' | 'LC Drawdown',
-    amount: 100000,
-    currency: 'USD',
+    amount: 0,
+    currency: '',
     payment_method: 'SWIFT Wire Transfer (MT103)',
     transaction_ref: '',
     lc_reference: '',
@@ -55,15 +55,8 @@ export const TradePayments: React.FC = () => {
       ]);
       setPayments(Array.isArray(allPayments) ? allPayments : []);
       setOrders(Array.isArray(allOrders) ? allOrders : []);
-      if (allOrders.length > 0 && !recordForm.order_no) {
-        setRecordForm(prev => ({
-          ...prev,
-          order_no: allOrders[0].order_no,
-          client_name: allOrders[0].client_name,
-          amount: allOrders[0].advance_amount,
-          currency: allOrders[0].currency
-        }));
-      }
+    } catch (err: any) {
+      setToast(`Could not load payments: ${err.message || 'Database error'}`);
     } finally {
       setLoading(false);
     }
@@ -145,7 +138,7 @@ export const TradePayments: React.FC = () => {
         ...prev,
         type: 'LC Drawdown',
         amount: selectedOrder.total_amount,
-        lc_reference: selectedOrder.lc_reference || 'LC-BANK-7701',
+        lc_reference: selectedOrder.lc_reference || '',
         payment_method: 'Irrevocable LC at Sight (Bank Drawdown)',
         notes: `LC drawdown negotiation verified for order ${selectedOrder.order_no}`
       }));
@@ -154,13 +147,17 @@ export const TradePayments: React.FC = () => {
 
   const handleRecordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!recordForm.order_no || !recordForm.amount) {
-      showToastMsg('Please enter valid payment details.');
+    if (!recordForm.order_no) {
+      showToastMsg('Choose the order this payment is for.');
+      return;
+    }
+    if (!(Number(recordForm.amount) > 0)) {
+      showToastMsg('Enter an amount greater than zero.');
       return;
     }
 
     try {
-      const created = await recordTradePayment(recordForm);
+      const created = await recordTradePayment({ ...recordForm, currency: selectedOrder?.currency || recordForm.currency });
       setShowRecordModal(false);
       showToastMsg(`Recorded ${created?.type || 'Payment'} of ${created?.currency || 'USD'} ${Number(created?.amount || 0).toLocaleString()} & issued receipt ${created?.receipt_no || 'REC'}!`);
       await loadData();
@@ -207,10 +204,14 @@ export const TradePayments: React.FC = () => {
     showToastMsg(`Exported ${p.receipt_no}`);
   };
 
-  const totalCollectedUSD = payments.reduce((sum, p) => {
-    const rate = p.currency === 'EUR' ? 1.08 : p.currency === 'INR' ? 0.012 : p.currency === 'GBP' ? 1.30 : 1;
-    return sum + (p.amount * rate);
-  }, 0);
+  // Amounts are never converted with made-up rates: each currency is totalled on its own.
+  const settledByCurrency = Array.from(
+    payments.reduce((m, p) => {
+      const c = p.currency || '—';
+      m.set(c, (m.get(c) || 0) + Number(p.amount || 0));
+      return m;
+    }, new Map<string, number>())
+  ).sort((a, b) => b[1] - a[1]);
 
   const normalizeType = (t: string) => {
     const s = (t || '').toLowerCase();
@@ -297,28 +298,36 @@ export const TradePayments: React.FC = () => {
       {/* Top Metrics Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card className="p-3.5 border border-slate-200/80 bg-white">
-          <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Settled (USD)</div>
-          <div className="text-xl font-black text-slate-900 mt-1">~${Math.round(totalCollectedUSD).toLocaleString()}</div>
+          <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Settled (by currency)</div>
+          {settledByCurrency.length === 0 ? (
+            <div className="text-xl font-black text-slate-900 mt-1">—</div>
+          ) : (
+            <div className="mt-1 space-y-0.5">
+              {settledByCurrency.map(([cur, total]) => (
+                <div key={cur} className="text-sm font-black text-slate-900">{cur} {Math.round(total).toLocaleString('en-IN')}</div>
+              ))}
+            </div>
+          )}
         </Card>
         <Card className="p-3.5 border border-amber-200/80 bg-amber-50/40">
           <div className="text-[10px] font-black uppercase tracking-wider text-amber-700">Advance Paid Receipts</div>
-          <div className="text-xl font-black text-amber-900 mt-1">{counts.advance}</div>
+          <div className="text-xl font-black text-amber-900 mt-1">{counts.advance}<span className="text-[10px] font-bold text-amber-700/70"> of {counts.all} receipts</span></div>
         </Card>
         <Card className="p-3.5 border border-blue-200/80 bg-blue-50/40">
           <div className="text-[10px] font-black uppercase tracking-wider text-blue-700">Settlements Logged</div>
-          <div className="text-xl font-black text-blue-900 mt-1">{counts.settlement}</div>
+          <div className="text-xl font-black text-blue-900 mt-1">{counts.settlement}<span className="text-[10px] font-bold text-blue-700/70"> of {counts.all} receipts</span></div>
         </Card>
         <Card className="p-3.5 border border-emerald-200/80 bg-emerald-50/40">
           <div className="text-[10px] font-black uppercase tracking-wider text-emerald-700">Completed Payments</div>
-          <div className="text-xl font-black text-emerald-900 mt-1">{counts.completed}</div>
+          <div className="text-xl font-black text-emerald-900 mt-1">{counts.completed}<span className="text-[10px] font-bold text-emerald-700/70"> of {counts.all} receipts</span></div>
         </Card>
       </div>
 
       {/* Advance / Balance Schedule by Active Order */}
       <Card className="p-4 border border-slate-200/80 shadow-xs">
         <h2 className="text-xs font-black uppercase tracking-wider text-slate-500 mb-3 flex items-center justify-between">
-          <span>Active Orders Advance & Balance Status</span>
-          <span className="text-slate-400 font-bold">{orders.length} Active Shipments</span>
+          <span>Order Payment Status (shipment status shown separately)</span>
+          <span className="text-slate-400 font-bold">{orders.length} Orders · {orders.filter(o => o.advance_status === 'Paid' && o.balance_amount - (o.balance_paid || 0) <= 0).length} fully settled</span>
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -337,6 +346,12 @@ export const TradePayments: React.FC = () => {
                   <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded">
                     {o.currency} {Number(o.total_amount).toLocaleString()}
                   </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase">
+                  <span className={`px-2 py-0.5 rounded ${isAdvPaid && isBalPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                    Payment: {isAdvPaid && isBalPaid ? 'Settled' : (Number(o.advance_paid || 0) + Number(o.balance_paid || 0)) > 0 ? 'Part paid' : 'Unpaid'}
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-slate-200 text-slate-700">Shipment: {o.stage}</span>
                 </div>
 
                 <div className="text-[11px] space-y-1 pt-1 border-t border-slate-200/60 font-semibold">
@@ -625,9 +640,11 @@ export const TradePayments: React.FC = () => {
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Currency</label>
                     <select
-                      value={recordForm.currency}
+                      value={selectedOrder?.currency || recordForm.currency}
                       onChange={(e) => setRecordForm({ ...recordForm, currency: e.target.value })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+                      disabled={Boolean(selectedOrder)}
+                      title="Payments are recorded in the order's own currency"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none disabled:opacity-70"
                     >
                       {TRADE_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>

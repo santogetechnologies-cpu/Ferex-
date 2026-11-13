@@ -54,20 +54,24 @@ export const TradeAttendance: React.FC = () => {
 
   const adminId = user?.id || profile?.id || 'trade-admin';
   const adminName = profile?.full_name || 'Global Trade Admin';
+  // Only Trade Admin (and head-office admins) may verify attendance / shift hours, close sheets or review leave.
+  // Trade Logistics officers see only their own records and cannot verify anything.
+  const canAdminister = ['trade', 'trade_admin', 'global_trade', 'admin', 'central', 'super_admin', 'superadmin'].includes((profile?.role || '').toLowerCase());
+  const ownEmail = (user?.email || profile?.email || '').toLowerCase().trim();
 
   const loadData = async () => {
     setLoading(true);
     try {
       if (activeTab === 'timesheets') {
         const data = await getTimesheets({ division: 'trade' });
-        setTimesheets(data);
+        setTimesheets(canAdminister ? data : data.filter(t => (t.user_email || '').toLowerCase().trim() === ownEmail));
       } else {
         const leaves = await getLeaveRequests({ division: 'trade' });
         const currentAdminEmail = (user?.email || profile?.email || '').toLowerCase().trim();
         const staffLeaves = (leaves || []).filter(
           (r) => !r.is_admin_request && !isAdminUser(r.user_role, r.user_email) && r.user_email.toLowerCase() !== currentAdminEmail
         );
-        setLeaveRequests(staffLeaves);
+        setLeaveRequests(canAdminister ? staffLeaves : staffLeaves.filter(r => (r.user_email || '').toLowerCase().trim() === ownEmail));
       }
     } catch (err) {
       console.error(err);
@@ -93,6 +97,7 @@ export const TradeAttendance: React.FC = () => {
   };
 
   const handleVerify = async (id: string, staffName: string, hours?: number) => {
+    if (!canAdminister) { showToast('Only Trade Admin can verify attendance and shift hours.'); return; }
     try {
       await verifyTimesheetByAdmin(
         id,
@@ -109,6 +114,7 @@ export const TradeAttendance: React.FC = () => {
   };
 
   const handleToggleLock = async (t: AttendanceTimesheet) => {
+    if (!canAdminister) { showToast('Only Trade Admin can lock or unlock timesheets.'); return; }
     try {
       if (t.is_superadmin_locked) {
         await unlockTimesheetsBySuperAdmin([t.id], adminId, adminName);
@@ -124,6 +130,7 @@ export const TradeAttendance: React.FC = () => {
   };
 
   const handleCloseSheetForEmployee = async (t: AttendanceTimesheet) => {
+    if (!canAdminister) { showToast('Only Trade Admin can close timesheets.'); return; }
     try {
       await closeTimesheetForDay(t.id, adminId, adminName, t.total_hours || 8.0);
       showToast(`Timesheet for ${t.user_name} closed and locked for payroll.`);
@@ -176,6 +183,7 @@ export const TradeAttendance: React.FC = () => {
     status: 'approved' | 'rejected',
     employeeName: string
   ) => {
+    if (!canAdminister) { showToast('Only Trade Admin can review leave requests.'); return; }
     try {
       await updateLeaveRequestStatus(
         reqId,
@@ -508,6 +516,10 @@ export const TradeAttendance: React.FC = () => {
                                 <Lock className="w-3 h-3" />
                                 {t.is_superadmin_locked ? 'Locked by SuperAdmin' : 'Audited by SuperAdmin'}
                               </span>
+                            ) : !canAdminister ? (
+                              <span className="text-[10px] text-slate-500 bg-slate-50 px-2.5 py-1 rounded-md font-bold border border-slate-200">
+                                {t.is_admin_verified ? 'Verified by Trade Admin' : 'Awaiting Trade Admin verification'}
+                              </span>
                             ) : (
                               <>
                                 {!t.is_superadmin_locked && !t.is_admin_verified && (
@@ -586,7 +598,7 @@ export const TradeAttendance: React.FC = () => {
                         <span className="text-[11px] font-bold uppercase">{req.status}</span>
                       </td>
                       <td className="p-3 text-right">
-                        {req.status === 'pending' && (
+                        {req.status === 'pending' && canAdminister && (
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => handleReviewLeave(req.id, 'approved', req.user_name)}

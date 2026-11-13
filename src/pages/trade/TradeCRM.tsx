@@ -164,6 +164,7 @@ export const TradeCRM: React.FC = () => {
   const handleUpdateCompany = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingCompany) return;
+    try {
     await updateTradeCRMContact(editingCompany.rawId || editingCompany.id, {
       company_name: editingCompany.name,
       country: editingCompany.country,
@@ -177,14 +178,21 @@ export const TradeCRM: React.FC = () => {
     setEditingCompany(null);
     showToastMsg(`Updated Partner: ${editingCompany.name}`);
     await loadData();
+    } catch (err: any) {
+      showToastMsg(`Failed to update partner: ${err.message || 'Error'}`);
+    }
   };
 
   const handleDeleteCompany = async (id: string, rawId?: string) => {
     if (!window.confirm('Are you sure you want to delete this trade partner?')) return;
-    setCompanies(prev => prev.filter(c => c.id !== id && c.rawId !== rawId));
-    showToastMsg('Trade partner record removed.');
-    await deleteTradeCRMContact(rawId || id);
-    await loadData();
+    try {
+      await deleteTradeCRMContact(rawId || id);
+      setCompanies(prev => prev.filter(c => c.id !== id && c.rawId !== rawId));
+      showToastMsg('Trade partner record removed.');
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Could not remove the partner: ${err.message || 'Error'}`);
+    }
   };
 
   const handleCreateOrderForPartner = (partnerName: string) => {

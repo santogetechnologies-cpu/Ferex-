@@ -24,7 +24,7 @@ import {
   type TradeDocInternalStatus,
   type TradeOrder
 } from '../../lib/api/trade';
-import { sendTradeDocumentReadyEmail } from '../../lib/api/email';
+import { uploadFileToBucket } from '../../lib/storage';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -163,18 +163,22 @@ export const TradeDocuments: React.FC = () => {
       return;
     }
 
-    const calculatedFileSize = selectedFile
-      ? formatFileSize(selectedFile.size)
-      : `${Math.floor(180 + Math.random() * 400)} KB`;
+    const calculatedFileSize = selectedFile ? formatFileSize(selectedFile.size) : '';
 
     try {
+      let storedUrl = '';
+      if (selectedFile) {
+        const up = await uploadFileToBucket('trade-documents', selectedFile, uploadForm.order_no.trim() || 'trade');
+        if (up.error || !up.url) throw new Error(up.error || 'The file could not be uploaded');
+        storedUrl = up.url;
+      }
       const created = await uploadTradeDocument({
         order_no: uploadForm.order_no.trim(),
         client_name: uploadForm.client_name.trim(),
         doc_type: uploadForm.doc_type,
         doc_number: uploadForm.doc_number || `DOC-${Math.floor(1000 + Math.random() * 9000)}`,
         file_name: uploadForm.file_name.trim() || (selectedFile ? selectedFile.name : `${uploadForm.doc_type.replace(/[^a-zA-Z0-9]/g, '_')}_${uploadForm.order_no}.pdf`),
-        file_url: fileDataUrl || '',
+        file_url: storedUrl,
         file_size: calculatedFileSize,
         notes: uploadForm.notes,
         status: uploadForm.status,
@@ -199,27 +203,8 @@ export const TradeDocuments: React.FC = () => {
 
   const handleSendToClient = async (doc: TradeDocument) => {
     try {
-      const targetOrder = orders.find(o => o.order_no === doc.order_no);
       await sendTradeDocToClient(doc.id);
-      if (targetOrder?.client_email) {
-        await sendTradeDocumentReadyEmail({
-          clientEmail: targetOrder.client_email,
-          clientName: doc.client_name,
-          documentName: doc.file_name,
-          documentType: doc.doc_type,
-          orderNumber: doc.order_no,
-          downloadUrl: doc.file_url || 'https://ferex.trade/vault/doc'
-        }).catch(() => {});
-      } else {
-        await triggerTradeAutomatedEmail({
-          trigger_type: 'document_ready',
-          order_no: doc.order_no,
-          recipient_name: doc.client_name,
-          recipient_email: `${doc.client_name.toLowerCase().replace(/[^a-z0-9]/g, '')}@trade.com`,
-          custom_data: { doc_type: doc.doc_type, file_name: doc.file_name }
-        });
-      }
-      showToastMsg(`Dispatched document dossier for "${doc.file_name}" to ${doc.client_name}!`);
+      showToastMsg(`Sent "${doc.file_name}" to ${doc.client_name}.`);
       await loadData();
     } catch (err: any) {
       showToastMsg(`Failed to send notice: ${err.message || 'Error'}`);
@@ -242,11 +227,15 @@ export const TradeDocuments: React.FC = () => {
   };
 
   const handleDelete = async (docId: string, docName: string) => {
-    if (!window.confirm(`Delete document "${docName}"?`)) return;
-    await deleteTradeDocument(docId);
-    showToastMsg(`Deleted ${docName}`);
-    if (selectedDoc?.id === docId) setSelectedDoc(null);
-    await loadData();
+    if (!window.confirm(`Delete document "${docName}"? This cannot be undone.`)) return;
+    try {
+      await deleteTradeDocument(docId);
+      showToastMsg(`Deleted ${docName}`);
+      if (selectedDoc?.id === docId) setSelectedDoc(null);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Could not delete the document: ${err.message || 'Error'}`);
+    }
   };
 
   const handleDownloadDoc = (doc: TradeDocument) => {
@@ -535,7 +524,7 @@ export const TradeDocuments: React.FC = () => {
                         >
                           <Send className="w-3 h-3" /> Send
                         </button>
-                        {doc.status !== 'Verified' && (
+                        {(doc.status === 'Submitted' || doc.status === 'Pending') && (
                           <button
                             onClick={() => handleStatusChange(doc.id, 'Verified')}
                             className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10.5px] font-black shadow-2xs transition-all cursor-pointer"
@@ -544,7 +533,16 @@ export const TradeDocuments: React.FC = () => {
                             Verify
                           </button>
                         )}
-                        {doc.status !== 'Rejected' && (
+                        {(doc.status === 'Verified' || doc.status === 'Rejected') && (
+                          <button
+                            onClick={() => handleStatusChange(doc.id, 'Submitted')}
+                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-[10.5px] font-black transition-all cursor-pointer"
+                            title={doc.status === 'Rejected' ? 'A corrected document was received: re-open it for review' : 'Re-open this verified document for re-verification'}
+                          >
+                            Re-open
+                          </button>
+                        )}
+                        {(doc.status === 'Submitted' || doc.status === 'Pending') && (
                           <button
                             onClick={() => setRejectingDocId(doc.id)}
                             className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[10.5px] font-black transition-all cursor-pointer"

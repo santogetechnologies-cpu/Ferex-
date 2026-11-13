@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useDraftState } from '../../hooks/useDraftState';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -36,7 +37,8 @@ export const TradeShipments: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStage, setFilterStage] = useState<string>('All');
   const [selectedOrder, setSelectedOrder] = useState<TradeOrder | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  // The Add Order form and its data survive switching to another tab and coming back.
+  const [showCreateModal, setShowCreateModal, clearCreateOpen] = useDraftState<boolean>('trade_order_form_open', false);
   const [toast, setToast] = useState('');
   const [advancingId, setAdvancingId] = useState<string | null>(null);
 
@@ -60,7 +62,7 @@ export const TradeShipments: React.FC = () => {
     lc_reference: '',
     stage: 'Inquiry' as TradeOrderStage,
     assigned_staff_name: staffList[0]?.name || userName,
-    assigned_staff_email: staffList[0]?.email || profile?.email || 'logistics@ferex.com',
+    assigned_staff_email: staffList[0]?.email || profile?.email || '',
     carrier: '',
     vessel_flight: '',
     voyage_no: '',
@@ -72,7 +74,7 @@ export const TradeShipments: React.FC = () => {
     notes: '',
   };
 
-  const [formData, setFormData] = useState(initialForm);
+  const [formData, setFormData, clearFormDraft] = useDraftState('trade_order_form', initialForm);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -156,12 +158,8 @@ export const TradeShipments: React.FC = () => {
 
     try {
       const created = await createTradeOrder(formData);
-      setShowCreateModal(false);
-      setFormData({
-        ...initialForm,
-        order_no: `TRD-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-        po_number: `PO-${Math.floor(100 + Math.random() * 900)}`,
-      });
+      clearCreateOpen();
+      clearFormDraft();
       showToastMsg(`Order ${created?.order_no || 'Created'} created & stage confirmed!`);
       await loadData();
     } catch (err: any) {
@@ -187,10 +185,14 @@ export const TradeShipments: React.FC = () => {
 
   const handleDelete = async (id: string, orderNo: string) => {
     if (!window.confirm(`Are you sure you want to remove order ${orderNo}?`)) return;
-    await deleteTradeOrder(id);
-    showToastMsg(`Order ${orderNo} deleted.`);
-    if (selectedOrder?.id === id) setSelectedOrder(null);
-    await loadData();
+    try {
+      await deleteTradeOrder(id);
+      showToastMsg(`Order ${orderNo} deleted.`);
+      if (selectedOrder?.id === id) setSelectedOrder(null);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Could not delete order ${orderNo}: ${err.message || 'Error'}`);
+    }
   };
 
   const getNextStage = (current: TradeOrderStage): TradeOrderStage | null => {

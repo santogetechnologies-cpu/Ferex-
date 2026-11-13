@@ -114,7 +114,9 @@ export const TradeCertificates: React.FC = () => {
     if (!newCert.authority || !newCert.country) return;
 
     const autoTitle = newCert.title || `${newCert.cert_type} (${newCert.country})`;
+    if (!newCert.shipment_no) { showToastMsg('Choose the shipment / order this certificate belongs to.'); return; }
 
+    try {
     const created = await createTradeCertificate({
       shipment_no: newCert.shipment_no,
       cert_type: newCert.cert_type,
@@ -130,8 +132,11 @@ export const TradeCertificates: React.FC = () => {
 
     setNewCert(initialCert);
     setShowCreateModal(false);
-    showToastMsg(`Registered Certificate ${created.certificate_no || created.id}`);
+    showToastMsg(`Registered Certificate ${created.doc_number || created.certificate_no || created.id}`);
     await loadData();
+    } catch (err: any) {
+      showToastMsg(`Could not register the certificate: ${err.message || 'Error'}`);
+    }
   };
 
   const handleStatusChange = async (id: string, rawId: string, newStatus: string) => {

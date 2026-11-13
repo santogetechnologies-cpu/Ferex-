@@ -117,7 +117,9 @@ export const TradePackingLists: React.FC = () => {
     e.preventDefault();
     if (!newPL.shipment_no || !newPL.cargo_description) return;
 
+    try {
     const created = await createTradePackingList({
+      order_no: newPL.shipment_no,
       shipment_no: newPL.shipment_no,
       invoice_no: newPL.invoice_no,
       buyer_name: newPL.buyer_name || 'Trade Partner Consignee',
@@ -127,22 +129,29 @@ export const TradePackingLists: React.FC = () => {
       gross_weight_kg: Number(newPL.gross_weight) || 0,
       net_weight_kg: Number(newPL.net_weight) || 0,
       dimensions: newPL.dimensions,
-      volume_cbm: Number(newPL.volume_cbm) || 60,
+      volume_cbm: Number(newPL.volume_cbm) || 0,
       marks_numbers: newPL.marks_numbers,
     });
 
     setNewPL(initialPL);
     setShowCreateModal(false);
-    showToastMsg(`Created Packing Manifest ${created.pl_number || created.id}`);
+    showToastMsg(`Created Packing Manifest ${created.doc_number || created.pl_number || created.id}`);
     await loadData();
+    } catch (err: any) {
+      showToastMsg(`Could not create the packing list: ${err.message || 'Error'}`);
+    }
   };
 
   const handleDeletePL = async (id: string, rawId?: string) => {
     if (!window.confirm(`Delete Packing List ${id}?`)) return;
-    setLists(prev => prev.filter(l => l.id !== id && l.rawId !== rawId));
-    showToastMsg(`Removed Packing List ${id}`);
-    await deleteTradePackingList(rawId || id);
-    await loadData();
+    try {
+      await deleteTradePackingList(rawId || id);
+      setLists(prev => prev.filter(l => l.id !== id && l.rawId !== rawId));
+      showToastMsg(`Removed Packing List ${id}`);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Could not remove the packing list: ${err.message || 'Error'}`);
+    }
   };
 
   const downloadPLManifestCSV = (pl: any) => {

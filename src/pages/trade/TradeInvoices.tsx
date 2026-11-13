@@ -167,7 +167,10 @@ export const TradeInvoices: React.FC = () => {
       }
     ];
 
+    if (!newInv.shipment_no) { showToastMsg('Choose the shipment / order this invoice belongs to.'); return; }
+    try {
     const created = await createTradeInvoice({
+      order_no: newInv.shipment_no,
       shipment_no: newInv.shipment_no,
       buyer_name: newInv.buyer,
       seller_name: newInv.seller,
@@ -177,7 +180,6 @@ export const TradeInvoices: React.FC = () => {
       freight_charges: Number(newInv.freight_charges) || 0,
       insurance_charges: Number(newInv.insurance_charges) || 0,
       tax_charges: Number(newInv.tax_charges) || 0,
-      currency: 'INR',
       due_date: newInv.dueDate,
       payment_terms: newInv.paymentTerms,
       lc_reference: newInv.lcReference,
@@ -186,9 +188,12 @@ export const TradeInvoices: React.FC = () => {
     });
 
     setShowCreateModal(false);
-    showToastMsg(`Commercial Invoice ${created.invoice_no} issued successfully`);
+    showToastMsg(`Commercial Invoice ${created.doc_number || created.invoice_no || ''} issued successfully`);
     setNewInv(initialInv);
     await loadData();
+    } catch (err: any) {
+      showToastMsg(`Could not issue the invoice: ${err.message || 'Error'}`);
+    }
   };
 
   const handleStatusChange = async (id: string, rawId: string, newStatus: string) => {
@@ -230,13 +235,15 @@ export const TradeInvoices: React.FC = () => {
     e.preventDefault();
     if (!payingInvoice || !paymentForm.amount) return;
 
+    try {
     await createTradePayment({
+      order_no: payingInvoice.order_no || payingInvoice.shipment_no,
+      type: 'Balance Payment',
       partner_entity: payingInvoice.buyer,
       invoice_no: payingInvoice.id,
       shipment_no: payingInvoice.shipment_no,
       lc_reference: payingInvoice.lcReference,
       amount: Number(paymentForm.amount),
-      currency: 'INR',
       bank_name: paymentForm.bank_name,
       account_no: paymentForm.account_no,
       payment_type: paymentForm.payment_type,
@@ -248,8 +255,11 @@ export const TradeInvoices: React.FC = () => {
 
     setShowPaymentModal(false);
     setPayingInvoice(null);
-    showToastMsg(`Recorded payment of ₹${Number(paymentForm.amount).toLocaleString('en-IN')}`);
+    showToastMsg(`Recorded payment of ${Number(paymentForm.amount).toLocaleString('en-IN')}`);
     await loadData();
+    } catch (err: any) {
+      showToastMsg(`Could not record the payment: ${err.message || 'Error'}`);
+    }
   };
 
   const downloadInvoiceCSV = (inv: any) => {

@@ -149,7 +149,9 @@ export const TradeBillsOfLading: React.FC = () => {
   const handleCreateBL = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBL.vessel || !newBL.carrier || !newBL.consignee) return;
+    if (!newBL.shipment_no) { showToastMsg('Choose the shipment / order this Bill of Lading belongs to.'); return; }
 
+    try {
     const created = await createTradeBillOfLading({
       shipment_no: newBL.shipment_no,
       vessel_name: newBL.vessel,
@@ -170,8 +172,11 @@ export const TradeBillsOfLading: React.FC = () => {
 
     setNewBL(initialBL);
     setShowCreateModal(false);
-    showToastMsg(`Registered Bill of Lading ${created.bl_number || created.id}`);
+    showToastMsg(`Registered Bill of Lading ${created.doc_number || created.bl_number || created.id}`);
     await loadData();
+    } catch (err: any) {
+      showToastMsg(`Could not register the Bill of Lading: ${err.message || 'Error'}`);
+    }
   };
 
   const handleStatusChange = async (id: string, rawId: string, newStatus: string) => {

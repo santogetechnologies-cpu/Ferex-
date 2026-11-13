@@ -153,7 +153,10 @@ export const TradeLettersOfCredit: React.FC = () => {
     e.preventDefault();
     if (!newLC.beneficiary) return;
     const numAmount = parseFloat(String(newLC.amount).replace(/[^0-9.]/g, '')) || 0;
+    if (!newLC.shipment_no) { showToastMsg('Choose the shipment / order this Letter of Credit is for.'); return; }
+    try {
     const created = await createTradeLetterOfCredit({
+      order_no: newLC.shipment_no,
       issuing_bank: newLC.bank,
       advising_bank: newLC.advising_bank,
       applicant: newLC.applicant,
@@ -169,7 +172,10 @@ export const TradeLettersOfCredit: React.FC = () => {
     setNewLC(initialLC);
     await loadData();
     setShowIssueModal(false);
-    showToastMsg(`Issued Letter of Credit ${created.lc_number || created.id}`);
+    showToastMsg(`Issued Letter of Credit ${created.doc_number || created.lc_number || created.id}`);
+    } catch (err: any) {
+      showToastMsg(`Could not issue the Letter of Credit: ${err.message || 'Error'}`);
+    }
   };
 
   const handleStatusChange = async (id: string, rawId: string, newStatus: string) => {
