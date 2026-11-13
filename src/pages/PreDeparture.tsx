@@ -1,3 +1,4 @@
+import { getActiveStudentFeeProfile } from '../lib/educationBilling';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -45,7 +46,7 @@ export const PreDeparture: React.FC = () => {
     } catch {}
   }, [activeStudentId]);
 
-  const targetCountry = (profile as any)?.target_country || applications[0]?.universities?.country || (activeStudentId ? localStorage.getItem(`ferex_student_target_country_${activeStudentId}`) : null) || '';
+  const targetCountry = (profile as any)?.target_country || applications[0]?.universities?.country || ((getActiveStudentFeeProfile() as any)?.country || null) || '';
   const payment3Status = checkPaymentStage(payments, 3, targetCountry);
 
   const activeApp = applications[0];

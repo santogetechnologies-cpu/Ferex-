@@ -1,3 +1,4 @@
+import { getActiveStudentFeeProfile } from '../lib/educationBilling';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Download, Check, X, Sparkles, GraduationCap, ArrowRight, Eye, Award, CreditCard, ShieldCheck, Lock, AlertCircle } from 'lucide-react';
@@ -142,7 +143,8 @@ export const OfferLetters: React.FC = () => {
   );
 
   // Check payment status for offer acceptance
-  const targetCountry = (profile as any)?.target_country || applications[0]?.universities?.country || (activeStudentId ? localStorage.getItem(`ferex_student_target_country_${activeStudentId}`) : null) || 'Poland';
+  // Same destination billing uses (application's university, else the saved destination); never a guess.
+  const targetCountry = (getActiveStudentFeeProfile() as any)?.country || applications[0]?.universities?.country || (profile as any)?.target_country || undefined;
   const payment2Status = checkPaymentStage(payments, 2, targetCountry);
 
   const inst2Paid = payments.some(p =>
@@ -172,9 +174,9 @@ export const OfferLetters: React.FC = () => {
       // Notify staff
       try {
         const { createNotification } = await import('../lib/api/notifications');
-        const assignedCounselorId = (profile as any)?.assigned_counselor_id || (profile as any)?.assigned_counselor;
+        // Staff-wide alert: the student profile stores the counselor's name, not an account id.
         await createNotification({
-          user_id: assignedCounselorId || undefined,
+          user_id: null,
           title: 'Admission Offer Accepted by Student',
           body: `${studentName} accepted admission offer for ${app.university_name || 'Partner University'}. Awaiting tuition verification.`,
           category: 'Application',

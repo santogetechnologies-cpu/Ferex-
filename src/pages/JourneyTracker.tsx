@@ -1,3 +1,4 @@
+import { getActiveStudentFeeProfile } from '../lib/educationBilling';
 import { useStudentAgreement } from '../hooks/useStudentAgreement';
 import { useFeeConfig } from '../hooks/useFeeConfig';
 import { registrationSettled } from '../lib/educationBilling';
@@ -90,7 +91,7 @@ export const JourneyTracker: React.FC = () => {
 
   const realApps = applications.filter(isRealApplication);
   const activeApp = realApps[0];
-  const targetCountry = (activeStudentId ? localStorage.getItem(`ferex_student_target_country_${activeStudentId}`) : null) || activeApp?.universities?.country || (activeApp as any)?.country || (profile as any)?.target_country || '';
+  const targetCountry = ((getActiveStudentFeeProfile() as any)?.country || null) || activeApp?.universities?.country || (activeApp as any)?.country || (profile as any)?.target_country || '';
   const targetUniversity = activeApp?.university_name || 
     activeApp?.universities?.name || 
     (targetCountry && targetCountry !== '' ? `${targetCountry} Partner University` : 'No University Selected');

@@ -87,7 +87,7 @@ export async function fetchLiveStudentContext(userId?: string, userEmail?: strin
       result.email = profile.email || userEmail;
       result.phone = profile.phone;
       result.assignedCounselor = profile.assigned_counselor || profile.counselor_name || 'Senior European Admissions Officer';
-      result.targetCountry = profile.target_country || localStorage.getItem('ferex_student_target_country') || 'Poland';
+      result.targetCountry = profile.target_country || 'Not set yet';
     }
   } catch {}
 

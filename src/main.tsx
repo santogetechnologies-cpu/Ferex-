@@ -6,7 +6,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 
 // One-time cache hygiene to purge obsolete test garbage and guarantee cross-browser sync
 try {
-  const SYNC_VERSION = 'ferex_v6_db_source_of_truth';
+  const SYNC_VERSION = 'ferex_v7_db_source_of_truth';
   if (localStorage.getItem(SYNC_VERSION) !== 'true') {
     const keysToPurge = [
       'ferex_destinations_registry',
@@ -37,7 +37,7 @@ try {
     keysToPurge.forEach(k => {
       try { localStorage.removeItem(k); } catch {}
     });
-    Object.keys(localStorage).filter(k => k.startsWith('ferex_staff_registry_cache') || k.startsWith('ferex_conversations_') || k.startsWith('ferex_chat_msgs_') || k.startsWith('ferex_notifications_')).forEach(k => {
+    Object.keys(localStorage).filter(k => k.startsWith('ferex_staff_registry_cache') || k.startsWith('ferex_conversations_') || k.startsWith('ferex_chat_msgs_') || k.startsWith('ferex_notifications_') || k.startsWith('ferex_journey_overrides_')).forEach(k => {
       try { localStorage.removeItem(k); } catch {}
     });
     localStorage.setItem(SYNC_VERSION, 'true');

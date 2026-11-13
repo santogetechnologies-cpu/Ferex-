@@ -1,7 +1,7 @@
 import { useStudentAgreement } from '../hooks/useStudentAgreement';
 import { useFeeConfig } from '../hooks/useFeeConfig';
 import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
-import { registrationSettled } from '../lib/educationBilling';
+import { registrationSettled, getActiveStudentFeeProfile } from '../lib/educationBilling';
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -43,8 +43,7 @@ export const StudentDashboard: React.FC = () => {
   const { records: visaRecords } = useVisa(activeStudentId);
   const { getWorkflowForCountry } = useCountryWorkflows();
 
-  const perStudentKey = activeStudentId ? `ferex_student_target_country_${activeStudentId}` : 'ferex_student_target_country';
-  const targetCountry = (activeStudentId ? localStorage.getItem(perStudentKey) : null) || applications[0]?.universities?.country || (applications[0] as any)?.country || (profile as any)?.target_country || '';
+  const targetCountry = ((getActiveStudentFeeProfile() as any)?.country || '') || applications[0]?.universities?.country || (applications[0] as any)?.country || (profile as any)?.target_country || '';
   const targetWf = targetCountry ? getWorkflowForCountry(targetCountry) : null;
 
   const [configuredReqs, setConfiguredReqs] = React.useState<any[]>([]);

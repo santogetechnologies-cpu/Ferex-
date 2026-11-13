@@ -1,3 +1,4 @@
+import { getActiveStudentFeeProfile } from '../lib/educationBilling';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1054,7 +1055,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
           studentContext={{
             studentName: displayName,
             email: displayEmail,
-            targetCountry: (effectiveStudentId ? localStorage.getItem(`ferex_student_target_country_${effectiveStudentId}`) : null) || impersonated?.country || 'European Union',
+            targetCountry: ((getActiveStudentFeeProfile() as any)?.country || null) || impersonated?.country || 'European Union',
             targetUniversity: 'European Partner Universities',
             program: 'Higher Education Program',
             currentStep: hasSignedAgreement ? 3 : 2,

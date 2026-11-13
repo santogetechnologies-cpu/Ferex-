@@ -1,3 +1,4 @@
+import { getActiveStudentFeeProfile } from '../lib/educationBilling';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -33,10 +34,8 @@ export const Documents: React.FC = () => {
   const { documents: dbDocs, loading, addDoc, replaceDoc } = useDocuments(effectiveStudentId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [configuredReqs, setConfiguredReqs] = useState<DocumentRequirement[]>([]);
-  const [selectedCountryOverride, setSelectedCountryOverride] = useState<string>(() => {
-    const perKey = activeStudentId ? `ferex_student_target_country_${activeStudentId}` : 'ferex_student_target_country';
-    return (activeStudentId ? localStorage.getItem(perKey) : null) || 'Poland';
-  });
+  // Destination comes from the database (student's saved destination); never a hard-coded default country.
+  const [selectedCountryOverride, setSelectedCountryOverride] = useState<string>(() => ((getActiveStudentFeeProfile() as any)?.country || ''));
 
   // Target country resolution - dynamically bound to selected destination university & country
   const targetCountry = useMemo(() => {
@@ -46,41 +45,28 @@ export const Documents: React.FC = () => {
       return selectedCountryOverride.trim();
     }
 
-    try {
-      const storedCourse = (activeStudentId ? localStorage.getItem(`ferex_selected_course_${activeStudentId}`) : null) || null;
-      if (storedCourse) {
-        const parsed = JSON.parse(storedCourse);
-        if (parsed?.country && !isInvalid(parsed.country)) return parsed.country.trim();
-        if (parsed?.university?.country && !isInvalid(parsed.university.country)) return parsed.university.country.trim();
-      }
-      const storedUni = (activeStudentId ? localStorage.getItem(`ferex_student_selected_uni_${activeStudentId}`) : null) || null;
-      if (storedUni) {
-        const parsed = JSON.parse(storedUni);
-        if (parsed?.country && !isInvalid(parsed.country)) return parsed.country.trim();
-      }
-    } catch (e) {}
-
     const appCountry = applications[0]?.universities?.country || (applications[0] as any)?.country;
     if (appCountry && !isInvalid(appCountry)) return appCountry.trim();
 
     const profileTarget = (profile as any)?.target_country;
     if (profileTarget && !isInvalid(profileTarget)) return profileTarget.trim();
 
-    const localTarget = (activeStudentId ? localStorage.getItem(`ferex_student_target_country_${activeStudentId}`) : null) || null;
+    const localTarget = ((getActiveStudentFeeProfile() as any)?.country || null) || null;
     if (localTarget && !isInvalid(localTarget)) return localTarget.trim();
 
-    return 'Poland';
+    // No destination yet: show the general checklist rather than another country's requirements.
+    return '';
   }, [selectedCountryOverride, profile, applications, activeStudentId]);
 
   const loadRequirements = React.useCallback(() => {
-    const c = targetCountry || 'Poland';
+    const c = targetCountry || 'General';
     getDocumentRequirements(c).then(setConfiguredReqs);
   }, [targetCountry]);
 
   useEffect(() => {
     loadRequirements();
     const handleCountryUpdate = () => {
-      const stored = (activeStudentId ? localStorage.getItem(`ferex_student_target_country_${activeStudentId}`) : null) || null;
+      const stored = ((getActiveStudentFeeProfile() as any)?.country || null) || null;
       if (stored) setSelectedCountryOverride(stored);
       loadRequirements();
     };

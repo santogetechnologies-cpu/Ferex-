@@ -71,18 +71,19 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
     };
   }, []);
 
-  const [studentsMap, setStudentsMap] = useState<Record<string, { full_name: string; email: string; assigned_counselor?: string }>>({});
+  const [studentsMap, setStudentsMap] = useState<Record<string, { full_name: string; email: string; assigned_counselor?: string; target_country?: string }>>({});
 
   const refreshStudentsMap = React.useCallback(() => {
     getStudents().then(list => {
       if (list && Array.isArray(list)) {
-        const map: Record<string, { full_name: string; email: string; assigned_counselor?: string }> = {};
+        const map: Record<string, { full_name: string; email: string; assigned_counselor?: string; target_country?: string }> = {};
         list.forEach((s: any) => {
           if (s.id) {
             map[s.id] = {
               full_name: s.full_name || s.name || s.email?.split('@')[0] || 'Student',
               email: s.email || '',
-              assigned_counselor: s.assigned_counselor || ''
+              assigned_counselor: s.assigned_counselor || '',
+              target_country: s.target_country || ''
             };
           }
         });
@@ -100,13 +101,14 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
   }, [refreshStudentsMap]);
 
   const getStudentCountry = React.useCallback((studentId?: string) => {
-    if (!studentId) return 'Poland';
+    if (!studentId) return 'General';
+    const saved = studentsMap[studentId]?.target_country;
+    if (saved && saved.toLowerCase().trim() !== 'not set') return saved.trim();
     const app = allApps.find(a => a.student_id === studentId);
     const country = app?.universities?.country || (app as any)?.country;
     if (country && country.toLowerCase().trim() !== 'not set') return country.trim();
-    const perStudentKey = studentId ? `ferex_student_target_country_${studentId}` : 'ferex_student_target_country';
-    return (studentId ? localStorage.getItem(perStudentKey) : null) || 'Poland';
-  }, [allApps]);
+    return 'General';
+  }, [allApps, studentsMap]);
 
   const getDossierForStudent = React.useCallback((studentId: string, studentDocs: DocItem[]) => {
     const country = getStudentCountry(studentId);

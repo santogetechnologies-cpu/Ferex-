@@ -27,6 +27,21 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
   const { records, refresh, saveVisaUpdate } = useVisa();
   const { applications } = useApplications();
 
+  // Embassy / reference defaults follow the student's real destination instead of assuming Poland.
+  const countryOf = (studentId: string) => {
+    const st: any = allStudents.find(s => s.id === studentId);
+    const app: any = applications.find((a: any) => a.student_id === studentId);
+    return (st?.target_country || app?.universities?.country || '').trim();
+  };
+  const embassyFor = (studentId: string) => {
+    const c = countryOf(studentId);
+    return c ? `Embassy of ${c}, New Delhi` : '';
+  };
+  const refFor = (studentId: string) => {
+    const c = countryOf(studentId).replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'GEN';
+    return `VFS-${c}-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
+  };
+
   // Selected student state
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [toast, setToast] = useState('');
@@ -39,7 +54,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
 
   // Form fields for selected student VFS tracker
   const [vfsRefNo, setVfsRefNo] = useState('');
-  const [embassyName, setEmbassyName] = useState('Embassy of the Republic of Poland, New Delhi');
+  const [embassyName, setEmbassyName] = useState('');
   const [vfsCenter, setVfsCenter] = useState('VFS Global Center, Kochi / Mumbai');
   const [appointmentDate, setAppointmentDate] = useState('');
   const [passportNo, setPassportNo] = useState('');
@@ -76,10 +91,10 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
 
     if (existingRec) {
       setVfsRefNo(existingRec.vfs_ref_no || '');
-      setEmbassyName(existingRec.embassy_name || 'Embassy of Poland');
+      setEmbassyName(existingRec.embassy_name || embassyFor(selectedStudentId));
       setVfsCenter(existingRec.vfs_center || 'VFS Global Center');
       setAppointmentDate(existingRec.appointment_date || '');
-      setPassportNo(existingRec.passport_no || 'Z-8901240');
+      setPassportNo(existingRec.passport_no || '');
       setCourierTrackingNo(existingRec.courier_tracking_no || '');
       const loadedStage = existingRec.current_stage || 1;
       setCurrentStage(loadedStage);
@@ -102,11 +117,11 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
       setDecisionOutcome((loadedOutcome || 'Pending') as any);
     } else {
       // Clean defaults for new student selection
-      setVfsRefNo(`VFS-POL-2026-${Math.floor(10000 + Math.random() * 90000)}`);
-      setEmbassyName('Embassy of the Republic of Poland, New Delhi');
+      setVfsRefNo(refFor(selectedStudentId));
+      setEmbassyName(embassyFor(selectedStudentId));
       setVfsCenter('VFS Global Center, Kochi / Mumbai');
       setAppointmentDate(new Date().toISOString().split('T')[0]);
-      setPassportNo('Z-8901240');
+      setPassportNo('');
       setCourierTrackingNo('');
       setCurrentStage(1);
       setNotes('VFS appointment slot allocated. Awaiting document submission.');
@@ -250,7 +265,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
     const studentObj = students.find(s => s.id === initiateStudentId);
     const sName = studentObj?.full_name || studentObj?.email?.split('@')[0] || 'Student';
     const recId = generateUUID();
-    const defaultRef = `VFS-POL-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+    const defaultRef = refFor(initiateStudentId);
 
     try {
       setIsSaving(true);
@@ -259,10 +274,10 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
         student_name: sName,
         student_email: studentObj?.email || '',
         vfs_ref_no: defaultRef,
-        embassy_name: 'Embassy of the Republic of Poland, New Delhi',
+        embassy_name: embassyFor(initiateStudentId),
         vfs_center: 'VFS Global Center, Kochi / Mumbai',
         appointment_date: new Date().toISOString().split('T')[0],
-        passport_no: 'Z-8901240',
+        passport_no: '',
         courier_tracking_no: '',
         current_stage: 1,
         status_label: 'VFS Appointment Booked',
@@ -313,7 +328,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
       showToast(`Re-appeal initiated: ${sName} VFS stage reset back to Stage 2.`);
       setSelectedStudentId('');
     } catch (err: any) {
-      showToast(`Notice: Updated locally for ${sName}`);
+      showToast(`Error: ${err?.message || 'Failed to start re-appeal'} (nothing was saved for ${sName})`);
     } finally {
       setIsSaving(false);
     }
@@ -384,8 +399,8 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
       student_id: st.id,
       student_name: sName,
       email: st.email,
-      vfs_ref_no: rec?.vfs_ref_no || (hasRecord ? `VFS-POL-2026-${st.id.slice(0, 5).toUpperCase()}` : ''),
-      embassy_name: rec?.embassy_name || 'Embassy of Poland, New Delhi',
+      vfs_ref_no: rec?.vfs_ref_no || '',
+      embassy_name: rec?.embassy_name || embassyFor(st.id) || '—',
       assigned_counselor: st.assigned_counselor || (rec as any)?.assigned_counselor || 'Admin',
       current_stage: stageNum,
       status_label: statusLabel,
@@ -427,7 +442,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
         student_name: r.student_name || 'Student',
         email: '',
         vfs_ref_no: r.vfs_ref_no || '',
-        embassy_name: r.embassy_name || 'Embassy of Poland',
+        embassy_name: r.embassy_name || embassyFor(r.student_id) || '—',
         assigned_counselor: (r as any).assigned_counselor || 'Admin',
         current_stage: stageNum,
         status_label: statusLabel,
@@ -548,7 +563,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
                   <p className="text-[#58051E] font-extrabold">Initial VFS Setup Configuration:</p>
                   <p>• Initial Stage: <span className="font-bold text-slate-900">Stage 1 — VFS Appointment Booked</span></p>
                   <p>• Application Status: <span className="font-bold text-indigo-700">Auto-changes to "Visa Processing"</span></p>
-                  <p>• Default Consulate: <span className="font-bold text-slate-900">Embassy of Poland, New Delhi</span></p>
+                  <p>• Consulate: <span className="font-bold text-slate-900">{initiateStudentId ? (embassyFor(initiateStudentId) || 'Set after choosing destination') : 'Based on the student\'s destination'}</span></p>
                 </div>
 
                 <div className="flex gap-2 pt-2 border-t border-slate-100">

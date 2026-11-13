@@ -17,35 +17,21 @@ export async function getJourneyStages(studentId: string) {
     }
   } catch {}
 
-  let overrides: Record<number, { status: JourneyStage['status']; notes?: string; completed_at?: string | null }> = {};
-  try {
-    const stored = localStorage.getItem(`ferex_journey_overrides_${studentId}`);
-    if (stored) overrides = JSON.parse(stored);
-  } catch {}
-
-  // Verify Stage 3 (Advanced Registration Fee) strictly against backend payment records
+  // Stage 3 (registration) reflects real payments against THIS student's fees (plan, discount, destination).
   let isStage3Paid = false;
   try {
     const { data: payRows } = await supabase
       .from('payments')
       .select('*')
       .eq('student_id', studentId);
-    const config = getSystemFeeConfig();
-    isStage3Paid = registrationSettled(config, (payRows || []) as any);
+    const { loadStudentFeeProfile } = await import('../../hooks/useStudentFeeProfile');
+    const profile = await loadStudentFeeProfile(studentId);
+    isStage3Paid = registrationSettled(getSystemFeeConfig(), (payRows || []) as any, profile.country, profile);
   } catch {}
 
-  // Clean up any stale/unverified Completed override for Stage 3
-  if (!isStage3Paid && overrides[3]?.status === 'Completed') {
-    delete overrides[3];
-    try {
-      localStorage.setItem(`ferex_journey_overrides_${studentId}`, JSON.stringify(overrides));
-    } catch {}
-  }
-
   const mapped = (dbStages ?? []).map(s => {
-    const override = overrides[s.stage_number];
-    let status = override?.status || s.status;
-    let completed_at = override?.completed_at !== undefined ? override.completed_at : s.completed_at;
+    let status = s.status;
+    let completed_at = s.completed_at;
 
     // Strict Rule: Stage 3 (Advanced Registration Fee) MUST reflect actual verified payment records
     if (s.stage_number === 3) {
@@ -78,7 +64,7 @@ export async function getJourneyStages(studentId: string) {
       ...s,
       stage_name: s.stage_name || s.name || educationStages[s.stage_number - 1],
       status,
-      notes: override?.notes !== undefined ? override.notes : s.notes,
+      notes: s.notes,
       completed_at,
     };
   }) as JourneyStage[];
@@ -138,26 +124,15 @@ export async function setStudentStageStatus(
           .from('payments')
           .select('*')
           .eq('student_id', studentId);
-        const config = getSystemFeeConfig();
-        if (!registrationSettled(config, (payRows || []) as any)) {
+        const { loadStudentFeeProfile } = await import('../../hooks/useStudentFeeProfile');
+        const profile = await loadStudentFeeProfile(studentId);
+        if (!registrationSettled(getSystemFeeConfig(), (payRows || []) as any, profile.country, profile)) {
           status = 'Pending';
         }
       } catch {
         status = 'Pending';
       }
     }
-    // 1. Instantly record local stage status to guarantee responsive UI and persist across reloads
-    try {
-      const key = `ferex_journey_overrides_${studentId}`;
-      const existing = JSON.parse(localStorage.getItem(key) || '{}');
-      existing[stageNumber] = {
-        status,
-        notes: notes || '',
-        completed_at: status === 'Completed' ? new Date().toISOString() : null,
-      };
-      localStorage.setItem(key, JSON.stringify(existing));
-    } catch {}
-
     // 2. Sync to Supabase database (uses maybeSingle to prevent 406 / PGRST116 errors under student RLS)
     await ensureJourneyStages(studentId).catch(() => {});
     const stages = await getJourneyStages(studentId).catch(() => []);
@@ -175,8 +150,10 @@ export async function setStudentStageStatus(
       }, { onConflict: 'student_id,stage_number' }).select().maybeSingle();
       if (stageError) throw stageError;
     }
-  } catch {
-    // Graceful fallback
+  } catch (err) {
+    // Journey stages are also advanced by the database when the application status changes, so a refused
+    // write here (e.g. a student session) is not fatal; it is logged instead of faked in browser storage.
+    console.warn('[setStudentStageStatus]', err);
   } finally {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('ferex_journey_change'));

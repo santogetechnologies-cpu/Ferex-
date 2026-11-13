@@ -238,7 +238,6 @@ export const SelectUniversity: React.FC = () => {
     if (c !== 'All') {
       if (activeStudentId) {
         void saveEducationCountry(activeStudentId, c).catch(error => setSuccessToast(`Country selection could not be saved: ${error.message}`));
-        localStorage.setItem(`ferex_student_target_country_${activeStudentId}`, c);
       }
       window.dispatchEvent(new Event('ferex_country_change'));
     }
@@ -314,12 +313,7 @@ export const SelectUniversity: React.FC = () => {
 
       // Save target country & selected course for Documents and Counselor flows
       if (applyUni.country) {
-        void saveEducationCountry(activeStudentId, applyUni.country).catch(() => {});
-        localStorage.setItem(`ferex_student_target_country_${activeStudentId}`, applyUni.country);
-        // Persist target_country to users table in DB
-        try {
-          await supabase.from('users').update({ target_country: applyUni.country }).eq('id', activeStudentId);
-        } catch (e) {}
+        await saveEducationCountry(activeStudentId, applyUni.country).catch(err => console.warn('[SelectUniversity] destination not saved', err));
       }
 
       // Automatically advance workflow stage: Stage 6 (University Selection & Course Application)
@@ -329,22 +323,6 @@ export const SelectUniversity: React.FC = () => {
       } catch (stageErr) {
         console.warn('Workflow progression notice:', stageErr);
       }
-      const scopedUniKey = activeStudentId ? `ferex_student_selected_uni_${activeStudentId}` : 'ferex_student_selected_uni';
-      const scopedCourseKey = activeStudentId ? `ferex_selected_course_${activeStudentId}` : 'ferex_selected_course';
-      const uniPayload = JSON.stringify({
-        id: applyUni.id,
-        name: applyUni.name,
-        country: applyUni.country,
-        city: applyUni.city
-      });
-      const coursePayload = JSON.stringify({
-        university_id: applyUni.id,
-        university_name: applyUni.name,
-        country: applyUni.country,
-        program: `${degreeLevel} - ${selectedCourse || 'Higher Studies'}`
-      });
-      localStorage.setItem(scopedUniKey, uniPayload);
-      localStorage.setItem(scopedCourseKey, coursePayload);
 
       window.dispatchEvent(new Event('ferex_country_change'));
       window.dispatchEvent(new Event('ferex_application_change'));
