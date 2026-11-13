@@ -12,24 +12,26 @@ import {
   getRimiCustomers,
   getRimiSalesOrders,
   type RimiPaymentRecord,
-  type RimiCustomerRecord
+  type RimiCustomerRecord,
+  type RimiSalesOrderRecord
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-
-const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin', 'operations_manager', 'warehouse_lead', 'warehouse_staff', 'rimi_staff'];
+import { useRimiAccess } from '../../lib/rimiAccess';
 
 type DateFilterType = 'All' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly' | 'Custom';
 
 export const RimiCollections: React.FC = () => {
   const { profile } = useAuth();
-  const isAdmin = RIMI_ADMIN_ROLES.includes(profile?.role || '');
+  // Admin and Warehouse users can both record, edit and delete payment collections.
+  const { canManage: isAdmin } = useRimiAccess();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
   const [payments, setPayments] = useState<RimiPaymentRecord[]>([]);
   const [customers, setCustomers] = useState<RimiCustomerRecord[]>([]);
+  const [orders, setOrders] = useState<RimiSalesOrderRecord[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<RimiPaymentRecord | null>(null);
   const [editingPayment, setEditingPayment] = useState<RimiPaymentRecord | null>(null);
@@ -43,7 +45,8 @@ export const RimiCollections: React.FC = () => {
   const [newPayment, setNewPayment] = useState({
     customer_id: '',
     customer_name: '',
-    amount: 50000,
+    order_id: '',
+    amount: 0,
     payment_method: 'Bank Transfer',
     reference_no: '',
     notes: ''
@@ -62,32 +65,16 @@ export const RimiCollections: React.FC = () => {
         getRimiCustomers(),
         getRimiSalesOrders()
       ]);
-      const cancelledOrderIds = new Set(orderList.filter(o => o.order_status === 'Cancelled').map(o => o.id));
-      const cancelledOrderNos = new Set(orderList.filter(o => o.order_status === 'Cancelled').map(o => o.order_no));
-      const validPayments = payList.filter(p => {
-        if (p.order_id && cancelledOrderIds.has(p.order_id)) return false;
-        if (p.order_no && cancelledOrderNos.has(p.order_no)) return false;
-        if (p.notes) {
-          for (const no of cancelledOrderNos) {
-            if (no && p.notes.includes(no)) return false;
-          }
-        }
-        return true;
-      });
-      setPayments(validPayments);
+      setOrders(orderList);
+      // Money received stays on record even if its order was later cancelled.
+      setPayments(payList);
       setCustomers(custList);
-
-      if (custList.length > 0 && !newPayment.customer_id) {
-        setNewPayment(prev => ({
-          ...prev,
-          customer_id: custList[0].id,
-          customer_name: custList[0].business_name
-        }));
-      }
+    } catch (err: any) {
+      setToast(`Could not load collections: ${err.message || 'Database error'}`);
     } finally {
       setLoading(false);
     }
-  }, [newPayment.customer_id]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -111,13 +98,16 @@ export const RimiCollections: React.FC = () => {
 
   const handleAddPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPayment.customer_id || !newPayment.amount) return;
+    if (!newPayment.customer_id) { showToastMsg('Choose a customer.'); return; }
+    if (!(Number(newPayment.amount) > 0)) { showToastMsg('Enter an amount greater than zero.'); return; }
 
     try {
       const cust = customers.find(c => c.id === newPayment.customer_id);
       await createRimiPayment({
         customer_id: newPayment.customer_id,
         customer_name: cust?.business_name,
+        order_id: newPayment.order_id || undefined,
+        order_no: orders.find(o => o.id === newPayment.order_id)?.order_no,
         amount: Number(newPayment.amount),
         payment_method: newPayment.payment_method,
         reference_no: newPayment.reference_no,
@@ -127,6 +117,7 @@ export const RimiCollections: React.FC = () => {
 
       setShowAddModal(false);
       showToastMsg(`Logged payment of ₹${Number(newPayment.amount).toLocaleString('en-IN')}`);
+      setNewPayment({ customer_id: '', customer_name: '', order_id: '', amount: 0, payment_method: 'Bank Transfer', reference_no: '', notes: '' });
       await loadData();
     } catch (err: any) {
       showToastMsg(`Error logging payment: ${err.message || 'Database error'}`);
@@ -139,7 +130,6 @@ export const RimiCollections: React.FC = () => {
     }
     try {
       await deleteRimiPayment(id);
-      setPayments(prev => prev.filter(p => p.id !== id));
       showToastMsg(`Remittance ${paymentNo} deleted & ledger reversed.`);
       await loadData();
     } catch (err: any) {
@@ -499,23 +489,46 @@ export const RimiCollections: React.FC = () => {
                       setNewPayment({
                         ...newPayment,
                         customer_id: e.target.value,
-                        customer_name: cust?.business_name || ''
+                        customer_name: cust?.business_name || '',
+                        order_id: ''
                       });
                     }}
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                   >
+                    <option value="">Select customer…</option>
                     {customers.map(c => (
                       <option key={c.id} value={c.id}>{c.business_name} (Due: ₹{Number(c.outstanding_amount || 0).toLocaleString('en-IN')})</option>
                     ))}
                   </select>
                 </div>
 
+                {newPayment.customer_id && (
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Apply to Sales Order</label>
+                    <select
+                      value={newPayment.order_id}
+                      onChange={(e) => {
+                        const ord = orders.find(o => o.id === e.target.value);
+                        setNewPayment({ ...newPayment, order_id: e.target.value, amount: ord ? Number(ord.balance_amount) : newPayment.amount });
+                      }}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
+                    >
+                      <option value="">On account (not tied to an order — does not reduce an order balance)</option>
+                      {orders.filter(o => o.customer_id === newPayment.customer_id && o.order_status !== 'Cancelled' && Number(o.balance_amount) > 0).map(o => (
+                        <option key={o.id} value={o.id}>{o.order_no} — balance ₹{Number(o.balance_amount).toLocaleString('en-IN')} of ₹{Number(o.total_amount).toLocaleString('en-IN')}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Remittance Amount (₹ INR) *</label>
                   <input
                     type="number"
                     required
-                    value={newPayment.amount}
+                    min="0"
+                    step="any"
+                    value={newPayment.amount || ''}
                     onChange={(e) => setNewPayment({ ...newPayment, amount: Number(e.target.value) })}
                     className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-slate-900 focus:outline-none"
                   />

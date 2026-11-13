@@ -14,7 +14,8 @@ import { ClockInOutWidget } from '../components/ClockInOutWidget';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { ToastNotification } from '../components/ToastNotification';
 import { useAuth } from '../contexts/AuthContext';
-import { getRimiNotifications } from '../lib/api/rimi';
+import { getRimiNotifications, subscribeRimiRealtime } from '../lib/api/rimi';
+import { rimiAccessFor } from '../lib/rimiAccess';
 import { supabase } from '../lib/supabase';
 
 interface RimiLayoutProps {
@@ -34,21 +35,15 @@ interface NavSection {
   items: NavItem[];
 }
 
-const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
-
 export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { profile } = useAuth();
 
-  const storedRole = typeof window !== 'undefined' ? localStorage.getItem('ferex_current_role') : '';
-  const storedName = typeof window !== 'undefined' ? localStorage.getItem('ferex_current_name') : '';
-  const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('ferex_current_email') : '';
-
-  const userEmail = (profile?.email || storedEmail || 'rimi@ferex.com').toLowerCase();
-  const userRole = profile?.role || storedRole || (userEmail.includes('rimi') ? 'rimi_admin' : 'operations_manager');
-  const isAdmin = RIMI_ADMIN_ROLES.includes(userRole) || userEmail.includes('rimi') || userEmail.includes('santoge');
-  const userName = profile?.full_name || storedName || (isAdmin ? 'Rimi Cold Chain Admin' : 'Warehouse Operations Lead');
+  // Role and identity come only from the signed-in profile, never from the email address or browser storage.
+  const userEmail = (profile?.email || '').toLowerCase();
+  const { isAdmin } = rimiAccessFor(profile?.role);
+  const userName = profile?.full_name || userEmail.split('@')[0] || (isAdmin ? 'Cold Chain Admin' : 'Operations Manager');
 
   const roleLabel = isAdmin ? 'Cold Chain Admin' : 'Operations Manager';
   const initials = userName
@@ -76,6 +71,9 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
       // ignore
     }
   };
+
+  // Live sync: any change made by Admin or Warehouse refreshes the open screens of the other.
+  useEffect(() => subscribeRimiRealtime(), []);
 
   useEffect(() => {
     loadNotifs();

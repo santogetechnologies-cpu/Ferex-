@@ -1,83 +1,97 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Navigation, Search, MapPin, Plus, Trash2, X, CheckCircle2 } from 'lucide-react';
+import { Navigation, Search, MapPin, Plus, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
-import { getRimiVehicles } from '../../lib/api/rimi';
+import {
+  getRimiVehicles,
+  getRimiDeliveryRoutes,
+  createRimiDeliveryRoute,
+  deleteRimiDeliveryRoute,
+  type RimiDeliveryRouteRecord,
+  type RimiVehicleRecord
+} from '../../lib/api/rimi';
+import { useRimiAccess } from '../../lib/rimiAccess';
+
+const blankRoute = { name: '', origin: '', stops: '', vehicle: '', hours: '' };
 
 export const RimiDeliveryRoutes: React.FC = () => {
+  const { canManage } = useRimiAccess();
   const [searchQuery, setSearchQuery] = useState('');
-  const [routes, setRoutes] = useState<any[]>([]);
-  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [routes, setRoutes] = useState<RimiDeliveryRouteRecord[]>([]);
+  const [vehicles, setVehicles] = useState<RimiVehicleRecord[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
-
-  const [newRoute, setNewRoute] = useState({
-    name: '',
-    stops: '',
-    vehicle: 'Reefer MH-12-AZ-8901',
-    eta: '60 mins to next drop'
-  });
-
-  const loadData = useCallback(async () => {
-    const vData = await getRimiVehicles();
-    setVehicles(vData);
-
-    const saved = localStorage.getItem('ferex_rimi_routes');
-    if (saved) {
-      try {
-        setRoutes(JSON.parse(saved));
-        return;
-      } catch (err) {
-        console.error('Failed to parse saved routes:', err);
-      }
-    }
-
-    const defaultRoutes = [
-      { id: 'RTE-101', name: 'Western Express Cold Corridor', stops: 'Bhiwandi Hub -> Bandra -> Andheri -> Borivali', vehicle: 'Reefer MH-12-AZ-8901', eta: '45 mins to next drop', status: 'Active Dispatch' },
-      { id: 'RTE-102', name: 'Delhi NCR Supermarket Circuit', stops: 'Gurugram Facility -> Saket -> Dwarka -> Noida', vehicle: 'Reefer DL-03-CB-9920', eta: 'In Transit', status: 'Active Dispatch' },
-      { id: 'RTE-103', name: 'Bengaluru Tech Park HORECA Loop', stops: 'Electronic City -> Koramangala -> Indiranagar -> Whitefield', vehicle: 'Reefer KA-01-EF-4500', eta: 'Scheduled Morning', status: 'Active Dispatch' }
-    ];
-    setRoutes(defaultRoutes);
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const [newRoute, setNewRoute] = useState(blankRoute);
 
   const showToastMsg = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleAddRoute = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newRoute.name) return;
-    const created = {
-      id: `RTE-${Math.floor(104 + Math.random() * 900)}`,
-      ...newRoute,
-      status: 'Active Dispatch'
+  const loadData = useCallback(async () => {
+    try {
+      const [vData, rData] = await Promise.all([getRimiVehicles(), getRimiDeliveryRoutes()]);
+      setVehicles(vData);
+      setRoutes(rData);
+    } catch (err: any) {
+      showToastMsg(`Could not load routes: ${err.message || 'Database error'}`);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+    window.addEventListener('ferex_rimi_routes_change', loadData);
+    window.addEventListener('ferex_rimi_vehicles_change', loadData);
+    return () => {
+      window.removeEventListener('ferex_rimi_routes_change', loadData);
+      window.removeEventListener('ferex_rimi_vehicles_change', loadData);
     };
-    const updated = [created, ...routes];
-    setRoutes(updated);
-    localStorage.setItem('ferex_rimi_routes', JSON.stringify(updated));
-    setShowAddModal(false);
-    showToastMsg(`Created delivery route ${newRoute.name}`);
-    setNewRoute({ name: '', stops: '', vehicle: 'Reefer MH-12-AZ-8901', eta: '60 mins to next drop' });
+  }, [loadData]);
+
+  const handleAddRoute = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const stops = newRoute.stops.split(/->|,|\n/).map(s => s.trim()).filter(Boolean);
+    if (!newRoute.name.trim()) { showToastMsg('Enter the route name.'); return; }
+    if (stops.length === 0) { showToastMsg('Enter at least one drop stop.'); return; }
+    setSaving(true);
+    try {
+      await createRimiDeliveryRoute({
+        route_name: newRoute.name,
+        origin_facility: newRoute.origin,
+        destinations: stops,
+        assigned_vehicle: newRoute.vehicle || undefined,
+        estimated_transit_hours: Number(newRoute.hours) || 0,
+      });
+      setShowAddModal(false);
+      showToastMsg(`Created delivery route ${newRoute.name}`);
+      setNewRoute(blankRoute);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Could not save the route: ${err.message || 'Database error'}`);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDeleteRoute = (id: string) => {
-    const updated = routes.filter(r => r.id !== id);
-    setRoutes(updated);
-    localStorage.setItem('ferex_rimi_routes', JSON.stringify(updated));
-    showToastMsg('Removed delivery route');
+  const handleDeleteRoute = async (r: RimiDeliveryRouteRecord) => {
+    if (!window.confirm(`Remove route "${r.route_name}"?`)) return;
+    try {
+      await deleteRimiDeliveryRoute(r.id);
+      showToastMsg('Removed delivery route');
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Could not remove the route: ${err.message || 'Database error'}`);
+    }
   };
 
+  const q = searchQuery.toLowerCase();
   const filteredRoutes = routes.filter(r =>
-    (r.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (r.id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (r.stops || '').toLowerCase().includes(searchQuery.toLowerCase())
+    (r.route_name || '').toLowerCase().includes(q) ||
+    (r.route_code || '').toLowerCase().includes(q) ||
+    (r.destinations || []).join(' ').toLowerCase().includes(q)
   );
 
   return (
@@ -93,48 +107,58 @@ export const RimiDeliveryRoutes: React.FC = () => {
             Rimi Cold Chain Console • Multi-stop drop circuits, reefer truck route optimization, and delivery timing.
           </p>
         </div>
-        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
-          <Plus className="w-4 h-4 mr-1.5" /> Plan Delivery Route
-        </Button>
+        {canManage && (
+          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => { setNewRoute(blankRoute); setShowAddModal(true); }}>
+            <Plus className="w-4 h-4 mr-1.5" /> Plan Delivery Route
+          </Button>
+        )}
       </div>
 
       <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search route name, stop, or ID..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search route name, stop, or code..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
         </div>
-        <span className="text-xs font-bold text-slate-400">{filteredRoutes.length} Routes Active</span>
+        <span className="text-xs font-bold text-slate-400">{filteredRoutes.length} Routes</span>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filteredRoutes.map((r) => (
-          <Card key={r.id} className="p-5 border border-slate-200/70 shadow-xs space-y-4 hover:border-slate-300 transition-all flex flex-col justify-between">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black text-[#58051E] uppercase">{r.id}</span>
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">{r.status}</span>
-              </div>
-              <h3 className="text-base font-black text-slate-900 leading-snug">{r.name}</h3>
-              <div className="p-3 bg-slate-50 rounded-xl space-y-1">
-                <span className="text-[10px] font-extrabold uppercase text-slate-400">Multi-Stop Drop Sequence</span>
-                <div className="text-xs font-bold text-slate-800 flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-[#58051E] shrink-0" /> {r.stops}
+      {filteredRoutes.length === 0 ? (
+        <Card className="p-12 text-center text-xs font-semibold text-slate-400 border-dashed">
+          {routes.length === 0 ? 'No delivery routes planned yet.' : 'No routes match your search.'}
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredRoutes.map((r) => (
+            <Card key={r.id} className="p-5 border border-slate-200/70 shadow-xs space-y-4 hover:border-slate-300 transition-all flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-[#58051E] uppercase">{r.route_code || 'ROUTE'}</span>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">{r.status || (r.is_active ? 'Active' : 'Inactive')}</span>
                 </div>
+                <h3 className="text-base font-black text-slate-900 leading-snug">{r.route_name}</h3>
+                <div className="p-3 bg-slate-50 rounded-xl space-y-1">
+                  <span className="text-[10px] font-extrabold uppercase text-slate-400">Multi-Stop Drop Sequence</span>
+                  <div className="text-xs font-bold text-slate-800 flex items-start gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-[#58051E] shrink-0 mt-0.5" />
+                    <span>{[r.origin_facility, ...(r.destinations || [])].filter(Boolean).join(' → ') || '—'}</span>
+                  </div>
+                </div>
+                <div className="text-xs font-bold text-slate-600">Assigned Reefer: {r.assigned_vehicle || 'Not assigned'}</div>
               </div>
-              <div className="text-xs font-bold text-slate-600">Assigned Reefer: {r.vehicle}</div>
-            </div>
 
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-              <span>ETA: {r.eta}</span>
-              <button onClick={() => handleDeleteRoute(r.id)} className="p-1 text-slate-400 hover:text-red-600 rounded">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </Card>
-        ))}
-      </div>
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span>{Number(r.estimated_transit_hours) > 0 ? `Transit: ${r.estimated_transit_hours} h` : 'Transit time not set'}</span>
+                {canManage && (
+                  <button onClick={() => handleDeleteRoute(r)} className="p-1 text-slate-400 hover:text-red-600 rounded cursor-pointer" title="Remove route">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      {/* Add Modal */}
       <AnimatePresence>
         {showAddModal && (
           <>
@@ -146,28 +170,35 @@ export const RimiDeliveryRoutes: React.FC = () => {
               </div>
               <form onSubmit={handleAddRoute} className="space-y-3">
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Route Corridor Title</label>
-                  <input type="text" required value={newRoute.name} onChange={(e) => setNewRoute({ ...newRoute, name: e.target.value })} placeholder="e.g. Pune City Central Drop Circuit" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Route Corridor Title *</label>
+                  <input type="text" required value={newRoute.name} onChange={(e) => setNewRoute({ ...newRoute, name: e.target.value })} placeholder="e.g. Chennai – Madurai Cold Corridor" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Drop Stops Sequence</label>
-                  <textarea required value={newRoute.stops} onChange={(e) => setNewRoute({ ...newRoute, stops: e.target.value })} placeholder="Hub -> Stop 1 -> Stop 2 -> Stop 3" rows={2} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Origin Cold Hub</label>
+                  <input type="text" value={newRoute.origin} onChange={(e) => setNewRoute({ ...newRoute, origin: e.target.value })} placeholder="e.g. Chennai House" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Assigned Vehicle</label>
-                  {vehicles.length > 0 ? (
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Drop Stops (comma or → separated) *</label>
+                  <textarea required value={newRoute.stops} onChange={(e) => setNewRoute({ ...newRoute, stops: e.target.value })} placeholder="Stop 1, Stop 2, Stop 3" rows={2} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Assigned Vehicle</label>
                     <select value={newRoute.vehicle} onChange={(e) => setNewRoute({ ...newRoute, vehicle: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+                      <option value="">Not assigned</option>
                       {vehicles.map(v => (
                         <option key={v.id} value={v.vehicle_number}>{v.vehicle_number} ({v.driver_name})</option>
                       ))}
                     </select>
-                  ) : (
-                    <input type="text" required value={newRoute.vehicle} onChange={(e) => setNewRoute({ ...newRoute, vehicle: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
-                  )}
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Transit (hours)</label>
+                    <input type="number" min="0" step="any" value={newRoute.hours} onChange={(e) => setNewRoute({ ...newRoute, hours: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold" />
+                  </div>
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Route</Button>
+                  <Button type="submit" size="sm" disabled={saving} className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">{saving ? 'Saving…' : 'Save Route'}</Button>
                 </div>
               </form>
             </motion.div>

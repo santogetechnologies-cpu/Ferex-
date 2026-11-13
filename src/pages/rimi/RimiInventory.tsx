@@ -9,7 +9,6 @@ import {
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
-import { useAuth } from '../../contexts/AuthContext';
 import {
   getRimiBatches,
   createRimiBatch,
@@ -25,12 +24,12 @@ import {
   type RimiWarehouseRecord
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
+import { useRimiAccess } from '../../lib/rimiAccess';
 
-const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin', 'operations_manager', 'warehouse_lead', 'warehouse_staff', 'rimi_staff'];
 
 export const RimiInventory: React.FC = () => {
-  const { profile } = useAuth();
-  const isAdmin = RIMI_ADMIN_ROLES.includes(profile?.role || '');
+  // Admin and Warehouse users can both add, edit and delete batches.
+  const { canManage: isAdmin } = useRimiAccess();
 
   const [batches, setBatches] = useState<RimiInventoryBatchRecord[]>([]);
   const [products, setProducts] = useState<RimiProductRecord[]>([]);
@@ -52,17 +51,18 @@ export const RimiInventory: React.FC = () => {
   const [toast, setToast] = useState('');
 
   // Form State
-  const [formData, setFormData] = useState({
+  const blankForm = {
     product_id: '',
     batch_no: '',
-    mfg_date: new Date().toISOString().split('T')[0],
-    expiry_date: new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0],
-    quantity: 500,
+    mfg_date: '',
+    expiry_date: '',
+    quantity: 0,
     warehouse_id: '',
     storage_temp: '-18°C',
     certificate_url: '',
     notes: ''
-  });
+  };
+  const [formData, setFormData] = useState(blankForm);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -103,17 +103,12 @@ export const RimiInventory: React.FC = () => {
 
       setCategories(allUniqueCats.length > 0 ? allUniqueCats : (catData || ['Frozen Seafood']));
 
-      if (prodData.length > 0 && !formData.product_id) {
-        setFormData(prev => ({
-          ...prev,
-          product_id: prodData[0].id,
-          warehouse_id: whData.length > 0 ? whData[0].id : ''
-        }));
-      }
+    } catch (err: any) {
+      setToast(`Could not load inventory: ${err.message || 'Database error'}`);
     } finally {
       setLoading(false);
     }
-  }, [formData.product_id]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -137,7 +132,10 @@ export const RimiInventory: React.FC = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.product_id || !formData.quantity) return;
+    if (!formData.product_id) { showToast('Choose a product.'); return; }
+    if (!(Number(formData.quantity) > 0)) { showToast('Enter a quantity greater than zero.'); return; }
+    if (!formData.warehouse_id) { showToast('Choose the cold storage hub.'); return; }
+    if (!formData.mfg_date || !formData.expiry_date) { showToast('Enter the manufacturing and expiry dates.'); return; }
 
     try {
       const matchedWh = warehouses.find(w => w.id === formData.warehouse_id);
@@ -151,7 +149,7 @@ export const RimiInventory: React.FC = () => {
         expiry_date: formData.expiry_date,
         quantity: Number(formData.quantity),
         warehouse_id: formData.warehouse_id || undefined,
-        warehouse_name: matchedWh?.name || 'Cold Storage 1 (Chennai)',
+        warehouse_name: matchedWh?.name,
         storage_temp: formData.storage_temp,
         certificate_url: formData.certificate_url,
         notes: formData.notes
@@ -159,17 +157,7 @@ export const RimiInventory: React.FC = () => {
 
       setShowAddModal(false);
       showToast(`Created production lot batch for ${matchedProd?.name || 'product'}`);
-      setFormData({
-        product_id: products[0]?.id || '',
-        batch_no: '',
-        mfg_date: new Date().toISOString().split('T')[0],
-        expiry_date: new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0],
-        quantity: 500,
-        warehouse_id: warehouses[0]?.id || '',
-        storage_temp: '-18°C',
-        certificate_url: '',
-        notes: ''
-      });
+      setFormData(blankForm);
       await loadData();
     } catch (err: any) {
       showToast(`Error creating batch: ${err.message || 'Database error'}`);
@@ -259,7 +247,7 @@ export const RimiInventory: React.FC = () => {
 
         <Button
           size="sm"
-          onClick={() => setShowAddModal(true)}
+          onClick={() => { setFormData(blankForm); setShowAddModal(true); }}
           className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
         >
           <Plus className="w-4 h-4" /> Receive Production Batch
@@ -438,8 +426,9 @@ export const RimiInventory: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                   >
+                    <option value="">Select product…</option>
                     {products.map(p => (
-                      <option key={p.id} value={p.id}>[{p.sku}] {p.name} ({p.category})</option>
+                      <option key={p.id} value={p.id}>[{p.sku}] {p.name} ({p.category}) · ₹{Number(p.unit_price).toLocaleString('en-IN')}/{p.unit}</option>
                     ))}
                   </select>
                 </div>
@@ -460,7 +449,9 @@ export const RimiInventory: React.FC = () => {
                     <input
                       type="number"
                       required
-                      value={formData.quantity}
+                      min="0"
+                      step="any"
+                      value={formData.quantity || ''}
                       onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
                       className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
                     />
@@ -497,6 +488,7 @@ export const RimiInventory: React.FC = () => {
                       onChange={(e) => setFormData({ ...formData, warehouse_id: e.target.value })}
                       className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
                     >
+                      <option value="">Select cold storage hub…</option>
                       {warehouses.map(w => (
                         <option key={w.id} value={w.id}>{w.name} ({w.city})</option>
                       ))}

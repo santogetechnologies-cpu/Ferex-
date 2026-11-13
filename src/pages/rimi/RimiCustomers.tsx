@@ -11,6 +11,7 @@ import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRimiAccess } from '../../lib/rimiAccess';
 import {
   getRimiCustomers,
   createRimiCustomer,
@@ -27,16 +28,14 @@ import {
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 
-const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin', 'operations_manager', 'warehouse_lead', 'warehouse_manager', 'warehouse_staff', 'rimi_staff', 'ops'];
-
 const CUSTOMER_TYPES = ['Distributor', 'Shop / Retailer', 'Wholesaler', 'HORECA Partner'] as const;
 const PIPELINE_STAGES = ['Lead', 'Contacted', 'Sample Sent', 'Negotiation', 'Active Account', 'Suspended'] as const;
 const TERRITORIES = ['All', 'West Zone', 'North Zone', 'South Zone', 'East Zone', 'Central Hub'];
 
 export const RimiCustomers: React.FC = () => {
   const { profile } = useAuth();
-  const effectiveRole = profile?.role || (typeof window !== 'undefined' ? (localStorage.getItem('ferex_current_role') || localStorage.getItem('ferex_auth_role')) : '') || '';
-  const isAdmin = RIMI_ADMIN_ROLES.includes(effectiveRole) || effectiveRole.includes('admin') || effectiveRole.includes('warehouse') || effectiveRole.includes('operations');
+  // Admin and Warehouse users can both add, edit and delete customers.
+  const { canManage: isAdmin } = useRimiAccess();
 
   const [customers, setCustomers] = useState<RimiCustomerRecord[]>([]);
   const [staffList, setStaffList] = useState<any[]>([]);

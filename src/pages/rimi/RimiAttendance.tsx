@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Filter
 } from 'lucide-react';
+import { rimiAccessFor } from '../../lib/rimiAccess';
 import { useAuth } from '../../contexts/AuthContext';
 import { ClockInOutWidget } from '../../components/ClockInOutWidget';
 import { LeavePermissionModal } from '../../components/LeavePermissionModal';
@@ -52,11 +53,11 @@ export const RimiAttendance: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
 
-  const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
-  const storedName = typeof window !== 'undefined' ? localStorage.getItem('ferex_current_name') : null;
-  const userRole = (profile?.role || user?.user_metadata?.role || localStorage.getItem('ferex_current_role') || '').toLowerCase().trim();
-  const userEmail = (user?.email || profile?.email || localStorage.getItem('ferex_current_email') || '').toLowerCase().trim();
-  const isAdmin = RIMI_ADMIN_ROLES.includes(userRole) || isAdminUser(userRole, userEmail);
+  // Verification is for Cold Chain Admin only. Role and identity come from the signed-in profile, never from browser storage.
+  const storedName = null as string | null;
+  const userRole = (profile?.role || '').toLowerCase().trim();
+  const userEmail = (user?.email || profile?.email || '').toLowerCase().trim();
+  const isAdmin = rimiAccessFor(userRole).isAdmin;
 
   const adminId = user?.id || profile?.id || 'rimi-admin';
   const adminName = profile?.full_name || storedName || 'Rimi Cold Chain Admin';

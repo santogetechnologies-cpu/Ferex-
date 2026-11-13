@@ -10,17 +10,27 @@ import {
   updateRimiWarehouse,
   deleteRimiWarehouse,
   getRimiBatches,
+  updateRimiBatch,
+  deleteRimiBatch,
+  updateRimiProduct,
+  getRimiProductCategories,
+  getRimiStockMovements,
   type RimiWarehouseRecord,
-  type RimiInventoryBatchRecord
+  type RimiInventoryBatchRecord,
+  type RimiStockMovementRecord
 } from '../../lib/api/rimi';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../contexts/AuthContext';
+import { useRimiAccess } from '../../lib/rimiAccess';
 
-const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin', 'operations_manager', 'warehouse_lead', 'warehouse_staff', 'rimi_staff'];
+/** Occupancy keeps two decimals so a small but real load (e.g. 4 of 1300 pallets = 0.31%) never shows as 0%. */
+const fmtPct = (used: number, total: number) => {
+  if (!(total > 0)) return '0';
+  const v = (used / total) * 100;
+  return v === 0 ? '0' : v < 1 ? v.toFixed(2) : v < 10 ? v.toFixed(1) : String(Math.round(v));
+};
 
 export const RimiWarehouses: React.FC = () => {
-  const { profile } = useAuth();
-  const isAdmin = RIMI_ADMIN_ROLES.includes(profile?.role || '');
+  // Admin and Warehouse users can both add, edit and delete cold storage hubs and the stock stored in them.
+  const { canManage: isAdmin } = useRimiAccess();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [facilities, setFacilities] = useState<RimiWarehouseRecord[]>([]);
@@ -28,29 +38,40 @@ export const RimiWarehouses: React.FC = () => {
   const [selectedFacility, setSelectedFacility] = useState<RimiWarehouseRecord | null>(null);
   const [editingFacility, setEditingFacility] = useState<RimiWarehouseRecord | null>(null);
   const [hubStockSearch, setHubStockSearch] = useState('');
+  const [hubTab, setHubTab] = useState<'stock' | 'history'>('stock');
+  const [movements, setMovements] = useState<RimiStockMovementRecord[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [editingStored, setEditingStored] = useState<any>(null);
+  const [savingStored, setSavingStored] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
 
   const [newWh, setNewWh] = useState({
     name: '',
-    city: 'Mumbai',
+    city: '',
     address: '',
     cold_room_temp_celsius: -22.0,
-    total_capacity_pallets: 1000,
-    manager_name: 'Hub Manager',
-    manager_phone: '+91 98200 11223'
+    total_capacity_pallets: 0,
+    manager_name: '',
+    manager_phone: ''
   });
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [whData, batchData] = await Promise.all([
+      const [whData, batchData, moveData, catData] = await Promise.all([
         getRimiWarehouses(),
-        getRimiBatches()
+        getRimiBatches(),
+        getRimiStockMovements(),
+        getRimiProductCategories().catch(() => [] as string[]),
       ]);
       setFacilities(whData);
       setBatches(batchData);
+      setMovements(moveData);
+      setCategories(catData);
+    } catch (err: any) {
+      setToast(`Could not load cold storage data: ${err.message || 'Database error'}`);
     } finally {
       setLoading(false);
     }
@@ -59,17 +80,12 @@ export const RimiWarehouses: React.FC = () => {
   useEffect(() => {
     loadData();
 
-    const channel = supabase
-      .channel('realtime_rimi_warehouses_page')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_warehouses' }, () => loadData())
-      .subscribe();
-
     const handleSync = () => loadData();
-    window.addEventListener('ferex_rimi_warehouses_change', handleSync);
+    const events = ['ferex_rimi_warehouses_change', 'ferex_rimi_batches_change', 'ferex_rimi_movements_change'];
+    events.forEach(ev => window.addEventListener(ev, handleSync));
 
     return () => {
-      supabase.removeChannel(channel);
-      window.removeEventListener('ferex_rimi_warehouses_change', handleSync);
+      events.forEach(ev => window.removeEventListener(ev, handleSync));
     };
   }, [loadData]);
 
@@ -95,6 +111,7 @@ export const RimiWarehouses: React.FC = () => {
 
       setShowAddModal(false);
       showToastMsg(`Added cold storage facility "${newWh.name}"`);
+      setNewWh({ name: '', city: '', address: '', cold_room_temp_celsius: -22.0, total_capacity_pallets: 0, manager_name: '', manager_phone: '' });
       await loadData();
     } catch (err: any) {
       showToastMsg(`Error adding facility: ${err.message || 'Database error'}`);
@@ -103,10 +120,10 @@ export const RimiWarehouses: React.FC = () => {
 
   const handleDelete = async (id: string, name: string) => {
     if (!isAdmin) {
-      showToastMsg('Restricted: Only Cold Chain Admin can remove warehouse hubs.');
+      showToastMsg('Restricted: your role cannot remove cold storage hubs.');
       return;
     }
-    if (!window.confirm(`Delete facility "${name}"?`)) return;
+    if (!window.confirm(`Delete cold storage hub "${name}"? A hub that still holds stock cannot be deleted.`)) return;
 
     try {
       await deleteRimiWarehouse(id);
@@ -126,7 +143,7 @@ export const RimiWarehouses: React.FC = () => {
         city: editingFacility.city,
         address: editingFacility.address,
         cold_room_temp_celsius: Number(editingFacility.cold_room_temp_celsius) || -22.0,
-        total_capacity_pallets: Number(editingFacility.total_capacity_pallets) || 1000,
+        total_capacity_pallets: Number(editingFacility.total_capacity_pallets),
         manager_name: editingFacility.manager_name,
         manager_phone: editingFacility.manager_phone
       });
@@ -135,6 +152,64 @@ export const RimiWarehouses: React.FC = () => {
       await loadData();
     } catch (err: any) {
       showToastMsg(`Error updating facility: ${err.message || 'Database error'}`);
+    }
+  };
+
+  const openEditStored = (b: RimiInventoryBatchRecord) => {
+    setEditingStored({
+      id: b.id,
+      product_id: b.product_id,
+      product_name: b.product_name,
+      unit: b.unit,
+      batch_no: b.batch_no,
+      quantity: b.quantity,
+      mfg_date: b.mfg_date || '',
+      expiry_date: b.expiry_date,
+      storage_temp: b.storage_temp || '',
+      category: b.product_category || '',
+    });
+  };
+
+  const handleSaveStored = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingStored) return;
+    if (!(Number(editingStored.quantity) >= 0)) { showToastMsg('Enter a valid quantity.'); return; }
+    if (!editingStored.expiry_date) { showToastMsg('Enter the expiry date.'); return; }
+    if (editingStored.mfg_date && new Date(editingStored.expiry_date) <= new Date(editingStored.mfg_date)) {
+      showToastMsg('Expiry date must be after the manufacturing date.');
+      return;
+    }
+    setSavingStored(true);
+    try {
+      await updateRimiBatch(editingStored.id, {
+        batch_no: editingStored.batch_no.trim(),
+        quantity: Number(editingStored.quantity),
+        mfg_date: editingStored.mfg_date || undefined,
+        expiry_date: editingStored.expiry_date,
+        storage_temp: editingStored.storage_temp,
+        product_category: editingStored.category || undefined,
+      } as any);
+      if (editingStored.category && editingStored.product_id) {
+        await updateRimiProduct(editingStored.product_id, { category: editingStored.category } as any);
+      }
+      setEditingStored(null);
+      showToastMsg(`Updated ${editingStored.product_name} in this hub.`);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Error updating stored product: ${err.message || 'Database error'}`);
+    } finally {
+      setSavingStored(false);
+    }
+  };
+
+  const handleRemoveStored = async (b: RimiInventoryBatchRecord) => {
+    if (!window.confirm(`Remove ${b.product_name} (batch ${b.batch_no}, ${Number(b.quantity).toLocaleString('en-IN')} ${b.unit || 'units'}) from this hub? The batch and its history are deleted and the hub's pallet usage is recalculated.`)) return;
+    try {
+      await deleteRimiBatch(b.id);
+      showToastMsg(`Removed ${b.product_name} from this hub.`);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Error removing stored product: ${err.message || 'Database error'}`);
     }
   };
 
@@ -196,15 +271,10 @@ export const RimiWarehouses: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredFacilities.map(f => {
-            const facilityBatches = batches.filter(b =>
-              b.warehouse_id === f.id ||
-              (b.warehouse_name && f.name && b.warehouse_name.toLowerCase().trim() === f.name.toLowerCase().trim())
-            );
-            const batchStock = facilityBatches.reduce((acc, b) => acc + (Number(b.quantity) || 0), 0);
-            const calculatedPallets = Math.ceil(batchStock / 500);
-            const effectivePallets = Math.max(calculatedPallets, Number(f.utilized_pallets) || 0);
-            const totalCap = f.total_capacity_pallets > 0 ? f.total_capacity_pallets : 1000;
-            const utilPct = Math.min(100, Math.round((effectivePallets / totalCap) * 100));
+            // Occupancy comes from the batches stored in this hub (calculated by the database layer).
+            const effectivePallets = Number(f.utilized_pallets) || 0;
+            const totalCap = Number(f.total_capacity_pallets) || 0;
+            const utilPct = totalCap > 0 ? Math.min(100, (effectivePallets / totalCap) * 100) : 0;
 
             return (
               <Card key={f.id} className="p-5 border border-slate-200/80 shadow-xs space-y-3.5 hover:border-slate-300 transition-all flex flex-col justify-between">
@@ -227,7 +297,7 @@ export const RimiWarehouses: React.FC = () => {
                   <div className="p-3 bg-slate-50 rounded-xl space-y-1.5 text-xs text-slate-600">
                     <div className="flex justify-between font-bold text-slate-800">
                       <span>Pallet Occupancy:</span>
-                      <span>{effectivePallets} / {totalCap} Pallets ({utilPct}%)</span>
+                      <span>{effectivePallets} / {totalCap} Pallets ({fmtPct(effectivePallets, totalCap)}%)</span>
                     </div>
                     <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                       <div
@@ -238,8 +308,8 @@ export const RimiWarehouses: React.FC = () => {
                   </div>
 
                   <div className="text-[11px] text-slate-500 flex items-center justify-between pt-1 border-t border-slate-100">
-                    <span>Manager: {f.manager_name}</span>
-                    <span className="font-semibold text-slate-700">{f.manager_phone}</span>
+                    <span>{f.product_count || 0} product{(f.product_count || 0) === 1 ? '' : 's'} · {f.batch_count || 0} batch{(f.batch_count || 0) === 1 ? '' : 'es'}</span>
+                    <span className="font-semibold text-slate-700">{f.manager_name}{f.manager_phone ? ` · ${f.manager_phone}` : ''}</span>
                   </div>
 
                   {/* Stock Inspection Trigger */}
@@ -250,6 +320,7 @@ export const RimiWarehouses: React.FC = () => {
                     onClick={() => {
                       setSelectedFacility(f);
                       setHubStockSearch('');
+                      setHubTab('stock');
                     }}
                     className="w-full text-xs font-bold bg-white hover:bg-slate-50 text-slate-800 border-slate-200 hover:border-[#58051E]/40 flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
                   >
@@ -324,10 +395,11 @@ export const RimiWarehouses: React.FC = () => {
 
               {/* Hub Metrics */}
               {(() => {
-                const hubBatches = batches.filter(b =>
-                  b.warehouse_id === selectedFacility.id ||
-                  (b.warehouse_name && selectedFacility.name && b.warehouse_name.toLowerCase().trim() === selectedFacility.name.toLowerCase().trim())
-                );
+                const live = facilities.find(f => f.id === selectedFacility.id) || selectedFacility;
+                // Only the batches that belong to THIS hub (by hub id), never another hub's.
+                const hubBatches = batches.filter(b => b.warehouse_id === selectedFacility.id);
+                const hubMovements = movements.filter(m => m.warehouse_id === selectedFacility.id);
+                const nameOf = (id?: string) => hubBatches.find(b => b.product_id === id)?.product_name || 'Product';
                 const totalUnits = hubBatches.reduce((acc, b) => acc + Number(b.quantity || 0), 0);
                 const uniqueSkus = new Set(hubBatches.map(b => b.product_name || b.product_id)).size;
 
@@ -353,10 +425,35 @@ export const RimiWarehouses: React.FC = () => {
                       </div>
                       <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                         <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Pallet Utilization</span>
-                        <span className="text-base font-black text-cyan-800 mt-0.5 block">{selectedFacility.utilized_pallets} / {selectedFacility.total_capacity_pallets}</span>
+                        <span className="text-base font-black text-cyan-800 mt-0.5 block">{live.utilized_pallets} / {live.total_capacity_pallets} ({fmtPct(Number(live.utilized_pallets) || 0, Number(live.total_capacity_pallets) || 0)}%)</span>
                       </div>
                     </div>
 
+                    <div className="grid grid-cols-2 gap-2 text-xs font-bold">
+                      <button type="button" onClick={() => setHubTab('stock')} className={`h-9 rounded-xl border cursor-pointer ${hubTab === 'stock' ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-white text-slate-600 border-slate-200'}`}>Stored Products</button>
+                      <button type="button" onClick={() => setHubTab('history')} className={`h-9 rounded-xl border cursor-pointer ${hubTab === 'history' ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-white text-slate-600 border-slate-200'}`}>History ({hubMovements.length})</button>
+                    </div>
+
+                    {hubTab === 'history' ? (
+                      <div className="space-y-2">
+                        <p className="text-[11px] font-semibold text-slate-500">Stock movements for {selectedFacility.name} only.</p>
+                        {hubMovements.length === 0 ? (
+                          <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-xs font-bold text-slate-500">No stock movements recorded for this hub yet.</div>
+                        ) : hubMovements.map(m => (
+                          <div key={m.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-black text-slate-900">{nameOf(m.product_id)} <span className="font-semibold text-slate-500">· {m.movement_type}</span></p>
+                              <p className="text-[11px] text-slate-500 font-semibold">{m.reference_no || '—'}{m.notes ? ` · ${m.notes}` : ''}</p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">{new Date(m.created_at).toLocaleString('en-IN')} · {m.performed_by}</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className={`text-sm font-black ${Number(m.quantity_change) < 0 ? 'text-rose-600' : 'text-emerald-700'}`}>{Number(m.quantity_change) > 0 ? '+' : ''}{Number(m.quantity_change).toLocaleString('en-IN')}</span>
+                              <span className="block text-[10px] text-slate-400">now {Number(m.resulting_quantity).toLocaleString('en-IN')}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (<>
                     {/* Stock Search Filter */}
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -440,12 +537,20 @@ export const RimiWarehouses: React.FC = () => {
                                     Temp: {b.storage_temp || selectedFacility.cold_room_temp_celsius + '°C'}
                                   </span>
                                 </div>
+                                {isAdmin && (
+                                  <div className="flex justify-end gap-1.5 pt-1.5 border-t border-slate-200/60">
+                                    <button type="button" onClick={() => openEditStored(b)} className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-700 hover:bg-white border border-slate-200 flex items-center gap-1 cursor-pointer"><Edit3 className="w-3 h-3" /> Edit</button>
+                                    <button type="button" onClick={() => handleRemoveStored(b)} className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-rose-700 hover:bg-rose-50 border border-rose-200 flex items-center gap-1 cursor-pointer"><Trash2 className="w-3 h-3" /> Remove</button>
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
                         </div>
                       )}
                     </div>
+
+                    </>)}
 
                     <Button
                       size="sm"
@@ -457,6 +562,61 @@ export const RimiWarehouses: React.FC = () => {
                   </div>
                 );
               })()}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Stored Product Modal */}
+      <AnimatePresence>
+        {editingStored && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60]" onClick={() => setEditingStored(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-3xl shadow-2xl z-[70] border border-slate-100 p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                <h3 className="text-sm font-black text-slate-900">Edit Stored Product — {editingStored.product_name}</h3>
+                <button onClick={() => setEditingStored(null)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+              </div>
+              <form onSubmit={handleSaveStored} className="space-y-3 text-xs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Quantity ({editingStored.unit || 'units'})</label>
+                    <input type="number" min="0" step="any" required value={editingStored.quantity} onChange={(e) => setEditingStored({ ...editingStored, quantity: e.target.value })} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Batch Number</label>
+                    <input type="text" required value={editingStored.batch_no} onChange={(e) => setEditingStored({ ...editingStored, batch_no: e.target.value })} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Manufacturing Date</label>
+                    <input type="date" value={editingStored.mfg_date} onChange={(e) => setEditingStored({ ...editingStored, mfg_date: e.target.value })} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Expiry Date</label>
+                    <input type="date" required value={editingStored.expiry_date} onChange={(e) => setEditingStored({ ...editingStored, expiry_date: e.target.value })} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Storage Temperature</label>
+                    <input type="text" value={editingStored.storage_temp} onChange={(e) => setEditingStored({ ...editingStored, storage_temp: e.target.value })} placeholder="-18°C" className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Category</label>
+                    <select value={editingStored.category} onChange={(e) => setEditingStored({ ...editingStored, category: e.target.value })} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900">
+                      {editingStored.category && !categories.includes(editingStored.category) && <option value={editingStored.category}>{editingStored.category}</option>}
+                      {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <p className="text-[11px] font-semibold text-slate-500">Changing the quantity is logged as a stock adjustment, and this hub's pallet usage is recalculated.</p>
+                <div className="flex gap-2 pt-1">
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setEditingStored(null)}>Cancel</Button>
+                  <Button type="submit" size="sm" disabled={savingStored} className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">{savingStored ? 'Saving…' : 'Save Changes'}</Button>
+                </div>
+              </form>
             </motion.div>
           </>
         )}
@@ -605,7 +765,7 @@ export const RimiWarehouses: React.FC = () => {
                     <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Pallet Capacity</label>
                     <input
                       type="number"
-                      value={newWh.total_capacity_pallets}
+                      value={newWh.total_capacity_pallets || ""}
                       onChange={(e) => setNewWh({ ...newWh, total_capacity_pallets: Number(e.target.value) })}
                       placeholder="1000"
                       className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"

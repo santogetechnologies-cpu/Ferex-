@@ -15,13 +15,11 @@ import {
   type RimiVehicleRecord
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../contexts/AuthContext';
-
-const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
+import { useRimiAccess } from '../../lib/rimiAccess';
 
 export const RimiDeliveries: React.FC = () => {
-  const { profile } = useAuth();
-  const isAdmin = RIMI_ADMIN_ROLES.includes(profile?.role || '');
+  // Admin and Warehouse users both run dispatch.
+  const { canManage: isAdmin } = useRimiAccess();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState('');

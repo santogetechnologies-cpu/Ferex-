@@ -19,15 +19,20 @@ import {
   type RimiStaffMember
 } from '../../lib/api/rimi';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRimiAccess } from '../../lib/rimiAccess';
+import { createNotification } from '../../lib/api/notifications';
 
-const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
+const STATUS_OPTIONS = ['Pending', 'In Progress', 'Completed', 'Incomplete'] as const;
+const fmtDateTime = (v?: string | null) => (v ? new Date(v).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—');
+const toLocalInput = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
 export const RimiTasks: React.FC = () => {
   const { profile } = useAuth();
-  const userRole = profile?.role || '';
-  const isAdmin = RIMI_ADMIN_ROLES.includes(userRole);
-  const currentUserName = profile?.full_name || profile?.email?.split('@')[0] || 'Rimi Operations Desk';
-  const currentUserEmail = profile?.email || 'ops@ferex.com';
+  // Only Cold Chain Admin assigns, renames, reassigns and deletes tasks; assignees update the status of their own tasks.
+  const { isAdmin } = useRimiAccess();
+  const currentUserName = profile?.full_name || profile?.email?.split('@')[0] || '';
+  const currentUserEmail = profile?.email || '';
+  const currentUserId = profile?.id || '';
 
   const [tasks, setTasks] = useState<RimiTask[]>([]);
   const [staffList, setStaffList] = useState<RimiStaffMember[]>([]);
@@ -58,6 +63,8 @@ export const RimiTasks: React.FC = () => {
       ]);
       setTasks(tasksData || []);
       setStaffList(staffData || []);
+    } catch (err: any) {
+      setToast(`Could not load tasks: ${err.message || 'Database error'}`);
     } finally {
       setLoading(false);
     }
@@ -75,99 +82,134 @@ export const RimiTasks: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
+  const isMine = (t: RimiTask) => {
+    const email = currentUserEmail.toLowerCase();
+    const name = currentUserName.toLowerCase();
+    return Boolean(
+      (currentUserId && t.assigned_staff_id === currentUserId) ||
+      (email && (t.assigned_staff_email || '').toLowerCase() === email) ||
+      (name && (t.assigned_staff_name || '').toLowerCase() === name)
+    );
+  };
+
   const filteredTasks = tasks.filter(t => {
     if (filterCategory !== 'All' && t.category !== filterCategory) return false;
     if (filterPriority !== 'All' && t.priority !== filterPriority) return false;
     if (filterStatus !== 'All' && t.status !== filterStatus) return false;
-    if (filterStaff !== 'All' && t.assigned_to_name !== filterStaff && t.assigned_to_id !== filterStaff) return false;
-    if (myTasksOnly) {
-      const assigned = (t.assigned_to_name || '').toLowerCase();
-      const user = currentUserName.toLowerCase();
-      const email = currentUserEmail.toLowerCase();
-      const isMine = assigned.includes(user) || assigned.includes(email) || t.assigned_to_id === currentUserEmail;
-      if (!isMine) return false;
-    }
+    if (filterStaff !== 'All' && t.assigned_staff_name !== filterStaff && t.assigned_staff_id !== filterStaff) return false;
+    if (myTasksOnly && !isMine(t)) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       return (
         (t.title || '').toLowerCase().includes(q) ||
         (t.description || '').toLowerCase().includes(q) ||
-        (t.assigned_to_name || '').toLowerCase().includes(q)
+        (t.assigned_staff_name || '').toLowerCase().includes(q)
       );
     }
     return true;
   });
 
   // Create form state
-  const [newTask, setNewTask] = useState({
+  const blankTask = () => ({
     title: '',
     description: '',
-    category: 'Dispatch & Logistics' as const,
-    assigned_to_name: staffList[0]?.name || currentUserName,
-    priority: 'High' as const,
-    due_date: new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0]
+    category: 'Dispatch & Logistics',
+    assigned_staff_id: '',
+    priority: 'High' as RimiTask['priority'],
+    start_at: toLocalInput(new Date()),
+    due_at: toLocalInput(new Date(Date.now() + 2 * 86400000)),
   });
+  const [newTask, setNewTask] = useState(blankTask());
+
+  const notifyAssignee = async (staffId: string, title: string, body: string) => {
+    try {
+      await createNotification({ user_id: staffId, title, body, category: 'Task', link: '/rimi/tasks' });
+    } catch {}
+  };
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTask.title) return;
+    if (!newTask.title.trim()) return;
+    const staff = staffList.find(s => s.id === newTask.assigned_staff_id);
+    if (!staff) { showToastMsg('Choose the staff member to assign this task to.'); return; }
+    if (!newTask.due_at) { showToastMsg('Set the task due date and time.'); return; }
+    if (newTask.start_at && new Date(newTask.due_at) < new Date(newTask.start_at)) { showToastMsg('The due date cannot be before the start date.'); return; }
 
-    const assignedName = newTask.assigned_to_name || staffList[0]?.name || currentUserName;
-    const matchedStaff = staffList.find(s => s.name === assignedName);
-    await createRimiTask({
-      ...newTask,
-      assigned_to_name: assignedName,
-      assigned_to_id: matchedStaff?.id || 'staff-1',
-      assigned_to_role: (matchedStaff?.role || 'Operations Staff') as any,
-      assigned_by: isAdmin ? 'Rimi Distribution Director' : currentUserName
-    });
-
-    setShowCreateModal(false);
-    showToastMsg('Task created and assigned!');
-    setNewTask({
-      title: '',
-      description: '',
-      category: 'Dispatch & Logistics',
-      assigned_to_name: staffList[0]?.name || currentUserName,
-      priority: 'High',
-      due_date: new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0]
-    });
-    loadData();
+    try {
+      await createRimiTask({
+        title: newTask.title,
+        description: newTask.description,
+        category: newTask.category,
+        priority: newTask.priority,
+        assigned_staff_id: staff.id,
+        assigned_staff_name: staff.name,
+        assigned_staff_email: staff.email,
+        start_at: newTask.start_at ? new Date(newTask.start_at).toISOString() : undefined,
+        due_at: new Date(newTask.due_at).toISOString(),
+        created_by: currentUserName || 'Rimi Admin',
+        assigned_by: currentUserName || 'Rimi Admin',
+      });
+      await notifyAssignee(staff.id, 'New task assigned', `${newTask.title} — due ${fmtDateTime(new Date(newTask.due_at).toISOString())}`);
+      setShowCreateModal(false);
+      showToastMsg(`Task assigned to ${staff.name}.`);
+      setNewTask(blankTask());
+      loadData();
+    } catch (err: any) {
+      showToastMsg(`Could not create the task: ${err.message || 'Database error'}`);
+    }
   };
 
   const handleSaveRenameTitle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingTitleTask || !newTitleValue.trim()) return;
 
-    await renameRimiTaskTitle(editingTitleTask.id, newTitleValue.trim());
-    showToastMsg(`Task title updated: "${newTitleValue.trim()}"`);
-    setEditingTitleTask(null);
-    loadData();
+    try {
+      await renameRimiTaskTitle(editingTitleTask.id, newTitleValue.trim());
+      showToastMsg(`Task title updated: "${newTitleValue.trim()}"`);
+      setEditingTitleTask(null);
+      loadData();
+    } catch (err: any) {
+      showToastMsg(`Could not rename the task: ${err.message || 'Database error'}`);
+    }
   };
 
   const handleSaveReassignment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reassigningTask || !selectedNewStaff) return;
 
-    const matched = staffList.find(s => s.name === selectedNewStaff);
-    await reassignRimiTask(reassigningTask.id, matched?.id || 'staff-1', selectedNewStaff);
-    showToastMsg(`Task reassigned to ${selectedNewStaff}`);
-    setReassigningTask(null);
-    loadData();
+    const matched = staffList.find(s => s.id === selectedNewStaff);
+    if (!matched) { showToastMsg('Choose a staff member.'); return; }
+    try {
+      await reassignRimiTask(reassigningTask.id, matched.id, matched.name);
+      await notifyAssignee(matched.id, 'Task reassigned to you', reassigningTask.title);
+      showToastMsg(`Task reassigned to ${matched.name}`);
+      setReassigningTask(null);
+      loadData();
+    } catch (err: any) {
+      showToastMsg(`Could not reassign the task: ${err.message || 'Database error'}`);
+    }
   };
 
-  const handleToggleStatus = async (task: RimiTask) => {
-    const nextStatus = task.status === 'Completed' ? 'In Progress' : task.status === 'In Progress' ? 'Completed' : 'In Progress';
-    await updateRimiTask(task.id, { status: nextStatus });
-    showToastMsg(`Task marked as ${nextStatus}`);
-    loadData();
+  const handleSetStatus = async (task: RimiTask, status: RimiTask['status']) => {
+    if (status === task.status) return;
+    try {
+      await updateRimiTask(task.id, { status });
+      showToastMsg(`Task marked as ${status}`);
+      loadData();
+    } catch (err: any) {
+      showToastMsg(`Could not update the task: ${err.message || 'Database error'}`);
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this task?')) return;
-    await deleteRimiTask(id);
-    showToastMsg('Task deleted.');
-    loadData();
+    try {
+      await deleteRimiTask(id);
+      showToastMsg('Task deleted.');
+      loadData();
+    } catch (err: any) {
+      showToastMsg(`Could not delete the task: ${err.message || 'Database error'}`);
+    }
   };
 
   return (
@@ -196,7 +238,7 @@ export const RimiTasks: React.FC = () => {
           <Button
             variant="primary"
             className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-md flex items-center gap-2"
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => { setNewTask(blankTask()); setShowCreateModal(true); }}
           >
             <Plus className="w-4 h-4" /> Assign New Task
           </Button>
@@ -256,6 +298,7 @@ export const RimiTasks: React.FC = () => {
               <option value="Pending">Pending</option>
               <option value="In Progress">In Progress</option>
               <option value="Completed">Completed</option>
+              <option value="Incomplete">Incomplete</option>
             </select>
           </div>
         </div>
@@ -300,51 +343,61 @@ export const RimiTasks: React.FC = () => {
                 </div>
               </div>
 
-              {/* Status Toggle Button */}
-              <button
-                onClick={() => handleToggleStatus(t)}
-                className={`px-3 py-1 rounded-full text-xs font-black transition-all cursor-pointer flex items-center gap-1 ${
-                  t.status === 'Completed'
-                    ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                    : t.status === 'In Progress'
-                    ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                    : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
-                }`}
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" /> {t.status}
-              </button>
+              {/* Status: the assignee (or an admin) sets Pending / In Progress / Completed / Incomplete */}
+              {(isAdmin || isMine(t)) ? (
+                <select
+                  value={t.status === 'Cancelled' ? 'Incomplete' : t.status}
+                  onChange={e => handleSetStatus(t, e.target.value as RimiTask['status'])}
+                  className={`px-2.5 py-1 rounded-full text-xs font-black cursor-pointer border-0 focus:outline-hidden ${
+                    t.status === 'Completed' ? 'bg-emerald-100 text-emerald-800'
+                    : t.status === 'In Progress' ? 'bg-blue-100 text-blue-800'
+                    : t.status === 'Incomplete' ? 'bg-rose-100 text-rose-800'
+                    : 'bg-amber-100 text-amber-800'
+                  }`}
+                >
+                  {STATUS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+              ) : (
+                <span className={`px-3 py-1 rounded-full text-xs font-black ${
+                  t.status === 'Completed' ? 'bg-emerald-100 text-emerald-800'
+                  : t.status === 'In Progress' ? 'bg-blue-100 text-blue-800'
+                  : t.status === 'Incomplete' ? 'bg-rose-100 text-rose-800'
+                  : 'bg-amber-100 text-amber-800'
+                }`}>{t.status}</span>
+              )}
             </div>
 
-            <p className="text-xs text-slate-600 font-medium leading-relaxed">{t.description}</p>
+            <p className="text-xs text-slate-600 font-medium leading-relaxed">{t.description || 'No description added.'}</p>
 
-            <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between text-xs gap-2">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 font-bold text-slate-700">
-                  <UserCheck className="w-3.5 h-3.5 text-[#58051E]" />
-                  <span>{t.assigned_to_name}</span>
-                </div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] font-semibold text-slate-500 bg-slate-50 rounded-xl p-3">
+              <div><span className="block text-[9px] font-extrabold uppercase text-slate-400">Assigned to</span><span className="text-slate-800 font-bold flex items-center gap-1"><UserCheck className="w-3 h-3 text-[#58051E]" /> {t.assigned_staff_name || 'Unassigned'}</span></div>
+              <div><span className="block text-[9px] font-extrabold uppercase text-slate-400">Assigned on</span><span className="text-slate-800">{fmtDateTime(t.created_at)}</span></div>
+              <div><span className="block text-[9px] font-extrabold uppercase text-slate-400">Start</span><span className="text-slate-800">{fmtDateTime(t.start_at)}</span></div>
+              <div><span className="block text-[9px] font-extrabold uppercase text-slate-400">Due</span><span className="text-slate-800">{t.due_at ? fmtDateTime(t.due_at) : (t.due_date || '—')}</span></div>
+              <div><span className="block text-[9px] font-extrabold uppercase text-slate-400">Completed</span><span className="text-slate-800">{fmtDateTime(t.completed_at)}</span></div>
+              <div><span className="block text-[9px] font-extrabold uppercase text-slate-400">Deadline</span>
+                <span className={`font-black ${t.timeliness === 'On Time' ? 'text-emerald-700' : t.timeliness === 'Delayed' || t.timeliness === 'Overdue' ? 'text-rose-600' : 'text-slate-700'}`}>{t.timeliness || 'No Deadline'}</span>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs gap-2">
+              <span className="text-[10px] font-semibold text-slate-400">Assigned by {t.assigned_by || t.created_by || 'Admin'}</span>
+              <div className="flex items-center gap-3">
                 {isAdmin && (
                   <button
                     onClick={() => {
                       setReassigningTask(t);
-                      setSelectedNewStaff(t.assigned_to_name || staffList[0]?.name || '');
+                      setSelectedNewStaff(t.assigned_staff_id || staffList[0]?.id || '');
                     }}
                     className="text-[10px] text-blue-600 font-bold hover:underline cursor-pointer"
                   >
                     Reassign
                   </button>
                 )}
-              </div>
-
-              <div className="flex items-center gap-3 text-slate-400 text-[11px] font-semibold">
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" /> Due: {t.due_date}
-                </span>
-
                 {isAdmin && (
                   <button
                     onClick={() => handleDelete(t.id)}
-                    className="hover:text-rose-600 cursor-pointer p-1"
+                    className="hover:text-rose-600 text-slate-400 cursor-pointer p-1"
                     title="Delete task"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -407,7 +460,7 @@ export const RimiTasks: React.FC = () => {
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold"
                   >
                     {staffList.map(s => (
-                      <option key={s.id} value={s.name}>{s.name} ({s.role})</option>
+                      <option key={s.id} value={s.id}>{s.name} ({s.role})</option>
                     ))}
                   </select>
                 </div>
@@ -488,27 +541,38 @@ export const RimiTasks: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Assign to Staff</label>
+                    <label className="block font-bold text-slate-700 mb-1">Assign to Staff *</label>
                     <select
-                      value={newTask.assigned_to_name}
-                      onChange={e => setNewTask({ ...newTask, assigned_to_name: e.target.value })}
+                      required
+                      value={newTask.assigned_staff_id}
+                      onChange={e => setNewTask({ ...newTask, assigned_staff_id: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold"
                     >
+                      <option value="">Select staff member…</option>
                       {staffList.map(s => (
-                        <option key={s.id} value={s.name}>{s.name} ({s.role})</option>
+                        <option key={s.id} value={s.id}>{s.name} ({s.role})</option>
                       ))}
                     </select>
                   </div>
-
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Due Date</label>
+                    <label className="block font-bold text-slate-700 mb-1">Start Date & Time</label>
                     <input
-                      type="date"
-                      value={newTask.due_date}
-                      onChange={e => setNewTask({ ...newTask, due_date: e.target.value })}
+                      type="datetime-local"
+                      value={newTask.start_at}
+                      onChange={e => setNewTask({ ...newTask, start_at: e.target.value })}
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Due Date & Time *</label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={newTask.due_at}
+                    onChange={e => setNewTask({ ...newTask, due_at: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                  />
                 </div>
 
                 <div className="flex justify-end gap-2 pt-3">

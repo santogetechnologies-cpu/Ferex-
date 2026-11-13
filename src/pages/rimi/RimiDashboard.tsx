@@ -11,18 +11,17 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRimiAccess } from '../../lib/rimiAccess';
 import {
   getRimiDashboardMetrics,
   type RimiDashboardMetrics
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 
-const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
-
 export const RimiDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const isAdmin = RIMI_ADMIN_ROLES.includes(profile?.role || '');
+  const { isAdmin, canManage } = useRimiAccess();
 
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<RimiDashboardMetrics>({
@@ -46,13 +45,13 @@ export const RimiDashboard: React.FC = () => {
   const loadDashboard = useCallback(async () => {
     setLoading(true);
     try {
-      const staffEmail = !isAdmin ? profile?.email : undefined;
+      const staffEmail = !canManage ? profile?.email : undefined;
       const data = await getRimiDashboardMetrics(staffEmail);
       setMetrics(data);
     } finally {
       setLoading(false);
     }
-  }, [isAdmin, profile?.email]);
+  }, [canManage, profile?.email]);
 
   useEffect(() => {
     loadDashboard();

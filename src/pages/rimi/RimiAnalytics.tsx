@@ -51,16 +51,19 @@ export const RimiAnalytics: React.FC = () => {
   const loadMetrics = useCallback(async () => {
     setLoading(true);
     try {
+      const days = timeRange === '30d' ? 30 : timeRange === '90d' ? 90 : timeRange === '1y' ? 365 : undefined;
       const [anData, dbData] = await Promise.all([
-        getRimiAnalyticsMetrics(),
+        getRimiAnalyticsMetrics(days),
         getRimiDashboardMetrics()
       ]);
       setAnalytics(anData);
       setDashboard(dbData);
+    } catch (err) {
+      console.warn('[RimiAnalytics] could not load metrics', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [timeRange]);
 
   useEffect(() => {
     loadMetrics();
@@ -176,7 +179,7 @@ export const RimiAnalytics: React.FC = () => {
               {loading ? '...' : `₹${analytics.totalOutstanding.toLocaleString('en-IN')}`}
             </span>
             <span className="text-[10px] font-extrabold text-slate-500 block mt-1">
-              Invoiced customer balances
+              Invoiced less collected (cancelled orders excluded)
             </span>
           </div>
         </Card>
@@ -195,7 +198,7 @@ export const RimiAnalytics: React.FC = () => {
                 {loading ? '...' : `${dashboard.storageUtilizationPercentage}%`}
               </span>
               <span className="text-[11px] font-bold text-slate-500">
-                {dashboard.utilizedStorageCapacity} / {dashboard.totalStorageCapacity || 1000} Pallets
+                {dashboard.utilizedStorageCapacity} / {dashboard.totalStorageCapacity} Pallets
               </span>
             </div>
             <div className="w-full h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">

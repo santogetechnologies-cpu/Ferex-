@@ -12,7 +12,9 @@ import {
   getRimiProductCategories,
   createRimiProductCategory,
   deleteRimiProductCategory,
-  getRimiWarehouses
+  getRimiWarehouses,
+  getRimiBatches,
+  addRimiStock
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 
@@ -54,7 +56,8 @@ export const RimiProducts: React.FC = () => {
           price: `₹${Number(d.unit_price || 0).toLocaleString('en-IN')} / ${d.unit || 'KG'}`,
           temp: d.storage_temp || '-18°C',
           minStock: d.min_stock_alert || 50,
-          status: 'In Stock',
+          stock: Number(d.total_stock) || 0,
+          status: (Number(d.total_stock) || 0) <= 0 ? 'Out of Stock' : (Number(d.total_stock) || 0) <= (d.min_stock_alert || 50) ? 'Low Stock' : 'In Stock',
           statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
         }));
         setProducts(formatted);
@@ -91,12 +94,13 @@ export const RimiProducts: React.FC = () => {
     name: '',
     category: '',
     unit: 'KG',
-    price: '₹450',
+    price: '',
     temp: '-18°C',
     minStock: 50,
-    quantity: 100,
+    quantity: 0,
     warehouse_id: '',
     batch_no: '',
+    mfg_date: '',
     expiry_date: ''
   });
 
@@ -108,17 +112,25 @@ export const RimiProducts: React.FC = () => {
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCatInput.trim()) return;
-    const updated = await createRimiProductCategory(newCatInput.trim());
-    setCategories(updated);
-    showToastMsg(`Added product category "${newCatInput.trim()}"`);
-    setNewCatInput('');
+    try {
+      const updated = await createRimiProductCategory(newCatInput.trim());
+      setCategories(updated);
+      showToastMsg(`Added product category "${newCatInput.trim()}"`);
+      setNewCatInput('');
+    } catch (err: any) {
+      showToastMsg(err.message || 'Could not add the category');
+    }
   };
 
   const handleDeleteCategory = async (cat: string) => {
-    const updated = await deleteRimiProductCategory(cat);
-    setCategories(updated);
-    if (filterCategory === cat) setFilterCategory('All');
-    showToastMsg(`Removed category "${cat}"`);
+    try {
+      const updated = await deleteRimiProductCategory(cat);
+      setCategories(updated);
+      if (filterCategory === cat) setFilterCategory('All');
+      showToastMsg(`Removed category "${cat}"`);
+    } catch (err: any) {
+      showToastMsg(err.message || 'Could not remove the category');
+    }
   };
 
   const handleAddProduct = async (e: React.FormEvent) => {
@@ -126,7 +138,16 @@ export const RimiProducts: React.FC = () => {
     if (!newProd.name.trim()) return;
     try {
       const chosenCategory = newProd.category || categories[0] || 'Frozen Seafood';
-      const cleanPrice = parseFloat(newProd.price.replace(/[^0-9.]/g, '')) || 450;
+      const cleanPrice = parseFloat(String(newProd.price).replace(/[^0-9.]/g, ''));
+      if (!(cleanPrice >= 0) || Number.isNaN(cleanPrice)) {
+        showToastMsg('Enter the wholesale price.');
+        return;
+      }
+      if (Number(newProd.quantity) > 0) {
+        if (!newProd.warehouse_id) { showToastMsg('Choose the cold storage hub for the opening stock.'); return; }
+        if (!newProd.expiry_date) { showToastMsg('Enter the batch expiry date.'); return; }
+        if (newProd.mfg_date && new Date(newProd.expiry_date) <= new Date(newProd.mfg_date)) { showToastMsg('Expiry date must be after the manufacturing date.'); return; }
+      }
       const cleanCatPrefix = chosenCategory.replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() || 'CAT';
       const newSku = `RIMI-${cleanCatPrefix}-${Math.floor(100 + Math.random() * 900)}`;
       const selectedWh = warehouses.find(w => w.id === newProd.warehouse_id);
@@ -140,26 +161,16 @@ export const RimiProducts: React.FC = () => {
         storage_temp: newProd.temp || '-18°C',
         min_stock_alert: Number(newProd.minStock) || 50,
         quantity: Number(newProd.quantity) || 0,
-        warehouse_id: newProd.warehouse_id || (warehouses[0]?.id || undefined),
-        warehouse_name: selectedWh?.name || warehouses[0]?.name || 'Central Cold Hub Mumbai',
+        warehouse_id: newProd.warehouse_id || undefined,
+        warehouse_name: selectedWh?.name,
         batch_no: newProd.batch_no.trim() || undefined,
+        mfg_date: newProd.mfg_date || undefined,
         expiry_date: newProd.expiry_date || undefined
       });
 
       setShowAddModal(false);
       showToastMsg(`Added frozen SKU ${created?.sku || newSku} (Opening Stock: ${newProd.quantity} ${newProd.unit})`);
-      setNewProd({
-        name: '',
-        category: categories[0] || '',
-        unit: 'KG',
-        price: '₹450',
-        temp: '-18°C',
-        minStock: 50,
-        quantity: 100,
-        warehouse_id: '',
-        batch_no: '',
-        expiry_date: ''
-      });
+      setNewProd({ name: '', category: categories[0] || '', unit: 'KG', price: '', temp: '-18°C', minStock: 50, quantity: 0, warehouse_id: '', batch_no: '', mfg_date: '', expiry_date: '' });
       await loadData();
     } catch (err: any) {
       console.error('[RimiProducts] Error saving product SKU:', err);
@@ -170,29 +181,82 @@ export const RimiProducts: React.FC = () => {
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
-    await updateRimiProduct(editingProduct.rawId, {
-      name: editingProduct.name,
-      category: editingProduct.category,
-      unit_price: Number(editingProduct.rawPrice) || 0,
-      storage_temp: editingProduct.temp,
-      unit: editingProduct.unit || 'KG',
-      min_stock_alert: Number(editingProduct.minStock) || 50
-    });
-    setEditingProduct(null);
-    showToastMsg('Product SKU updated in database!');
-    await loadData();
+    try {
+      await updateRimiProduct(editingProduct.rawId, {
+        name: editingProduct.name,
+        category: editingProduct.category,
+        unit_price: Number(editingProduct.rawPrice) || 0,
+        storage_temp: editingProduct.temp,
+        unit: editingProduct.unit || 'KG',
+        min_stock_alert: Number(editingProduct.minStock) || 50
+      });
+      setEditingProduct(null);
+      showToastMsg('Product SKU updated.');
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Failed to update SKU: ${err.message || 'Error'}`);
+    }
   };
 
   const handleDeleteProduct = async (id: string, rawId?: string) => {
-    if (!window.confirm(`Are you sure you want to delete SKU "${id}"? This action will permanently remove it.`)) {
+    if (!window.confirm(`Delete SKU "${id}"? Its stock batches are removed with it. Past sales order lines keep their record. This cannot be undone.`)) {
       return;
     }
     try {
       await deleteRimiProduct(rawId || id);
-      setProducts(prev => prev.filter(p => p.id !== id && p.rawId !== rawId));
       showToastMsg(`Removed SKU ${id}`);
+      await loadData();
     } catch (err: any) {
       showToastMsg(`Error deleting product: ${err.message || 'Unknown error'}`);
+    }
+  };
+
+  // ── Add stock to an existing batch, or create a new batch at a cold storage hub ──
+  const [stockFor, setStockFor] = useState<any>(null);
+  const [stockBatches, setStockBatches] = useState<any[]>([]);
+  const [stockForm, setStockForm] = useState({ mode: 'new' as 'new' | 'existing', batch_id: '', batch_no: '', warehouse_id: '', mfg_date: '', expiry_date: '', quantity: 0 });
+  const [savingStock, setSavingStock] = useState(false);
+
+  const openAddStock = async (p: any) => {
+    setStockFor(p);
+    setStockForm({ mode: 'new', batch_id: '', batch_no: '', warehouse_id: '', mfg_date: '', expiry_date: '', quantity: 0 });
+    try {
+      const list = await getRimiBatches({ productId: p.rawId });
+      setStockBatches(list.filter(b => b.status !== 'Expired'));
+      if (list.length > 0) setStockForm(f => ({ ...f, mode: 'existing', batch_id: list[0].id }));
+    } catch {
+      setStockBatches([]);
+    }
+  };
+
+  const handleSaveStock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stockFor) return;
+    if (!(Number(stockForm.quantity) > 0)) { showToastMsg('Enter a quantity greater than zero.'); return; }
+    if (stockForm.mode === 'existing' && !stockForm.batch_id) { showToastMsg('Choose the batch to add stock to.'); return; }
+    if (stockForm.mode === 'new') {
+      if (!stockForm.warehouse_id) { showToastMsg('Choose the cold storage hub.'); return; }
+      if (!stockForm.expiry_date) { showToastMsg('Enter the batch expiry date.'); return; }
+      if (stockForm.mfg_date && new Date(stockForm.expiry_date) <= new Date(stockForm.mfg_date)) { showToastMsg('Expiry date must be after the manufacturing date.'); return; }
+    }
+    setSavingStock(true);
+    try {
+      await addRimiStock({
+        product_id: stockFor.rawId,
+        quantity: Number(stockForm.quantity),
+        batch_id: stockForm.mode === 'existing' ? stockForm.batch_id : undefined,
+        batch_no: stockForm.mode === 'new' ? stockForm.batch_no.trim() || undefined : undefined,
+        warehouse_id: stockForm.mode === 'new' ? stockForm.warehouse_id : undefined,
+        mfg_date: stockForm.mfg_date || undefined,
+        expiry_date: stockForm.expiry_date || undefined,
+      });
+      showToastMsg(`Added ${stockForm.quantity} ${stockFor.unit} to ${stockFor.name}.`);
+      setStockFor(null);
+      await loadData();
+    } catch (err: any) {
+      showToastMsg(`Could not add stock: ${err.message || 'Error'}`);
+    } finally {
+      setSavingStock(false);
     }
   };
 
@@ -220,18 +284,7 @@ export const RimiProducts: React.FC = () => {
             <Layers className="w-3.5 h-3.5 mr-1.5 text-[#58051E]" /> Manage Categories
           </Button>
           <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => {
-            setNewProd({
-              name: '',
-              category: categories[0] || 'Frozen Seafood',
-              unit: 'KG',
-              price: '₹450',
-              temp: '-18°C',
-              minStock: 50,
-              quantity: 100,
-              warehouse_id: warehouses[0]?.id || '',
-              batch_no: '',
-              expiry_date: ''
-            });
+            setNewProd({ name: '', category: categories[0] || 'Frozen Seafood', unit: 'KG', price: '', temp: '-18°C', minStock: 50, quantity: 0, warehouse_id: '', batch_no: '', mfg_date: '', expiry_date: '' });
             setShowAddModal(true);
           }}>
             <Plus className="w-4 h-4 mr-1.5" /> Add Master SKU
@@ -319,6 +372,10 @@ export const RimiProducts: React.FC = () => {
                     <Thermometer className="w-3.5 h-3.5 text-blue-500" />
                     <span>Storage Temp: {p.temp}</span>
                   </div>
+                  <div className="flex items-center justify-between text-[11px] font-bold">
+                    <span className="text-slate-700">Available stock: {Number(p.stock || 0).toLocaleString('en-IN')} {p.unit}</span>
+                    <span className={p.status === 'In Stock' ? 'text-emerald-700' : p.status === 'Low Stock' ? 'text-amber-600' : 'text-rose-600'}>{p.status}</span>
+                  </div>
                   <div className="text-[11px] font-semibold text-slate-400">
                     Min Stock Reorder: {p.minStock} Units
                   </div>
@@ -330,6 +387,7 @@ export const RimiProducts: React.FC = () => {
                   <Eye className="w-3.5 h-3.5" /> View SKU Specs
                 </button>
                 <div className="flex items-center gap-1">
+                  <button onClick={() => openAddStock(p)} className="px-2 py-1 rounded-lg text-[11px] font-bold text-[#58051E] hover:bg-rose-50" title="Add stock to a batch">+ Stock</button>
                   <button onClick={() => setEditingProduct({ ...p })} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Edit SKU">
                     <Edit3 className="w-3.5 h-3.5" />
                   </button>
@@ -387,7 +445,7 @@ export const RimiProducts: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Wholesale Price (₹ INR)</label>
-                    <input type="text" required value={newProd.price} onChange={(e) => setNewProd({ ...newProd, price: e.target.value })} placeholder="₹450" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900" />
+                     <input type="number" min="0" step="any" required value={newProd.price} onChange={(e) => setNewProd({ ...newProd, price: e.target.value })} placeholder="e.g. 450" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Storage Temp</label>
@@ -401,8 +459,7 @@ export const RimiProducts: React.FC = () => {
                       type="number"
                       min="0"
                       step="any"
-                      required
-                      value={newProd.quantity}
+                      value={newProd.quantity || ''}
                       onChange={(e) => setNewProd({ ...newProd, quantity: Number(e.target.value) || 0 })}
                       placeholder="e.g. 500"
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
@@ -415,7 +472,7 @@ export const RimiProducts: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Cold Storage Hub / Facility Assignment *</label>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Cold Storage Hub / Facility Assignment {Number(newProd.quantity) > 0 ? '*' : ''}</label>
                   <select
                     value={newProd.warehouse_id}
                     onChange={(e) => setNewProd({ ...newProd, warehouse_id: e.target.value })}
@@ -428,7 +485,7 @@ export const RimiProducts: React.FC = () => {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Batch / Lot Number</label>
                     <input
@@ -436,6 +493,16 @@ export const RimiProducts: React.FC = () => {
                       value={newProd.batch_no}
                       onChange={(e) => setNewProd({ ...newProd, batch_no: e.target.value })}
                       placeholder="Auto-generate or enter Lot #"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Manufacturing Date</label>
+                    <input
+                      type="date"
+                      value={newProd.mfg_date}
+                      max={new Date().toISOString().slice(0, 10)}
+                      onChange={(e) => setNewProd({ ...newProd, mfg_date: e.target.value })}
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
                     />
                   </div>
@@ -452,6 +519,74 @@ export const RimiProducts: React.FC = () => {
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
                   <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Master SKU</Button>
+                </div>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Add Stock Modal */}
+      <AnimatePresence>
+        {stockFor && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setStockFor(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Add Stock — {stockFor.name}</h3>
+                  <p className="text-[11px] font-semibold text-slate-500">Currently {Number(stockFor.stock || 0).toLocaleString('en-IN')} {stockFor.unit} available</p>
+                </div>
+                <button onClick={() => setStockFor(null)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+              </div>
+              <form onSubmit={handleSaveStock} className="space-y-3">
+                <div className="grid grid-cols-2 gap-2 text-xs font-bold">
+                  <button type="button" disabled={stockBatches.length === 0} onClick={() => setStockForm({ ...stockForm, mode: 'existing', batch_id: stockForm.batch_id || stockBatches[0]?.id || '' })}
+                    className={`h-9 rounded-xl border ${stockForm.mode === 'existing' ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-white text-slate-600 border-slate-200'} disabled:opacity-40`}>Existing batch</button>
+                  <button type="button" onClick={() => setStockForm({ ...stockForm, mode: 'new' })}
+                    className={`h-9 rounded-xl border ${stockForm.mode === 'new' ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-white text-slate-600 border-slate-200'}`}>New batch</button>
+                </div>
+                {stockForm.mode === 'existing' ? (
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Batch</label>
+                    <select value={stockForm.batch_id} onChange={(e) => setStockForm({ ...stockForm, batch_id: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900">
+                      {stockBatches.map(b => (
+                        <option key={b.id} value={b.id}>{b.batch_no} · {b.warehouse_name || 'No hub'} · {b.quantity} {b.unit} · exp {b.expiry_date}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Cold Storage Hub *</label>
+                      <select value={stockForm.warehouse_id} onChange={(e) => setStockForm({ ...stockForm, warehouse_id: e.target.value })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900">
+                        <option value="">Select Cold Storage Hub</option>
+                        {warehouses.map(w => <option key={w.id} value={w.id}>{w.name} ({w.city})</option>)}
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Batch / Lot No.</label>
+                        <input type="text" value={stockForm.batch_no} onChange={(e) => setStockForm({ ...stockForm, batch_no: e.target.value })} placeholder="Auto" className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Mfg Date</label>
+                        <input type="date" value={stockForm.mfg_date} onChange={(e) => setStockForm({ ...stockForm, mfg_date: e.target.value })} className="w-full h-9 px-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Expiry *</label>
+                        <input type="date" value={stockForm.expiry_date} onChange={(e) => setStockForm({ ...stockForm, expiry_date: e.target.value })} className="w-full h-9 px-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900" />
+                      </div>
+                    </div>
+                  </>
+                )}
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Quantity ({stockFor.unit}) *</label>
+                  <input type="number" min="0" step="any" value={stockForm.quantity || ''} onChange={(e) => setStockForm({ ...stockForm, quantity: Number(e.target.value) || 0 })} className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900" />
+                </div>
+                <div className="pt-3 flex gap-2">
+                  <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setStockFor(null)}>Cancel</Button>
+                  <Button type="submit" size="sm" disabled={savingStock} className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">{savingStock ? 'Saving…' : 'Add Stock'}</Button>
                 </div>
               </form>
             </motion.div>

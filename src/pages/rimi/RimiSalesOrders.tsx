@@ -26,15 +26,14 @@ import {
   type RimiInventoryBatchRecord
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
-
-const RIMI_ADMIN_ROLES = ['rimi_admin', 'rimi_frozen', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin', 'operations_manager', 'warehouse_lead', 'warehouse_staff', 'rimi_staff'];
+import { useRimiAccess } from '../../lib/rimiAccess';
 
 const ORDER_STATUSES = ['Received', 'Confirmed', 'Cold Storage Picking', 'Dispatched', 'Delivered', 'Cancelled'] as const;
 
 export const RimiSalesOrders: React.FC = () => {
   const { profile } = useAuth();
-  const effectiveRole = profile?.role || (typeof window !== 'undefined' ? (localStorage.getItem('ferex_current_role') || localStorage.getItem('ferex_auth_role')) : '') || '';
-  const isAdmin = RIMI_ADMIN_ROLES.includes(effectiveRole) || effectiveRole.includes('admin') || effectiveRole.includes('warehouse') || effectiveRole.includes('operations');
+  // Admin and Warehouse users can both manage (create, edit, delete) sales orders.
+  const { canManage: isAdmin } = useRimiAccess();
 
   const [orders, setOrders] = useState<RimiSalesOrderRecord[]>([]);
   const [customers, setCustomers] = useState<RimiCustomerRecord[]>([]);
@@ -94,27 +93,10 @@ export const RimiSalesOrders: React.FC = () => {
       setProducts(prodList);
       setBatches(batchList);
 
-      const active = custList.filter(c => c.pipeline_stage === 'Active Account' && c.status === 'Active');
-      if (active.length > 0 && (!selectedCustomer || !active.some(c => c.id === selectedCustomer))) {
-        setSelectedCustomer(active[0].id);
-        setDeliveryAddress(active[0].address || active[0].city || '');
-      }
-      if (prodList.length > 0 && orderItems.length === 0) {
-        const p = prodList[0];
-        const matchBatch = batchList.find(b => b.product_id === p.id && Number(b.quantity) > 0) || batchList.find(b => b.product_id === p.id);
-        setOrderItems([{
-          product_id: p.id,
-          product_name: p.name,
-          batch_id: matchBatch?.id || '',
-          batch_no: matchBatch?.batch_no || '',
-          quantity: 50,
-          unit_price: p.unit_price
-        }]);
-      }
     } finally {
       setLoading(false);
     }
-  }, [isAdmin, orderItems.length, profile?.email, selectedCustomer]);
+  }, [isAdmin, profile?.email]);
 
   useEffect(() => {
     loadData();
@@ -135,18 +117,10 @@ export const RimiSalesOrders: React.FC = () => {
     };
   }, [loadData]);
 
+  const blankItem = () => ({ product_id: '', product_name: '', batch_id: '', batch_no: '', quantity: 0, unit_price: 0 });
+
   const handleAddItemRow = () => {
-    if (products.length === 0) return;
-    const p = products[0];
-    const b = batches.find(bt => bt.product_id === p.id && Number(bt.quantity) > 0) || batches.find(bt => bt.product_id === p.id);
-    setOrderItems([...orderItems, {
-      product_id: p.id,
-      product_name: p.name,
-      batch_id: b?.id || '',
-      batch_no: b?.batch_no || '',
-      quantity: 50,
-      unit_price: p.unit_price
-    }]);
+    setOrderItems([...orderItems, blankItem()]);
   };
 
   const handleRemoveItemRow = (index: number) => {
@@ -157,12 +131,12 @@ export const RimiSalesOrders: React.FC = () => {
     const updated = [...orderItems];
     if (field === 'product_id') {
       const p = products.find(prod => prod.id === val);
-      const b = batches.find(bt => bt.product_id === val);
       updated[index].product_id = val;
       updated[index].product_name = p?.name || '';
-      updated[index].unit_price = p?.unit_price || 200;
-      updated[index].batch_id = b?.id || '';
-      (updated[index] as any).batch_no = b?.batch_no || '';
+      updated[index].unit_price = p ? Number(p.unit_price) : 0;
+      // New product: let the system pick the earliest-expiring batch unless the user chooses one.
+      updated[index].batch_id = '';
+      (updated[index] as any).batch_no = '';
     } else if (field === 'batch_id') {
       const b = batches.find(bt => bt.id === val);
       updated[index].batch_id = val;
@@ -180,7 +154,19 @@ export const RimiSalesOrders: React.FC = () => {
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmittingRef.current || isSubmittingOrder) return;
-    if (!selectedCustomer || orderItems.length === 0) return;
+    if (!selectedCustomer) {
+      showToast('Choose a customer for the order.');
+      return;
+    }
+    const lines = orderItems.filter(it => it.product_id);
+    if (lines.length === 0) {
+      showToast('Add at least one product to the order.');
+      return;
+    }
+    if (lines.some(it => !(Number(it.quantity) > 0))) {
+      showToast('Enter a quantity greater than zero for every product.');
+      return;
+    }
 
     const cust = customers.find(c => c.id === selectedCustomer);
     if (cust && cust.pipeline_stage !== 'Active Account') {
@@ -200,7 +186,7 @@ export const RimiSalesOrders: React.FC = () => {
         territory: cust?.territory,
         assigned_staff_name: profile?.full_name || cust?.assigned_staff_name || 'Sales Officer',
         notes: orderNotes,
-        items: orderItems
+        items: lines
       });
 
       setShowAddModal(false);
@@ -215,7 +201,8 @@ export const RimiSalesOrders: React.FC = () => {
   };
 
   const handleOpenCreateModal = () => {
-    setOrderItems([]);
+    // A new order always starts empty; nothing from earlier orders is carried over.
+    setOrderItems([blankItem()]);
     setSelectedCustomer(activeCustomers[0]?.id || '');
     setDeliveryDate(new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0]);
     setDeliveryAddress(activeCustomers[0]?.address || activeCustomers[0]?.city || '');
@@ -278,10 +265,15 @@ export const RimiSalesOrders: React.FC = () => {
       showToast('Restricted: Authorized role required to delete sales orders.');
       return;
     }
-    if (!window.confirm(`Are you sure you want to delete order ${orderNo}? This will permanently remove the order record.`)) return;
+    const target = orders.find(o => o.id === orderId);
+    const hasPayments = Number(target?.paid_amount || 0) > 0;
+    const warning = hasPayments
+      ? `Delete order ${orderNo}? It has ₹${Number(target?.paid_amount).toLocaleString('en-IN')} of recorded payments, which will also be deleted. Stock reserved for it returns to inventory. This cannot be undone.`
+      : `Delete order ${orderNo}? Stock reserved for it returns to inventory. This cannot be undone.`;
+    if (!window.confirm(warning)) return;
 
     try {
-      await deleteRimiSalesOrder(orderId);
+      await deleteRimiSalesOrder(orderId, hasPayments);
       showToast(`Removed order ${orderNo}`);
       await loadData();
     } catch (err: any) {
@@ -297,7 +289,6 @@ export const RimiSalesOrders: React.FC = () => {
         delivery_date: editingOrder.delivery_date,
         delivery_address: editingOrder.delivery_address,
         order_status: editingOrder.order_status,
-        payment_status: editingOrder.payment_status,
         notes: editingOrder.notes
       });
       setEditingOrder(null);
@@ -527,18 +518,9 @@ export const RimiSalesOrders: React.FC = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Payment Status</label>
-                  <select
-                    value={editingOrder.payment_status}
-                    onChange={(e) => setEditingOrder({ ...editingOrder, payment_status: e.target.value as any })}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
-                  >
-                    <option value="Unpaid">Unpaid</option>
-                    <option value="Partially Paid">Partially Paid</option>
-                    <option value="Paid">Paid</option>
-                    <option value="Overdue">Overdue</option>
-                  </select>
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-semibold text-slate-600">
+                  Payment status: <span className="font-black text-slate-900">{editingOrder.payment_status}</span> · Paid ₹{Number(editingOrder.paid_amount || 0).toLocaleString('en-IN')} of ₹{Number(editingOrder.total_amount || 0).toLocaleString('en-IN')}.
+                  It updates automatically when payments are recorded in Payment Collections.
                 </div>
 
                 <div>
@@ -640,6 +622,7 @@ export const RimiSalesOrders: React.FC = () => {
                             onChange={(e) => handleItemChange(idx, 'product_id', e.target.value)}
                             className="w-full h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold"
                           >
+                            <option value="">Select product…</option>
                             {products.map(p => (
                               <option key={p.id} value={p.id}>
                                 [{p.sku || 'SKU'}] {p.name} • {p.category || 'Frozen'} • ₹{p.unit_price} / {p.unit || 'KG'}
@@ -664,10 +647,11 @@ export const RimiSalesOrders: React.FC = () => {
 
                         <div className="flex items-center gap-2">
                           <div className="flex-1">
-                            <label className="block text-[9px] font-bold text-slate-400 uppercase">Quantity (KG)</label>
+                            <label className="block text-[9px] font-bold text-slate-400 uppercase">Quantity ({products.find(p => p.id === item.product_id)?.unit || 'KG'}){item.product_id ? ` · ${Number(products.find(p => p.id === item.product_id)?.available_stock || 0)} available` : ''}</label>
                             <input
                               type="number"
-                              value={item.quantity}
+                              min={0}
+                              value={item.quantity || ''}
                               onChange={(e) => handleItemChange(idx, 'quantity', Number(e.target.value))}
                               className="w-full h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold"
                             />
