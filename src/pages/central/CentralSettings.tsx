@@ -1,3 +1,4 @@
+import { aiProxyFetch } from '../../lib/api/aiProxy';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -88,62 +89,30 @@ export const CentralSettings: React.FC = () => {
     }
   };
 
+  const [aiStatus, setAiStatus] = useState<{ openai: boolean; openrouter: boolean } | null>(null);
+
   const handleTestOpenAI = async () => {
-    const key = config?.ai_config?.openai_api_key?.trim();
-    if (!key) {
-      setOpenAITestStatus({ success: false, message: 'Please enter an OpenAI API key first.' });
-      return;
-    }
     setTestingOpenAI(true);
     setOpenAITestStatus(null);
     try {
-      const res = await fetch('https://api.openai.com/v1/models', {
-        headers: {
-          'Authorization': `Bearer ${key}`
-        }
-      });
+      const res = await aiProxyFetch('status');
+      const body = await res.json().catch(() => ({}));
       if (res.ok) {
-        setOpenAITestStatus({ success: true, message: 'OpenAI API key authenticated successfully!' });
-        showToastMsg('OpenAI Realtime API key verified successfully!');
-      } else {
-        const err = await res.json().catch(() => ({}));
+        setAiStatus({ openai: !!body.openai, openrouter: !!body.openrouter });
         setOpenAITestStatus({
-          success: false,
-          message: err?.error?.message || `Authentication failed (Status ${res.status})`
+          success: !!body.openai || !!body.openrouter,
+          message: body.openai && body.openrouter
+            ? 'Both provider keys are configured on the server.'
+            : `Missing server secret: ${[!body.openai && 'OPENAI_API_KEY', !body.openrouter && 'OPENROUTER_API_KEY'].filter(Boolean).join(', ')}`,
         });
+      } else {
+        setOpenAITestStatus({ success: false, message: body?.error || `AI gateway not reachable (status ${res.status}). Sign in again or deploy the ai-proxy function.` });
       }
     } catch (err: any) {
-      setOpenAITestStatus({ success: false, message: err?.message || 'Connection error to OpenAI' });
+      setOpenAITestStatus({ success: false, message: err?.message || 'AI gateway not reachable.' });
     } finally {
       setTestingOpenAI(false);
     }
-  };
-
-  const handleSaveOpenAIKey = async () => {
-    if (!config) return;
-    setSaving(true);
-    try {
-      const updated = await saveSystemConfig(config);
-      setConfig(updated);
-      setLastSaved(new Date().toLocaleTimeString());
-      showToastMsg('OpenAI Realtime API Key saved & activated successfully!');
-    } catch {
-      showToastMsg('Failed to save OpenAI API Key.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleClearOpenAIKey = async () => {
-    if (!config) return;
-    const updatedConfig = {
-      ...config,
-      ai_config: { ...config.ai_config, openai_api_key: '' }
-    };
-    setConfig(updatedConfig);
-    await saveSystemConfig(updatedConfig);
-    setOpenAITestStatus(null);
-    showToastMsg('OpenAI API Key removed.');
   };
 
   if (loading || !config) {
@@ -260,171 +229,43 @@ export const CentralSettings: React.FC = () => {
       {/* Tab 1: AI & Realtime Configuration */}
       {activeTab === 'ai' && (
         <div className="space-y-6">
-          {/* OpenAI Realtime API Key & Authentication */}
-          <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-6">
+          {/* AI provider keys are server-side secrets */}
+          <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#58051E]" />
-                  <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">
-                    OpenAI Realtime API Credential Configuration
-                  </h2>
-                  {aiConfig.openai_api_key ? (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Saved & Active
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                      Key Not Set
+                  <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">AI Provider Keys</h2>
+                  {aiStatus && (
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${aiStatus.openai && aiStatus.openrouter ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                      OpenAI {aiStatus.openai ? 'ready' : 'not set'} · OpenRouter {aiStatus.openrouter ? 'ready' : 'not set'}
                     </span>
                   )}
                 </div>
-                <p className="text-xs font-medium text-slate-400 mt-0.5">
-                  Used for low-latency WebRTC/WebSocket audio streaming (<a href="https://developers.openai.com/api/docs/models/gpt-realtime-2.1-mini" target="_blank" rel="noreferrer" className="text-[#58051E] font-bold underline">gpt-realtime-2.1-mini</a>) and client secret creation.
+                <p className="text-xs font-medium text-slate-500 mt-1 max-w-2xl">
+                  API keys are no longer stored in the app or the settings database. They are kept as server secrets
+                  (<code>OPENAI_API_KEY</code> and <code>OPENROUTER_API_KEY</code> in Supabase → Edge Functions → Secrets) and used by the
+                  <code> ai-proxy</code> function, so students and visitors can use the assistant without ever seeing a key.
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleTestOpenAI}
-                  disabled={testingOpenAI || !aiConfig.openai_api_key}
-                  className="text-xs font-bold border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 cursor-pointer"
-                >
-                  <Zap className={`w-3.5 h-3.5 mr-1 text-[#58051E] ${testingOpenAI ? 'animate-spin' : ''}`} />
-                  {testingOpenAI ? 'Testing Key...' : 'Verify OpenAI Key'}
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleSaveOpenAIKey}
-                  disabled={saving}
-                  className="text-xs font-bold bg-[#58051E] hover:bg-[#430316] text-white cursor-pointer shadow-xs"
-                >
-                  {saving ? 'Saving...' : 'Save API Key'}
-                </Button>
-              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleTestOpenAI}
+                disabled={testingOpenAI}
+                className="text-xs font-bold border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 cursor-pointer"
+              >
+                <Zap className={`w-3.5 h-3.5 mr-1 text-[#58051E] ${testingOpenAI ? 'animate-spin' : ''}`} />
+                {testingOpenAI ? 'Checking…' : 'Check server keys'}
+              </Button>
             </div>
-
-            {/* Test Status Feedback */}
             {openAITestStatus && (
               <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
-                openAITestStatus.success
-                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                  : 'bg-rose-50 text-rose-800 border border-rose-200'
+                openAITestStatus.success ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
               }`}>
-                {openAITestStatus.success ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />}
                 <span>{openAITestStatus.message}</span>
               </div>
             )}
-
-            {/* OpenAI API Key with Eye Toggle */}
-            <div className="space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
-                <label className="font-bold text-slate-800 flex items-center gap-1.5">
-                  <Key className="w-3.5 h-3.5 text-[#58051E]" />
-                  OpenAI API Key (Bearer Secret Token)
-                </label>
-                <div className="flex items-center gap-3">
-                  <span className="text-[11px] text-slate-400 font-normal">
-                    View, test, or update your key anytime
-                  </span>
-                  {aiConfig.openai_api_key && (
-                    <button
-                      type="button"
-                      onClick={handleClearOpenAIKey}
-                      className="text-[11px] text-rose-600 hover:text-rose-800 font-bold underline cursor-pointer"
-                    >
-                      Remove Key
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="relative flex items-center">
-                <input
-                  type={showOpenAIKey ? 'text' : 'password'}
-                  value={aiConfig.openai_api_key || ''}
-                  onChange={(e) => {
-                    const newKey = e.target.value.trim();
-                    setConfig({
-                      ...config,
-                      ai_config: { ...aiConfig, openai_api_key: newKey }
-                    });
-                    try {
-                      if (newKey) localStorage.setItem('ferex_openai_api_key', newKey);
-                      else localStorage.removeItem('ferex_openai_api_key');
-                    } catch {}
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleSaveOpenAIKey();
-                    }
-                  }}
-                  placeholder="Paste your key here: sk-proj-..."
-                  className="w-full p-3 pr-24 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E] text-slate-800 transition-all shadow-inner"
-                />
-                <div className="absolute right-2.5 flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowOpenAIKey(!showOpenAIKey)}
-                    className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/50 rounded-lg cursor-pointer transition-colors"
-                    title={showOpenAIKey ? 'Hide API Key' : 'View API Key'}
-                  >
-                    {showOpenAIKey ? <EyeOff className="w-4 h-4 text-[#58051E]" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                  <Button
-                    size="sm"
-                    onClick={handleSaveOpenAIKey}
-                    disabled={saving || !aiConfig.openai_api_key}
-                    className="h-7 px-2.5 text-[10px] font-bold bg-[#58051E] hover:bg-[#430316] text-white cursor-pointer shadow-xs rounded-lg"
-                  >
-                    {saving ? 'Saving...' : 'Save'}
-                  </Button>
-                </div>
-              </div>
-
-              {/* Status and Key Management Helper */}
-              {aiConfig.openai_api_key ? (
-                <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <div>
-                      <span className="font-bold text-emerald-900">API Key Configured & Ready: </span>
-                      <span className="font-mono text-[11px] text-emerald-700">
-                        {aiConfig.openai_api_key.length > 12
-                          ? `${aiConfig.openai_api_key.substring(0, 7)}••••••••••••${aiConfig.openai_api_key.slice(-4)}`
-                          : '••••••••••••'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowOpenAIKey(true);
-                      }}
-                      className="text-[11px] font-bold text-[#58051E] hover:underline cursor-pointer"
-                    >
-                      Edit Key
-                    </button>
-                    <span className="text-slate-300">|</span>
-                    <button
-                      type="button"
-                      onClick={handleClearOpenAIKey}
-                      className="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer"
-                    >
-                      Change / Replace
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl flex items-center gap-2 text-xs text-amber-800 font-medium">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>Enter your OpenAI API secret key above and click <strong>Save</strong> to activate low-latency real-time voice & AI streaming.</span>
-                </div>
-              )}
-            </div>
           </Card>
 
 

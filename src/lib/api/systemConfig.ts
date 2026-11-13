@@ -93,10 +93,15 @@ export const DEFAULT_SYSTEM_CONFIG: SystemCustomizationConfig = {
 
 const STORAGE_KEY = 'ferex_system_customization_config';
 
-export const getSystemConfig = async (): Promise<SystemCustomizationConfig> => {
-  // Check direct local key first
-  const directOpenAIKey = typeof localStorage !== 'undefined' ? localStorage.getItem('ferex_openai_api_key') || '' : '';
+// AI provider keys are server-side secrets (ai-proxy Edge Function). Any key that was ever stored in settings is
+// dropped on load and never written back.
+const stripAiSecrets = <T extends { ai_config?: any }>(cfg: T): T => {
+  if (!cfg?.ai_config) return cfg;
+  const { openai_api_key: _a, openrouter_api_key: _b, ...rest } = cfg.ai_config;
+  return { ...cfg, ai_config: rest };
+};
 
+export const getSystemConfig = async (): Promise<SystemCustomizationConfig> => {
   // 1. Fetch from Supabase system_config table (single source of truth)
   try {
     const admin = await getAdminSupabaseClient();
@@ -121,9 +126,9 @@ export const getSystemConfig = async (): Promise<SystemCustomizationConfig> => {
         ai_config: {
           ...DEFAULT_SYSTEM_CONFIG.ai_config,
           ...(configData.ai_config || {}),
-          openai_api_key: configData.ai_config?.openai_api_key || directOpenAIKey || DEFAULT_SYSTEM_CONFIG.ai_config?.openai_api_key || ''
         }
       };
+      mergedConfig.ai_config = stripAiSecrets(mergedConfig).ai_config;
 
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedConfig)); } catch {}
       return mergedConfig;
@@ -149,7 +154,6 @@ export const getSystemConfig = async (): Promise<SystemCustomizationConfig> => {
           ai_config: {
             ...DEFAULT_SYSTEM_CONFIG.ai_config,
             ...(parsed.ai_config || {}),
-            openai_api_key: parsed.ai_config?.openai_api_key || directOpenAIKey || DEFAULT_SYSTEM_CONFIG.ai_config?.openai_api_key || ''
           }
         };
       }
@@ -157,37 +161,14 @@ export const getSystemConfig = async (): Promise<SystemCustomizationConfig> => {
   } catch {}
 
 
-  if (directOpenAIKey) {
-    return {
-      ...DEFAULT_SYSTEM_CONFIG,
-      ai_config: {
-        ...DEFAULT_SYSTEM_CONFIG.ai_config,
-        openai_api_key: directOpenAIKey
-      }
-    };
-  }
-
   return DEFAULT_SYSTEM_CONFIG;
 };
 
 export const saveSystemConfig = async (config: SystemCustomizationConfig): Promise<SystemCustomizationConfig> => {
-  const updated: SystemCustomizationConfig = {
+  const updated: SystemCustomizationConfig = stripAiSecrets({
     ...config,
     updated_at: new Date().toISOString()
-  };
-
-  const apiKey = updated.ai_config?.openai_api_key?.trim() || '';
-
-  // Explicitly sync the OpenAI key to local storage
-  if (typeof localStorage !== 'undefined') {
-    try {
-      if (apiKey) {
-        localStorage.setItem('ferex_openai_api_key', apiKey);
-      } else {
-        localStorage.removeItem('ferex_openai_api_key');
-      }
-    } catch {}
-  }
+  });
 
   const admin = await getAdminSupabaseClient();
   const client = admin || supabase;
@@ -208,15 +189,17 @@ export const saveSystemConfig = async (config: SystemCustomizationConfig): Promi
         .update({ value: updated, updated_at: updated.updated_at })
         .eq('key', 'ferex_system_customization_config');
       if (updateError) {
-        await client.from('system_config').insert({
+        const { error: insertError } = await client.from('system_config').insert({
           key: 'ferex_system_customization_config',
           value: updated,
           updated_at: updated.updated_at
         });
+        if (insertError) throw new Error(insertError.message);
       }
     }
   } catch (err: any) {
-    console.warn('[saveSystemConfig DB catch]:', err.message);
+    // A failed save must be reported; keeping only a browser copy would make settings differ per device.
+    throw new Error(`Could not save settings: ${err.message}`);
   }
 
   try {
@@ -234,39 +217,4 @@ export const resetSystemConfig = async (): Promise<SystemCustomizationConfig> =>
   return await saveSystemConfig(DEFAULT_SYSTEM_CONFIG);
 };
 
-export const getEffectiveOpenAIApiKey = (config?: SystemCustomizationConfig | null): string => {
-  if (config?.ai_config?.openai_api_key) return config.ai_config.openai_api_key;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed?.ai_config?.openai_api_key) return parsed.ai_config.openai_api_key;
-    }
-    const directKey = localStorage.getItem('ferex_openai_api_key');
-    if (directKey) return directKey;
-  } catch {}
-  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OPENAI_API_KEY) {
-    return import.meta.env.VITE_OPENAI_API_KEY;
-  }
-  return '';
-};
-
-export const getEffectiveOpenRouterApiKey = (config?: SystemCustomizationConfig | null): string => {
-  if (config?.ai_config?.openrouter_api_key) return config.ai_config.openrouter_api_key;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed?.ai_config?.openrouter_api_key) return parsed.ai_config.openrouter_api_key;
-    }
-    const directKey = localStorage.getItem('ferex_openrouter_api_key');
-    if (directKey) return directKey;
-  } catch {}
-  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OPENROUTER_API_KEY) {
-    return import.meta.env.VITE_OPENROUTER_API_KEY;
-  }
-  const p1 = 'sk-or';
-  const p2 = '-v1-f1f08c622cd96a95';
-  const p3 = 'e331a510b5ab4d33a1a4b23c8a2f892e87d6fe1723a4801c';
-  return `${p1}${p2}${p3}`;
-};
+// AI provider keys are server-side secrets (Edge Function secrets) and are never stored in settings or the browser.

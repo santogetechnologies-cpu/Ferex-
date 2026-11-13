@@ -4,7 +4,8 @@
  */
 
 import { supabase } from '../supabase';
-import { getSystemConfig, getEffectiveOpenAIApiKey, getEffectiveOpenRouterApiKey } from './systemConfig';
+import { aiProxyFetch } from './aiProxy';
+import { getSystemConfig } from './systemConfig';
 import type { LiveStudentContext } from './openrouterChat';
 import { getStudentsConsolidatedOversight } from './students';
 import { getTradeOrders } from './trade';
@@ -534,30 +535,20 @@ export async function streamEnterpriseChat({
     ...messages,
   ];
 
-  const openRouterKey = getEffectiveOpenRouterApiKey(config);
-  const openAIKey = getEffectiveOpenAIApiKey(config);
-
   const configuredPrimaryModel = config?.ai_config?.openrouter_model || 'google/gemini-2.0-flash-exp:free';
   const openAIModel = config?.ai_config?.openai_model || 'gpt-4o-mini';
 
-  // 1. If OpenAI API Key is directly configured by user, prioritize OpenAI Direct Streaming for ultra low-latency
-  if (openAIKey) {
+  // 1. OpenAI streaming through the server-side gateway (signed-in users); falls through to OpenRouter if unavailable
+  {
     try {
       const cleanModel = openAIModel.includes('realtime') ? 'gpt-4o-mini' : openAIModel;
 
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: cleanModel,
-          messages: fullMessages,
-          stream: true,
-          temperature: 0.6,
-          max_tokens: 1500,
-        }),
+      const res = await aiProxyFetch('openai_chat', {
+        model: cleanModel,
+        messages: fullMessages,
+        stream: true,
+        temperature: 0.6,
+        max_tokens: 1500,
       });
 
       if (res.ok && res.body) {
@@ -604,25 +595,16 @@ export async function streamEnterpriseChat({
     ...ENTERPRISE_AI_MODELS.filter(m => m !== configuredPrimaryModel),
   ];
 
-  if (openRouterKey) {
+  {
     for (let i = 0; i < modelsToTry.length; i++) {
       const activeModel = modelsToTry[i];
       try {
-        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openRouterKey}`,
-            'HTTP-Referer': 'https://ferex.com',
-            'X-Title': 'Ferex Enterprise Copilot',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: activeModel,
-            messages: fullMessages,
-            stream: true,
-            temperature: 0.6,
-            max_tokens: 1800,
-          }),
+        const res = await aiProxyFetch('openrouter_chat', {
+          model: activeModel,
+          messages: fullMessages,
+          stream: true,
+          temperature: 0.6,
+          max_tokens: 1800,
         });
 
         if (res.ok && res.body) {
@@ -699,25 +681,17 @@ export async function speakTextWithLanguage(
   }
 
   // 1. If OpenAI API Key is available, use OpenAI TTS API for crystal-clear natural speech
-  if (openAIKey) {
+  {
     try {
       onStart?.();
       const cleanVoice = ['alloy', 'ash', 'coral', 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer'].includes(voice)
         ? voice
         : 'alloy';
 
-      const res = await fetch('https://api.openai.com/v1/audio/speech', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'tts-1',
-          voice: cleanVoice,
-          input: cleanSpeechText.slice(0, 4000),
-          speed: 1.0,
-        }),
+      const res = await aiProxyFetch('openai_speech', {
+        voice: cleanVoice,
+        input: cleanSpeechText.slice(0, 4000),
+        speed: 1.0,
       });
 
       if (res.ok) {
@@ -772,9 +746,7 @@ export async function speakTextWithLanguage(
 /**
  * Request OpenAI Realtime Client Secret Token for WebRTC audio session
  */
-export async function createRealtimeClientSecret(apiKey: string, customPayload?: any): Promise<{ client_secret?: { value: string }; error?: string }> {
-  if (!apiKey) return { error: 'OpenAI API Key is required' };
-
+export async function createRealtimeClientSecret(_unused?: string, customPayload?: any): Promise<{ client_secret?: { value: string }; error?: string }> {
   try {
     const config = await getSystemConfig();
     const aiConfig = config?.ai_config || {};
@@ -821,14 +793,7 @@ export async function createRealtimeClientSecret(apiKey: string, customPayload?:
       },
     };
 
-    const res = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify(payload),
-    });
+    const res = await aiProxyFetch('openai_realtime_secret', payload);
 
     if (res.ok) {
       const data = await res.json();

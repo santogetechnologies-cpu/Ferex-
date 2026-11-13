@@ -638,21 +638,6 @@ function saveStoredRequirements(reqs: DocumentRequirement[], notify: boolean = t
   }
 }
 
-const SYSTEM_CONFIG_CATALOG_KEY = 'ferex_document_requirements_catalog';
-
-async function syncToCloudCatalog(items: DocumentRequirement[]) {
-  try {
-    const admin = await getAdminSupabaseClient();
-    await admin.from('system_config').upsert({
-      key: SYSTEM_CONFIG_CATALOG_KEY,
-      value: items,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'key' });
-  } catch (e) {
-    console.warn('[syncToCloudCatalog error]:', e);
-  }
-}
-
 async function getClient() {
   try {
     return await getAdminSupabaseClient();
@@ -661,46 +646,16 @@ async function getClient() {
   }
 }
 
+// document_requirements is the only source of truth (a JSON copy in system_config and browser copies were retired:
+// edits to them never reached the table and they drifted between browsers).
 export async function getAllDocumentRequirements(): Promise<DocumentRequirement[]> {
-  // 1. Primary: Direct query on public.document_requirements table
-  try {
-    const client = await getClient();
-    const { data, error } = await client
-      .from('document_requirements')
-      .select('*')
-      .order('country', { ascending: true });
-
-    if (!error && data && data.length > 0) {
-      const dbList = data as DocumentRequirement[];
-      saveStoredRequirements(dbList, false);
-      return dbList;
-    }
-  } catch (e) {
-    console.warn('[getAllDocumentRequirements] DB query notice:', e);
-  }
-
-  // 2. Secondary: Live shared Supabase cloud system_config catalog
-  try {
-    const { data: cfg, error: cfgErr } = await supabase
-      .from('system_config')
-      .select('value')
-      .eq('key', SYSTEM_CONFIG_CATALOG_KEY)
-      .maybeSingle();
-
-    if (!cfgErr && cfg?.value && Array.isArray(cfg.value) && cfg.value.length > 0) {
-      const cloudList = cfg.value as DocumentRequirement[];
-      const stored = getStoredRequirements();
-      const cloudIds = new Set(cloudList.map(d => d.id));
-      const localOnly = stored.filter(s => !cloudIds.has(s.id));
-      const merged = [...cloudList, ...localOnly];
-      saveStoredRequirements(merged, false);
-      return merged;
-    }
-  } catch (e) {
-    console.warn('[getAllDocumentRequirements] cloud fetch notice:', e);
-  }
-
-  return getStoredRequirements();
+  const client = await getClient();
+  const { data, error } = await client
+    .from('document_requirements')
+    .select('*')
+    .order('country', { ascending: true });
+  if (error) throw new Error(`Could not load document requirements: ${error.message}`);
+  return (data || []) as DocumentRequirement[];
 }
 
 export async function getDocumentRequirements(country?: string): Promise<DocumentRequirement[]> {
@@ -821,17 +776,9 @@ export async function addDocumentRequirement(
     updated_at: now,
   };
 
-  try {
-    const client = await getClient();
-    await client.from('document_requirements').insert(newReq);
-  } catch (e) {
-    console.warn('[addDocumentRequirement] DB notice:', e);
-  }
-
-  const all = getStoredRequirements();
-  const updated = [newReq, ...all.filter(r => r.id !== newReq.id)];
-  saveStoredRequirements(updated);
-  await syncToCloudCatalog(updated);
+  const client = await getClient();
+  const { error } = await client.from('document_requirements').insert(newReq);
+  if (error) throw new Error(`Could not add the requirement: ${error.message}`);
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('ferex_doc_requirements_change'));
   }
@@ -842,46 +789,21 @@ export async function updateDocumentRequirement(
   id: string,
   payload: Partial<DocumentRequirement>
 ): Promise<DocumentRequirement | null> {
-  const now = new Date().toISOString();
-  const updateData = { ...payload, updated_at: now };
-
-  try {
-    const client = await getClient();
-    await client.from('document_requirements').update(updateData).eq('id', id);
-  } catch (e) {
-    console.warn('[updateDocumentRequirement] DB notice:', e);
-  }
-
-  const all = getStoredRequirements();
-  let updatedReq: DocumentRequirement | null = null;
-  const updated = all.map(r => {
-    if (r.id === id) {
-      updatedReq = { ...r, ...updateData };
-      return updatedReq;
-    }
-    return r;
-  });
-
-  saveStoredRequirements(updated);
-  await syncToCloudCatalog(updated);
+  const updateData = { ...payload, updated_at: new Date().toISOString() };
+  const client = await getClient();
+  const { data, error } = await client.from('document_requirements').update(updateData).eq('id', id).select();
+  if (error) throw new Error(`Could not update the requirement: ${error.message}`);
+  if (!data || data.length === 0) throw new Error('Requirement not found or you do not have permission to change it.');
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('ferex_doc_requirements_change'));
   }
-  return updatedReq;
+  return data[0] as DocumentRequirement;
 }
 
 export async function removeDocumentRequirement(id: string): Promise<boolean> {
-  try {
-    const client = await getClient();
-    await client.from('document_requirements').delete().eq('id', id);
-  } catch (e) {
-    console.warn('[removeDocumentRequirement] DB notice:', e);
-  }
-
-  const all = getStoredRequirements();
-  const filtered = all.filter(r => r.id !== id);
-  saveStoredRequirements(filtered);
-  await syncToCloudCatalog(filtered);
+  const client = await getClient();
+  const { error } = await client.from('document_requirements').delete().eq('id', id);
+  if (error) throw new Error(`Could not remove the requirement: ${error.message}`);
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('ferex_doc_requirements_change'));
   }
@@ -889,9 +811,18 @@ export async function removeDocumentRequirement(id: string): Promise<boolean> {
 }
 
 export async function resetDocumentRequirementsToDefaults(): Promise<DocumentRequirement[]> {
-  saveStoredRequirements(DEFAULT_DOCUMENT_REQUIREMENTS);
-  await syncToCloudCatalog(DEFAULT_DOCUMENT_REQUIREMENTS);
-  return DEFAULT_DOCUMENT_REQUIREMENTS;
+  const client = await getClient();
+  const { error: clearError } = await client.from('document_requirements').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  if (clearError) throw new Error(`Could not reset requirements: ${clearError.message}`);
+  const now = new Date().toISOString();
+  // Default entries use readable text ids; the table generates real ids.
+  const rows = DEFAULT_DOCUMENT_REQUIREMENTS.map(({ id: _id, ...rest }) => ({ ...rest, created_at: now, updated_at: now }));
+  const { error } = await client.from('document_requirements').insert(rows);
+  if (error) throw new Error(`Could not restore default requirements: ${error.message}`);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('ferex_doc_requirements_change'));
+  }
+  return getAllDocumentRequirements();
 }
 
 export interface RequirementSatisfaction {

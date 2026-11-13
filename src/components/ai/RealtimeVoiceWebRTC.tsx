@@ -21,7 +21,8 @@ import {
   Mic, MicOff, PhoneOff, Volume2, VolumeX,
   RefreshCw, AlertCircle, Wifi,
 } from 'lucide-react';
-import { getSystemConfig, getEffectiveOpenAIApiKey } from '../../lib/api/systemConfig';
+import { getSystemConfig } from '../../lib/api/systemConfig';
+import { aiProxyFetch } from '../../lib/api/aiProxy';
 import { getRealtimeSystemPrompt, type UserRoleType } from '../../lib/api/aiRealtimeService';
 import { AIVoiceVisualizer } from './AIVoiceVisualizer';
 import type { LiveStudentContext } from '../../lib/api/openrouterChat';
@@ -271,31 +272,17 @@ export const RealtimeVoiceWebRTC: React.FC<RealtimeVoiceWebRTCProps> = ({
 
     try {
       const config = await getSystemConfig();
-      const apiKey = getEffectiveOpenAIApiKey(config);
-
-      if (!apiKey) {
-        throw new Error(
-          'No OpenAI API key found. Please add your OpenAI key in Settings → AI Studio.'
-        );
-      }
 
       const model = resolveRealtimeModel(config?.ai_config?.openai_model);
       const voice = config?.ai_config?.realtime_voice || 'alloy';
 
       // Parallel: get ephemeral token + build enterprise system prompt
       const [tokenRes, systemPrompt] = await Promise.all([
-        fetch('https://api.openai.com/v1/realtime/client_secrets', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
+        aiProxyFetch('openai_realtime_secret', {
+          session: {
+            type: 'realtime',
+            model,
           },
-          body: JSON.stringify({
-            session: {
-              type: 'realtime',
-              model,
-            },
-          }),
         }),
         getRealtimeSystemPrompt(role, userId, userEmail),
       ]);
@@ -314,8 +301,11 @@ export const RealtimeVoiceWebRTC: React.FC<RealtimeVoiceWebRTCProps> = ({
         ) {
           throw new Error('Please add credits to your OpenAI account to use Realtime Voice.');
         }
+        if (tokenRes.status === 503 || errBody?.error === 'not_configured') {
+          throw new Error('Voice is not configured yet. An administrator must add the OpenAI key as a server secret.');
+        }
         if (tokenRes.status === 401) {
-          throw new Error('Invalid OpenAI API key. Please check your API key in Settings → AI Studio.');
+          throw new Error('Please sign in again to use Realtime Voice.');
         }
         throw new Error(
           rawMsg ||

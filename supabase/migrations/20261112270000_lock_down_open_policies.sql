@@ -143,7 +143,7 @@ CREATE POLICY "system_config_read" ON public.system_config FOR SELECT TO authent
   OR public.ferex_role() IN ('central', 'superadmin', 'super_admin', 'admin', 'education_admin', 'education', 'digital_admin', 'trade_admin', 'rimi_admin')
   OR auth.role() = 'service_role');
 CREATE POLICY "system_config_public_read" ON public.system_config FOR SELECT TO anon
-  USING (key IN ('fee_config', 'ferex_system_customization_config'));
+  USING (key = 'fee_config');
 CREATE POLICY "system_config_admin_write" ON public.system_config FOR ALL TO authenticated
   USING (public.ferex_role() IN ('central', 'superadmin', 'super_admin', 'admin', 'education_admin', 'education', 'digital_admin', 'trade_admin', 'rimi_admin') OR auth.role() = 'service_role')
   WITH CHECK (public.ferex_role() IN ('central', 'superadmin', 'super_admin', 'admin', 'education_admin', 'education', 'digital_admin', 'trade_admin', 'rimi_admin') OR auth.role() = 'service_role');

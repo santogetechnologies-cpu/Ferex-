@@ -4,19 +4,9 @@
  */
 
 import { supabase } from '../supabase';
+import { aiProxyFetch } from './aiProxy';
 
-// Helper to resolve OpenRouter API key securely from environment or dynamic fallback
-export const getOpenRouterApiKey = (): string => {
-  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_OPENROUTER_API_KEY) {
-    return import.meta.env.VITE_OPENROUTER_API_KEY;
-  }
-  const p1 = 'sk-or';
-  const p2 = '-v1-f1f08c622cd96a95';
-  const p3 = 'e331a510b5ab4d33a1a4b23c8a2f892e87d6fe1723a4801c';
-  return `${p1}${p2}${p3}`;
-};
-
-export const OPENROUTER_API_KEY = getOpenRouterApiKey();
+// The OpenRouter key lives only in a server secret; requests go through the ai-proxy gateway.
 
 // High-speed, high-intelligence model pipeline with automatic fallbacks
 export const HIGH_INTELLIGENCE_MODELS = [
@@ -281,21 +271,12 @@ export async function streamOpenRouterChat({
   for (let i = 0; i < modelsToTry.length; i++) {
     const activeModel = modelsToTry[i];
     try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'HTTP-Referer': 'https://ferex.com',
-          'X-Title': 'Ferex European Education Intelligence Copilot',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: activeModel,
-          messages: fullMessages,
-          stream: true,
-          temperature: 0.65,
-          max_tokens: 1800,
-        }),
+      const response = await aiProxyFetch('openrouter_chat', {
+        model: activeModel,
+        messages: fullMessages,
+        stream: true,
+        temperature: 0.65,
+        max_tokens: 1800,
       });
 
       if (!response.ok) {
