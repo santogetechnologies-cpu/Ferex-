@@ -1,4 +1,5 @@
 import { UniversityBulkUpload } from '../../components/UniversityBulkUpload';
+import { UniversityImage } from '../../components/UniversityImage';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GraduationCap, Search, Plus, MapPin, Trash2, X, CheckCircle2, Star, Edit2, Image as ImageIcon, Globe, Coins } from 'lucide-react';
@@ -198,18 +199,7 @@ export const CentralEducation: React.FC = () => {
               <Card key={uni.id} className="border border-slate-200/70 shadow-xs hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group">
                 {/* University Banner Image */}
                 <div className="h-32 w-full bg-slate-100 relative overflow-hidden">
-                  {banner ? (
-                    <img
-                      src={banner}
-                      alt={uni.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-rose-950 via-[#58051E] to-slate-900 flex items-center justify-center text-white/30">
-                      <GraduationCap className="w-12 h-12" />
-                    </div>
-                  )}
+                  <UniversityImage src={banner} name={uni.name} country={uni.country} className="group-hover:scale-105 transition-transform duration-300" />
                   <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
                     <span className="px-2 py-0.5 rounded-md bg-white/90 backdrop-blur-xs border border-white/40 text-[11px] font-black font-mono text-slate-800 shadow-xs">
                       {flagMap[uni.country] || uni.country.slice(0, 2).toUpperCase()}

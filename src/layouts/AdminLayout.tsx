@@ -22,26 +22,26 @@ interface AdminLayoutProps { children: React.ReactNode; }
 
 const baseMenuItems = [
   { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard, badge: null, hasUpdate: false },
-  { name: 'Student Enquiries CRM', path: '/admin/enquiries', icon: Users, badge: 'LEADS', hasUpdate: false },
+  { name: 'Enquiries', path: '/admin/enquiries', icon: Users, badge: null, hasUpdate: false },
   { name: 'Students', path: '/admin/students', icon: GraduationCap, badge: null, hasUpdate: false },
   { name: 'Universities', path: '/admin/universities', icon: Building2, badge: null, hasUpdate: false },
   { name: 'Applications', path: '/admin/applications', icon: FileCheck, badge: null, hasUpdate: false },
   { name: 'Offer Letters', path: '/admin/offers', icon: Award, badge: null, hasUpdate: false },
-  { name: 'Documents Review', path: '/admin/documents', icon: FolderOpen, badge: null, hasUpdate: false },
-  { name: 'Document Config', path: '/admin/document-config', icon: FileText, badge: null, hasUpdate: false },
-  { name: 'Legalization & Workflows', path: '/admin/legalization', icon: FileCheck, badge: null, hasUpdate: false },
-  { name: 'Payment History', path: '/admin/payment-control', icon: CreditCard, badge: null, hasUpdate: false },
-  { name: 'Fee Governance', path: '/admin/fee-config', icon: Sliders, badge: null, hasUpdate: false },
-  { name: 'VFS Visa Tracker', path: '/admin/visa-tracker', icon: ShieldCheck, badge: null, hasUpdate: false },
+  { name: 'Documents', path: '/admin/documents', icon: FolderOpen, badge: null, hasUpdate: false },
+  { name: 'Document Requirements', path: '/admin/document-config', icon: FileText, badge: null, hasUpdate: false },
+  { name: 'Legalization', path: '/admin/legalization', icon: FileCheck, badge: null, hasUpdate: false },
+  { name: 'Payments', path: '/admin/payment-control', icon: CreditCard, badge: null, hasUpdate: false },
+  { name: 'Fees', path: '/admin/fee-config', icon: Sliders, badge: null, hasUpdate: false },
+  { name: 'Visa', path: '/admin/visa-tracker', icon: ShieldCheck, badge: null, hasUpdate: false },
   { name: 'Pre-Departure', path: '/admin/pre-departure', icon: Plane, badge: null, hasUpdate: false },
-  { name: 'Status Tracker', path: '/admin/tasks', icon: ClipboardList, badge: null, hasUpdate: false },
-  { name: 'Support Tickets', path: '/admin/support', icon: Headphones, badge: null, hasUpdate: false },
-  { name: 'Advisory Chat', path: '/admin/chat', icon: MessageSquare, badge: null, hasUpdate: false },
+  { name: 'Tasks', path: '/admin/tasks', icon: ClipboardList, badge: null, hasUpdate: false },
+  { name: 'Support', path: '/admin/support', icon: Headphones, badge: null, hasUpdate: false },
+  { name: 'Chat', path: '/admin/chat', icon: MessageSquare, badge: null, hasUpdate: false },
   { name: 'Attendance', path: '/admin/attendance', icon: Clock, badge: null, hasUpdate: false },
-  { name: 'Staff Management', path: '/admin/staff', icon: Users, badge: null, hasUpdate: false },
-  { name: 'Meetings & Planner', path: '/admin/meetings', icon: Calendar, badge: null, hasUpdate: false },
-  { name: 'Reports & Analytics', path: '/admin/reports', icon: BarChart3, badge: null, hasUpdate: false },
-  { name: 'Email Delivery Logs', path: '/admin/emails', icon: Mail, badge: null, hasUpdate: false },
+  { name: 'Staff', path: '/admin/staff', icon: Users, badge: null, hasUpdate: false },
+  { name: 'Meetings', path: '/admin/meetings', icon: Calendar, badge: null, hasUpdate: false },
+  { name: 'Reports', path: '/admin/reports', icon: BarChart3, badge: null, hasUpdate: false },
+  { name: 'Emails', path: '/admin/emails', icon: Mail, badge: null, hasUpdate: false },
   { name: 'Settings', path: '/admin/settings', icon: Settings, badge: null, hasUpdate: false },
 ];
 
@@ -231,13 +231,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                       setIsMobileOpen(false);
                       window.dispatchEvent(new CustomEvent('ferex_open_ai_sidebar'));
                     }}
-                    className="w-full relative flex items-center gap-2.5 h-9 px-2.5 rounded-xl text-xs font-bold transition-all duration-150 bg-gradient-to-r from-[#58051E]/12 via-[#58051E]/6 to-transparent text-[#58051E] hover:bg-[#58051E]/18 border border-[#58051E]/20 text-left cursor-pointer group my-1"
+                    className="w-full relative flex items-center gap-2.5 h-9 px-2.5 rounded-xl text-xs font-bold transition-all duration-150 text-slate-600 hover:bg-slate-100 hover:text-slate-900 text-left cursor-pointer group"
                   >
-                    <Sparkles className="w-4 h-4 shrink-0 text-[#58051E] group-hover:scale-110 transition-transform" />
-                    <span className="truncate flex-1 font-bold">AI Copilot</span>
-                    <span className="px-1.5 py-0.2 rounded text-[8.5px] font-black bg-[#58051E] text-white shrink-0 tracking-wider">
-                      LIVE AI
-                    </span>
+                    <Sparkles className="w-4 h-4 shrink-0 text-slate-400 group-hover:text-[#58051E] transition-colors" />
+                    <span className="truncate flex-1">AI Assistant</span>
                   </button>
                 )}
               </React.Fragment>

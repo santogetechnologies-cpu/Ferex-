@@ -234,7 +234,7 @@ export const AdminLoginPage: React.FC = () => {
             <div className="relative z-10 flex flex-col items-center">
               <Logo variant="full" color="white" size="md" subtitle="SUPER ADMIN HQ" align="center" />
               <p className="text-[11px] font-semibold text-rose-200/90 mt-2">
-                FEREX Multi-Enterprise Super Administration Portal
+                FEREX Multi-Super Administration Portal
               </p>
             </div>
           </div>

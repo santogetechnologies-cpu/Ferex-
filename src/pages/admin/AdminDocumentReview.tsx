@@ -638,7 +638,7 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
                                 }`}>
                                   {folderDossier.isComplete ? (
                                     <>
-                                      <CheckCircle2 className="w-2.5 h-2.5" /> Dossier Complete
+                                      <CheckCircle2 className="w-2.5 h-2.5" /> File Complete
                                     </>
                                   ) : (
                                     <>

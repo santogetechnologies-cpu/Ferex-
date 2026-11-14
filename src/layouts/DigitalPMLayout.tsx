@@ -21,8 +21,8 @@ const pmNavItems = [
   { name: 'Dashboard', path: '/digital/pm/dashboard', icon: LayoutDashboard },
   { name: 'Attendance', path: '/digital/pm/attendance', icon: Clock },
   { name: 'My Projects', path: '/digital/pm/projects', icon: FolderKanban },
-  { name: 'Client Tickets', path: '/digital/pm/tickets', icon: Headphones },
-  { name: 'Sprint Board', path: '/digital/pm/sprints', icon: Layers },
+  { name: 'Support', path: '/digital/pm/tickets', icon: Headphones },
+  { name: 'Sprints', path: '/digital/pm/sprints', icon: Layers },
   { name: 'Milestones', path: '/digital/pm/milestones', icon: Target },
   { name: 'Documents', path: '/digital/pm/documents', icon: FileText },
   { name: 'Notifications', path: '/digital/pm/notifications', icon: Bell },
@@ -189,13 +189,10 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
                       setIsMobileOpen(false);
                       window.dispatchEvent(new CustomEvent('ferex_open_ai_sidebar'));
                     }}
-                    className="w-full relative flex items-center gap-2.5 h-9 px-2.5 rounded-xl text-xs font-bold transition-all duration-150 bg-gradient-to-r from-[#58051E]/12 via-[#58051E]/6 to-transparent text-[#58051E] hover:bg-[#58051E]/18 border border-[#58051E]/20 text-left cursor-pointer group my-1"
+                    className="w-full relative flex items-center gap-2.5 h-9 px-2.5 rounded-xl text-xs font-bold transition-all duration-150 text-slate-600 hover:bg-slate-100 hover:text-slate-900 text-left cursor-pointer group"
                   >
-                    <Sparkles className="w-4 h-4 shrink-0 text-[#58051E] group-hover:scale-110 transition-transform" />
-                    <span className="truncate flex-1 font-bold">AI Copilot</span>
-                    <span className="px-1.5 py-0.2 rounded text-[8.5px] font-black bg-[#58051E] text-white shrink-0 tracking-wider">
-                      LIVE AI
-                    </span>
+                    <Sparkles className="w-4 h-4 shrink-0 text-slate-400 group-hover:text-[#58051E] transition-colors" />
+                    <span className="truncate flex-1">AI Assistant</span>
                   </button>
                 )}
               </React.Fragment>

@@ -4,7 +4,7 @@ import { Btn, Chip, Empty, Panel, inputCls, labelCls, money, monthLabel, type Sh
 
 const KINDS = ['Student closing', 'Commission', 'Performance', 'Bonus', 'Other'];
 
-export const Incentives: React.FC<Shared> = ({ ctx, toast }) => {
+export const Incentives: React.FC<Shared> = ({ ctx, toast, scope }) => {
   const [month, setMonth] = useState(monthOf(ctx.today));
   const [rows, setRows] = useState<Incentive[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
@@ -13,8 +13,8 @@ export const Incentives: React.FC<Shared> = ({ ctx, toast }) => {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    try { const [r, t] = await Promise.all([getIncentives(month), getTeam()]); setRows(r); setTeam(t); setError(''); } catch (e: any) { setError(e.message); }
-  }, [month]);
+    try { const [r, t] = await Promise.all([getIncentives(month), getTeam()]); setRows(r.filter(x => !scope || x.division === scope)); setTeam(t.filter(x => !scope || x.division === scope)); setError(''); } catch (e: any) { setError(e.message); }
+  }, [month, scope]);
   useEffect(() => { void load(); const h = () => void load(); window.addEventListener('ferex-attendance-updated', h); return () => window.removeEventListener('ferex-attendance-updated', h); }, [load]);
 
   const add = async (e: React.FormEvent) => {

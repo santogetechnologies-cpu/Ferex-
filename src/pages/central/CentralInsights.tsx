@@ -56,7 +56,7 @@ export const CentralInsights: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-[#58051E]" /> Executive Insights & CEO Command Matrix
+            <TrendingUp className="w-5 h-5 text-[#58051E]" /> Executive Insights & CEO Command Overview
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Super Admin Console • Platform health score, revenue forecasting models, and executive recommendations.
@@ -79,7 +79,7 @@ export const CentralInsights: React.FC = () => {
               96 <span className="text-sm text-slate-400 font-bold">/ 100</span>
             </div>
             <p className="text-xs text-slate-500 font-medium mt-2">
-              All subsidiaries and operational channels operating within efficiency thresholds.
+              All platforms and operational channels operating within efficiency thresholds.
             </p>
           </div>
           <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-500">

@@ -14,7 +14,7 @@ type TabId = 'mine' | 'team' | 'leave' | 'incentives' | 'payroll' | 'rules';
 
 // The same Attendance screen for every platform (Education, Rimi, Trade, Digital, Central). What a person sees depends only on their level:
 // team members clock in/out and apply for leave; platform administrators also verify their team and run pay; the superadmin approves.
-export const AttendancePage: React.FC = () => {
+export const AttendancePage: React.FC<{ platform?: string }> = ({ platform }) => {
   const [ctx, setCtx] = useState<AttendanceContext | null>(null);
   const [rules, setRules] = useState<AttendanceRules[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
@@ -55,13 +55,14 @@ export const AttendancePage: React.FC = () => {
   if (error) return <div className="p-6"><p role="alert" className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-sm font-semibold text-rose-700">{error}</p></div>;
   if (!ctx) return <div className="p-6 text-sm font-semibold text-slate-500">Loading attendance…</div>;
 
-  const shared = { ctx, rules, holidays, toast };
+  const scope = ctx.level === 'superadmin' ? platform : undefined;
+  const shared = { ctx, rules, holidays, toast, scope };
   return (
     <div className="space-y-4 text-slate-900">
       <ToastNotification message={toastMsg} onClose={() => setToastMsg('')} />
       <header>
         <h1 className="text-xl sm:text-2xl font-black tracking-tight">Attendance</h1>
-        <p className="text-xs font-semibold text-slate-500">{ctx.level === 'superadmin' ? 'All platforms' : platformName(ctx.division)} · {ctx.level === 'superadmin' ? 'Superadmin' : ctx.level === 'admin' ? 'Platform administrator' : 'Team member'}</p>
+        <p className="text-xs font-semibold text-slate-500">{scope ? platformName(scope) : ctx.level === 'superadmin' ? 'All platforms' : platformName(ctx.division)} · {ctx.level === 'superadmin' ? 'Superadmin' : ctx.level === 'admin' ? 'Platform administrator' : 'Team member'}</p>
       </header>
       <nav className="flex flex-wrap gap-1 border-b border-slate-200" aria-label="Attendance sections">
         {tabs.map(t => (

@@ -589,7 +589,7 @@ export const Documents: React.FC = () => {
             <Folder className="w-3.5 h-3.5 text-slate-400" />
           </div>
           <p className="text-2xl font-black text-slate-900 mt-1">{documents.length}</p>
-          <span className="text-[10px] font-medium text-slate-400">In student dossier</span>
+          <span className="text-[10px] font-medium text-slate-400">In student file</span>
         </Card>
         <Card className="p-3.5 border border-slate-200/80 shadow-xs bg-white">
           <div className="flex items-center justify-between">

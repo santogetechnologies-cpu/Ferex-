@@ -313,7 +313,7 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                Enterprise AI Copilot
+                AI Assistant
               </h1>
               <span className="text-[10px] font-extrabold uppercase bg-[#58051E]/10 text-[#58051E] px-2.5 py-0.5 rounded-full border border-[#58051E]/20">
                 {portalName}
@@ -321,7 +321,7 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
             </div>
             <p className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Enterprise Operations & Records Query</span>
+              <span>Operations & Records Query</span>
             </p>
           </div>
         </div>
@@ -520,7 +520,7 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
 
               <div className="max-w-4xl mx-auto flex items-center justify-between text-[11px] text-slate-400 font-medium px-2 mt-2">
                 <span className="flex items-center gap-1 text-[#58051E] font-bold">
-                  <ShieldCheck className="w-3.5 h-3.5" /> FEREX Enterprise Intelligence
+                  <ShieldCheck className="w-3.5 h-3.5" /> FEREX Intelligence
                 </span>
                 <span>Confidential Internal Operations</span>
               </div>

@@ -105,8 +105,17 @@ export const getOpenSession = async (userId: string): Promise<AttendanceDay | nu
 
 export const markDay = (p: { user: string; date: string; status: 'Present' | 'Half Day' | 'Absent' | 'Leave'; from?: string; to?: string; note?: string }) =>
   write<AttendanceDay>('attendance_mark', { p_user: p.user, p_date: p.date, p_status: p.status, p_in: p.from || null, p_out: p.to || null, p_note: p.note || '' });
-export const verifyRange = (from: string, to: string, userId?: string, fillAbsent = true) =>
-  write<{ verified: number; marked_absent: number; still_open: number; own_days_left_for_superadmin: number }>('attendance_verify', { p_from: from, p_to: to, p_user: userId || null, p_fill_absent: fillAbsent });
+type VerifyResult = { verified: number; marked_absent: number; still_open: number; own_days_left_for_superadmin: number };
+// With a list of people (one platform's team), each is verified in turn; otherwise everyone the caller is responsible for.
+export async function verifyRange(from: string, to: string, userId?: string, fillAbsent = true, onlyUsers?: string[]): Promise<VerifyResult> {
+  const one = (u: string | null) => rpc<VerifyResult>('attendance_verify', { p_from: from, p_to: to, p_user: u, p_fill_absent: fillAbsent });
+  const total: VerifyResult = { verified: 0, marked_absent: 0, still_open: 0, own_days_left_for_superadmin: 0 };
+  for (const r of onlyUsers ? await Promise.all(onlyUsers.map(one)) : [await one(userId || null)]) {
+    total.verified += r.verified; total.marked_absent += r.marked_absent; total.still_open += r.still_open; total.own_days_left_for_superadmin += r.own_days_left_for_superadmin;
+  }
+  changed();
+  return total;
+}
 export const reopenDay = (id: string, reason: string) => write<AttendanceDay>('attendance_reopen', { p_day: id, p_reason: reason });
 
 export const getLeaveTypes = () => select<LeaveType>(supabase.from('attendance_leave_types').select('*').order('sort'), 'Failed to load leave types');

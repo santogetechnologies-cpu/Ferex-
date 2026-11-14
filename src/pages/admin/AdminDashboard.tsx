@@ -55,8 +55,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
   const dbApps = isStaff ? allApps.filter(a => studentIds.has(a.student_id)) : allApps;
 
   const [statCards, setStatCards] = useState([
-    { label: 'Total Students', value: '0', change: 'Live from DB', icon: Users, color: 'text-blue-600 bg-blue-50/80', trend: 'up', path: isStaff ? '/staff/students' : '/admin/students' },
-    { label: 'Active Applications', value: '0', change: 'Live from DB', icon: FileCheck, color: 'text-violet-600 bg-violet-50/80', trend: 'up', path: isStaff ? '/staff/applications' : '/admin/applications' },
+    { label: 'Total Students', value: '0', change: 'All time', icon: Users, color: 'text-blue-600 bg-blue-50/80', trend: 'up', path: isStaff ? '/staff/students' : '/admin/students' },
+    { label: 'Active Applications', value: '0', change: 'All time', icon: FileCheck, color: 'text-violet-600 bg-violet-50/80', trend: 'up', path: isStaff ? '/staff/applications' : '/admin/applications' },
     { label: 'Pending Applications', value: '0', change: 'Review Needed', icon: Clock3, color: 'text-amber-700 bg-amber-50/80', trend: 'down', path: isStaff ? '/staff/applications' : '/admin/applications' },
     { label: 'Pending Documents', value: '0', change: 'Verification Queue', icon: FolderOpen, color: 'text-orange-600 bg-orange-50/80', trend: 'down', path: isStaff ? '/staff/documents' : '/admin/documents' },
     ...(isStaff ? [{
@@ -89,8 +89,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
         const activeAppsCount = isStaff ? dbApps.filter(a => a.status !== 'Draft' && a.status !== 'Rejected' && a.status !== 'Withdrawn').length : (stats.activeApplications ?? 0);
         const pendingAppsCount = isStaff ? dbApps.filter(a => a.status === 'Submitted' || a.status === 'Under Review').length : (stats.pendingApplications ?? 0);
         setStatCards([
-          { label: isStaff ? 'My Assigned Students' : 'Total Students', value: String(studentCount), change: isStaff ? 'My Portfolio' : 'Live from DB', icon: Users, color: 'text-blue-600 bg-blue-50/80', trend: 'up', path: isStaff ? '/staff/students' : '/admin/students' },
-          { label: isStaff ? 'My Active Applications' : 'Active Applications', value: String(activeAppsCount), change: isStaff ? 'Portfolio Queue' : 'Live from DB', icon: FileCheck, color: 'text-violet-600 bg-violet-50/80', trend: 'up', path: isStaff ? '/staff/applications' : '/admin/applications' },
+          { label: isStaff ? 'My Assigned Students' : 'Total Students', value: String(studentCount), change: isStaff ? 'My Portfolio' : 'All time', icon: Users, color: 'text-blue-600 bg-blue-50/80', trend: 'up', path: isStaff ? '/staff/students' : '/admin/students' },
+          { label: isStaff ? 'My Active Applications' : 'Active Applications', value: String(activeAppsCount), change: isStaff ? 'Portfolio Queue' : 'All time', icon: FileCheck, color: 'text-violet-600 bg-violet-50/80', trend: 'up', path: isStaff ? '/staff/applications' : '/admin/applications' },
           { label: isStaff ? 'Applications Under Review' : 'Pending Applications', value: String(pendingAppsCount), change: 'Review Needed', icon: Clock3, color: 'text-amber-700 bg-amber-50/80', trend: 'down', path: isStaff ? '/staff/applications' : '/admin/applications' },
           { label: 'Pending Documents', value: String(stats.pendingDocuments ?? 0), change: 'Verification Queue', icon: FolderOpen, color: 'text-orange-600 bg-orange-50/80', trend: 'down', path: isStaff ? '/staff/documents' : '/admin/documents' },
           ...(isStaff ? [{
@@ -241,7 +241,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
           <div className="flex items-center justify-between mb-5 border-b border-slate-100 pb-3">
             <div>
               <h3 className="text-sm font-semibold text-slate-900">Application Pipeline Status</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Real-time status breakdown across active student dossiers</p>
+              <p className="text-xs text-slate-400 mt-0.5">Real-time status breakdown across active student files</p>
             </div>
             <Button
               variant="ghost"
@@ -278,7 +278,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
           <div className="mt-6 pt-5 border-t border-slate-100">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Weekly Activity Volume</p>
-              <Badge variant="success" dot>Live Sync</Badge>
+              <Badge variant="success" dot>Up to date</Badge>
             </div>
             <div className="flex items-end gap-2 h-14">
               {activityBuckets.map((bucket, i) => (

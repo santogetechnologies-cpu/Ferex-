@@ -196,7 +196,7 @@ export const CentralTasks: React.FC = () => {
             <CheckSquare className="w-6 h-6 text-[#58051E]" /> Cross-Divisional Operations & Task Center
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Centrally delegate, track, and reassign high-priority operational workflows across all 4 enterprise subsidiaries.
+            Centrally delegate, track, and reassign high-priority operational workflows across all 4 enterprise platforms.
           </p>
         </div>
 
@@ -280,13 +280,13 @@ export const CentralTasks: React.FC = () => {
 
       {/* Task Cards Listing */}
       {loading ? (
-        <div className="py-16 text-center text-xs font-bold text-slate-400">Loading operations tasks from Supabase...</div>
+        <div className="py-16 text-center text-xs font-bold text-slate-400">Loading tasks…</div>
       ) : filteredTasks.length === 0 ? (
         <Card className="p-12 text-center border border-slate-200/70 shadow-xs">
           <CheckSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <h3 className="text-sm font-black text-slate-800">No Operations Tasks Listed</h3>
           <p className="text-xs font-semibold text-slate-400 mt-1 max-w-sm mx-auto">
-            No tasks match the active filters. Click "Create New Task" to delegate operational work to subsidiary staff.
+            No tasks match the active filters. Click "Create New Task" to delegate operational work to platform staff.
           </p>
         </Card>
       ) : (
@@ -432,7 +432,7 @@ export const CentralTasks: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Target Subsidiary</label>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Target Platform</label>
                     <select
                       value={newTask.division}
                       onChange={(e) => setNewTask({ ...newTask, division: e.target.value })}

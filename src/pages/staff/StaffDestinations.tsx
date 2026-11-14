@@ -61,7 +61,7 @@ export const StaffDestinations: React.FC = () => {
             <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2.5 py-0.5 rounded-md border border-[#58051E]/20 flex items-center gap-1">
               <ShieldCheck className="w-3 h-3 text-[#58051E]" /> EDUCATION DESTINATIONS DESK
             </span>
-            <span className="text-[10px] font-bold text-slate-400">● Live Supabase Master</span>
+            <span className="text-[10px] font-bold text-slate-400">● Saved</span>
           </div>
           <h1 className="text-2xl font-black text-slate-900 mt-1 flex items-center gap-2">
             <Globe className="w-6 h-6 text-[#58051E]" /> Study Destinations & Visa Catalog

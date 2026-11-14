@@ -170,7 +170,7 @@ export const CentralSettings: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Settings className="w-6 h-6 text-[#58051E]" /> Central Enterprise System Settings
+              <Settings className="w-6 h-6 text-[#58051E]" /> Central System Settings
             </h1>
             <span className="text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full">
               Live DB Sync
@@ -540,7 +540,7 @@ export const CentralSettings: React.FC = () => {
       {activeTab === 'branding' && (
         <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-5">
           <div className="border-b border-slate-100 pb-3">
-            <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">Enterprise Brand & Organization Identity</h2>
+            <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">Brand & Organization Identity</h2>
             <p className="text-xs font-medium text-slate-400 mt-0.5">Parameters broadcasted across invoices, notifications, and customer portals.</p>
           </div>
 
@@ -613,7 +613,7 @@ export const CentralSettings: React.FC = () => {
         <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-5">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-              <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">Enterprise Database Connectivity</h2>
+              <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">Database Connectivity</h2>
               <p className="text-xs font-medium text-slate-400 mt-0.5">Real-time health status and schema synchronization diagnostics.</p>
             </div>
             <Button
@@ -631,7 +631,7 @@ export const CentralSettings: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
             <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100">
               <span className="text-[10px] font-bold text-emerald-700 uppercase block">Database System</span>
-              <span className="text-sm font-black text-emerald-900 mt-1 block">Supabase PostgreSQL 15</span>
+              <span className="text-sm font-black text-emerald-900 mt-1 block">PostgreSQL</span>
               <span className="text-[10px] text-emerald-600 font-semibold mt-1 block">Active & Synchronized</span>
             </div>
 

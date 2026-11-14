@@ -1152,13 +1152,13 @@ export const DigitalProjects: React.FC = () => {
                     >
                       <option value="Web & App Development">Web Application Development (Full Stack)</option>
                       <option value="Mobile App Development">Mobile App (iOS / Android / Flutter)</option>
-                      <option value="Enterprise Cloud ERP & SaaS">Enterprise Cloud ERP & SaaS Architecture</option>
+                      <option value="Enterprise Cloud ERP & SaaS">Cloud ERP & SaaS Architecture</option>
                       <option value="UI/UX System & Product Design">UI/UX System & Product Design</option>
-                      <option value="AI / ML Copilot & Intelligent Agents">AI / ML Copilot & Intelligent Agents</option>
+                      <option value="AI / ML Copilot & Intelligent Agents">AI / ML Assistant & Intelligent Agents</option>
                       <option value="DevOps & Cloud Infrastructure">DevOps, CI/CD & Cloud Infrastructure</option>
                       <option value="Cybersecurity & Penetration Testing">Cybersecurity & Penetration Testing</option>
                       <option value="API & Database Architecture">API & Database Architecture</option>
-                      <option value="Custom Enterprise Software">Custom Enterprise Software Engineering</option>
+                      <option value="Custom Enterprise Software">Custom Software Engineering</option>
                       <option value="Digital Marketing & Advertising">Digital Marketing & Performance Ads</option>
                       <option value="SEO & Growth Engineering">SEO & Growth Engineering</option>
                       <option value="Branding & Visual Identity">Branding & Corporate Identity</option>

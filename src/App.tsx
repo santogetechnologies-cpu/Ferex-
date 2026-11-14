@@ -344,7 +344,7 @@ function App() {
           <Route path="/admin/meetings" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminMeetings /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/notifications" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminNotifications /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/fee-config" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminFeeConfig /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/attendance" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AttendancePage /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/attendance" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AttendancePage platform="education" /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/timesheets" element={<Navigate to="/admin/attendance" replace />} />
           <Route path="/admin/customization-policies" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminCustomizationPolicies /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/customization" element={<Navigate to="/admin/customization-policies" replace />} />
@@ -405,7 +405,7 @@ function App() {
           <Route path="/trade/emails" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><CentralEmailLogs defaultDivision="trade" /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/tasks" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeTasks /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/tickets" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeTickets /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/attendance" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><AttendancePage /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/attendance" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><AttendancePage platform="trade" /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/timesheets" element={<Navigate to="/trade/attendance" replace />} />
           <Route path="/trade/shifts" element={<Navigate to="/trade/attendance" replace />} />
           <Route path="/trade/shift-details" element={<Navigate to="/trade/attendance" replace />} />
@@ -439,7 +439,7 @@ function App() {
           <Route path="/rimi/messages" element={<Navigate to="/rimi/dashboard" replace />} />
           <Route path="/rimi/notifications" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiNotifications /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/emails" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><CentralEmailLogs defaultDivision="rimi" /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/attendance" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><AttendancePage /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/attendance" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><AttendancePage platform="rimi" /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/timesheets" element={<Navigate to="/rimi/attendance" replace />} />
           <Route path="/rimi/shifts" element={<Navigate to="/rimi/attendance" replace />} />
           <Route path="/rimi/shift-details" element={<Navigate to="/rimi/attendance" replace />} />
@@ -482,7 +482,7 @@ function App() {
           <Route path="/digital/finance/billing" element={<Navigate to="/digital/billing" replace />} />
 
           {/* Digital Team */}
-          <Route path="/digital/attendance" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><AttendancePage /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/attendance" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><AttendancePage platform="digital" /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/timesheets" element={<Navigate to="/digital/attendance" replace />} />
           <Route path="/digital/shifts" element={<Navigate to="/digital/attendance" replace />} />
           <Route path="/digital/shift-details" element={<Navigate to="/digital/attendance" replace />} />
@@ -516,7 +516,7 @@ function App() {
           <Route path="/digital/pm/milestones" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMMilestones /></DigitalPMLayout></ProtectedRoute>} />
           <Route path="/digital/pm/documents" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMDocuments /></DigitalPMLayout></ProtectedRoute>} />
           <Route path="/digital/pm/notifications" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMNotifications /></DigitalPMLayout></ProtectedRoute>} />
-          <Route path="/digital/pm/attendance" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><AttendancePage /></DigitalPMLayout></ProtectedRoute>} />
+          <Route path="/digital/pm/attendance" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><AttendancePage platform="digital" /></DigitalPMLayout></ProtectedRoute>} />
           <Route path="/digital/pm/timesheets" element={<Navigate to="/digital/pm/attendance" replace />} />
           <Route path="/digital/pm/shifts" element={<Navigate to="/digital/pm/attendance" replace />} />
           <Route path="/digital/pm/shift-details" element={<Navigate to="/digital/pm/attendance" replace />} />
@@ -544,7 +544,7 @@ function App() {
           <Route path="/staff/pre-departure" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminPreDeparture isStaff={true} /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/support" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffTickets /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/tickets" element={<Navigate to="/staff/support" replace />} />
-          <Route path="/staff/attendance" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AttendancePage /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/attendance" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AttendancePage platform="education" /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/timesheets" element={<Navigate to="/staff/attendance" replace />} />
           <Route path="/staff/shifts" element={<Navigate to="/staff/attendance" replace />} />
           <Route path="/staff/shift-details" element={<Navigate to="/staff/attendance" replace />} />

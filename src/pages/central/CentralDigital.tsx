@@ -292,7 +292,7 @@ export const CentralDigital: React.FC = () => {
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase text-slate-400 select-none">
                     <th className="py-3 px-4">Project Title & Scope</th>
-                    <th className="py-3 px-4">Client / Subsidiary</th>
+                    <th className="py-3 px-4">Client / Platform</th>
                     <th className="py-3 px-4">Service Category</th>
                     <th className="py-3 px-4 text-right">Budget (INR)</th>
                     <th className="py-3 px-4 text-center">Stage</th>

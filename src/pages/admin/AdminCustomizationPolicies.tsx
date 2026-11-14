@@ -798,7 +798,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
               <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-2">
                 <span className="text-[10px] font-extrabold uppercase text-slate-400">Wholesale MOV</span>
                 <p className="text-sm font-black text-slate-900">₹5,000 Min Order</p>
-                <p className="text-[11px] text-slate-500 font-medium">Enforced for automated B2B customer portal checkout.</p>
+                <p className="text-[11px] text-slate-500 font-medium">Enforced for automated customer portal checkout.</p>
               </div>
               <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-2">
                 <span className="text-[10px] font-extrabold uppercase text-slate-400">Credit Terms Window</span>

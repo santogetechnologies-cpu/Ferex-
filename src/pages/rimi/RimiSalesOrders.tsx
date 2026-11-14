@@ -570,7 +570,7 @@ export const RimiSalesOrders: React.FC = () => {
                       className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                     >
                       {activeCustomers.length === 0 ? (
-                        <option value="" disabled>No Active Enterprise Customers Available (All Leads / Suspended)</option>
+                        <option value="" disabled>No Active Customers Available (All Leads / Suspended)</option>
                       ) : (
                         activeCustomers.map(c => (
                           <option key={c.id} value={c.id}>

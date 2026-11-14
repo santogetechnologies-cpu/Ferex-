@@ -258,7 +258,7 @@ export const CentralEmailLogs: React.FC<CentralEmailLogsProps> = ({ defaultDivis
         <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase block">Total Dispatches</span>
           <span className="text-xl font-black text-slate-900 mt-0.5 block">{stats.total}</span>
-          <span className="text-[10px] text-slate-400 font-medium mt-1 block">Across 4 Subsidiaries</span>
+          <span className="text-[10px] text-slate-400 font-medium mt-1 block">Across 4 Platforms</span>
         </div>
 
         <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">

@@ -330,14 +330,14 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <h3 className="text-xs font-black tracking-tight text-white uppercase">Ferex AI Copilot</h3>
+                    <h3 className="text-xs font-black tracking-tight text-white uppercase">Ferex AI Assistant</h3>
                     <span className="text-[8.5px] font-black uppercase bg-white/20 px-2 py-0.5 rounded-full text-white/95">
                       {role.replace('_', ' ')}
                     </span>
                   </div>
                   <p className="text-[10px] text-white/80 font-medium flex items-center gap-1 mt-0.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>Live Enterprise Intelligence</span>
+                    <span>Live Intelligence</span>
                   </p>
                 </div>
               </div>

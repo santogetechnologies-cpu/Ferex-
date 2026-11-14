@@ -109,35 +109,35 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
   // ── Admin Menu (Full Control) ──
   const adminMenuSections = [
     {
-      title: 'EXECUTIVE DESK',
+      title: 'Overview',
       items: [
         { name: 'Dashboard', path: '/trade/dashboard', icon: LayoutDashboard },
-        { name: 'AI Copilot', path: '/trade/ai-copilot', icon: Sparkles },
+        { name: 'AI Assistant', path: '/trade/ai-copilot', icon: Sparkles },
       ]
     },
     {
-      title: 'TRADE OPERATIONS',
+      title: 'Operations',
       items: [
-        { name: 'Orders & Tracking', path: '/trade/shipments', icon: PackageCheck },
+        { name: 'Orders', path: '/trade/shipments', icon: PackageCheck },
         { name: 'Attendance', path: '/trade/attendance', icon: Clock },
-        { name: 'Trade Documents', path: '/trade/documents', icon: FolderArchive },
-        { name: 'Task Assignment', path: '/trade/tasks', icon: ListTodo },
-        { name: 'Support & Tickets', path: '/trade/tickets', icon: LifeBuoy },
-        { name: 'Payment Ledger & LC', path: '/trade/payments', icon: CreditCard },
+        { name: 'Documents', path: '/trade/documents', icon: FolderArchive },
+        { name: 'Tasks', path: '/trade/tasks', icon: ListTodo },
+        { name: 'Support', path: '/trade/tickets', icon: LifeBuoy },
+        { name: 'Payments', path: '/trade/payments', icon: CreditCard },
       ]
     },
     {
-      title: 'COMMUNICATION & CRM',
+      title: 'Communication',
       items: [
-        { name: 'Email Delivery Logs', path: '/trade/emails', icon: Mail },
-        { name: 'Trade Notifications', path: '/trade/notifications', icon: Bell },
-        { name: 'Trade CRM & Partners', path: '/trade/crm', icon: Users },
+        { name: 'Emails', path: '/trade/emails', icon: Mail },
+        { name: 'Notifications', path: '/trade/notifications', icon: Bell },
+        { name: 'Partners', path: '/trade/crm', icon: Users },
       ]
     },
     {
-      title: 'SYSTEM',
+      title: 'Account',
       items: [
-        { name: 'Profile & Settings', path: '/trade/profile', icon: User },
+        { name: 'Profile', path: '/trade/profile', icon: User },
       ]
     }
   ];
@@ -145,27 +145,27 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
   // ── Staff Menu (Trade / Logistics Officer) ──
   const staffMenuSections = [
     {
-      title: 'STAFF OPERATIONS PORTAL',
+      title: 'Operations',
       items: [
         { name: 'Dashboard', path: '/trade/dashboard', icon: LayoutDashboard },
         { name: 'Attendance', path: '/trade/attendance', icon: Clock },
-        { name: 'Active Orders', path: '/trade/shipments', icon: PackageCheck },
-        { name: 'My Assigned Tasks', path: '/trade/tasks', icon: ListTodo },
-        { name: 'Document Verification', path: '/trade/documents', icon: FolderArchive },
-        { name: 'Manual Ticket Logging', path: '/trade/tickets', icon: LifeBuoy },
+        { name: 'Orders', path: '/trade/shipments', icon: PackageCheck },
+        { name: 'Tasks', path: '/trade/tasks', icon: ListTodo },
+        { name: 'Documents', path: '/trade/documents', icon: FolderArchive },
+        { name: 'Support', path: '/trade/tickets', icon: LifeBuoy },
       ]
     },
     {
-      title: 'COMMUNICATION',
+      title: 'Communication',
       items: [
-        { name: 'Email Delivery Logs', path: '/trade/emails', icon: Mail },
-        { name: 'Trade Notifications', path: '/trade/notifications', icon: Bell },
+        { name: 'Emails', path: '/trade/emails', icon: Mail },
+        { name: 'Notifications', path: '/trade/notifications', icon: Bell },
       ]
     },
     {
-      title: 'SYSTEM',
+      title: 'Account',
       items: [
-        { name: 'Staff Profile', path: '/trade/profile', icon: User },
+        { name: 'Profile', path: '/trade/profile', icon: User },
       ]
     }
   ];

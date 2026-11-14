@@ -1,4 +1,5 @@
 import { saveEducationCountry } from '../lib/api/educationBilling';
+import { UniversityImage } from '../components/UniversityImage';
 import { studentFees, getActiveStudentFeeProfile, money, registrationSettled } from '../lib/educationBilling';
 import { formatFeeEURandINR } from './Payments';
 import React, { useState, useMemo } from 'react';
@@ -511,17 +512,7 @@ export const SelectUniversity: React.FC = () => {
               <div>
                 {/* Campus Image Banner */}
                 <div className="h-36 relative overflow-hidden bg-gradient-to-br from-slate-800 to-slate-950">
-                  {(uni.banner_image_url || uni.image_url) ? (
-                    <img
-                      src={uni.banner_image_url || uni.image_url}
-                      alt={uni.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-85"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-slate-900 text-slate-400">
-                      <GraduationCap className="w-12 h-12 opacity-30" />
-                    </div>
-                  )}
+                  <UniversityImage src={uni.banner_image_url || uni.image_url} name={uni.name} country={uni.country} className="group-hover:scale-105 transition-transform duration-500" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
                   {uni.logo_url && (
@@ -624,9 +615,9 @@ export const SelectUniversity: React.FC = () => {
                   </div>
 
                   {/* Campus Picture in Drawer */}
-                  {drawerUni.image_url && (
+                  {drawerUni && (
                     <div className="h-36 rounded-2xl overflow-hidden relative mb-4">
-                      <img src={drawerUni.image_url} alt={drawerUni.name} className="w-full h-full object-cover" />
+                      <UniversityImage src={drawerUni.banner_image_url || drawerUni.image_url} name={drawerUni.name} country={drawerUni.country} />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                       <span className="absolute bottom-2.5 left-3 px-2.5 py-0.5 bg-[#6A1B2E] text-amber-300 rounded-lg text-[10px] font-black">
                         {drawerUni.badge || 'Accredited Partner'}

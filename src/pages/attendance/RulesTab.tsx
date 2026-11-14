@@ -5,9 +5,9 @@ import { Btn, Empty, Panel, inputCls, labelCls, type Shared } from './ui';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const PLATFORMS = ['all', 'education', 'rimi', 'trade', 'digital'];
 
-export const RulesTab: React.FC<Shared & { reload: () => void }> = ({ ctx, rules, holidays, toast, reload }) => {
+export const RulesTab: React.FC<Shared & { reload: () => void }> = ({ ctx, rules, holidays, toast, reload, scope }) => {
   const isSuper = ctx.level === 'superadmin';
-  const [platform, setPlatform] = useState(isSuper ? 'all' : ctx.division);
+  const [platform, setPlatform] = useState(scope || (isSuper ? 'all' : ctx.division));
   const current = rules.find(r => r.division === platform) || rules.find(r => r.division === 'all')!;
   const [f, setF] = useState<AttendanceRules>(current);
   const [types, setTypes] = useState<LeaveType[]>([]);

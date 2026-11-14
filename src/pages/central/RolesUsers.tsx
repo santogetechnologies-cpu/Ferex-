@@ -695,7 +695,7 @@ export const RolesUsers: React.FC = () => {
               <Shield className="w-4 h-4" />
             </div>
             <div>
-              <p className="text-xs font-extrabold text-slate-900">System-Defined Role Matrix</p>
+              <p className="text-xs font-extrabold text-slate-900">System-Defined Role Overview</p>
               <p className="text-[11px] font-medium text-slate-500 mt-0.5">
                 These roles are system-defined and enforced at the database level. Each role has a fixed scope of access modules within its assigned enterprise division. User counts reflect current live provisioned accounts.
               </p>
@@ -784,7 +784,7 @@ export const RolesUsers: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-base font-black text-slate-900">Provision New User</h3>
-                    <p className="text-xs font-semibold text-slate-400">Creates authenticated login in Supabase with assigned role & scope</p>
+                    <p className="text-xs font-semibold text-slate-400">Creates a login with the chosen role</p>
                   </div>
                 </div>
                 <button onClick={() => setShowAddModal(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
@@ -863,7 +863,7 @@ export const RolesUsers: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border border-amber-300 bg-amber-100 text-amber-900 inline-flex items-center gap-1.5">
                           <Crown className="w-3 h-3 text-amber-700" />
-                          Enterprise Master Authority
+                          Master Authority
                         </span>
                       </div>
 

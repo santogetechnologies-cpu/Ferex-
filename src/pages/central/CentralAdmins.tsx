@@ -544,7 +544,7 @@ export const CentralAdmins: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-base font-black text-slate-900">Provision Admin or Staff Account</h3>
-                    <p className="text-xs font-semibold text-slate-400">Creates authenticated login in Supabase with assigned role & scope</p>
+                    <p className="text-xs font-semibold text-slate-400">Creates a login with the chosen role</p>
                   </div>
                 </div>
                 <button onClick={() => setShowAddModal(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
@@ -772,7 +772,7 @@ export const CentralAdmins: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border border-amber-300 bg-amber-100 text-amber-900 inline-flex items-center gap-1.5">
                           <Crown className="w-3 h-3 text-amber-700" />
-                          Enterprise Master Authority
+                          Master Authority
                         </span>
                       </div>
 
@@ -793,7 +793,7 @@ export const CentralAdmins: React.FC = () => {
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-black text-amber-950">Central Super Admin</p>
                           <p className="text-[10px] text-amber-800/80 font-medium mt-0.5 leading-snug">
-                            Unrestricted Master Access across all 4 Enterprise applications, global finance & user governance
+                            Unrestricted Master Access across all 4 applications, global finance & user governance
                           </p>
                         </div>
                       </button>

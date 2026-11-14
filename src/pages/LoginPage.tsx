@@ -896,7 +896,7 @@ export const LoginPage: React.FC = () => {
                     Academic Legalization & University Representation Authorization
                   </div>
                   <p className="text-[11.5px] text-slate-600 pl-6.5">
-                    You grant FEREX Education full power of representation to submit your certified academic dossiers to national education recognition authorities, accredited partner European universities, and VFS Global / European Consular Embassies for admission, apostille, and National D visa processing.
+                    You grant FEREX Education full power of representation to submit your certified academic files to national education recognition authorities, accredited partner European universities, and VFS Global / European Consular Embassies for admission, apostille, and National D visa processing.
                   </p>
                 </div>
 

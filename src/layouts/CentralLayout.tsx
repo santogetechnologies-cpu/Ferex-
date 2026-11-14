@@ -41,44 +41,44 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
 
   const menuSections = [
     {
-      title: 'HQ COMMAND',
+      title: 'Overview',
       items: [
         { name: 'Dashboard', path: '/central/dashboard', icon: LayoutDashboard },
-        { name: 'AI Copilot', path: '/central/ai-copilot', icon: Sparkles },
+        { name: 'AI Assistant', path: '/central/ai-copilot', icon: Sparkles },
       ]
     },
     {
-      title: 'ENTERPRISE FINANCE & HR',
+      title: 'Finance & People',
       items: [
         { name: 'Attendance', path: '/central/attendance', icon: Clock },
-        { name: 'Finance & Analytics', path: '/central/reports', icon: BarChart3 },
-        { name: 'Enterprise Ledger', path: '/central/finance', icon: CreditCard },
+        { name: 'Reports', path: '/central/reports', icon: BarChart3 },
+        { name: 'Finance', path: '/central/finance', icon: CreditCard },
       ]
     },
     {
-      title: 'SUBSIDIARIES',
+      title: 'Platforms',
       items: [
         { name: 'Ferex Education', path: '/central/education', icon: GraduationCap },
-        { name: 'Universities Catalog', path: '/central/universities', icon: Building2 },
-        { name: 'Global Trade ERP', path: '/central/trade', icon: Globe },
-        { name: 'Rimi Frozen FMCG', path: '/central/rimi', icon: Snowflake },
-        { name: 'Ferex Digital Agency', path: '/central/digital', icon: Monitor },
+        { name: 'Universities', path: '/central/universities', icon: Building2 },
+        { name: 'Global Trade', path: '/central/trade', icon: Globe },
+        { name: 'Rimi Frozen', path: '/central/rimi', icon: Snowflake },
+        { name: 'Ferex Digital', path: '/central/digital', icon: Monitor },
       ]
     },
     {
-      title: 'OPERATIONS & AUDIT',
+      title: 'Operations',
       items: [
-        { name: 'Cross-App Tasks', path: '/central/tasks', icon: CheckSquare },
-        { name: 'Support Tickets', path: '/central/support', icon: ShieldCheck },
-        { name: 'Enterprise Audit Trail', path: '/central/activity', icon: Activity },
-        { name: 'Email Delivery Logs', path: '/central/emails', icon: Mail },
+        { name: 'Tasks', path: '/central/tasks', icon: CheckSquare },
+        { name: 'Support', path: '/central/support', icon: ShieldCheck },
+        { name: 'Activity Log', path: '/central/activity', icon: Activity },
+        { name: 'Emails', path: '/central/emails', icon: Mail },
       ]
     },
     {
-      title: 'GOVERNANCE & SYSTEM',
+      title: 'Administration',
       items: [
-        { name: 'Roles & Users', path: '/central/roles-users', icon: UserCheck },
-        { name: 'System Settings', path: '/central/settings', icon: Settings },
+        { name: 'Users & Roles', path: '/central/roles-users', icon: UserCheck },
+        { name: 'Settings', path: '/central/settings', icon: Settings },
       ]
     }
   ];

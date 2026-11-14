@@ -2,12 +2,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { decideLeave, getLeaves, platformName, type LeaveRequest } from '../../lib/api/attendance';
 import { Btn, Chip, Empty, Panel, inputCls, type Shared } from './ui';
 
-export const LeaveApprovals: React.FC<Shared> = ({ ctx, toast }) => {
+export const LeaveApprovals: React.FC<Shared> = ({ ctx, toast, scope }) => {
   const [rows, setRows] = useState<LeaveRequest[]>([]);
   const [error, setError] = useState('');
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState('');
-  const load = useCallback(async () => { try { setRows(await getLeaves()); setError(''); } catch (e: any) { setError(e.message); } }, []);
+  const load = useCallback(async () => { try { setRows((await getLeaves()).filter(l => !scope || l.division === scope)); setError(''); } catch (e: any) { setError(e.message); } }, [scope]);
   useEffect(() => { void load(); const h = () => void load(); window.addEventListener('ferex-attendance-updated', h); return () => window.removeEventListener('ferex-attendance-updated', h); }, [load]);
 
   const decide = async (l: LeaveRequest, approve: boolean) => {

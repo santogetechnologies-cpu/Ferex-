@@ -302,7 +302,7 @@ export const RimiCustomers: React.FC = () => {
           onClick={() => setShowAddModal(true)}
           className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
         >
-          <Plus className="w-4 h-4" /> Add Enterprise Customer
+          <Plus className="w-4 h-4" /> Add Customer
         </Button>
       </div>
 
@@ -505,7 +505,7 @@ export const RimiCustomers: React.FC = () => {
                     className="text-xs font-bold h-8.5 border-slate-200 hover:border-slate-300 flex items-center justify-center gap-1 cursor-pointer"
                     title="View Customer Dossier"
                   >
-                    <Eye className="w-3.5 h-3.5 text-slate-600" /> Dossier
+                    <Eye className="w-3.5 h-3.5 text-slate-600" /> File
                   </Button>
                 </div>
               </div>
@@ -536,7 +536,7 @@ export const RimiCustomers: React.FC = () => {
             >
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                 <div>
-                  <h3 className="text-base font-black text-slate-900">Add Enterprise FMCG Customer</h3>
+                  <h3 className="text-base font-black text-slate-900">Add FMCG Customer</h3>
                   <p className="text-xs font-semibold text-slate-400 mt-0.5">Register a Distributor, Retailer, or Wholesaler account in Rimi ERP.</p>
                 </div>
                 <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
@@ -1198,7 +1198,7 @@ export const RimiCustomers: React.FC = () => {
                 </div>
 
                 <Button size="sm" className="w-full text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => setDossierCustomer(null)}>
-                  Close Dossier
+                  Close File
                 </Button>
               </div>
             </motion.div>

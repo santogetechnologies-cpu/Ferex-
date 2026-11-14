@@ -113,39 +113,39 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
       title: 'Overview',
       items: [
         { label: 'Dashboard', path: '/rimi/dashboard', icon: LayoutDashboard },
-        ...(isAdmin ? [{ label: 'AI Copilot', path: '/rimi/ai-copilot', icon: Sparkles }] : [])
+        ...(isAdmin ? [{ label: 'AI Assistant', path: '/rimi/ai-copilot', icon: Sparkles }] : [])
       ]
     },
     {
-      title: 'Sales & CRM',
+      title: 'Sales',
       items: [
-        { label: 'Customer Directory', path: '/rimi/customers', icon: Users },
+        { label: 'Customers', path: '/rimi/customers', icon: Users },
         { label: 'Sales Orders', path: '/rimi/sales-orders', icon: ShoppingCart },
-        { label: 'Payment Collections', path: '/rimi/collections', icon: DollarSign }
+        { label: 'Collections', path: '/rimi/collections', icon: DollarSign }
       ]
     },
     {
-      title: 'Inventory & Cold Chain',
+      title: 'Stock',
       items: [
-        { label: 'Products Catalog', path: '/rimi/products', icon: Package },
-        { label: 'Batches & Expiry', path: '/rimi/inventory', icon: Boxes },
-        { label: 'Cold Storage Hubs', path: '/rimi/warehouses', icon: Warehouse }
+        { label: 'Products', path: '/rimi/products', icon: Package },
+        { label: 'Inventory', path: '/rimi/inventory', icon: Boxes },
+        { label: 'Warehouses', path: '/rimi/warehouses', icon: Warehouse }
       ]
     },
     {
-      title: 'Operations & Alerts',
+      title: 'Operations',
       items: [
         { label: 'Attendance', path: '/rimi/attendance', icon: Clock },
-        { label: 'Finance & BI', path: '/rimi/analytics', icon: BarChart3 },
-        { label: 'Tasks & Dispatch', path: '/rimi/tasks', icon: CheckCircle2 },
+        { label: 'Reports', path: '/rimi/analytics', icon: BarChart3 },
+        { label: 'Tasks', path: '/rimi/tasks', icon: CheckCircle2 },
         { label: 'Notifications', path: '/rimi/notifications', icon: Bell, badge: unreadNotifCount > 0 ? String(unreadNotifCount) : undefined },
-        { label: 'Email Delivery Logs', path: '/rimi/emails', icon: Mail }
+        { label: 'Emails', path: '/rimi/emails', icon: Mail }
       ]
     },
     {
-      title: 'System',
+      title: 'Account',
       items: [
-        { label: 'Account Profile', path: '/rimi/profile', icon: User },
+        { label: 'Profile', path: '/rimi/profile', icon: User },
         { label: 'Sign Out', path: '/', icon: LogOut, isLogout: true }
       ]
     }

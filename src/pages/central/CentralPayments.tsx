@@ -225,7 +225,7 @@ export const CentralPayments: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <CreditCard className="w-6 h-6 text-[#58051E]" /> Consolidated Enterprise Finance & Payouts Ledger
+              <CreditCard className="w-6 h-6 text-[#58051E]" /> Consolidated Finance & Payouts Ledger
             </h1>
             <span className="text-[10px] font-black bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
               4-Division Treasury
@@ -257,7 +257,7 @@ export const CentralPayments: React.FC = () => {
             {totalInflow}
           </div>
           <span className="text-[10px] font-bold text-emerald-600 mt-2 block flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" /> Live Multi-Subsidiary Aggregate
+            <TrendingUp className="w-3 h-3" /> Live Multi-Platform Aggregate
           </span>
         </Card>
 

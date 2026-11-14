@@ -654,7 +654,7 @@ export const DigitalPMProjects: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Client / Subsidiary *</label>
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Client / Platform *</label>
                     <select
                       value={newProj.client_id}
                       onChange={(e) => {
@@ -684,8 +684,8 @@ export const DigitalPMProjects: React.FC = () => {
                       onChange={(e) => setNewProj({ ...newProj, client_type: e.target.value as any })}
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                     >
-                      <option value="Internal">Internal Subsidiary</option>
-                      <option value="External">External Enterprise Client</option>
+                      <option value="Internal">Internal Platform</option>
+                      <option value="External">External Client</option>
                     </select>
                   </div>
                 </div>

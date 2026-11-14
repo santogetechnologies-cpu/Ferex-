@@ -491,7 +491,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-[#58051E]" />
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">Counselor Performance Matrix</h3>
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">Counselor Performance Overview</h3>
             </div>
             <span className="text-[10px] font-bold text-slate-400">Live Conversion Analytics</span>
           </div>

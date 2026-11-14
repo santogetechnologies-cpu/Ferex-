@@ -422,14 +422,14 @@ export const CentralReports: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <BarChart3 className="w-6 h-6 text-[#58051E]" /> Enterprise Finance & Subsidiary Analytics
+              <BarChart3 className="w-6 h-6 text-[#58051E]" /> Finance & Platform Analytics
             </h1>
             <span className="text-[10px] font-black bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
-              4-Subsidiary HQ
+              4-Platform HQ
             </span>
           </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Real-time financial performance, subsidiary revenue distribution, and multi-gateway clearing intelligence.
+            Real-time financial performance, platform revenue distribution, and multi-gateway clearing intelligence.
           </p>
         </div>
 
@@ -461,7 +461,7 @@ export const CentralReports: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-5 border border-slate-200/80 shadow-xs bg-white">
           <span className="text-[10.5px] font-extrabold uppercase text-slate-400 block mb-1">
-            Combined Enterprise Revenue
+            Combined Revenue
           </span>
           <div className="text-2xl font-black text-slate-900 tracking-tight">
             ₹{totalCombinedRevenue.toLocaleString('en-IN')}
@@ -502,13 +502,13 @@ export const CentralReports: React.FC = () => {
 
         <Card className="p-5 border border-slate-200/80 shadow-xs bg-white">
           <span className="text-[10.5px] font-extrabold uppercase text-slate-400 block mb-1">
-            Average Enterprise Ticket
+            Average Ticket
           </span>
           <div className="text-2xl font-black text-indigo-700 tracking-tight">
             ₹{totalTransactionsCount > 0 ? Math.round(totalCombinedRevenue / totalTransactionsCount).toLocaleString('en-IN') : 0}
           </div>
           <div className="flex items-center justify-between mt-2.5 text-[10px] font-bold text-slate-400">
-            <span className="text-indigo-600">Blended 4-Subsidiary ARPU</span>
+            <span className="text-indigo-600">Blended 4-Platform ARPU</span>
             <span className="font-semibold text-slate-500">Cross-Division</span>
           </div>
         </Card>
@@ -518,7 +518,7 @@ export const CentralReports: React.FC = () => {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
-            <Building className="w-4 h-4 text-[#58051E]" /> Subsidiary Revenue Breakdown
+            <Building className="w-4 h-4 text-[#58051E]" /> Platform Revenue Breakdown
           </h2>
           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
             {['All', 'Education', 'Trade', 'Rimi', 'Digital'].map(tab => (
@@ -683,7 +683,7 @@ export const CentralReports: React.FC = () => {
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/60">
-                <p className="text-xs font-bold text-slate-800">Subsidiary Fund Segregation</p>
+                <p className="text-xs font-bold text-slate-800">Platform Fund Segregation</p>
                 <p className="text-[11px] font-medium text-slate-500 mt-0.5">
                   Direct nodal accounts isolated for Ferex Education, Global Trade, Rimi Frozen, and Digital Agency.
                 </p>

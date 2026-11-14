@@ -72,7 +72,7 @@ export const DigitalLoginPage: React.FC = () => {
         <div className="flex flex-col items-center text-center mb-6">
           <Logo variant="full" color="maroon" size="md" subtitle="DIGITAL" align="center" />
           <p className="text-xs font-semibold text-slate-500 mt-2">
-            Enterprise Digital Agency Operations Portal
+            Digital Agency Operations Portal
           </p>
         </div>
 

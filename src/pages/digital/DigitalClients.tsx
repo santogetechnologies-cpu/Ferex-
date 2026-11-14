@@ -271,11 +271,11 @@ export const DigitalClients: React.FC = () => {
             <Users className="w-5 h-5 text-[#58051E]" /> Digital Agency Clients Directory
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Ferex Digital ERP • Centralized directory of Internal Subsidiaries, External Accounts & Leads.
+            Ferex Digital ERP • Centralized directory of Internal Platforms, External Accounts & Leads.
           </p>
         </div>
         <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
-          <Plus className="w-4 h-4 mr-1.5" /> Add Enterprise Client
+          <Plus className="w-4 h-4 mr-1.5" /> Add Client
         </Button>
       </div>
 
@@ -398,7 +398,7 @@ export const DigitalClients: React.FC = () => {
                   className="w-full text-[11px] font-bold h-8 border-slate-200 hover:border-slate-300"
                   onClick={() => handleOpenDossier(c)}
                 >
-                  <Eye className="w-3 h-3 mr-1 text-[#58051E]" /> View Client Dossier & Services
+                  <Eye className="w-3 h-3 mr-1 text-[#58051E]" /> View Client File & Services
                 </Button>
               </div>
             </Card>
@@ -462,10 +462,10 @@ export const DigitalClients: React.FC = () => {
               <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                    <Building2 className="w-5 h-5 text-[#58051E]" /> Add Enterprise Client Account
+                    <Building2 className="w-5 h-5 text-[#58051E]" /> Add Client Account
                   </h3>
                   <p className="text-xs text-slate-500 font-semibold mt-0.5">
-                    Register a new internal subsidiary or external enterprise organization in Ferex Digital ERP.
+                    Register a new internal platform or external enterprise organization in Ferex Digital ERP.
                   </p>
                 </div>
                 <button onClick={() => setShowAddModal(false)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"><X className="w-5 h-5" /></button>
@@ -487,7 +487,7 @@ export const DigitalClients: React.FC = () => {
                         className="accent-[#58051E]"
                       />
                       <div>
-                        <span className="block text-xs font-black">External Enterprise Account</span>
+                        <span className="block text-xs font-black">External Account</span>
                         <span className="text-[10px] text-slate-400 font-normal">Direct external corporate client</span>
                       </div>
                     </label>
@@ -503,7 +503,7 @@ export const DigitalClients: React.FC = () => {
                         className="accent-[#58051E]"
                       />
                       <div>
-                        <span className="block text-xs font-black">Internal Ferex Subsidiary</span>
+                        <span className="block text-xs font-black">Internal Ferex Platform</span>
                         <span className="text-[10px] text-slate-400 font-normal">Ferex Group sister division</span>
                       </div>
                     </label>
@@ -658,7 +658,7 @@ export const DigitalClients: React.FC = () => {
 
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Enterprise Client</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Client</Button>
                 </div>
               </form>
             </motion.div>
@@ -715,7 +715,7 @@ export const DigitalClients: React.FC = () => {
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
                 <div>
                   <h3 className="text-sm font-black text-slate-900">{dossierClient.name}</h3>
-                  <span className="text-[10px] font-bold text-[#58051E] uppercase">Client Service Dossier & Ledger</span>
+                  <span className="text-[10px] font-bold text-[#58051E] uppercase">Client Service File & Ledger</span>
                 </div>
                 <button onClick={() => setDossierClient(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
@@ -830,7 +830,7 @@ export const DigitalClients: React.FC = () => {
                 </div>
 
                 <Button size="sm" className="w-full text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => setDossierClient(null)}>
-                  Close Dossier
+                  Close File
                 </Button>
               </div>
             </motion.div>

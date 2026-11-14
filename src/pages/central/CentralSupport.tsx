@@ -234,13 +234,13 @@ export const CentralSupport: React.FC = () => {
       </Card>
 
       {loading ? (
-        <div className="p-12 text-center text-xs font-bold text-slate-400">Loading support tickets from Supabase...</div>
+        <div className="p-12 text-center text-xs font-bold text-slate-400">Loading support tickets…</div>
       ) : filteredTickets.length === 0 ? (
         <Card className="p-12 text-center border border-slate-200/70 shadow-xs">
           <LifeBuoy className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <h3 className="text-sm font-black text-slate-800">No Support Tickets Found</h3>
           <p className="text-xs font-semibold text-slate-400 mt-1 max-w-sm mx-auto">
-            All tickets across selected subsidiaries have been resolved or none match your search criteria.
+            All tickets across selected platforms have been resolved or none match your search criteria.
           </p>
         </Card>
       ) : (
@@ -425,7 +425,7 @@ export const CentralSupport: React.FC = () => {
                 {/* Division Selector */}
                 <div>
                   <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
-                    Target Subsidiary / Division *
+                    Target Platform / Division *
                   </label>
                   <div className="grid grid-cols-4 gap-1.5 bg-slate-100 p-1 rounded-xl">
                     {['Education', 'Trade', 'Rimi', 'Digital'].map((div) => (

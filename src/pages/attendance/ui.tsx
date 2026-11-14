@@ -8,6 +8,8 @@ export interface Shared {
   rules: AttendanceRules[];
   holidays: Holiday[];
   toast: (message: string) => void;
+  // When Attendance is opened inside one platform's app, only that platform's people are shown (even to a superadmin).
+  scope?: string;
 }
 
 export const inputCls = 'h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]';

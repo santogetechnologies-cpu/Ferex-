@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { UniversityImage } from '../components/UniversityImage';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Building2, ArrowRight, LogIn, LogOut, ChevronDown, MapPin,
@@ -968,17 +969,7 @@ export const FerexLandingPage: React.FC = () => {
                   <div>
                     {/* University Campus Image Banner */}
                     <div className="h-44 relative overflow-hidden bg-gradient-to-br from-slate-800 to-slate-950">
-                      {uni.image_url ? (
-                        <img
-                          src={uni.image_url}
-                          alt={uni.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-slate-900 text-slate-400">
-                          <Building2 className="w-12 h-12 opacity-30" />
-                        </div>
-                      )}
+                      <UniversityImage src={uni.banner_image_url || uni.image_url} name={uni.name} country={uni.country} className="group-hover:scale-105 transition-transform duration-500" />
                       <div className="absolute inset-0 bg-gradient-to-t from-[#1F2937]/90 via-[#1F2937]/25 to-transparent" />
 
                       <span className="absolute top-3 left-3 text-[10px] font-black uppercase tracking-wider text-[#570229] bg-white/95 px-2.5 py-0.5 rounded-full border border-white/50 shadow-xs">
@@ -1468,7 +1459,7 @@ export const FerexLandingPage: React.FC = () => {
                   <section className="space-y-2">
                     <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">5. Admissions Decisions & Visa Issuance</h4>
                     <p>
-                      While FEREX guarantees verified dossier presentation and high acceptance rates through direct university agreements, official admissions decisions rest solely with university academic senates, and visa decisions rest exclusively with the respective Consulates & Embassies.
+                      While FEREX guarantees verified file presentation and high acceptance rates through direct university agreements, official admissions decisions rest solely with university academic senates, and visa decisions rest exclusively with the respective Consulates & Embassies.
                     </p>
                   </section>
 
@@ -1502,7 +1493,7 @@ export const FerexLandingPage: React.FC = () => {
                   <section className="space-y-2">
                     <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">2. How We Use Your Information</h4>
                     <p>
-                      Your data is utilized strictly for evaluating eligibility, submitting formal admission dossiers to foreign universities, facilitating sworn translations and Apostille legalization, and keeping you updated on visa milestones.
+                      Your data is utilized strictly for evaluating eligibility, submitting formal admission files to foreign universities, facilitating sworn translations and Apostille legalization, and keeping you updated on visa milestones.
                     </p>
                   </section>
 
@@ -1541,7 +1532,7 @@ export const FerexLandingPage: React.FC = () => {
                   <section className="space-y-2">
                     <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">1. Cancellation Window</h4>
                     <p>
-                      Applicants may request cancellation of their intake application within 48 hours of initial registration before their application dossier is formally submitted to the university admissions senate.
+                      Applicants may request cancellation of their intake application within 48 hours of initial registration before their application file is formally submitted to the university admissions senate.
                     </p>
                   </section>
 
@@ -1552,7 +1543,7 @@ export const FerexLandingPage: React.FC = () => {
                         <strong>University Rejection / Quota Closure:</strong> If an application is rejected by the partner university due to institutional quota closure, 100% of the advance registration deposit is fully refundable or transferable to an alternative European university.
                       </li>
                       <li>
-                        <strong>Post-Dossier Submission:</strong> Once official translation, legalization, or university admissions review has commenced, administrative and statutory costs incurred are non-refundable.
+                        <strong>Post-File Submission:</strong> Once official translation, legalization, or university admissions review has commenced, administrative and statutory costs incurred are non-refundable.
                       </li>
                     </ul>
                   </section>

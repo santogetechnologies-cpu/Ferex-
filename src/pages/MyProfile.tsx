@@ -449,7 +449,7 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
             <div className="flex items-center justify-between border-b border-slate-100 pb-5 mb-6">
               <div>
                 <h3 className="text-base font-black text-slate-900">Personal & Identity Details</h3>
-                <p className="text-xs font-semibold text-slate-500 mt-0.5">Your official verified details used for university dossiers and visa filing.</p>
+                <p className="text-xs font-semibold text-slate-500 mt-0.5">Your official verified details used for university files and visa filing.</p>
               </div>
               <div>
                 {editingPersonal ? (

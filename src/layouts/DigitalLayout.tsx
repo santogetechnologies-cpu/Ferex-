@@ -110,46 +110,46 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
 
   const adminNavSections: NavSection[] = [
     {
-      title: 'Executive',
+      title: 'Overview',
       items: [
         { label: 'Dashboard', path: '/digital/dashboard', icon: LayoutDashboard },
-        { label: 'AI Copilot', path: '/digital/ai-copilot', icon: Sparkles }
+        { label: 'AI Assistant', path: '/digital/ai-copilot', icon: Sparkles }
       ]
     },
     {
-      title: 'Agency Operations',
+      title: 'Work',
       items: [
         { label: 'Clients', path: '/digital/clients', icon: Users },
         { label: 'Attendance', path: '/digital/attendance', icon: Clock },
         { label: 'Projects', path: '/digital/projects', icon: FolderKanban },
         { label: 'Deliverables', path: '/digital/deliverables', icon: Layers },
-        { label: 'Task Assignment', path: '/digital/tasks', icon: CheckSquare },
-        { label: 'Leads & Pipeline', path: '/digital/leads', icon: UserPlus },
+        { label: 'Tasks', path: '/digital/tasks', icon: CheckSquare },
+        { label: 'Leads', path: '/digital/leads', icon: UserPlus },
         { label: 'Meetings', path: '/digital/meetings', icon: Calendar }
       ]
     },
     {
-      title: 'Finance & Billing',
+      title: 'Finance',
       items: [
-        { label: 'Centralised Billing', path: '/digital/billing', icon: Shield },
+        { label: 'Billing', path: '/digital/billing', icon: Shield },
         { label: 'Invoices', path: '/digital/invoices', icon: FileText },
-        { label: 'Payments Ledger', path: '/digital/payments', icon: CreditCard },
+        { label: 'Payments', path: '/digital/payments', icon: CreditCard },
         { label: 'Expenses', path: '/digital/expenses', icon: DollarSign }
       ]
     },
     {
-      title: 'Analytics & Alerts',
+      title: 'Insights',
       items: [
-        { label: 'Performance BI', path: '/digital/analytics', icon: BarChart3 },
+        { label: 'Reports', path: '/digital/analytics', icon: BarChart3 },
         { label: 'Notifications', path: '/digital/notifications', icon: Bell, badge: unreadNotifCount > 0 ? String(unreadNotifCount) : undefined },
-        { label: 'Email Delivery Logs', path: '/digital/emails', icon: Mail }
+        { label: 'Emails', path: '/digital/emails', icon: Mail }
       ]
     },
     {
-      title: 'System',
+      title: 'Account',
       items: [
-        { label: 'Account Profile', path: '/digital/profile', icon: User },
-        { label: 'Agency Settings', path: '/digital/settings', icon: Settings },
+        { label: 'Profile', path: '/digital/profile', icon: User },
+        { label: 'Settings', path: '/digital/settings', icon: Settings },
         { label: 'Sign Out', path: '/', icon: LogOut, isLogout: true }
       ]
     }
@@ -157,27 +157,27 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
 
   const staffNavSections: NavSection[] = [
     {
-      title: 'Workspace',
+      title: 'Overview',
       items: [
         { label: 'Dashboard', path: '/digital/dashboard', icon: LayoutDashboard }
       ]
     },
     {
-      title: 'Projects & Tasks',
+      title: 'Work',
       items: [
         { label: 'My Projects', path: '/digital/projects', icon: FolderKanban },
         { label: 'Attendance', path: '/digital/attendance', icon: Clock },
         { label: 'Deliverables', path: '/digital/deliverables', icon: Layers },
-        { label: 'Tasks Queue', path: '/digital/tasks', icon: CheckSquare },
+        { label: 'Tasks', path: '/digital/tasks', icon: CheckSquare },
         { label: 'Meetings', path: '/digital/meetings', icon: Calendar }
       ]
     },
     {
-      title: 'Alerts & System',
+      title: 'Account',
       items: [
         { label: 'Notifications', path: '/digital/notifications', icon: Bell, badge: unreadNotifCount > 0 ? String(unreadNotifCount) : undefined },
-        { label: 'Email Delivery Logs', path: '/digital/emails', icon: Mail },
-        { label: 'Account Profile', path: '/digital/profile', icon: User },
+        { label: 'Emails', path: '/digital/emails', icon: Mail },
+        { label: 'Profile', path: '/digital/profile', icon: User },
         { label: 'Sign Out', path: '/', icon: LogOut, isLogout: true }
       ]
     }

@@ -99,7 +99,7 @@ export const CentralRoles: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <UserCheck className="w-6 h-6 text-[#58051E]" /> Enterprise Roles & RBAC Matrix
+            <UserCheck className="w-6 h-6 text-[#58051E]" /> Roles & RBAC Overview
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Super Admin Console • Permission boundaries and operational scopes across all 4 enterprise divisions.
@@ -179,7 +179,7 @@ export const CentralRoles: React.FC = () => {
               className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-left space-y-4"
             >
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="text-base font-black text-slate-900">Define Enterprise Role</h3>
+                <h3 className="text-base font-black text-slate-900">Define Role</h3>
                 <button onClick={() => setShowAddModal(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg">
                   <X className="w-4 h-4" />
                 </button>

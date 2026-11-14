@@ -149,8 +149,8 @@ export const AppSwitcher: React.FC = () => {
             {/* Header */}
             <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-100 px-1">
               <div>
-                <h4 className="text-xs font-bold text-slate-900 tracking-tight">Enterprise Portals</h4>
-                <p className="text-[10px] text-slate-400 font-medium">Switch subsidiary workspace</p>
+                <h4 className="text-xs font-bold text-slate-900 tracking-tight">Portals</h4>
+                <p className="text-[10px] text-slate-400 font-medium">Switch platform workspace</p>
               </div>
               <span className="text-[9.5px] font-bold text-[#58051E] bg-[#58051E]/5 px-2 py-0.5 rounded border border-[#58051E]/15">
                 SSO Active

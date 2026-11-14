@@ -5,7 +5,7 @@ import {
 } from '../../lib/api/attendance';
 import { Btn, Chip, Empty, Modal, Panel, inputCls, labelCls, money, monthLabel, type Shared } from './ui';
 
-export const PayrollTab: React.FC<Shared> = ({ ctx, toast }) => {
+export const PayrollTab: React.FC<Shared> = ({ ctx, toast, scope }) => {
   const [month, setMonth] = useState(previousMonth(ctx.today));
   const [rows, setRows] = useState<Payroll[]>([]);
   const [salaries, setSalaries] = useState<Salary[]>([]);
@@ -17,8 +17,8 @@ export const PayrollTab: React.FC<Shared> = ({ ctx, toast }) => {
   const [sal, setSal] = useState<TeamMember | null>(null);
 
   const load = useCallback(async () => {
-    try { const [p, s, t] = await Promise.all([getPayroll(month), getSalaries(), getTeam()]); setRows(p); setSalaries(s); setTeam(t.filter(m => !m.is_me)); setError(''); } catch (e: any) { setError(e.message); }
-  }, [month]);
+    try { const [p, s, t] = await Promise.all([getPayroll(month), getSalaries(), getTeam()]); setRows(p.filter(x => !scope || x.division === scope)); setSalaries(s); setTeam(t.filter(m => !m.is_me && (!scope || m.division === scope))); setError(''); } catch (e: any) { setError(e.message); }
+  }, [month, scope]);
   useEffect(() => { void load(); const h = () => void load(); window.addEventListener('ferex-attendance-updated', h); return () => window.removeEventListener('ferex-attendance-updated', h); }, [load]);
 
   const run = async (fn: () => Promise<unknown>, ok: string | ((r: any) => string)) => {
@@ -34,7 +34,7 @@ export const PayrollTab: React.FC<Shared> = ({ ctx, toast }) => {
       <Panel title="Monthly payroll" right={
         <div className="flex flex-wrap items-center gap-2">
           <input type="month" className={inputCls} value={month} max={previousMonth(ctx.today)} onChange={e => e.target.value && setMonth(e.target.value)} aria-label="Month" />
-          <Btn tone="brand" disabled={busy} onClick={() => void run(() => generatePayroll(month), (r: any) => `Prepared ${r.prepared} payslip(s)${r.no_salary_set ? `, ${r.no_salary_set} skipped (no salary set)` : ''}${r.already_verified_or_paid ? `, ${r.already_verified_or_paid} already verified` : ''}`)}>Prepare / refresh {monthLabel(month)}</Btn>
+          <Btn tone="brand" disabled={busy} onClick={() => void run(() => generatePayroll(month, scope), (r: any) => `Prepared ${r.prepared} payslip(s)${r.no_salary_set ? `, ${r.no_salary_set} skipped (no salary set)` : ''}${r.already_verified_or_paid ? `, ${r.already_verified_or_paid} already verified` : ''}`)}>Prepare / refresh {monthLabel(month)}</Btn>
         </div>}>
         <p className="text-[11px] font-semibold text-slate-500 mb-3">
           Monthly salary + approved incentives − loss of pay (absences and unpaid leave) − other deductions. Flow: prepared → verified by {isSuper ? 'the platform administrator (or you, for administrators)' : 'you'} → approved and paid by the superadmin.

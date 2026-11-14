@@ -1,4 +1,5 @@
 import { UniversityBulkUpload } from '../../components/UniversityBulkUpload';
+import { UniversityImage } from '../../components/UniversityImage';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -848,19 +849,8 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                     <div>
                       {/* Card Image Banner */}
                       <div className="h-32 relative overflow-hidden bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900">
-                        {(u.banner_image_url || u.image_url) ? (
-                          <img
-                            src={u.banner_image_url || u.image_url}
-                            alt={u.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
-                            onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-400">
-                            <ImageIcon className="w-12 h-12 opacity-30" />
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
+                        <UniversityImage src={u.banner_image_url || u.image_url} name={u.name} country={u.country} className="group-hover:scale-105 transition-transform duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/10 to-transparent" />
                         
                         <span className="absolute top-2.5 right-2.5 text-[9.5px] font-black bg-[#58051E] text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300/40 shadow-xs">
                           {u.badge || 'Top Choice'}
@@ -1564,9 +1554,9 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                 <button onClick={() => setViewUniversity(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
               </div>
 
-              {viewUniversity.image_url && (
+              {viewUniversity && (
                 <div className="h-32 rounded-xl overflow-hidden relative">
-                  <img src={viewUniversity.image_url} alt={viewUniversity.name} className="w-full h-full object-cover" />
+                  <UniversityImage src={viewUniversity.banner_image_url || viewUniversity.image_url} name={viewUniversity.name} country={viewUniversity.country} />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <span className="absolute bottom-2 left-2.5 px-2 py-0.5 bg-[#58051E] text-amber-300 rounded text-[10px] font-black">
                     {viewUniversity.badge || 'Top Choice'}

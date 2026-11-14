@@ -4,10 +4,10 @@ import { Btn, Chip, Empty, Modal, Panel, dateLabel, hoursText, inputCls, labelCl
 
 type Mode = 'day' | 'week';
 
-export const TeamAttendance: React.FC<Shared> = ({ ctx, rules, holidays, toast }) => {
+export const TeamAttendance: React.FC<Shared> = ({ ctx, rules, holidays, toast, scope }) => {
   const [mode, setMode] = useState<Mode>('day');
   const [anchor, setAnchor] = useState(addDays(ctx.today, ctx.level === 'superadmin' ? 0 : 0));
-  const [platform, setPlatform] = useState('all');
+  const [platform, setPlatform] = useState(scope || 'all');
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [days, setDays] = useState<AttendanceDay[]>([]);
   const [error, setError] = useState('');
@@ -42,7 +42,7 @@ export const TeamAttendance: React.FC<Shared> = ({ ctx, rules, holidays, toast }
     try { const r = await fn(); toast(typeof ok === 'function' ? ok(r) : ok); await load(); } catch (e: any) { toast(e.message); } finally { setBusy(false); }
   };
 
-  const verifyAll = () => run(() => verifyRange(from, to), (r: any) =>
+  const verifyAll = () => run(() => verifyRange(from, to, undefined, true, platform === 'all' ? undefined : members.map(m => m.user_id)), (r: any) =>
     `Verified ${r.verified} day(s), ${r.marked_absent} marked absent${r.still_open ? `, ${r.still_open} still clocked in (mark or wait)` : ''}${r.own_days_left_for_superadmin ? '. Your own days wait for the superadmin' : ''}`);
 
   const quick = (m: TeamMember, date: string, status: 'Present' | 'Half Day' | 'Absent') => run(() => markDay({ user: m.user_id, date, status }), `${m.name}: ${status}`);
@@ -57,7 +57,7 @@ export const TeamAttendance: React.FC<Shared> = ({ ctx, rules, holidays, toast }
           <Btn onClick={() => setAnchor(addDays(anchor, -step))} aria-label="Previous">←</Btn>
           <input type="date" className={inputCls} value={anchor} max={ctx.today} onChange={e => e.target.value && setAnchor(e.target.value)} aria-label="Date" />
           <Btn onClick={() => setAnchor(addDays(anchor, step))} disabled={addDays(anchor, step) > addDays(ctx.today, mode === 'week' ? 6 : 0)} aria-label="Next">→</Btn>
-          {ctx.level === 'superadmin' && <select className={inputCls} value={platform} onChange={e => setPlatform(e.target.value)} aria-label="Platform"><option value="all">All platforms</option>{platforms.map(p => <option key={p} value={p}>{platformName(p)}</option>)}</select>}
+          {ctx.level === 'superadmin' && !scope && <select className={inputCls} value={platform} onChange={e => setPlatform(e.target.value)} aria-label="Platform"><option value="all">All platforms</option>{platforms.map(p => <option key={p} value={p}>{platformName(p)}</option>)}</select>}
           <Btn tone="brand" disabled={busy || members.length === 0} onClick={() => void verifyAll()}>Verify {mode === 'week' ? 'week' : 'day'}{outstanding ? ` (${outstanding} to check)` : ''}</Btn>
         </div>}>
         <p className="text-[11px] font-semibold text-slate-500 mb-3">
@@ -70,7 +70,7 @@ export const TeamAttendance: React.FC<Shared> = ({ ctx, rules, holidays, toast }
               const d = dayOf(m.user_id, anchor); const off = offReason({ rules, holidays }, m.division, anchor);
               return (
                 <tr key={m.user_id} className="border-t border-slate-100">
-                  <td className="py-2"><div className="font-bold">{m.name}{m.is_me && ' (you)'}</div><div className="text-[10px] text-slate-500">{m.role.replace(/_/g, ' ')}{ctx.level === 'superadmin' ? ` · ${platformName(m.division)}` : ''}</div></td>
+                  <td className="py-2"><div className="font-bold">{m.name}{m.is_me && ' (you)'}</div><div className="text-[10px] text-slate-500">{m.role.replace(/_/g, ' ')}{ctx.level === 'superadmin' && !scope ? ` · ${platformName(m.division)}` : ''}</div></td>
                   <td>{off && !d ? <span className="text-slate-500 font-semibold">{off}</span> : d ? <><Chip value={d.status} />{d.late && <span className="ml-1 text-[10px] font-bold text-amber-700">late</span>}</> : <span className="text-slate-400">No record</span>}</td>
                   <td>{d ? timeOf(d.clock_in, ctx.rules.timezone) : '—'}</td><td>{d ? timeOf(d.clock_out, ctx.rules.timezone) : '—'}</td><td>{d ? hoursText(Number(d.hours)) : '—'}</td>
                   <td>{d ? <Chip value={d.review} /> : '—'}{d?.source === 'auto' && <div className="text-[10px] text-amber-700">auto-closed</div>}</td>

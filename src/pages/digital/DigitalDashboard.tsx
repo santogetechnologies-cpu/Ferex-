@@ -138,7 +138,7 @@ export const DigitalDashboard: React.FC = () => {
   return (
     <div className="space-y-6 text-left antialiased">
       {/* Migration Notice Banner */}
-      {showMigrationBanner && (
+      {false && showMigrationBanner && (
         <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs">
           <div className="flex items-center gap-2.5">
             <RefreshCw className="w-4 h-4 text-slate-600 shrink-0" />
