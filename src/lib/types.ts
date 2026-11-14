@@ -225,6 +225,7 @@ export interface Receipt {
   amount: number;
   currency: string;
   payment_method?: string;
+  tax_rate_percent?: number;
   issued_at: string;
   created_at?: string;
 }

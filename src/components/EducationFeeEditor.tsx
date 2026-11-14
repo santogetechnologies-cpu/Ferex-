@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Trash2, CheckCircle2, AlertCircle, Save, RefreshCw } from 'lucide-react';
 import { useFeeConfig } from '../hooks/useFeeConfig';
 import { educationFees, educationStages, type EducationFee } from '../lib/educationBilling';
+import { GstField } from './GstField';
 import { saveEducationFees } from '../lib/api/educationBilling';
 import { getGlobalPaymentGateways, saveGlobalPaymentGateways } from '../lib/api/paymentGateways';
 
@@ -69,7 +70,7 @@ export function EducationFeeEditor() {
   const flowFees = fees.filter(f => f.id !== 'registration');
   const add = (preset: Partial<EducationFee>) => {
     setDirty(true);
-    setFees(cur => [...cur, { id: crypto.randomUUID(), title: 'New fee', enabled: true, amount: 0, currency: 'INR', recipient: 'ferex', timing: 'before', stage: 5, description: '', ...preset }]);
+    setFees(cur => [...cur, { id: crypto.randomUUID(), title: 'New fee', enabled: true, amount: 0, currency: 'INR', tax_rate_percent: 18, recipient: 'ferex', timing: 'before', stage: 5, description: '', ...preset }]);
   };
 
   const card = (fee: EducationFee, isRegistration = false) => (
@@ -113,10 +114,7 @@ export function EducationFeeEditor() {
                 {['INR', 'EUR', 'USD', 'GBP', 'PLN'].map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
-            <div>
-              <label className={labelClass}>Tax included (%)</label>
-              <input type="number" min="0" max="100" step="0.01" className={inputClass} value={fee.tax_rate_percent ?? 0} onChange={e => change(fee.id, { tax_rate_percent: Number(e.target.value) })} />
-            </div>
+            <GstField value={fee.tax_rate_percent ?? 0} onChange={rate => change(fee.id, { tax_rate_percent: rate })} />
           </>
         ) : (
           <div className="lg:col-span-2">

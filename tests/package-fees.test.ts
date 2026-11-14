@@ -54,3 +54,12 @@ test('fees paid to the university or embassy are described, never priced', () =>
   assert.equal(directFeeMessage({ ...visa, direct_recipient_institution: 'VFS Global' }), 'Pay this directly to VFS Global. Ferex does not collect it.');
 });
 
+
+test('a package carries its GST into its fees, and each instalment can override it', () => {
+  const p = { ...pkg({ enabled: true, amount: 5000 }), tax_rate_percent: 18 } as any;
+  p.installments = [{ ...p.installments[0], id: 'i1' }, { ...p.installments[0], id: 'i2', tax_rate_percent: 0 }];
+  const fees = packageFees(p, base);
+  assert.equal(fees.find(f => f.id === 'registration')!.tax_rate_percent, 18);
+  assert.equal(fees.find(f => f.id === 'pkg:p1:i1')!.tax_rate_percent, 18);
+  assert.equal(fees.find(f => f.id === 'pkg:p1:i2')!.tax_rate_percent, 0);
+});

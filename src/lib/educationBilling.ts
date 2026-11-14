@@ -82,10 +82,10 @@ export function packageFees(pkg: CountryFeePackage, base: EducationFee[]): Educa
   const direct = base.filter(f => f.recipient !== 'ferex');
   const out: EducationFee[] = [...standard];
   if (overridesRegistration) {
-    out.push({ id: 'registration', title: 'Advanced Registration Fee', enabled: true, amount: reg!.amount, currency: pkg.currency, recipient: 'ferex', timing: 'before', stage: 3, description: `Registration fee for ${pkg.name}`, package_id: pkg.id });
+    out.push({ id: 'registration', title: 'Advanced Registration Fee', enabled: true, amount: reg!.amount, currency: pkg.currency, recipient: 'ferex', timing: 'before', stage: 3, description: `Registration fee for ${pkg.name}`, package_id: pkg.id, tax_rate_percent: pkg.tax_rate_percent ?? 0 });
   }
   for (const inst of pkg.installments) {
-    out.push({ id: `pkg:${pkg.id}:${inst.id}`, title: inst.title, enabled: true, amount: inst.amount, currency: pkg.currency, recipient: 'ferex', timing: inst.timing, stage: Math.min(12, Math.max(1, inst.stage_trigger)), description: inst.due_description || `${pkg.name} installment`, package_id: pkg.id });
+    out.push({ id: `pkg:${pkg.id}:${inst.id}`, title: inst.title, enabled: true, amount: inst.amount, currency: pkg.currency, recipient: 'ferex', timing: inst.timing, stage: Math.min(12, Math.max(1, inst.stage_trigger)), description: inst.due_description || `${pkg.name} installment`, package_id: pkg.id, tax_rate_percent: inst.tax_rate_percent ?? pkg.tax_rate_percent ?? 0 });
   }
   return [...out, ...direct.filter(f => f.id !== 'registration')];
 }

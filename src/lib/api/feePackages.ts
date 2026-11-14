@@ -16,6 +16,8 @@ export interface FeePackageInstallment {
   stage_trigger: number; // 1–12 matching journey stages
   timing: 'before' | 'after';
   due_description?: string;
+  /** GST (or other tax) included in this instalment. Falls back to the package rate. */
+  tax_rate_percent?: number;
 }
 
 export interface CountryFeePackage {
@@ -30,6 +32,8 @@ export interface CountryFeePackage {
   installments: FeePackageInstallment[];
   /** Advance registration fee charged on top of the installments. Disabled = not collected for package students. */
   registration_fee: { enabled: boolean; amount: number };
+  /** Tax included in the package prices, e.g. 18 = CGST 9% + SGST 9%. */
+  tax_rate_percent?: number;
   terms_note?: string;
   created_at: string;
   updated_at: string;
@@ -197,6 +201,7 @@ export function createBlankPackage(country: string): CountryFeePackage {
     covered_services: getDefaultServices(country),
     installments: getDefaultInstallments(50000, 'INR'),
     registration_fee: { enabled: false, amount: 0 },
+    tax_rate_percent: 18,
     terms_note: 'Package fees are non-refundable once legalization or visa processes are initiated. FEREX acts as the authorized admissions representative for all services listed.',
     created_at: now,
     updated_at: now,

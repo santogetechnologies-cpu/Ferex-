@@ -198,6 +198,14 @@ export async function submitPaymentProof(payload: {
 }
 
 // Generate 100% Valid PDF Binary Blob for Official Tax Invoices & Receipts matching FEREX Model
+import { gstBreakdown } from '../gst';
+export { gstBreakdown };
+const gstLines = (amount: number, rate: number | undefined, currency: string): string[] => {
+  if (!rate || rate <= 0) return [];
+  const g = gstBreakdown(amount, rate);
+  return [`Taxable value: ${currency} ${g.taxable.toFixed(2)}`, `CGST @ ${g.half}%: ${currency} ${g.cgst.toFixed(2)}`, `SGST @ ${g.half}%: ${currency} ${g.sgst.toFixed(2)}`, `Total GST (${g.rate}%): ${currency} ${g.tax.toFixed(2)}`];
+};
+
 export function createValidInvoicePdfBlob(payment: {
   invoice_no?: string;
   student_name?: string;
@@ -212,14 +220,12 @@ export function createValidInvoicePdfBlob(payment: {
 }): Blob {
   const amount = Number(payment.amount) || 0;
   const currency = payment.currency || 'INR';
-  const rate = Number(payment.tax_rate_percent ?? 0);
-  const base = amount / (1 + rate / 100);
   return accountingPdf('FEREX EDUCATION - INVOICE', [
     `Invoice: ${payment.invoice_no || 'Unassigned'}`,
     `Student: ${payment.student_name || 'Student'}`,
     `Description: ${payment.title || payment.payment_type || 'Education fee'}`,
     `Total paid: ${currency} ${amount.toFixed(2)}`,
-    ...(payment.tax_rate_percent !== undefined ? [`Included tax rate: ${rate}%`, `Taxable base: ${currency} ${base.toFixed(2)}`, `Included tax: ${currency} ${(amount - base).toFixed(2)}`] : []),
+    ...gstLines(amount, payment.tax_rate_percent, currency),
     `Payment method: ${payment.payment_method || 'Not specified'}`,
     `Reference: ${payment.utr_number || ''}`,
     `Date: ${payment.paid_at || ''}`,
@@ -474,10 +480,12 @@ export function createReceiptPdfBlob(receipt: {
   payment_method?: string;
   description?: string;
   issued_at?: string;
+  tax_rate_percent?: number;
 }): Blob {
   return accountingPdf('FEREX EDUCATION - PAYMENT RECEIPT', [
     `Receipt: ${receipt.receipt_no || 'Unassigned'}`, `Student: ${receipt.student_name || 'Student'}`,
     `Amount received: ${receipt.currency || 'INR'} ${(Number(receipt.amount) || 0).toFixed(2)}`,
+    ...gstLines(Number(receipt.amount) || 0, receipt.tax_rate_percent, receipt.currency || 'INR'),
     `Description: ${receipt.description || 'Education payment'}`, `Method: ${receipt.payment_method || ''}`, `Date: ${receipt.issued_at || ''}`,
   ]);
 }

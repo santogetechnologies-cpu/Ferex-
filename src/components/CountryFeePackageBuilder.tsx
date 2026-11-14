@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { GstField } from './GstField';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Trash2, Globe, Save, Edit2, CheckCircle2, XCircle,
@@ -418,6 +419,11 @@ export function CountryFeePackageBuilder() {
                             ) : (
                               <p className="text-sm font-black text-[#58051E]">{money(p.total_amount, p.currency)}</p>
                             )}
+                          </div>
+                          <div>
+                            {editing
+                              ? <GstField label="GST included in this package" value={p.tax_rate_percent ?? 0} onChange={rate => handleDraftChange({ tax_rate_percent: rate })} />
+                              : <><label className={lbl}>GST</label><p className="text-xs font-bold text-slate-700">{(p.tax_rate_percent ?? 0) > 0 ? `${p.tax_rate_percent}% (CGST ${(p.tax_rate_percent ?? 0) / 2}% + SGST ${(p.tax_rate_percent ?? 0) / 2}%)` : 'No GST'}</p></>}
                           </div>
                           <div>
                             <label className={lbl}>Registration fee for this plan</label>

@@ -8,7 +8,7 @@ import { ToastNotification } from '../components/ToastNotification';
 import { useAuth } from '../contexts/AuthContext';
 import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { usePayments } from '../hooks/usePayments';
-import { createReceiptPdfBlob } from '../lib/api/payments';
+import { createReceiptPdfBlob, gstBreakdown } from '../lib/api/payments';
 import type { Receipt } from '../lib/types';
 
 export const Receipts: React.FC = () => {
@@ -56,6 +56,7 @@ export const Receipts: React.FC = () => {
       payment_method: rec.payment_method,
       description: rec.description,
       issued_at: rec.issued_at,
+      tax_rate_percent: rec.tax_rate_percent,
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -137,6 +138,9 @@ export const Receipts: React.FC = () => {
                   <span className="text-xs font-bold text-slate-500">Amount Received:</span>
                   <span className="text-sm font-black text-emerald-700">{money(Number(rec.amount || 0), rec.currency || 'INR')}</span>
                 </div>
+                {Number(rec.tax_rate_percent) > 0 && (() => { const g = gstBreakdown(Number(rec.amount || 0), Number(rec.tax_rate_percent)); const c = rec.currency || 'INR'; return (
+                  <p className="text-[11px] font-medium text-slate-500 mb-3">Includes GST {g.rate}%: CGST {g.half}% {money(g.cgst, c)} + SGST {g.half}% {money(g.sgst, c)}</p>
+                ); })()}
 
                 {rec.payment_method && (
                   <p className="text-[10.5px] font-semibold text-slate-400">

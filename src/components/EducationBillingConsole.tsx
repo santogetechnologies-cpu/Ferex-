@@ -447,6 +447,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
       payment_method: normalizeMethod(payment.payment_method) || 'UPI',
       description: payment.title || payment.description || 'Education Payment',
       issued_at: payment.paid_at || payment.created_at || new Date().toISOString(),
+      tax_rate_percent: payment.tax_rate_percent,
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -734,6 +735,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                                     <div className="text-right">
                                       {fee.original_amount !== undefined && <span className="block text-xs text-slate-400 line-through">{money(fee.original_amount, fee.currency)}</span>}
                                       <span className="text-lg font-bold text-slate-900 tabular-nums">{money(fee.amount, fee.currency)}</span>
+                                      {(fee.tax_rate_percent ?? 0) > 0 && <span className="block text-[11px] text-slate-500">incl. {fee.tax_rate_percent}% GST (CGST {(fee.tax_rate_percent ?? 0) / 2}% + SGST {(fee.tax_rate_percent ?? 0) / 2}%)</span>}
                                       {fee.original_amount !== undefined && <span className="block text-xs font-semibold text-emerald-700">{fee.discount_percent ? `${fee.discount_percent}% discount` : 'Discount applied'}</span>}
                                     </div>
                                   </div>

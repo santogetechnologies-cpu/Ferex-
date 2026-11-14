@@ -224,6 +224,7 @@ function StudentPanel({ student, country, flow, pkg, payments, application, conf
                       <div className="text-right">
                         {fee.original_amount !== undefined && <span className="block text-xs text-slate-400 line-through">{money(fee.original_amount, fee.currency)}</span>}
                         <span className="text-lg font-bold text-slate-900 tabular-nums">{money(fee.amount, fee.currency)}</span>
+                                      {(fee.tax_rate_percent ?? 0) > 0 && <span className="block text-[11px] text-slate-500">incl. {fee.tax_rate_percent}% GST (CGST {(fee.tax_rate_percent ?? 0) / 2}% + SGST {(fee.tax_rate_percent ?? 0) / 2}%)</span>}
                       </div>
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-3">
