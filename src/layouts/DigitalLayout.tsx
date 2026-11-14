@@ -34,7 +34,7 @@ interface NavSection {
   items: NavItem[];
 }
 
-const DIGITAL_ADMIN_ROLES = ['digital_admin', 'digital_manager', 'project_manager', 'digimanager', 'pm', 'ferex_digital', 'digital', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
+const DIGITAL_ADMIN_ROLES = ['digital_admin', 'ferex_digital', 'digital', 'central', 'super_admin', 'superadmin'];
 
 export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
@@ -43,7 +43,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
 
   const userRole = profile?.role || '';
   const userName = profile?.full_name || '';
-  const userEmail = profile?.email || 'digital@ferex.com';
+  const userEmail = profile?.email || '';
   const isAdmin = DIGITAL_ADMIN_ROLES.includes(userRole);
   const isStaff = !isAdmin;
 

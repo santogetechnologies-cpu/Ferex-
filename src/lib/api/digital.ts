@@ -473,7 +473,7 @@ const TASK_STATUSES = ['To Do', 'In Progress', 'In Review', 'Done'];
 const TASK_COLUMNS = ['title', 'priority', 'status', 'due_date', 'notes', 'project_id', 'sprint_id', 'sprint_name', 'story_points', 'milestone_id', 'milestone_name', 'task_type', 'assigned_staff_id', 'assigned_to_email', 'assigned_to_name'];
 
 export async function getDigitalTasks(projectId?: string) {
-  let query = supabase.from('digital_tasks').select('*, project:digital_projects(title)').order('created_at', { ascending: false });
+  let query = supabase.from('digital_tasks').select('*, project:digital_projects(title, client_id, client_name)').order('created_at', { ascending: false });
   if (projectId) query = query.eq('project_id', projectId);
   const rows = ok(await query) as any[];
   // Directives from Central Admin arrive in this table through a database trigger, so there is one list.

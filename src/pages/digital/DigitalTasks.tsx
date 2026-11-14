@@ -46,8 +46,7 @@ export const DigitalTasks: React.FC = () => {
   const [newTask, setNewTask] = useState({
     title: '',
     project_id: '',
-    assigned_to: profile?.full_name || '',
-    assigned_to_email: profile?.email || '',
+    assigned_staff_id: '',
     priority: 'Medium',
     due_date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
     notes: ''
@@ -68,24 +67,19 @@ export const DigitalTasks: React.FC = () => {
       ]);
       setProjects(projData || []);
       setTasks(tasksData || []);
-      setStaffList(staffData || []);
+      // Only real team members with a login can be assigned work.
+      setStaffList((staffData || []).filter((m: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m.id || '')));
 
       const priorities = await getMasters('digital', 'task_priorities');
       if (priorities && priorities.length > 0) {
         setTaskPriorities(priorities);
       }
-
-      if (staffData && staffData.length > 0 && !newTask.assigned_to) {
-        setNewTask(prev => ({
-          ...prev,
-          assigned_to: isStaff ? (profile?.full_name || staffData[0].name) : staffData[0].name,
-          assigned_to_email: isStaff ? (profile?.email || staffData[0].email) : staffData[0].email
-        }));
-      }
+    } catch (err: any) {
+      setToast(`Could not load tasks: ${err.message || 'Database error'}`);
     } finally {
       setLoading(false);
     }
-  }, [newTask.assigned_to, isStaff, profile]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -125,40 +119,43 @@ export const DigitalTasks: React.FC = () => {
     }
 
     const selectedProj = projects.find(p => p.id === newTask.project_id);
-    const assignedName = newTask.assigned_to || (staffList.length > 0 ? staffList[0].name : (profile?.full_name || 'Digital Staff'));
-    const matchedStaff = staffList.find(s => s.name === assignedName || s.email === newTask.assigned_to_email);
-    const assignedEmail = matchedStaff?.email || newTask.assigned_to_email || profile?.email || '';
+    const assignedId = isStaff ? (profile?.id || '') : newTask.assigned_staff_id;
+    const matchedStaff = staffList.find(m => m.id === assignedId);
+    if (!matchedStaff) {
+      setFormError('Choose the team member this task is assigned to.');
+      return;
+    }
 
-    const created = await createDigitalTask({
-      title: newTask.title,
-      project_id: selectedProj?.id,
-      project_title: selectedProj?.title,
-      priority: newTask.priority,
-      due_date: newTask.due_date,
-      assigned_to_name: assignedName,
-      assigned_to_email: assignedEmail,
-      assigned_staff_id: matchedStaff?.id,
-      notes: newTask.notes,
-      status: 'To Do'
-    });
-
-    setTasks(prev => [created, ...prev.filter(t => t.id !== created.id)]);
-    setShowAddModal(false);
-    showToast(`Created task "${newTask.title}"`);
-    setNewTask({
-      title: '',
-      project_id: '',
-      assigned_to: profile?.full_name || (staffList.length > 0 ? staffList[0].name : ''),
-      assigned_to_email: profile?.email || (staffList.length > 0 ? staffList[0].email : ''),
-      priority: taskPriorities[0] || 'Medium',
-      due_date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-      notes: ''
-    });
+    try {
+      const created = await createDigitalTask({
+        title: newTask.title,
+        project_id: selectedProj?.id,
+        project_title: selectedProj?.title,
+        priority: newTask.priority,
+        due_date: newTask.due_date,
+        assigned_staff_id: matchedStaff.id,
+        notes: newTask.notes,
+        status: 'To Do'
+      });
+      setShowAddModal(false);
+      showToast(`Created task "${newTask.title}" for ${matchedStaff.name}`);
+      setNewTask({
+        title: '',
+        project_id: '',
+        assigned_staff_id: '',
+        priority: taskPriorities[0] || 'Medium',
+        due_date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+        notes: ''
+      });
+      await loadData();
+    } catch (err: any) {
+      setFormError(err.message || 'The task could not be created.');
+    }
   };
 
   const handleToggleStatus = async (task: any) => {
     try {
-      const nextStatus = task.status === 'Done' ? 'To Do' : task.status === 'To Do' ? 'In Progress' : 'Done';
+      const nextStatus = task.status === 'Done' ? 'To Do' : task.status === 'To Do' ? 'In Progress' : task.status === 'In Progress' ? 'In Review' : 'Done';
       await updateDigitalTaskStatus(task.id, nextStatus);
       setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: nextStatus } : t));
       showToast(`Task status updated to ${nextStatus}`);
@@ -170,9 +167,9 @@ export const DigitalTasks: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!canDelete) return;
     try {
-      setTasks(prev => prev.filter(t => t.id !== id));
-      showToast('Task removed from sprint');
       await deleteDigitalTask(id);
+      setTasks(prev => prev.filter(t => t.id !== id));
+      showToast('Task removed');
     } catch (err: any) {
       showToast(`Error deleting task: ${err.message || 'Unknown error'}`);
       await loadData();
@@ -189,31 +186,17 @@ export const DigitalTasks: React.FC = () => {
     const matchPriority = priorityFilter === 'All' || t.priority === priorityFilter;
     const matchStatus = statusFilter === 'All' || t.status === statusFilter;
 
-    const myName = (profile?.full_name || '').toLowerCase();
-    const myEmail = (profile?.email || '').toLowerCase();
-    const assignedName = (t.assigned_to_name || '').toLowerCase();
-    const assignedEmail = (t.assigned_to_email || '').toLowerCase();
-
-    // Strict staff role scoping: Staff see ONLY tasks assigned to themselves
-    if (isStaff) {
-      const isAssignedToMe = Boolean(
-        (myName && assignedName.includes(myName)) ||
-        (myEmail && (assignedEmail === myEmail || assignedName.includes(myEmail.split('@')[0]))) ||
-        (myEmail.includes('pm') && (assignedName.includes('pm') || assignedName.includes('manager')))
-      );
-      if (!isAssignedToMe) return false;
-    }
+    // The database already limits staff to their own tasks; this keeps the screen consistent with it.
+    const isMine = Boolean(
+      (profile?.id && t.assigned_staff_id === profile.id) ||
+      (profile?.email && (t.assigned_to_email || '').toLowerCase() === profile.email.toLowerCase())
+    );
+    if (isStaff && !isMine) return false;
 
     let matchStaff = true;
     if (!isStaff) {
-      if (staffFilter === 'ME') {
-        matchStaff = Boolean(
-          (myName && assignedName.includes(myName)) ||
-          (myEmail && (assignedEmail === myEmail || assignedName.includes(myEmail.split('@')[0])))
-        );
-      } else if (staffFilter !== 'All') {
-        matchStaff = assignedName === staffFilter.toLowerCase();
-      }
+      if (staffFilter === 'ME') matchStaff = isMine;
+      else if (staffFilter !== 'All') matchStaff = t.assigned_staff_id === staffFilter;
     }
 
     return matchSearch && matchPriority && matchStatus && matchStaff;
@@ -285,7 +268,7 @@ export const DigitalTasks: React.FC = () => {
                 <option value="All">All Assigned Staff</option>
                 <option value="ME">Assigned to Me</option>
                 {staffList.map((s: any) => (
-                  <option key={s.id || s.email} value={s.name}>{s.name}</option>
+                  <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
               </select>
             )}
@@ -310,6 +293,7 @@ export const DigitalTasks: React.FC = () => {
             >
               <option value="All">All Statuses</option>
               <option value="To Do">To Do</option>
+              <option value="In Review">In Review</option>
               <option value="In Progress">In Progress</option>
               <option value="Done">Done</option>
             </select>
@@ -428,7 +412,7 @@ export const DigitalTasks: React.FC = () => {
                       className="flex-1 text-xs font-bold"
                       onClick={() => handleToggleStatus(t)}
                     >
-                      {isDone ? 'Reopen Task' : t.status === 'In Progress' ? 'Mark Done' : 'Start Task'}
+                      {isDone ? 'Reopen Task' : t.status === 'In Progress' ? 'Send for review' : t.status === 'In Review' ? 'Mark Done' : 'Start Task'}
                     </Button>
                     <Button
                       size="sm"
@@ -436,7 +420,7 @@ export const DigitalTasks: React.FC = () => {
                       className="text-xs font-bold text-slate-700 hover:text-[#58051E] hover:border-[#58051E]"
                       onClick={() => {
                         setReassignTask(t);
-                        setReassignStaffName(t.assigned_to_name || '');
+                        setReassignStaffName(t.assigned_staff_id || '');
                       }}
                       title="Reassign Task"
                     >
@@ -597,20 +581,14 @@ export const DigitalTasks: React.FC = () => {
                     />
                   ) : (
                     <select
-                      value={newTask.assigned_to}
-                      onChange={(e) => {
-                        const name = e.target.value;
-                        const matched = staffList.find(s => s.name === name);
-                        setNewTask({
-                          ...newTask,
-                          assigned_to: name,
-                          assigned_to_email: matched?.email || `${name.toLowerCase().replace(/[^a-z]/g, '')}@ferex.com`
-                        });
-                      }}
+                      required
+                      value={newTask.assigned_staff_id}
+                      onChange={(e) => setNewTask({ ...newTask, assigned_staff_id: e.target.value })}
                       className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                     >
+                      <option value="">-- Choose team member --</option>
                       {staffList.map((s: any) => (
-                        <option key={s.id || s.email} value={s.name}>
+                        <option key={s.id} value={s.id}>
                           {s.name} ({s.roleLabel || s.role || 'Staff'}) · {s.email}
                         </option>
                       ))}
@@ -693,7 +671,7 @@ export const DigitalTasks: React.FC = () => {
                   >
                     <option value="">-- Choose Staff Member --</option>
                     {staffList.map((s: any) => (
-                      <option key={s.id || s.email} value={s.name}>
+                      <option key={s.id} value={s.id}>
                         {s.name} ({s.roleLabel || s.role || 'Staff'}) · {s.email}
                       </option>
                     ))}
@@ -716,21 +694,16 @@ export const DigitalTasks: React.FC = () => {
                     disabled={!reassignStaffName}
                     className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
                     onClick={async () => {
-                      const matched = staffList.find(s => s.name === reassignStaffName || s.email === reassignStaffName);
-                      const staffEmail = matched?.email || `${reassignStaffName.toLowerCase().replace(/[^a-z]/g, '')}@ferex.com`;
-                      await updateDigitalTask(reassignTask.id, {
-                        assigned_to_name: reassignStaffName,
-                        assigned_to_email: staffEmail,
-                        assigned_staff_id: matched?.id
-                      });
-                      setTasks(prev => prev.map(t => t.id === reassignTask.id ? {
-                        ...t,
-                        assigned_to_name: reassignStaffName,
-                        assigned_to_email: staffEmail,
-                        assigned_staff_id: matched?.id
-                      } : t));
-                      showToast(`Task reassigned to ${reassignStaffName}`);
-                      setReassignTask(null);
+                      const matched = staffList.find(m => m.id === reassignStaffName);
+                      if (!matched) { showToast('Choose a team member from the list.'); return; }
+                      try {
+                        await updateDigitalTask(reassignTask.id, { assigned_staff_id: matched.id });
+                        showToast(`Task reassigned to ${matched.name}`);
+                        setReassignTask(null);
+                        await loadData();
+                      } catch (err: any) {
+                        showToast(`Could not reassign: ${err.message}`);
+                      }
                     }}
                   >
                     Confirm Reassign

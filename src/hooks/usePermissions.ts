@@ -12,8 +12,9 @@ const RIMI_STAFF_ROLES = ['rimi_staff', 'warehouse_manager', 'ops'];
 const CENTRAL_ROLES = ['central', 'super_admin', 'superadmin'];
 
 // ─── Digital role strings ─────────────────────────────────────────────────────
-const DIGITAL_ADMIN_ROLES = ['digital_admin', 'digital_manager', 'project_manager', 'digimanager', 'pm', 'ferex_digital', 'digital', 'admin', 'central', 'super_admin', 'superadmin'];
-const DIGITAL_STAFF_ROLES = ['digital_staff', 'project_manager', 'pm', 'digimanager', 'designer', 'developer'];
+// These match the database rules (digital_is_admin / digital_is_team), so what a screen offers is what the database allows.
+const DIGITAL_ADMIN_ROLES = ['digital_admin', 'ferex_digital', 'digital', 'central', 'super_admin', 'superadmin'];
+const DIGITAL_STAFF_ROLES = ['digital_manager', 'project_manager', 'pm', 'digimanager', 'digital_staff', 'designer', 'developer', 'creative', 'lead_developer', 'account_manager', 'accountmanager', 'digital_account_manager', 'account_executive', 'client_manager'];
 
 // ─── Rimi Permissions ─────────────────────────────────────────────────────────
 

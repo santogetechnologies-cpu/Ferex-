@@ -97,37 +97,45 @@ export const DigitalExpenses: React.FC = () => {
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newExp.title) return;
-    await createDigitalExpense({
-      title: newExp.title,
-      category: newExp.category,
-      amount: Number(newExp.amount),
-      vendor: newExp.vendor,
-      date: newExp.date
-    });
-    setShowAddExpenseModal(false);
-    showToast(`Logged operating expense: ₹${Number(newExp.amount).toLocaleString('en-IN')}`);
-    setNewExp({ title: '', category: 'Cloud Infrastructure', amount: 45000, vendor: 'Amazon Web Services', date: new Date().toISOString().split('T')[0] });
-    await loadData();
+    try {
+      await createDigitalExpense({
+        title: newExp.title,
+        category: newExp.category,
+        amount: Number(newExp.amount),
+        vendor: newExp.vendor,
+        date: newExp.date
+      });
+      setShowAddExpenseModal(false);
+      showToast(`Logged operating expense: ₹${Number(newExp.amount).toLocaleString('en-IN')}`);
+      setNewExp({ title: '', category: 'Cloud Infrastructure', amount: 0, vendor: '', date: new Date().toISOString().split('T')[0] });
+      await loadData();
+    } catch (err: any) {
+      showToast(`Could not log the expense: ${err.message}`);
+    }
   };
 
   const handleAddAsset = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAsset.name) return;
-    await createDigitalAsset(newAsset);
-    setShowAddAssetModal(false);
-    showToast(`Registered asset: ${newAsset.name}`);
-    setNewAsset({
-      name: '',
-      type: 'Cloud Infrastructure',
-      provider: 'Amazon Web Services',
-      cost_per_month_inr: 25000,
-      renewal_date: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-      status: 'Active',
-      assigned_to_project: 'Core Engineering',
-      assigned_team_lead: 'Digital Project Manager',
-      license_seats: 10
-    });
-    await loadData();
+    try {
+      await createDigitalAsset(newAsset);
+      setShowAddAssetModal(false);
+      showToast(`Registered asset: ${newAsset.name}`);
+      setNewAsset({
+        name: '',
+        type: 'Cloud Infrastructure',
+        provider: '',
+        cost_per_month_inr: 0,
+        renewal_date: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+        status: 'Active',
+        assigned_to_project: '',
+        assigned_team_lead: '',
+        license_seats: 1
+      });
+      await loadData();
+    } catch (err: any) {
+      showToast(`Could not register the asset: ${err.message}`);
+    }
   };
 
   const handleDeleteExpense = async (id: string) => {

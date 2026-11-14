@@ -583,18 +583,26 @@ export const DigitalProjects: React.FC = () => {
                           onChange={(e) => setEditingTitleVal(e.target.value)}
                           onBlur={async () => {
                             if (editingTitleVal.trim() && editingTitleVal !== p.title) {
-                              await updateDigitalProject(p.id, { title: editingTitleVal.trim() });
-                              showToast(`Project title updated to "${editingTitleVal.trim()}"`);
-                              await loadData();
+                              try {
+                                await updateDigitalProject(p.id, { title: editingTitleVal.trim() });
+                                showToast(`Project title updated to "${editingTitleVal.trim()}"`);
+                                await loadData();
+                              } catch (err: any) {
+                                showToast(`Could not rename the project: ${err.message}`);
+                              }
                             }
                             setEditingTitleId(null);
                           }}
                           onKeyDown={async (e) => {
                             if (e.key === 'Enter') {
                               if (editingTitleVal.trim() && editingTitleVal !== p.title) {
-                                await updateDigitalProject(p.id, { title: editingTitleVal.trim() });
-                                showToast(`Project title updated to "${editingTitleVal.trim()}"`);
-                                await loadData();
+                                try {
+                                  await updateDigitalProject(p.id, { title: editingTitleVal.trim() });
+                                  showToast(`Project title updated to "${editingTitleVal.trim()}"`);
+                                  await loadData();
+                                } catch (err: any) {
+                                  showToast(`Could not rename the project: ${err.message}`);
+                                }
                               }
                               setEditingTitleId(null);
                             } else if (e.key === 'Escape') {
@@ -873,12 +881,17 @@ export const DigitalProjects: React.FC = () => {
                       <button
                         key={st}
                         onClick={async () => {
-                          const updated = await advanceDigitalProjectStage(
-                            selectedProject.id,
-                            st,
-                            profile?.full_name || 'Admin'
-                          );
-                          if (updated) setSelectedProject(updated);
+                          try {
+                            const updated = await advanceDigitalProjectStage(
+                              selectedProject.id,
+                              st,
+                              profile?.full_name || 'Admin'
+                            );
+                            if (updated) setSelectedProject(updated);
+                            await loadData();
+                          } catch (err: any) {
+                            showToast(`Could not change the stage: ${err.message}`);
+                          }
                         }}
                         className={`p-2 rounded-xl text-left border text-xs transition-all ${
                           isCurrent

@@ -15,6 +15,7 @@ import {
   getDigitalInvoices
 } from '../../lib/api/digital';
 import { supabase } from '../../lib/supabase';
+import { provisionDigitalClientLogin, getDigitalClientAccess } from '../../lib/api/digital';
 
 const INDUSTRY_OPTIONS = [
   'Fintech & Banking',
@@ -47,6 +48,8 @@ export const DigitalClients: React.FC = () => {
 
   // Dossier Drawer State
   const [dossierClient, setDossierClient] = useState<any>(null);
+  const [hasPortal, setHasPortal] = useState<boolean | null>(null);
+  const [inviting, setInviting] = useState(false);
   const [clientProjects, setClientProjects] = useState<any[]>([]);
   const [clientTasks, setClientTasks] = useState<any[]>([]);
   const [clientInvoices, setClientInvoices] = useState<any[]>([]);
@@ -210,8 +213,24 @@ export const DigitalClients: React.FC = () => {
     }
   };
 
+  const handleInvite = async () => {
+    if (!dossierClient || inviting) return;
+    setInviting(true);
+    try {
+      await provisionDigitalClientLogin({ id: dossierClient.id, email: dossierClient.email, name: dossierClient.name, company_name: dossierClient.name, contact_person: dossierClient.contact });
+      showToast(`Invitation sent to ${dossierClient.email}. They set their own password from the email.`);
+      setHasPortal(true);
+    } catch (err: any) {
+      showToast(`Could not send the invitation: ${err.message}`);
+    } finally {
+      setInviting(false);
+    }
+  };
+
   const handleOpenDossier = async (client: any) => {
     setDossierClient(client);
+    setHasPortal(null);
+    getDigitalClientAccess(client.id).then(setHasPortal).catch(() => setHasPortal(null));
     try {
       const [allProjects, allTasks, allInvoices] = await Promise.all([
         getDigitalProjects(),
@@ -725,6 +744,21 @@ export const DigitalClients: React.FC = () => {
                     <span className="font-bold text-emerald-700">{dossierClient.client_type === 'Internal' ? 'Internal Subsidiary' : 'External Enterprise'}</span>
                   </div>
                 </div>
+
+                {/* Client portal access */}
+                {dossierClient.client_type !== 'Internal' && dossierClient.status !== 'Lead' && (
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-black text-slate-900">Client portal</div>
+                      <div className="text-[11px] font-semibold text-slate-500">{hasPortal ? 'This client has a login and can see their projects, milestones and invoices.' : 'Invite the client so they can follow their projects, milestones and payments.'}</div>
+                    </div>
+                    {isAdmin && (
+                      <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-[11px] font-bold shrink-0" disabled={inviting} onClick={handleInvite}>
+                        {inviting ? 'Sending…' : hasPortal ? 'Resend invitation' : 'Send invitation'}
+                      </Button>
+                    )}
+                  </div>
+                )}
 
                 {/* Subscribed Projects */}
                 <div className="space-y-2">

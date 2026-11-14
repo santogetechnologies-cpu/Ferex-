@@ -8,6 +8,7 @@ import {
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
+import { getMasters, createMaster, deleteMaster } from '../../lib/api/masters';
 import { getDigitalLeads, createDigitalLead, updateDigitalClient, deleteDigitalClient, createDigitalProject, convertDigitalLead } from '../../lib/api/digital';
 import { supabase } from '../../lib/supabase';
 
@@ -100,11 +101,8 @@ export const DigitalLeads: React.FC = () => {
   useEffect(() => {
     loadData();
 
-    // Load saved categories
-    const saved = localStorage.getItem('ferex_lead_categories');
-    if (saved) {
-      try { setCategories(JSON.parse(saved)); } catch {}
-    }
+    // Lead categories are shared master data, so every user sees the same list.
+    getMasters('digital', 'lead_categories').then(list => { if (list && list.length > 0) setCategories(list); }).catch(() => {});
 
     const channel = supabase
       .channel('realtime_digital_leads')
@@ -125,9 +123,15 @@ export const DigitalLeads: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const saveCategories = (cats: string[]) => {
-    setCategories(cats);
-    localStorage.setItem('ferex_lead_categories', JSON.stringify(cats));
+  const saveCategories = async (cats: string[]) => {
+    const added = cats.find(c => !categories.includes(c));
+    const removed = categories.find(c => !cats.includes(c));
+    try {
+      if (added) setCategories(await createMaster('digital', 'lead_categories', added));
+      else if (removed) setCategories(await deleteMaster('digital', 'lead_categories', removed));
+    } catch (err: any) {
+      showToast(`Could not save the category: ${err.message || 'Error'}`);
+    }
   };
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -135,9 +139,11 @@ export const DigitalLeads: React.FC = () => {
     if (!newLead.company.trim()) return;
 
     const valNum = Number(newLead.value) || 0;
-    const created = await createDigitalLead({
+    let created;
+    try {
+    created = await createDigitalLead({
       company_name: newLead.company.trim(),
-      contact_person: newLead.contact.trim() || 'Direct Contact',
+      contact_person: newLead.contact.trim() || newLead.company.trim(),
       email: newLead.email.trim(),
       phone: newLead.phone.trim(),
       industry: newLead.service,
@@ -148,6 +154,10 @@ export const DigitalLeads: React.FC = () => {
       notes: newLead.notes.trim(),
       priority: newLead.priority,
     });
+    } catch (err: any) {
+      showToast(`Could not add the lead: ${err.message}`);
+      return;
+    }
 
     const newLeadItem = {
       id: created.id,

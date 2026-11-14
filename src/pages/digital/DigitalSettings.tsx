@@ -8,7 +8,7 @@ import { getMasters, createMaster, deleteMaster } from '../../lib/api/masters';
 import { ChangePasswordForm } from '../../components/ChangePasswordForm';
 import { useAuth } from '../../contexts/AuthContext';
 
-const DIGITAL_ADMIN_ROLES = ['digital_admin', 'ferex_digital', 'admin', 'education_admin', 'central', 'super_admin', 'superadmin'];
+const DIGITAL_ADMIN_ROLES = ['digital_admin', 'ferex_digital', 'digital', 'central', 'super_admin', 'superadmin'];
 
 type DigitalTab = 'branding' | 'client_policies' | 'delivery' | 'broadcast' | 'services' | 'masters' | 'security';
 

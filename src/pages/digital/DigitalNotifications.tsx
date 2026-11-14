@@ -94,35 +94,52 @@ export const DigitalNotifications: React.FC = () => {
   }, [loadData]);
 
   const handleMarkAllRead = async () => {
-    await markAllDigitalNotificationsRead();
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-    showToast('All notifications marked as read');
+    try {
+      await markAllDigitalNotificationsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      showToast('All notifications marked as read');
+    } catch (err: any) {
+      showToast(`Could not update notifications: ${err.message}`);
+    }
   };
 
   const handleMarkRead = async (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    await markDigitalNotificationRead(id);
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-    showToast('Notification marked as read');
+    try {
+      await markDigitalNotificationRead(id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+      showToast('Notification marked as read');
+    } catch (err: any) {
+      showToast(`Could not update the notification: ${err.message}`);
+    }
   };
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    await deleteDigitalNotification(id);
-    setNotifications(prev => prev.filter(n => n.id !== id));
-    showToast('Notification dismissed');
+    try {
+      await deleteDigitalNotification(id);
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      showToast('Notification dismissed');
+    } catch (err: any) {
+      showToast(`Could not dismiss the notification: ${err.message}`);
+    }
   };
 
   const handleCreateAlert = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAlertForm.title.trim()) return;
 
-    await createDigitalNotification({
-      title: newAlertForm.title.trim(),
-      description: newAlertForm.description.trim(),
-      category: newAlertForm.category,
-      link: newAlertForm.link
-    });
+    try {
+      await createDigitalNotification({
+        title: newAlertForm.title.trim(),
+        description: newAlertForm.description.trim(),
+        category: newAlertForm.category,
+        link: newAlertForm.link
+      });
+    } catch (err: any) {
+      showToast(`Could not send the alert: ${err.message}`);
+      return;
+    }
 
     setShowAddModal(false);
     showToast(`Dispatched alert: ${newAlertForm.title}`);
