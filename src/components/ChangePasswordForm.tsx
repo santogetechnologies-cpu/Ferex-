@@ -150,7 +150,7 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
           </div>
         </div>
         <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center gap-1">
-          <ShieldCheck className="w-3 h-3" /> 256-Bit SSL
+          <ShieldCheck className="w-3 h-3" /> Secure
         </span>
       </div>
 

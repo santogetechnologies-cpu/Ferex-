@@ -391,20 +391,6 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
     }
   };
 
-  const handleClearAllData = async () => {
-    if (!window.confirm("Clear All University & Destination Data?\n\nThis will purge all universities and destination countries from Supabase and clear local caches for a completely fresh start. Continue?")) {
-      return;
-    }
-    try {
-      await Promise.all([
-        clearAllUniversitiesData(),
-        clearAllDestinationsData()
-      ]);
-      showToast('All university & destination data purged. Clean slate ready.');
-    } catch (err: any) {
-      showToast(`Error: ${err.message || 'Could not purge data'}`);
-    }
-  };
 
 
 
@@ -522,7 +508,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
     setName(u.name);
     setCity(u.city || '');
     setCountry(u.country);
-    setBadge(u.badge || 'Top Choice');
+    setBadge(u.badge || '');
     setCategory(u.category || 'Engineering');
     setImageUrl(u.banner_image_url || u.image_url || '');
     setLogoUrl(u.logo_url || '');
@@ -683,37 +669,20 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
       <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-black text-slate-900 tracking-tight">
-              {isStaff ? 'Universities & Destination Directory' : 'University & Destination Management'}
-            </h1>
-            <span className="text-[10.5px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-md border border-amber-300/80">
-              {isStaff ? 'Counselor Catalog' : 'Live Global Catalog'}
-            </span>
-          </div>
-          <p className="text-xs font-semibold text-slate-400 mt-1">
-            {isStaff
-              ? 'Browse registered partner universities, tuition ranges, intake schedules, and country legalization authorities.'
-              : 'Separately manage registered destination countries and partner universities with multi-currency fees & course programs.'}
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#58051E] mb-1.5">Ferex Education</p>
+          <h1 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-slate-900 leading-tight">Universities</h1>
+          <p className="mt-1.5 text-sm font-medium text-slate-500 max-w-2xl">
+            {isStaff ? 'Partner universities, tuition, intakes and legalization authorities by country.' : 'Manage partner universities, destination countries, programs and fees.'}
           </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {!isStaff && (
-            <button
-              onClick={handleClearAllData}
-              className="flex items-center gap-1.5 h-9.5 px-3 bg-rose-50 hover:bg-rose-100 rounded-xl text-xs font-bold text-rose-700 transition-all cursor-pointer border border-rose-200"
-              title="Clear all mock / test data for fresh setup"
-            >
-              <Trash2 className="w-3.5 h-3.5 text-rose-500" /> Clear All Data
-            </button>
-          )}
           <button
             onClick={async () => {
               await Promise.all([refresh(), refreshDestinations()]);
-              showToast('Catalog refreshed from live database.');
+              showToast('Catalog refreshed.');
             }}
             className="flex items-center gap-1.5 h-9.5 px-3 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 transition-all cursor-pointer border border-slate-200"
             title="Refresh catalog"
@@ -835,9 +804,9 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                         <UniversityImage src={u.banner_image_url || u.image_url} name={u.name} country={u.country} className="group-hover:scale-105 transition-transform duration-500" />
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/10 to-transparent" />
                         
-                        <span className="absolute top-2.5 right-2.5 text-[9.5px] font-black bg-[#58051E] text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300/40 shadow-xs">
-                          {u.badge || 'Top Choice'}
-                        </span>
+                        {u.badge && <span className="absolute top-2.5 right-2.5 text-[10px] font-bold bg-white/95 text-[#58051E] px-2.5 py-0.5 rounded-full shadow-xs">
+                          {u.badge}
+                        </span>}
 
                         {u.logo_url && (
                           <div className="absolute top-2.5 left-2.5 w-8 h-8 rounded-xl bg-white p-1 border border-slate-200/80 shadow-md">

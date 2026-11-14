@@ -751,7 +751,7 @@ export const LoginPage: React.FC = () => {
             {/* Portal Note */}
             <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-semibold">
               <span className="flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-emerald-600" /> 256-Bit SSL Encrypted
+                <Lock className="w-3.5 h-3.5 text-emerald-600" /> Secure sign-in
               </span>
               <button
                 type="button"

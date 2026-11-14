@@ -29,7 +29,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
         >
           <Logo size="xl" variant="white" />
           <p className="text-xs font-bold text-white/80 tracking-widest uppercase pt-1">
-            Global Ventures & Higher Education Portal
+            Education · Trade · Frozen foods · Digital
           </p>
         </motion.div>
       </div>

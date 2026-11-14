@@ -263,7 +263,7 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
 
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 text-emerald-300 px-2.5 py-0.5 rounded-full border border-white/20 flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3 text-emerald-400" /> 256-Bit SSL Encrypted
+                <ShieldCheck className="w-3 h-3 text-emerald-400" /> Secure payment
               </span>
               <span className="text-[10px] font-bold text-white/70 uppercase">
                 {division} Portal Settlement
