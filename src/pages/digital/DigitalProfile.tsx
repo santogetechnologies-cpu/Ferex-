@@ -5,14 +5,16 @@ import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
 import { ChangePasswordForm } from '../../components/ChangePasswordForm';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const DigitalProfile: React.FC = () => {
-  const [profile, setProfile] = useState({
-    name: 'Digital Admin',
-    email: 'digital@ferex.com',
-    phone: '+91 484 290 1234',
-    role: 'Admin'
-  });
+  const { profile: account, user } = useAuth();
+  const profile = {
+    name: account?.full_name || '',
+    email: account?.email || user?.email || '',
+    phone: (account as any)?.phone || '',
+    role: String(account?.role || '').replace(/_/g, ' ')
+  };
 
   const [avatar, setAvatar] = useState<string>('');
   const [toast, setToast] = useState('');
@@ -38,10 +40,6 @@ export const DigitalProfile: React.FC = () => {
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    showToast('Profile details updated!');
-  };
 
   return (
     <div className="space-y-6 text-left antialiased">
@@ -81,21 +79,18 @@ export const DigitalProfile: React.FC = () => {
       <Card className="p-6 border border-slate-200/70 shadow-xs space-y-5">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
-            <User className="w-4 h-4 text-[#58051E]" /> Account & Personal Information
+            <User className="w-4 h-4 text-[#58051E]" /> Account information (managed by your administrator)
           </h2>
-          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={handleSave}>
-            <Save className="w-4 h-4 mr-1.5" /> Save Changes
-          </Button>
         </div>
 
-        <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form onSubmit={e => e.preventDefault()} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Full Name</label>
-            <input type="text" value={profile.name} onChange={e => setProfile({...profile, name: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
+            <input type="text" value={profile.name} readOnly className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
           </div>
           <div>
             <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Email</label>
-            <input type="email" value={profile.email} onChange={e => setProfile({...profile, email: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
+            <input type="email" value={profile.email} readOnly className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
           </div>
           <div>
             <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Role</label>
@@ -103,7 +98,7 @@ export const DigitalProfile: React.FC = () => {
           </div>
           <div>
             <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Phone</label>
-            <input type="text" value={profile.phone} onChange={e => setProfile({...profile, phone: e.target.value})} className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
+            <input type="text" value={profile.phone} readOnly className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]" />
           </div>
         </form>
       </Card>
