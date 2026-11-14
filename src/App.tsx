@@ -131,23 +131,8 @@ import { DigitalLeads } from './pages/digital/DigitalLeads';
 import { DigitalProjects } from './pages/digital/DigitalProjects';
 import { DigitalTasks } from './pages/digital/DigitalTasks';
 import { DigitalMeetings } from './pages/digital/DigitalMeetings';
-import { DigitalServicesHub } from './pages/digital/DigitalServices';
-import { DigitalWebDevelopment } from './pages/digital/DigitalWebDevelopment';
-import { DigitalMobileApps } from './pages/digital/DigitalMobileApps';
-import { DigitalUIUX } from './pages/digital/DigitalUIUX';
-import { DigitalMarketing } from './pages/digital/DigitalMarketing';
-import { DigitalSEO } from './pages/digital/DigitalSEO';
-import { DigitalBranding } from './pages/digital/DigitalBranding';
-import { DigitalInvoices } from './pages/digital/DigitalInvoices';
-import { DigitalPayments } from './pages/digital/DigitalPayments';
 import { DigitalExpenses } from './pages/digital/DigitalExpenses';
-import { DigitalEmployees } from './pages/digital/DigitalEmployees';
 import { DigitalAttendance } from './pages/digital/DigitalAttendance';
-import { DigitalPerformance } from './pages/digital/DigitalPerformance';
-import { DigitalReports } from './pages/digital/DigitalReports';
-import { DigitalRevenueAnalytics } from './pages/digital/DigitalRevenueAnalytics';
-import { DigitalProjectAnalytics } from './pages/digital/DigitalProjectAnalytics';
-import { DigitalAnalytics } from './pages/digital/DigitalAnalytics';
 import { DigitalNotifications } from './pages/digital/DigitalNotifications';
 import { DigitalProfile } from './pages/digital/DigitalProfile';
 import { DigitalSettings } from './pages/digital/DigitalSettings';
@@ -155,13 +140,11 @@ import { DigitalDeliverables } from './pages/digital/DigitalDeliverables';
 import { DigitalStaff } from './pages/digital/DigitalStaff';
 import { DigitalLoginPage } from './pages/digital/DigitalLoginPage';
 import DigitalClientPortal from './pages/digital/DigitalClientWorkspace';
-import { DigitalBilling } from './pages/digital/DigitalBilling';
 
 // Digital Project Manager imports (Pure Supabase Rebuild)
 import { DigitalPMLayout } from './layouts/DigitalPMLayout';
 import { DigitalPMDashboard } from './pages/digital/pm/DigitalPMDashboard';
 import { DigitalPMProjects } from './pages/digital/pm/DigitalPMProjects';
-import { DigitalPMTasks } from './pages/digital/pm/DigitalPMTasks';
 import { DigitalPMTickets } from './pages/digital/pm/DigitalPMTickets';
 import { DigitalPMSprints } from './pages/digital/pm/DigitalPMSprints';
 import { DigitalPMMilestones } from './pages/digital/pm/DigitalPMMilestones';
@@ -496,13 +479,13 @@ function App() {
 
           {/* Digital Finance */}
           <Route path="/digital/invoices" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalCommerce view="invoices" /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/finance/invoices" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalInvoices /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/finance/invoices" element={<Navigate to="/digital/invoices" replace />} />
           <Route path="/digital/payments" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalCommerce view="payments" /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/finance/payments" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalPayments /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/finance/payments" element={<Navigate to="/digital/payments" replace />} />
           <Route path="/digital/expenses" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalExpenses /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/finance/expenses" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalExpenses /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/billing" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalCommerce view="billing" /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/finance/billing" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalBilling /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/finance/billing" element={<Navigate to="/digital/billing" replace />} />
 
           {/* Digital Team */}
           <Route path="/digital/attendance" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAttendance /></DigitalLayout></ProtectedRoute>} />

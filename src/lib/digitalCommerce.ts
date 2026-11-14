@@ -46,3 +46,32 @@ export function validateCommerce(body: CommerceBody) {
   return { subtotal: round(subtotal), tax: round(tax), total: round(subtotal+tax) };
 }
 export function escapeHtml(value: unknown) { return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!)); }
+
+/** Where a payment term stands today. Used to track milestones, partial payments and what is overdue. */
+export type TermStatus = 'Paid' | 'Partially Paid' | 'Overdue' | 'Due Soon' | 'Upcoming';
+export interface TermTracking { id: string; label: string; due_date: string; amount: number; received: number; remaining: number; percent_paid: number; status: TermStatus; days_to_due: number }
+export function trackTerm(part: CommercePart, today = new Date()): TermTracking {
+  const amount = Number(part.amount || 0), received = Number(part.received || 0), remaining = Math.max(0, amount - received);
+  const t0 = new Date(today.toISOString().slice(0, 10)).getTime();
+  const days = Math.round((new Date(part.due_date).getTime() - t0) / 86400000);
+  let status: TermStatus = 'Upcoming';
+  if (amount > 0 && remaining <= 0) status = 'Paid';
+  else if (days < 0) status = 'Overdue';
+  else if (received > 0) status = 'Partially Paid';
+  else if (days <= 7) status = 'Due Soon';
+  // A term that is partly paid and past due is still overdue for the remainder.
+  return { id: part.id, label: part.label, due_date: part.due_date, amount, received, remaining, percent_paid: amount > 0 ? Math.min(100, Math.round((received / amount) * 1000) / 10) : 0, status, days_to_due: days };
+}
+export function trackContract(body: CommerceBody, today = new Date()) {
+  const terms = (body.parts || []).map(p => trackTerm(p, today));
+  const total = Number(body.total || 0), received = terms.reduce((s, t) => s + t.received, 0);
+  const overdue = terms.filter(t => t.status === 'Overdue');
+  const next = terms.filter(t => t.status !== 'Paid').sort((a, b) => a.due_date.localeCompare(b.due_date))[0];
+  return { terms, total, received, outstanding: Math.max(0, total - received), overdue_amount: overdue.reduce((s, t) => s + t.remaining, 0), overdue_count: overdue.length, next_due: next, percent_paid: total > 0 ? Math.min(100, Math.round((received / total) * 1000) / 10) : 0 };
+}
+/** "₹1.2L · $500": totals kept per currency, never added across currencies. */
+export function formatTotals(totals: Record<string, number>) {
+  const entries = Object.entries(totals).filter(([, v]) => v > 0);
+  if (!entries.length) return '0';
+  return entries.map(([cur, v]) => new Intl.NumberFormat('en', { style: 'currency', currency: cur, notation: v >= 100000 ? 'compact' : 'standard', maximumFractionDigits: 2 }).format(v)).join(' · ');
+}

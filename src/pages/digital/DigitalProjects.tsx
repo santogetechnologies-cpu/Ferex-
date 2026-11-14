@@ -19,6 +19,7 @@ import {
   advanceDigitalProjectStage,
   addDigitalDeliverable,
   deleteDigitalDeliverable,
+  reviewDigitalDeliverable,
   getDigitalClients,
   getDigitalStaffMembers,
   type DigitalProjectRecord,
@@ -28,6 +29,9 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useDigitalPermissions } from '../../hooks/usePermissions';
 import { getMasters } from '../../lib/api/masters';
+import { getCommerceSettings, saveContract } from '../../lib/api/digitalCommerce';
+import { trackContract, money, type CommerceBody } from '../../lib/digitalCommerce';
+import { Link } from 'react-router-dom';
 import { DIGITAL_CURRENCIES, formatDigitalCurrency, getCurrencySymbol } from '../../lib/digitalCurrency';
 
 const DEFAULT_STAGES: DigitalProjectStage[] = ['Briefing', 'In Progress', 'Review', 'Revisions', 'Delivered', 'Closed'];
@@ -78,8 +82,8 @@ export const DigitalProjects: React.FC = () => {
     advance_percentage: 30,
     start_date: new Date().toISOString().split('T')[0],
     deadline: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-    assigned_staff_name: 'digital admin',
-    assigned_staff_email: 'digitaladmin@ferex.com',
+    assigned_staff_id: '',
+    country: '',
     status: 'Briefing' as DigitalProjectStage,
   });
 
@@ -125,21 +129,8 @@ export const DigitalProjects: React.FC = () => {
       setClients(clientData || []);
       setProjects(projData || []);
 
-      let staff = realStaff || [];
-      const hasDigitalAdmin = staff.some(s => s.name.toLowerCase().includes('digital admin') || s.email.toLowerCase().includes('digitaladmin'));
-      if (!hasDigitalAdmin) {
-        staff = [
-          {
-            id: 'staff-digital-admin',
-            name: 'digital admin',
-            email: 'digitaladmin@ferex.com',
-            role: 'digital_admin',
-            roleLabel: 'Digital Agency Director',
-            division: 'digital'
-          },
-          ...staff
-        ];
-      }
+      // Only real team members with a login can be assigned work.
+      const staff = (realStaff || []).filter((m: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m.id || ''));
       setStaffList(staff);
 
       if (masterStages && masterStages.length > 0) setStages(masterStages);
@@ -180,247 +171,121 @@ export const DigitalProjects: React.FC = () => {
     }
   }, [projects, selectedProject]);
 
+  /** Builds the contract (services and milestone payment terms) from what was entered on the project form. */
+  const buildBilling = async (created: DigitalProjectRecord, clientEmail: string): Promise<CommerceBody> => {
+    const settings = await getCommerceSettings();
+    const country = newProj.country.toUpperCase();
+    const tax = settings.taxes.find(t => t.country === country) || settings.taxes.find(t => t.country === '*') || { label: 'No tax', rate: 0 };
+    const budget = Number(newProj.budget);
+
+    const components = projBreakdown.filter(b => Number(b.amount) > 0);
+    let lines;
+    if (showProjBreakdown && components.length > 0) {
+      const sum = components.reduce((acc, c) => acc + Number(c.amount), 0);
+      if (Math.abs(sum - budget) > 0.005) throw new Error(`The scope breakdown adds up to ${sum.toLocaleString()} but the budget is ${budget.toLocaleString()}.`);
+      lines = components.map(c => ({ id: generateUUID(), title: c.component, amount: Number(c.amount), tax_rate: tax.rate, tax_label: tax.label }));
+    } else {
+      lines = [{ id: generateUUID(), title: created.title, amount: budget, tax_rate: tax.rate, tax_label: tax.label }];
+    }
+    const shares = termShares();
+    const start = new Date(newProj.start_date).getTime(), end = new Date(newProj.deadline).getTime();
+    const dueFor = (i: number) => new Date(shares.length === 1 ? start : start + ((end - start) * i) / (shares.length - 1)).toLocaleDateString('en-CA');
+    return {
+      project_id: created.id,
+      project_title: created.title,
+      client_name: created.client_name,
+      client_email: clientEmail,
+      country,
+      currency: newProj.currency || 'INR',
+      lines,
+      parts: shares.map((sh, i) => ({ id: generateUUID(), label: sh.label, percentage: sh.pct, due_date: dueFor(i), service_ids: lines.map(l => l.id) })),
+      notes: newProj.scope || '',
+      agency_name: settings.agency_name,
+      agency_address: settings.address,
+      agency_tax_number: settings.tax_number,
+      payment_instructions: settings.payment_instructions || '',
+    } as CommerceBody;
+  };
+
+  /** The milestone payment shares chosen on the form. They always add up to 100%. */
+  const termShares = (): Array<{ label: string; pct: number }> => {
+    switch (newProj.payment_split_type) {
+      case 'advance_50': return [{ label: 'Advance (50%)', pct: 50 }, { label: 'Balance on delivery (50%)', pct: 50 }];
+      case 'three_milestones': return [{ label: 'Kickoff advance (40%)', pct: 40 }, { label: 'Milestone review (30%)', pct: 30 }, { label: 'Final handover (30%)', pct: 30 }];
+      case 'full': return [{ label: 'Full payment (100%)', pct: 100 }];
+      case 'custom_advance': return customMilestoneParts.map(c => ({ label: `${c.label || 'Milestone'} (${c.percentage}%)`, pct: Number(c.percentage) }));
+      default: return [{ label: 'Advance (30%)', pct: 30 }, { label: 'Balance on delivery (70%)', pct: 70 }];
+    }
+  };
+
+  const [creating, setCreating] = useState(false);
+  const [drawerContract, setDrawerContract] = useState<any>(null);
+
+  // Billing for the open project (admins only; the database hides contracts from everyone else).
+  useEffect(() => {
+    setDrawerContract(null);
+    if (!selectedProject) return;
+    let cancelled = false;
+    supabase.from('digital_contracts').select('*').eq('project_id', selectedProject.id).maybeSingle().then(({ data }) => { if (!cancelled) setDrawerContract(data); });
+    return () => { cancelled = true; };
+  }, [selectedProject?.id, projects]);
+
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProj.title.trim()) return;
-
-    if (!newProj.client_id && !newProj.client_name.trim()) {
-      showToast('Please select a client or subsidiary.');
-      return;
-    }
-
+    if (creating) return;
+    if (!newProj.title.trim()) { showToast('Enter the project title.'); return; }
     const selectedClient = clients.find(c => c.id === newProj.client_id);
-    const clientName = selectedClient?.company_name || selectedClient?.name || newProj.client_name || 'Enterprise Client';
-    const clientType = selectedClient?.client_type || newProj.client_type || 'External';
+    if (!selectedClient) { showToast('Select the client this project is for.'); return; }
+    const staff = staffList.find(s => s.id === newProj.assigned_staff_id);
+    if (!staff) { showToast('Choose the team member who will lead this project.'); return; }
+    const budgetVal = Number(newProj.budget);
+    if (!(budgetVal > 0)) { showToast('Enter the project budget.'); return; }
+    if (!/^[A-Za-z]{2}$/.test(newProj.country)) { showToast('Enter the 2-letter country code used for billing (for example IN, US, AE).'); return; }
+    const shares = termShares();
+    if (Math.abs(shares.reduce((acc, x) => acc + x.pct, 0) - 100) > 0.0001 || shares.some(x => !(x.pct > 0))) { showToast('The milestone percentages must add up to exactly 100%.'); return; }
 
-    const assignedName = newProj.assigned_staff_name || (staffList.length > 0 ? staffList[0].name : (profile?.full_name || 'Digital Staff'));
-    const matchedStaff = staffList.find(s => s.name === assignedName);
-    const assignedEmail = matchedStaff?.email || newProj.assigned_staff_email || profile?.email || '';
-    const assignedStaffId = matchedStaff?.id || (matchedStaff as any)?.user_id || undefined;
-
-    const budgetVal = Number(newProj.budget) || 0;
-    const isCustom = newProj.payment_split_type === 'custom_advance';
-    const advancePct =
-      newProj.payment_split_type === 'advance_30' ? 30 :
-      newProj.payment_split_type === 'advance_50' ? 50 :
-      newProj.payment_split_type === 'three_milestones' ? 40 :
-      newProj.payment_split_type === 'full' ? 100 :
-      isCustom ? (customMilestoneParts[0]?.percentage || 30) :
-      newProj.advance_percentage;
-
-    const advanceAmt = Math.round(budgetVal * (advancePct / 100));
-    const balanceAmt = Math.max(0, budgetVal - advanceAmt);
-    const splitNum: 1 | 2 | 3 = newProj.payment_split_type === 'full' ? 1 : newProj.payment_split_type === 'three_milestones' ? 3 :
-      isCustom ? (customMilestoneParts.length === 1 ? 1 : customMilestoneParts.length >= 3 ? 3 : 2) : 2;
-
+    setCreating(true);
     try {
       const created = await createDigitalProject({
         title: newProj.title.trim(),
-        client_id: selectedClient?.id || (newProj.client_id || undefined),
-        client_name: clientName,
-        client_type: clientType as 'Internal' | 'External',
+        client_id: selectedClient.id,
         scope: newProj.scope,
         description: newProj.scope,
         service_category: newProj.service_category,
         budget: budgetVal,
-        payment_terms: newProj.payment_terms as any,
-        advance_amount: advanceAmt,
-        balance_amount: balanceAmt,
+        payment_terms: newProj.payment_terms,
         start_date: newProj.start_date,
         deadline: newProj.deadline,
-        assigned_staff_name: assignedName,
-        assigned_staff_email: assignedEmail,
-        assigned_staff_id: assignedStaffId,
+        assigned_staff_id: staff.id,
         status: newProj.status,
+        currency: newProj.currency,
+        country: newProj.country.toUpperCase(),
+        created_by: profile?.full_name || '',
       });
 
-      // Directly initialize the Single Source of Truth in Centralized Billing with configured payment parts
+      // The contract is the single source of truth for payments: services, milestones and partial collections.
+      let billingNote = '';
       try {
-        const rawBillings = localStorage.getItem('ferex_digital_centralized_billings');
-        const billings: any[] = rawBillings ? JSON.parse(rawBillings) : [];
-
-        let parts: any[] = [];
-        const midTime = (new Date(newProj.start_date).getTime() + new Date(newProj.deadline).getTime()) / 2;
-
-        if (isCustom && customMilestoneParts.length > 0) {
-          // Build custom milestone parts from user-defined percentages
-          parts = customMilestoneParts.map((cp, i) => {
-            const amt = i === customMilestoneParts.length - 1
-              ? budgetVal - customMilestoneParts.slice(0, -1).reduce((s, p) => s + Math.round(budgetVal * (p.percentage / 100)), 0)
-              : Math.round(budgetVal * (cp.percentage / 100));
-            const due = i === 0 ? newProj.start_date : i === customMilestoneParts.length - 1 ? newProj.deadline : new Date(midTime).toISOString().split('T')[0];
-            return {
-              id: generateUUID(),
-              part_number: i + 1,
-              label: `Part ${i + 1}: ${cp.label} (${cp.percentage}%)`,
-              percentage: cp.percentage,
-              configured_amount: amt,
-              due_date: due,
-              status: 'unpaid',
-              amount_received: 0,
-              remaining_balance: amt
-            };
-          });
-        } else if (splitNum === 1) {
-          parts = [{
-            id: generateUUID(),
-            part_number: 1,
-            label: 'Full Payment (100%)',
-            percentage: 100,
-            configured_amount: budgetVal,
-            due_date: newProj.start_date,
-            status: 'unpaid',
-            amount_received: 0,
-            remaining_balance: budgetVal
-          }];
-        } else if (splitNum === 2) {
-          parts = [
-            {
-              id: generateUUID(),
-              part_number: 1,
-              label: `Part 1: Advance (${advancePct}%)`,
-              percentage: advancePct,
-              configured_amount: advanceAmt,
-              due_date: newProj.start_date,
-              status: 'unpaid',
-              amount_received: 0,
-              remaining_balance: advanceAmt
-            },
-            {
-              id: generateUUID(),
-              part_number: 2,
-              label: `Part 2: Balance (${100 - advancePct}%)`,
-              percentage: 100 - advancePct,
-              configured_amount: balanceAmt,
-              due_date: newProj.deadline,
-              status: 'unpaid',
-              amount_received: 0,
-              remaining_balance: balanceAmt
-            }
-          ];
-        } else {
-          const p1 = Math.round(budgetVal * 0.4);
-          const p2 = Math.round(budgetVal * 0.3);
-          const p3 = budgetVal - p1 - p2;
-          parts = [
-            {
-              id: generateUUID(),
-              part_number: 1,
-              label: 'Part 1: Kickoff Advance (40%)',
-              percentage: 40,
-              configured_amount: p1,
-              due_date: newProj.start_date,
-              status: 'unpaid',
-              amount_received: 0,
-              remaining_balance: p1
-            },
-            {
-              id: generateUUID(),
-              part_number: 2,
-              label: 'Part 2: Milestone Review (30%)',
-              percentage: 30,
-              configured_amount: p2,
-              due_date: new Date(midTime).toISOString().split('T')[0],
-              status: 'unpaid',
-              amount_received: 0,
-              remaining_balance: p2
-            },
-            {
-              id: generateUUID(),
-              part_number: 3,
-              label: 'Part 3: Final Handover (30%)',
-              percentage: 30,
-              configured_amount: p3,
-              due_date: newProj.deadline,
-              status: 'unpaid',
-              amount_received: 0,
-              remaining_balance: p3
-            }
-          ];
-        }
-
-        const billingRecord = {
-          id: generateUUID(),
-          project_id: created.id,
-          project_title: created.title,
-          client_id: created.client_id || '',
-          client_name: created.client_name,
-          service_category: created.service_category,
-          scope_items: [
-            {
-              id: '1',
-              title: created.title,
-              description: created.scope || 'Core project deliverables & scope',
-              amount: budgetVal,
-              type: 'base'
-            }
-          ],
-          total_agreed_amount: budgetVal,
-          currency: newProj.currency || 'INR',
-          payment_split: isCustom ? (parts.length === 1 ? 1 : parts.length >= 3 ? 3 : 2) : splitNum,
-          milestone_split_type: isCustom ? 'custom' : newProj.payment_split_type,
-          custom_milestone_parts: isCustom ? customMilestoneParts : undefined,
-          scope_breakdown: showProjBreakdown && projBreakdown.length > 0 ? projBreakdown : undefined,
-          payment_parts: parts,
-          invoice_no: `INV-DIG-${created.id.slice(0, 4).toUpperCase()}`,
-          status: 'Approved',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          approved_at: new Date().toISOString(),
-          approved_by: assignedName,
-          audit_trail: [
-            {
-              id: generateUUID(),
-              timestamp: new Date().toISOString(),
-              user: assignedName,
-              previous_value: 0,
-              updated_value: budgetVal,
-              reason: 'Project initialized with commercial terms',
-              change_type: 'scope_added',
-              details: `Initial budget ₹${budgetVal.toLocaleString('en-IN')} with ${parts.length}-part payment schedule (${newProj.payment_terms})`
-            }
-          ]
-        };
-
-        const updatedBillings = [billingRecord, ...billings.filter((b: any) => b.project_id !== created.id)];
-        localStorage.setItem('ferex_digital_centralized_billings', JSON.stringify(updatedBillings));
-        window.dispatchEvent(new Event('ferex_digital_centralized_billing_change'));
-      } catch {}
+        await saveContract(await buildBilling(created, selectedClient.email || ''));
+      } catch (err: any) {
+        billingNote = ` Billing was not configured yet: ${err.message}. Finish it from Billing.`;
+      }
 
       setShowAddModal(false);
-      showToast(`✅ Created project "${created.title}" with configured payment terms.`);
+      showToast(`Created "${created.title}" and assigned it to ${staff.name}.${billingNote}`);
       setNewProj({
-        title: '',
-        client_id: '',
-        client_name: '',
-        client_type: 'Internal',
-        scope: '',
-        service_category: 'Digital Marketing & Performance Ads',
-        budget: 500000,
-        currency: 'INR',
-        payment_terms: 'Advance Payment (30% Upfront)',
-        payment_split_type: 'advance_30',
-        advance_percentage: 30,
-        start_date: new Date().toISOString().split('T')[0],
-        deadline: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-        assigned_staff_name: 'digital admin',
-        assigned_staff_email: 'digitaladmin@ferex.com',
-        status: 'Briefing',
+        title: '', client_id: '', client_name: '', client_type: 'Internal', scope: '', service_category: serviceCategories[0] || 'Digital Marketing & Performance Ads',
+        budget: 0, currency: 'INR', payment_terms: 'Advance Payment (30% Upfront)', payment_split_type: 'advance_30', advance_percentage: 30,
+        start_date: new Date().toISOString().split('T')[0], deadline: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+        assigned_staff_id: '', country: '', status: 'Briefing',
       });
-      setCustomMilestoneParts([
-        { label: 'Advance', percentage: 40 },
-        { label: 'Milestone', percentage: 30 },
-        { label: 'Final', percentage: 30 },
-      ]);
+      setCustomMilestoneParts([{ label: 'Advance', percentage: 40 }, { label: 'Milestone', percentage: 30 }, { label: 'Final', percentage: 30 }]);
       setShowProjBreakdown(false);
-      setProjBreakdown([
-        { id: '1', component: 'UI/UX Design', amount: 0 },
-        { id: '2', component: 'Frontend Development', amount: 0 },
-        { id: '3', component: 'Backend & API', amount: 0 },
-      ]);
       await loadData();
     } catch (err: any) {
       showToast(`Error creating project: ${err.message || 'Database error'}`);
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -428,15 +293,19 @@ export const DigitalProjects: React.FC = () => {
     const currentIndex = stages.indexOf(project.status);
     if (currentIndex < stages.length - 1) {
       const nextStage = stages[currentIndex + 1];
-      const updated = await advanceDigitalProjectStage(
-        project.id,
-        nextStage,
-        profile?.full_name || 'Digital Lead',
-        `Milestone advanced to ${nextStage}`
-      );
-      if (updated) {
-        showToast(`Project advanced to stage: ${nextStage}`);
-        await loadData();
+      try {
+        const updated = await advanceDigitalProjectStage(
+          project.id,
+          nextStage,
+          profile?.full_name || 'Digital Lead',
+          `Milestone advanced to ${nextStage}`
+        );
+        if (updated) {
+          showToast(`Project advanced to stage: ${nextStage}`);
+          await loadData();
+        }
+      } catch (err: any) {
+        showToast(`Could not advance the project: ${err.message}`);
       }
     }
   };
@@ -445,67 +314,64 @@ export const DigitalProjects: React.FC = () => {
     e.preventDefault();
     if (!selectedProject || !newDeliv.title.trim() || !newDeliv.url.trim()) return;
 
-    await addDigitalDeliverable(selectedProject.id, {
-      title: newDeliv.title,
-      type: newDeliv.type,
-      url: newDeliv.url,
-      notes: newDeliv.notes,
-      status: newDeliv.status
-    });
+    try {
+      await addDigitalDeliverable(selectedProject.id, {
+        title: newDeliv.title,
+        type: newDeliv.type,
+        url: newDeliv.url,
+        notes: newDeliv.notes,
+        status: 'Submitted'
+      });
+      setShowDeliverableModal(false);
+      setNewDeliv({ title: '', type: 'Figma', url: '', notes: '', status: 'Submitted' });
+      showToast('Deliverable attached. It now waits for admin approval.');
+      await loadData();
+    } catch (err: any) {
+      showToast(`Could not attach the deliverable: ${err.message}`);
+    }
+  };
 
-    setShowDeliverableModal(false);
-    setNewDeliv({ title: '', type: 'Figma', url: '', notes: '', status: 'Submitted' });
-    showToast('Deliverable attached to project!');
-    await loadData();
+  const handleReviewDeliverable = async (delivId: string, status: 'Approved' | 'Submitted') => {
+    if (!selectedProject) return;
+    try {
+      await reviewDigitalDeliverable(selectedProject.id, delivId, status);
+      showToast(status === 'Approved' ? 'Deliverable approved.' : 'Deliverable moved back to review.');
+      await loadData();
+    } catch (err: any) {
+      showToast(`Could not update the deliverable: ${err.message}`);
+    }
   };
 
   const handleDeleteDeliverable = async (delivId: string) => {
     if (!selectedProject) return;
-    await deleteDigitalDeliverable(selectedProject.id, delivId);
-    showToast('Deliverable removed');
-    await loadData();
+    try {
+      await deleteDigitalDeliverable(selectedProject.id, delivId);
+      showToast('Deliverable removed');
+      await loadData();
+    } catch (err: any) {
+      showToast(`Could not remove the deliverable: ${err.message}`);
+    }
   };
 
   const handleDeleteProject = async (id: string, title: string) => {
-    if (!window.confirm(`Are you sure you want to delete "${title}"? This will permanently remove the project from the portfolio and financial ledger.`)) return;
+    if (!window.confirm(`Delete "${title}"? The project and its tasks are removed from the portfolio. A project with payments recorded cannot be deleted until they are refunded.`)) return;
     try {
       await deleteDigitalProject(id);
-
-      // Clean up linked centralized billing and payments
-      try {
-        const rawBillings = localStorage.getItem('ferex_digital_centralized_billings');
-        if (rawBillings) {
-          const billings = JSON.parse(rawBillings);
-          const filteredB = billings.filter((b: any) => b.project_id !== id && b.id !== id);
-          localStorage.setItem('ferex_digital_centralized_billings', JSON.stringify(filteredB));
-        }
-      } catch {}
-
-      try {
-        const rawTxs = localStorage.getItem('ferex_digital_payment_transactions');
-        if (rawTxs) {
-          const txs = JSON.parse(rawTxs);
-          const filteredT = txs.filter((t: any) => t.project_id !== id);
-          localStorage.setItem('ferex_digital_payment_transactions', JSON.stringify(filteredT));
-        }
-      } catch {}
-
       if (selectedProject?.id === id) setSelectedProject(null);
-      showToast(`Project "${title}" deleted successfully.`);
+      showToast(`Project "${title}" deleted.`);
       await loadData();
-      window.dispatchEvent(new Event('ferex_digital_centralized_billing_change'));
-      window.dispatchEvent(new Event('ferex_digital_payments_change'));
     } catch (err: any) {
-      showToast(`Error deleting project: ${err.message}`);
+      showToast(`Could not delete the project: ${err.message}`);
     }
   };
 
   const handleConfirmReassign = async () => {
     if (!reassignProject || !reassignStaffName) return;
     try {
-      const staffMember = staffList.find(s => s.name === reassignStaffName || s.email === reassignStaffName);
-      await reassignDigitalProject(reassignProject.id, reassignStaffName, staffMember?.email, staffMember?.id);
-      showToast(`Reassigned "${reassignProject.title}" to ${reassignStaffName}`);
+      const staffMember = staffList.find(s => s.id === reassignStaffName);
+      if (!staffMember) { showToast('Choose a team member from the list.'); return; }
+      await reassignDigitalProject(reassignProject.id, staffMember.name, staffMember.email, staffMember.id);
+      showToast(`Reassigned "${reassignProject.title}" to ${staffMember.name}`);
       setReassignProject(null);
       await loadData();
     } catch (err: any) {
@@ -524,18 +390,10 @@ export const DigitalProjects: React.FC = () => {
       (p.assigned_staff_name || '').toLowerCase().includes(search.toLowerCase()) ||
       (p.service_category || '').toLowerCase().includes(search.toLowerCase());
 
-    const staffName = (profile?.full_name || '').toLowerCase().trim();
-    const staffEmail = (profile?.email || '').toLowerCase().trim();
-    const userRole = (profile?.role || '').toLowerCase().trim();
-    const assignedName = (p.assigned_staff_name || '').toLowerCase().trim();
-    const assignedEmail = (p.assigned_staff_email || '').toLowerCase().trim();
-
+    // The database already limits what a team member can see; "mine" means assigned to me, by account id or email.
     const isMine = Boolean(
       (profile?.id && p.assigned_staff_id === profile.id) ||
-      (staffName && (assignedName.includes(staffName) || staffName.includes(assignedName))) ||
-      (staffEmail && (assignedEmail === staffEmail || assignedName.includes(staffEmail.split('@')[0]) || (staffEmail.split('@')[0] && assignedEmail.includes(staffEmail.split('@')[0])))) ||
-      ((userRole.includes('pm') || userRole.includes('manager') || userRole.includes('project_manager') || userRole.includes('digital') || staffEmail.includes('digimanager') || staffEmail.includes('pm@') || staffName.includes('manager')) &&
-        (!p.assigned_staff_name || assignedName.includes('manager') || assignedName.includes('lead') || assignedName.includes('digital') || assignedName.includes('pm') || assignedEmail.includes('pm@') || assignedEmail.includes('digimanager') || assignedEmail.includes('manager')))
+      (profile?.email && (p.assigned_staff_email || '').toLowerCase() === profile.email.toLowerCase())
     );
 
     // Strict staff isolation: Staff only sees their assigned projects
@@ -849,7 +707,7 @@ export const DigitalProjects: React.FC = () => {
                       <button
                         onClick={() => {
                           setReassignProject(p);
-                          setReassignStaffName(p.assigned_staff_name || '');
+                          setReassignStaffName(p.assigned_staff_id || '');
                         }}
                         className="px-2.5 py-1.5 bg-slate-100 hover:bg-[#58051E]/10 text-slate-700 hover:text-[#58051E] rounded-lg text-xs font-bold border border-slate-200 transition-colors cursor-pointer shrink-0"
                         title="Reassign Project Manager / Lead"
@@ -861,7 +719,7 @@ export const DigitalProjects: React.FC = () => {
 
                     {(() => {
                       const canAdvance = isAdmin || isCentral || Boolean(
-                        (profile?.full_name && (p.assigned_staff_name || '').toLowerCase().includes(profile.full_name.toLowerCase())) ||
+                        (profile?.id && p.assigned_staff_id === profile.id) ||
                         (profile?.email && (p.assigned_staff_email || '').toLowerCase() === profile.email.toLowerCase())
                       );
 
@@ -1054,7 +912,7 @@ export const DigitalProjects: React.FC = () => {
                     <button
                       onClick={() => {
                         setReassignProject(selectedProject);
-                        setReassignStaffName(selectedProject.assigned_staff_name || '');
+                        setReassignStaffName(selectedProject.assigned_staff_id || '');
                       }}
                       className="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 hover:text-[#58051E] rounded-md text-[11px] font-bold cursor-pointer inline-flex items-center gap-1 shadow-2xs"
                     >
@@ -1065,20 +923,42 @@ export const DigitalProjects: React.FC = () => {
                 </div>
               </div>
 
-              {/* Commercial Value & Payment Terms */}
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
+              {/* Commercial Value & Milestone Payments (from the project contract) */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <DollarSign className="w-3.5 h-3.5 text-[#58051E]" /> Commercial Value & Milestone Schedule
+                    <DollarSign className="w-3.5 h-3.5 text-[#58051E]" /> Commercial Value & Milestone Payments
                   </h4>
                   <span className="text-xs font-black text-emerald-700">{formatDigitalCurrency(selectedProject.budget, selectedProject.currency)}</span>
                 </div>
-                <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-                  <span>Payment Terms: <strong className="text-slate-800">{selectedProject.payment_terms || 'Advance Payment'}</strong></span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-200 text-slate-700 uppercase font-bold">
-                    {selectedProject.payment_split_type || 'standard'}
-                  </span>
-                </div>
+                {drawerContract ? (() => {
+                  const t = trackContract(drawerContract.body);
+                  const cur = drawerContract.body.currency;
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-[11px] font-bold text-slate-600">
+                        <span>Collected {money(t.received, cur)} of {money(t.total, cur)} ({t.percent_paid}%)</span>
+                        {t.overdue_count > 0 && <span className="text-rose-600">{money(t.overdue_amount, cur)} overdue</span>}
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden"><div className={`h-full rounded-full ${t.overdue_count ? 'bg-rose-500' : 'bg-[#58051E]'}`} style={{ width: `${Math.min(100, t.percent_paid)}%` }} /></div>
+                      <div className="space-y-1">
+                        {t.terms.map(term => (
+                          <div key={term.id} className="flex items-center justify-between text-[11px] bg-white rounded-lg px-2.5 py-1.5 border border-slate-100">
+                            <span className="font-bold text-slate-800">{term.label}</span>
+                            <span className="text-slate-500">{term.due_date}</span>
+                            <span className="font-semibold text-slate-700">{money(term.received, cur)} / {money(term.amount, cur)}</span>
+                            <span className={`font-extrabold ${term.status === 'Paid' ? 'text-emerald-700' : term.status === 'Overdue' ? 'text-rose-600' : term.status === 'Partially Paid' ? 'text-blue-700' : 'text-slate-500'}`}>{term.status}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <Link to={`/digital/billing?project=${selectedProject.id}`} className="inline-block text-[11px] font-bold text-[#58051E] underline">Open billing: record payments, edit milestones, add extra scope</Link>
+                    </div>
+                  );
+                })() : (
+                  <div className="text-[11px] font-semibold text-slate-500">
+                    {isAdmin ? <>No billing configured for this project yet. <Link to="/digital/billing" className="text-[#58051E] underline font-bold">Configure billing</Link></> : 'Billing is managed by the Digital administrators.'}
+                  </div>
+                )}
               </div>
 
               {/* Attached Deliverables Hub */}
@@ -1113,6 +993,7 @@ export const DigitalProjects: React.FC = () => {
                               {d.type}
                             </span>
                             <span className="text-xs font-bold text-slate-900 truncate">{d.title}</span>
+                            <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${d.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{d.status}</span>
                           </div>
                           {d.notes && <p className="text-[11px] text-slate-500 truncate">{d.notes}</p>}
                         </div>
@@ -1126,12 +1007,22 @@ export const DigitalProjects: React.FC = () => {
                           >
                             <ExternalLink className="w-3.5 h-3.5" /> Open
                           </a>
-                          <button
-                            onClick={() => handleDeleteDeliverable(d.id)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleReviewDeliverable(d.id, d.status === 'Approved' ? 'Submitted' : 'Approved')}
+                              className="px-2 py-1 text-[10px] font-bold text-emerald-700 hover:bg-emerald-50 rounded-lg border border-emerald-200 cursor-pointer"
+                            >
+                              {d.status === 'Approved' ? 'Re-open' : 'Approve'}
+                            </button>
+                          )}
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleDeleteDeliverable(d.id)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1285,10 +1176,25 @@ export const DigitalProjects: React.FC = () => {
                     <span className="text-[10px] text-slate-400 font-semibold">Single Source of Truth</span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <div>
                       <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">
-                        Currency (Global / Poland)
+                        Billing country (2-letter code) *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        minLength={2}
+                        maxLength={2}
+                        placeholder="IN, US, AE…"
+                        value={newProj.country}
+                        onChange={(e) => setNewProj({ ...newProj, country: e.target.value.toUpperCase() })}
+                        className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">
+                        Currency
                       </label>
                       <select
                         value={newProj.currency}
@@ -1617,20 +1523,14 @@ export const DigitalProjects: React.FC = () => {
                     Assigned Account Manager / Project Lead *
                   </label>
                   <select
-                    value={newProj.assigned_staff_name}
-                    onChange={(e) => {
-                      const name = e.target.value;
-                      const matched = staffList.find(s => s.name === name);
-                      setNewProj({
-                        ...newProj,
-                        assigned_staff_name: name,
-                        assigned_staff_email: matched?.email || `${name.toLowerCase().replace(/[^a-z]/g, '')}@ferex.com`
-                      });
-                    }}
+                    required
+                    value={newProj.assigned_staff_id}
+                    onChange={(e) => setNewProj({ ...newProj, assigned_staff_id: e.target.value })}
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
                   >
+                    <option value="">-- Choose team member --</option>
                     {staffList.map((s: any) => (
-                      <option key={s.id || s.email} value={s.name}>
+                      <option key={s.id} value={s.id}>
                         {s.name} ({s.roleLabel || s.role || 'Account Manager'}) · {s.email}
                       </option>
                     ))}
@@ -1835,7 +1735,7 @@ export const DigitalProjects: React.FC = () => {
                   >
                     <option value="">-- Choose Staff Member --</option>
                     {staffList.map((s: any) => (
-                      <option key={s.id || s.email} value={s.name}>
+                      <option key={s.id} value={s.id}>
                         {s.name} ({s.roleLabel || s.role || 'Project Lead'}) - {s.email}
                       </option>
                     ))}

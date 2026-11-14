@@ -44,3 +44,8 @@ export async function refundPayment(collection: string,amount: number,reason: st
   const {data,error}=await supabase.rpc('digital_refund_payment',{p_collection:collection,p_amount:amount,p_reason:reason,p_key:key});
   if(error)throw new Error(error.message);return data;
 }
+export async function updateTerm(contract: CommerceContract, part: string, label: string, due: string, reason: string) {
+  const { data, error } = await supabase.rpc('digital_update_term', { p_contract: contract.id, p_revision: contract.revision, p_part: part, p_label: label, p_due: due, p_reason: reason });
+  if (error) throw new Error(error.message);
+  return data as CommerceContract;
+}
