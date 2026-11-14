@@ -95,7 +95,7 @@ export const CentralDigital: React.FC = () => {
 
   const externalProjectsCount = projects.length - internalProjectsCount;
   const totalInvoicedInr = useMemo(() => {
-    return invoices.reduce((sum, i) => sum + Number(i.amount || 0), 0);
+    return invoices.filter(i => (i.currency || 'INR') === 'INR').reduce((sum, i) => sum + Number(i.amount || 0), 0);
   }, [invoices]);
 
   const handleUpdateProjectStage = async (proj: any, newStage: string) => {
@@ -170,7 +170,7 @@ export const CentralDigital: React.FC = () => {
           { label: 'Engineering Pipeline Value', val: `₹${(totalPipelineValueInr / 100000).toFixed(2)}L`, sub: `${projects.length} Active Sprints`, color: 'text-emerald-700 bg-emerald-50 border-emerald-100' },
           { label: 'Internal Subsidiary Sprints', val: `${internalProjectsCount} Projects`, sub: 'Ferex Education, Trade & Rimi', color: 'text-rose-700 bg-rose-50 border-rose-100' },
           { label: 'External B2B Clients', val: `${externalProjectsCount} Projects`, sub: 'Commercial Enterprise Accounts', color: 'text-blue-700 bg-blue-50 border-blue-100' },
-          { label: 'Total Invoiced & Billed', val: `₹${(totalInvoicedInr / 100000).toFixed(2)}L`, sub: `${invoices.length} Milestone Invoices`, color: 'text-amber-700 bg-amber-50 border-amber-100' },
+          { label: 'Total Invoiced (INR contracts)', val: `₹${(totalInvoicedInr / 100000).toFixed(2)}L`, sub: `${invoices.length} Milestone Invoices`, color: 'text-amber-700 bg-amber-50 border-amber-100' },
         ].map((kpi, idx) => (
           <Card key={idx} className="p-4 border border-slate-200/70 shadow-xs space-y-1">
             <span className="text-[10px] font-black uppercase text-slate-400">{kpi.label}</span>
@@ -461,12 +461,13 @@ export const CentralDigital: React.FC = () => {
                 invoices.map(i => (
                   <tr key={i.id} className="hover:bg-slate-50/80">
                     <td className="py-3.5 px-4 font-mono font-bold text-emerald-700">
-                      <div>{i.invoice_no || i.id}</div>
+                      <div>{String(i.id).slice(0, 8).toUpperCase()}</div>
                       <span className="text-[10px] text-slate-400 font-normal">{i.issued_at || (i.created_at ? new Date(i.created_at).toLocaleDateString() : 'Recent')}</span>
                     </td>
-                    <td className="py-3.5 px-4 font-bold text-slate-900">{i.client?.company_name || 'Enterprise Client'}</td>
+                    <td className="py-3.5 px-4 font-bold text-slate-900">{i.client?.company_name || i.client_name || ''}</td>
                     <td className="py-3.5 px-4 text-right font-mono font-black text-slate-900">
-                      ₹{Number(i.amount || 0).toLocaleString('en-IN')}
+                      {new Intl.NumberFormat('en-IN', { style: 'currency', currency: i.currency || 'USD' }).format(Number(i.amount || 0))}
+                      <div className="text-[10px] font-semibold text-slate-400">Received {Number(i.amount_received || 0).toLocaleString()} · Due {Number(i.balance_due || 0).toLocaleString()}</div>
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${

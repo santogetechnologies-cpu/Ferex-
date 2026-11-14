@@ -9,6 +9,7 @@ import { Button } from '../../../components/Button';
 import { Badge } from '../../../components/Badge';
 import { ToastNotification } from '../../../components/ToastNotification';
 import { supabase } from '../../../lib/supabase';
+import { commerceList } from '../../../lib/api/digitalCommerce';
 import {
   getAssignedDigitalMilestones,
   createDigitalMilestoneDirect,
@@ -40,9 +41,11 @@ export const DigitalPMMilestones: React.FC = () => {
     description: '',
     due_date: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
     completion_percentage: 0,
-    payment_percentage: 25,
+    payment_percentage: 0,
+    part_id: '',
     deliverables_summary: ''
   });
+  const [contracts, setContracts] = useState<any[]>([]);
 
   const pmIdentity = {
     id: user?.id,
@@ -61,6 +64,8 @@ export const DigitalPMMilestones: React.FC = () => {
       ]);
       setMilestones(mList || []);
       setProjects(pList || []);
+      // Payment terms are visible to administrators only; for anyone else the link simply is not offered.
+      commerceList('digital_contracts').then(setContracts).catch(() => setContracts([]));
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to load milestones from database.');
     } finally {
@@ -104,13 +109,15 @@ export const DigitalPMMilestones: React.FC = () => {
   const handleCreateMilestone = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMilestone.title.trim()) return;
+    if (!newMilestone.project_id) { showToast('Choose the project this milestone belongs to'); return; }
 
     try {
       const selectedProj = projects.find(p => p.id === newMilestone.project_id);
       const created = await createDigitalMilestoneDirect({
         title: newMilestone.title,
         project_id: selectedProj?.id,
-        project_title: selectedProj?.title || 'General Milestone',
+        project_title: selectedProj?.title || '',
+        part_id: newMilestone.part_id || null,
         description: newMilestone.description,
         due_date: newMilestone.due_date,
         completion_percentage: Number(newMilestone.completion_percentage) || 0,
@@ -128,7 +135,8 @@ export const DigitalPMMilestones: React.FC = () => {
         description: '',
         due_date: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
         completion_percentage: 0,
-        payment_percentage: 25,
+        payment_percentage: 0,
+        part_id: '',
         deliverables_summary: ''
       });
     } catch (err: any) {
@@ -333,7 +341,7 @@ export const DigitalPMMilestones: React.FC = () => {
                       onChange={(e) => setNewMilestone({ ...newMilestone, project_id: e.target.value })}
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white"
                     >
-                      <option value="">General Project Milestone</option>
+                      <option value="">Select project…</option>
                       {projects.map((p) => (
                         <option key={p.id} value={p.id}>{p.title}</option>
                       ))}
@@ -352,6 +360,18 @@ export const DigitalPMMilestones: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
+                  {(contracts.find(c => c.project_id === newMilestone.project_id)?.body.parts || []).length > 0 && (
+                  <div className="col-span-2">
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Linked payment term (invoice is flagged when approved)</label>
+                    <select
+                      value={newMilestone.part_id}
+                      onChange={(e) => setNewMilestone({ ...newMilestone, part_id: e.target.value })}
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white"
+                    >
+                      <option value="">Not linked to a payment</option>
+                      {contracts.find(c => c.project_id === newMilestone.project_id).body.parts.map((t: any) => <option key={t.id} value={t.id}>{t.label} · due {t.due_date}</option>)}
+                    </select>
+                  </div>)}
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Payment % Trigger</label>
                     <input

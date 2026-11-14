@@ -49,17 +49,17 @@ export const DigitalMeetings: React.FC = () => {
     title: '',
     client_id: '',
     client_name: '',
-    host_staff_name: profile?.full_name || 'Digital Director',
-    host_staff_email: profile?.email || user?.email || 'digital@ferex.com',
+    host_staff_name: profile?.full_name || '',
+    host_staff_email: profile?.email || user?.email || '',
     time_display: '03:00 PM',
     date_display: new Date(Date.now() + 86400000).toISOString().split('T')[0],
     platform: 'Google Meet' as 'Google Meet' | 'Zoom' | 'Microsoft Teams' | 'In-Person',
     meeting_type: 'Discovery Call',
-    meeting_url: 'https://meet.google.com/fer-dig-rev',
+    meeting_url: '',
     agenda: '',
     notes: '',
-    digital_manager_name: 'digital manager',
-    digital_manager_email: 'digitalmanager@ferex.com'
+    digital_manager_name: '',
+    digital_manager_email: ''
   });
 
   const loadData = async () => {
@@ -104,14 +104,14 @@ export const DigitalMeetings: React.FC = () => {
 
     try {
       const selectedClient = clients.find(c => c.id === newMtg.client_id);
-      const clientName = selectedClient?.company_name || newMtg.client_name || 'Enterprise Client';
+      const clientName = selectedClient?.company_name || newMtg.client_name || '';
 
       const created = await createDigitalMeeting({
         title: newMtg.title,
         client_id: selectedClient?.id || '',
         client_name: clientName,
-        host_staff_name: newMtg.host_staff_name || profile?.full_name || 'Digital Director',
-        host_staff_email: newMtg.host_staff_email || profile?.email || 'digital@ferex.com',
+        host_staff_name: newMtg.host_staff_name || profile?.full_name || '',
+        host_staff_email: newMtg.host_staff_email || profile?.email || '',
         time_display: newMtg.time_display,
         date_display: newMtg.date_display,
         scheduled_at: `${newMtg.date_display}T12:00:00.000Z`,
@@ -130,17 +130,17 @@ export const DigitalMeetings: React.FC = () => {
         title: '',
         client_id: '',
         client_name: '',
-        host_staff_name: profile?.full_name || 'Digital Director',
-        host_staff_email: profile?.email || user?.email || 'digital@ferex.com',
+        host_staff_name: profile?.full_name || '',
+        host_staff_email: profile?.email || user?.email || '',
         time_display: '03:00 PM',
         date_display: new Date(Date.now() + 86400000).toISOString().split('T')[0],
         platform: 'Google Meet',
         meeting_type: 'Discovery Call',
-        meeting_url: 'https://meet.google.com/fer-dig-rev',
+        meeting_url: '',
         agenda: '',
         notes: '',
-        digital_manager_name: 'digital manager',
-        digital_manager_email: 'digitalmanager@ferex.com'
+        digital_manager_name: '',
+        digital_manager_email: ''
       });
     } catch (err: any) {
       showToast(`Database Error: ${err.message}`);
@@ -487,7 +487,7 @@ export const DigitalMeetings: React.FC = () => {
                         type="email"
                         value={newMtg.digital_manager_email}
                         onChange={(e) => setNewMtg({ ...newMtg, digital_manager_email: e.target.value })}
-                        placeholder="digitalmanager@ferex.com"
+                        placeholder="manager@company.com"
                         className="w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
                       />
                     </div>

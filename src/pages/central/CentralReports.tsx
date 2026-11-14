@@ -155,15 +155,14 @@ export const CentralReports: React.FC = () => {
         digData.forEach((d: any) => {
           const amt = Number(d.amount) || 0;
           digTotal += amt;
-          if (d.status === 'Paid') {
-            digCleared += amt;
-          } else {
-            digPending += amt;
-          }
+          // Part payments count as cleared for the part that was actually received.
+          const received = Math.min(amt, Number(d.amount_received) || 0);
+          digCleared += received;
+          digPending += amt - received;
           rawTxns.push({
             division: 'Digital',
             amount: amt,
-            gateway: 'UPI / Bank Wire',
+            gateway: 'Milestone payments',
             status: d.status === 'Paid' ? 'Cleared' : 'Pending',
             date: d.issued_at || d.created_at || new Date().toISOString(),
           });

@@ -29,7 +29,7 @@ export const DigitalPMAttendance: React.FC = () => {
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const userEmail = user?.email || profile?.email || 'digimanager@ferex.com';
+  const userEmail = user?.email || profile?.email || '';
 
   const loadData = async () => {
     setLoading(true);

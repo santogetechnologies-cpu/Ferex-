@@ -86,7 +86,7 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
 
   const active = pmNavItems.find(m => location.pathname === m.path)?.name || 'Dashboard';
   const pmName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Project Manager';
-  const pmEmail = profile?.email || user?.email || 'pm@ferex.com';
+  const pmEmail = profile?.email || user?.email || '';
 
   const handleSignOut = async () => {
     await signOut();

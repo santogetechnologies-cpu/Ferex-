@@ -132,16 +132,16 @@ export const CentralPayments: React.FC = () => {
             division: 'Digital',
             divisionBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
             divisionIcon: Monitor,
-            client: d.client?.company_name || 'Enterprise Client',
-            description: `Digital Software Milestone (${d.invoice_no || 'API Sprint'})`,
+            client: d.client?.company_name || d.client_name || '',
+            description: `Digital contract · ${d.project?.title || 'project'} · ${Number(d.amount_received || 0).toLocaleString()} received, ${Number(d.balance_due || 0).toLocaleString()} outstanding`,
             amount: amt,
-            currency: 'INR',
-            amountFormatted: `₹${amt.toLocaleString('en-IN')}`,
-            method: 'UPI / Bank Wire',
+            currency: d.currency || 'USD',
+            amountFormatted: new Intl.NumberFormat('en-IN', { style: 'currency', currency: d.currency || 'USD' }).format(amt),
+            method: 'Per milestone',
             date: d.issued_at || (d.created_at ? new Date(d.created_at).toLocaleDateString() : 'Recent'),
             status: d.status === 'Paid' ? 'Verified' : 'Pending',
             statusBadge: d.status === 'Paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200',
-            refNo: d.invoice_no || `INV-DIG-${d.id?.slice(0, 6)}`,
+            refNo: `DIG-${String(d.id).slice(0, 8).toUpperCase()}`,
           });
         });
       }

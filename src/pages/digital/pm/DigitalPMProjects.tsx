@@ -169,7 +169,7 @@ export const DigitalPMProjects: React.FC = () => {
       const selectedClient = clientsList.find(c => c.id === newProj.client_id);
       const clientName = selectedClient?.company_name || newProj.client_name || 'FEREX Enterprise Client';
       const staffName = profile?.full_name || 'Digital Project Manager';
-      const staffEmail = profile?.email || user?.email || 'pm@ferex.com';
+      const staffEmail = profile?.email || user?.email || '';
 
       const created = await createDigitalProject({
         title: newProj.title.trim(),

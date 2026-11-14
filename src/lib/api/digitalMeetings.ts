@@ -1,5 +1,4 @@
 import { supabase } from '../supabase';
-import { generateUUID } from '../../utils/uuid';
 
 export interface DigitalMeetingRecord {
   id: string;
@@ -21,146 +20,53 @@ export interface DigitalMeetingRecord {
   updated_at: string;
 }
 
-/**
- * Loads all digital meetings directly from Supabase (with resilient local merge).
- */
+const notify = () => { if (typeof window !== 'undefined') window.dispatchEvent(new Event('ferex_digital_meetings_change')); };
+
 export async function getDigitalMeetings(): Promise<DigitalMeetingRecord[]> {
-  try {
-    const { data, error } = await supabase
-      .from('digital_meetings')
-      .select('*')
-      .order('scheduled_at', { ascending: false });
-
-    if (!error && Array.isArray(data)) {
-      try {
-        localStorage.setItem('ferex_digital_meetings', JSON.stringify(data));
-      } catch {}
-      return data as DigitalMeetingRecord[];
-    }
-  } catch {}
-
-  try {
-    const local = localStorage.getItem('ferex_digital_meetings');
-    if (local) return JSON.parse(local);
-  } catch {}
-
-  return [];
+  const { data, error } = await supabase.from('digital_meetings').select('*').order('scheduled_at', { ascending: false });
+  if (error) throw new Error(`Failed to load meetings: ${error.message}`);
+  return (data || []) as DigitalMeetingRecord[];
 }
 
-/**
- * Creates a new client meeting directly in Supabase with resilient schema fallback.
- */
 export async function createDigitalMeeting(meeting: Partial<DigitalMeetingRecord>): Promise<DigitalMeetingRecord> {
-  const newId = generateUUID();
-  const scheduledTime = meeting.scheduled_at || (meeting.date_display ? `${meeting.date_display}T10:00:00.000Z` : new Date().toISOString());
-
-  const payload: DigitalMeetingRecord = {
-    id: newId,
-    title: meeting.title?.trim() || 'Client Meeting',
-    client_id: meeting.client_id || '',
-    client_name: meeting.client_name || 'Enterprise Client',
-    host_staff_name: meeting.host_staff_name || 'Digital Lead',
-    host_staff_email: meeting.host_staff_email || 'pm@ferex.com',
-    scheduled_at: scheduledTime,
-    time_display: meeting.time_display || '11:00 AM',
-    date_display: meeting.date_display || new Date().toISOString().split('T')[0],
-    platform: (meeting.platform || 'Google Meet') as any,
-    meeting_type: meeting.meeting_type || 'Discovery Call',
-    meeting_url: meeting.meeting_url || (meeting as any).link || 'https://meet.google.com/fer-dig-rev',
+  if (!meeting.title?.trim()) throw new Error('A meeting needs a title');
+  if (!meeting.scheduled_at && !meeting.date_display) throw new Error('Choose a date for the meeting');
+  const url = (meeting.meeting_url || '').trim();
+  if (url && !/^https?:\/\//i.test(url)) throw new Error('The meeting link must start with http:// or https://');
+  const payload = {
+    title: meeting.title.trim(),
+    client_id: meeting.client_id || null,
+    client_name: meeting.client_name || '',
+    host_staff_name: meeting.host_staff_name || '',
+    host_staff_email: meeting.host_staff_email || '',
+    scheduled_at: meeting.scheduled_at || `${meeting.date_display}T10:00:00.000Z`,
+    time_display: meeting.time_display || '',
+    date_display: meeting.date_display || '',
+    platform: meeting.platform || 'Google Meet',
+    meeting_type: meeting.meeting_type || 'General Meeting',
+    meeting_url: url,
     status: meeting.status || 'Scheduled',
     agenda: meeting.agenda || '',
     notes: meeting.notes || '',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
   };
-
-  // Attempt standard insert
-  let insertResult = await supabase.from('digital_meetings').insert(payload);
-
-  // If error is related to updated_at column or other optional columns missing, retry with core columns
-  if (insertResult.error) {
-    const { updated_at, ...withoutUpdatedAt } = payload;
-    insertResult = await supabase.from('digital_meetings').insert(withoutUpdatedAt);
-
-    // If still fails with column mismatch, retry with minimum required columns
-    if (insertResult.error) {
-      const corePayload = {
-        id: payload.id,
-        title: payload.title,
-        scheduled_at: payload.scheduled_at,
-        meeting_url: payload.meeting_url,
-        status: payload.status,
-        agenda: payload.agenda,
-        created_at: payload.created_at
-      };
-      insertResult = await supabase.from('digital_meetings').insert(corePayload);
-    }
-  }
-
-  // Update local cache
-  try {
-    const existing = await getDigitalMeetings();
-    const updatedList = [payload, ...existing.filter(m => m.id !== payload.id)];
-    localStorage.setItem('ferex_digital_meetings', JSON.stringify(updatedList));
-  } catch {}
-
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event('ferex_digital_meetings_change'));
-  }
-
-  return payload;
+  const { data, error } = await supabase.from('digital_meetings').insert(payload).select('*').single();
+  if (error) throw new Error(`Failed to schedule the meeting: ${error.message}`);
+  notify();
+  return data as DigitalMeetingRecord;
 }
 
-/**
- * Updates meeting status (e.g. Completed, Cancelled, Scheduled) directly in Supabase with fallback.
- */
 export async function updateDigitalMeetingStatus(id: string, status: DigitalMeetingRecord['status']) {
-  let updateResult = await supabase
-    .from('digital_meetings')
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq('id', id);
-
-  if (updateResult.error) {
-    // Retry without updated_at column
-    updateResult = await supabase
-      .from('digital_meetings')
-      .update({ status })
-      .eq('id', id);
-  }
-
-  // Update local cache
-  try {
-    const existing = await getDigitalMeetings();
-    const updatedList = existing.map(m => m.id === id ? { ...m, status, updated_at: new Date().toISOString() } : m);
-    localStorage.setItem('ferex_digital_meetings', JSON.stringify(updatedList));
-  } catch {}
-
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event('ferex_digital_meetings_change'));
-  }
-
+  const { data, error } = await supabase.from('digital_meetings').update({ status, updated_at: new Date().toISOString() }).eq('id', id).select('id');
+  if (error) throw new Error(`Failed to update the meeting: ${error.message}`);
+  if (!data?.length) throw new Error('You cannot change this meeting');
+  notify();
   return { id, status };
 }
 
-/**
- * Deletes a scheduled meeting directly from Supabase.
- */
 export async function deleteDigitalMeeting(id: string): Promise<boolean> {
-  const { error } = await supabase
-    .from('digital_meetings')
-    .delete()
-    .eq('id', id);
-
-  try {
-    const existing = await getDigitalMeetings();
-    const updatedList = existing.filter(m => m.id !== id);
-    localStorage.setItem('ferex_digital_meetings', JSON.stringify(updatedList));
-  } catch {}
-
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event('ferex_digital_meetings_change'));
-  }
-
+  const { data, error } = await supabase.from('digital_meetings').delete().eq('id', id).select('id');
+  if (error) throw new Error(`Failed to delete the meeting: ${error.message}`);
+  if (!data?.length) throw new Error('You cannot delete this meeting');
+  notify();
   return true;
 }
-

@@ -764,7 +764,7 @@ export const DigitalAttendance: React.FC = () => {
       {activeTab === 'shifts' && (
         <ShiftDetailsView
           division="digital"
-          userEmail={user?.email || profile?.email || 'digital@ferex.com'}
+          userEmail={user?.email || profile?.email || ''}
           userRole={profile?.role || 'digital_manager'}
           userName={profile?.full_name || 'Digital Team Member'}
         />
