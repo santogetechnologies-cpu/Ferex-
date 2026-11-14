@@ -23,7 +23,7 @@ export function StudentDiscountEditor({ studentId, country, onChanged }: { stude
 
   // Base amounts (before this student's discounts) for fees Ferex collects.
   const baseFees = useMemo(
-    () => studentFees(config, country, { pkg: profile.pkg }).filter(f => f.recipient === 'ferex'),
+    () => studentFees(config, country, { flow: profile.flow, pkg: profile.pkg }).filter(f => f.recipient === 'ferex'),
     [config, country, profile.pkg]
   );
   const selected = baseFees.find(f => f.id === feeId);

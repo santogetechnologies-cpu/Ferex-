@@ -2,10 +2,8 @@ import { EducationFeeEditor } from '../../components/EducationFeeEditor';
 import { CountryFeePackageBuilder } from '../../components/CountryFeePackageBuilder';
 
 /**
- * One place for all education fees:
- * 1. Standard fees: the basic registration fee for every student, plus the separate payments used when a
- *    student's country has no plan.
- * 2. Country fee plans: per-country packages or split payments that replace the separate payments.
+ * One place for all education fees: the registration fee (every student), the normal flow fees, and the country packages.
+ * Which one a student follows is confirmed per student under Payments.
  */
 export function AdminFeeConfig() {
   return (

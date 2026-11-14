@@ -1,6 +1,6 @@
 import { saveEducationCountry } from '../lib/api/educationBilling';
 import { UniversityImage } from '../components/UniversityImage';
-import { studentFees, getActiveStudentFeeProfile, money, registrationSettled } from '../lib/educationBilling';
+import { studentFees, getActiveStudentFeeProfile, money, registrationSettled, isDirectFee } from '../lib/educationBilling';
 import { formatFeeEURandINR } from './Payments';
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -645,9 +645,10 @@ export const SelectUniversity: React.FC = () => {
                       <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Fee Structure & Estimates</h4>
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-slate-500">University Tuition:</span>
-                        <span className="font-bold text-[#6A1B2E]">{drawerUni.university_fee || drawerUni.tuition_range || '€3,500 / yr'}</span>
+                        <span className="font-bold text-[#6A1B2E]">{drawerUni.university_fee || drawerUni.tuition_range || 'Ask the university'}</span>
                       </div>
-                      {studentFees(config, drawerUni.country, getActiveStudentFeeProfile()).map(f => <div key={f.id} className="flex justify-between text-xs"><span>{f.title}:</span><span className="font-bold">{money(f.amount, f.currency)}</span></div>)}
+                      {studentFees(config, drawerUni.country, getActiveStudentFeeProfile()).filter(f => !isDirectFee(f)).map(f => <div key={f.id} className="flex justify-between text-xs"><span>{f.title}:</span><span className="font-bold">{money(f.amount, f.currency)}</span></div>)}
+                      <p className="text-[11px] text-slate-500">University fees and visa fees are paid directly to the university and the embassy. Ferex does not collect them.</p>
                       {drawerUni.living_cost_monthly && (
                         <div className="flex justify-between items-center text-xs">
                           <span className="text-slate-500">Est. Living Cost:</span>

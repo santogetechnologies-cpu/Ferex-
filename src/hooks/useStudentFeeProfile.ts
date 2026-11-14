@@ -12,7 +12,7 @@ export async function loadStudentFeeProfile(studentId: string): Promise<StudentF
     getStudentFeeOverrides(studentId).catch(() => ({})),
     getStudentFeeCountry(studentId),
   ]);
-  return { pkg: resolveStudentPackage(assignment, packages, country), overrides, country };
+  return { flow: assignment?.flow_mode ?? 'pending', pkg: resolveStudentPackage(assignment, packages, country), overrides, country };
 }
 
 /** Loads a student's package and discounts. With `publish`, also exposes them to the gating helpers. */

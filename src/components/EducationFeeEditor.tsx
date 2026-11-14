@@ -1,30 +1,21 @@
 import { useEffect, useState } from 'react';
-import {
-  Sliders, Plus, Trash2, Globe, Coins, Clock, CheckCircle2,
-  AlertCircle, Building2, Save, Sparkles, RefreshCw, ArrowRight
-} from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, AlertCircle, Save, RefreshCw } from 'lucide-react';
 import { useFeeConfig } from '../hooks/useFeeConfig';
-import { useDestinations } from '../hooks/useDestinations';
-import { useUniversities } from '../hooks/useUniversities';
 import { educationFees, educationStages, type EducationFee } from '../lib/educationBilling';
 import { saveEducationFees } from '../lib/api/educationBilling';
 import { getGlobalPaymentGateways, saveGlobalPaymentGateways } from '../lib/api/paymentGateways';
 
-const inputClass = 'w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20 focus:border-[#58051E] transition-all';
-const labelClass = 'block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5';
+const inputClass = 'w-full h-10 px-3';
+const labelClass = 'block text-xs font-semibold text-slate-600 mb-1.5';
 
 export function EducationFeeEditor() {
   const { config, ready } = useFeeConfig();
-  const { destinations } = useDestinations();
-  const { universities } = useUniversities();
   const [fees, setFees] = useState<EducationFee[]>(() => educationFees(config));
   const [upiEnabled, setUpiEnabled] = useState(config.payment_gateways.phonepe_upi_enabled);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | 'info'>('info');
-
-  const countries = Array.from(new Set([...destinations.map(d => d.name), ...universities.map(u => u.country)])).sort();
 
   useEffect(() => {
     if (!dirty) {
@@ -74,307 +65,139 @@ export function EducationFeeEditor() {
 
   if (!ready) return <div className="py-16 text-center text-sm font-medium text-slate-500" role="status">Loading fees…</div>;
 
-  return (
-    <section className="space-y-6 text-left">
-      {/* Header & Subtitle */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Sliders className="w-5 h-5 text-[#58051E]" /> Standard Fees
-            </h2>
-            <span className="text-[10px] font-extrabold bg-[#58051E]/10 text-[#58051E] px-2.5 py-0.5 rounded-full border border-[#58051E]/20">
-              Commercial Governance
-            </span>
-          </div>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            The registration fee applies to every student. The other fees here are the separate payments for students whose country has no fee plan; countries with a plan (below) use that plan instead.
-          </p>
-        </div>
+  const registration = fees.find(f => f.id === 'registration');
+  const flowFees = fees.filter(f => f.id !== 'registration');
+  const add = (preset: Partial<EducationFee>) => {
+    setDirty(true);
+    setFees(cur => [...cur, { id: crypto.randomUUID(), title: 'New fee', enabled: true, amount: 0, currency: 'INR', recipient: 'ferex', timing: 'before', stage: 5, description: '', ...preset }]);
+  };
 
-        {dirty && (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 shrink-0">
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" /> Unsaved changes
-          </span>
+  const card = (fee: EducationFee, isRegistration = false) => (
+    <article key={fee.id} className={`rounded-2xl border bg-white p-5 space-y-4 ${fee.enabled ? 'border-slate-200/80' : 'border-slate-200/60 opacity-70'}`}>
+      <div className="flex items-center justify-between gap-3">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" checked={fee.enabled} onChange={e => change(fee.id, { enabled: e.target.checked })} aria-label={`${fee.title || 'Fee'} enabled`} />
+          <span className="text-sm font-bold text-slate-900">{fee.title || 'Untitled fee'}</span>
+          {!fee.enabled && <span className="text-xs font-medium text-slate-500">Off</span>}
+        </label>
+        {!isRegistration && (
+          <button type="button" onClick={() => { setDirty(true); setFees(fees.filter(f => f.id !== fee.id)); }} className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50 rounded-lg cursor-pointer">
+            <Trash2 className="w-3.5 h-3.5" /> Remove
+          </button>
         )}
       </div>
 
-      {/* University Direct Payment Notice */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-blue-50/70 border border-blue-200/80 flex items-start gap-3">
-        <div className="p-2 bg-blue-100 text-blue-800 rounded-xl shrink-0 mt-0.5">
-          <Building2 className="w-4 h-4" />
+      {!isRegistration && (
+        <div role="group" aria-label="Who collects this fee" className="inline-flex rounded-xl border border-slate-200 p-0.5 bg-slate-50">
+          {([['ferex', 'Ferex collects it'], ['direct_third_party', 'Student pays it directly']] as const).map(([value, label]) => (
+            <button key={value} type="button" onClick={() => change(fee.id, { recipient: value, ...(value === 'direct_third_party' ? { is_direct_payment: true } : { is_direct_payment: false }) })} aria-pressed={fee.recipient === value}
+              className={`px-3.5 h-8 rounded-[10px] text-xs font-semibold cursor-pointer ${fee.recipient === value ? 'bg-white text-[#58051E] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>{label}</button>
+          ))}
         </div>
-        <div>
-          <p className="text-xs font-black text-blue-950 uppercase tracking-wider">Direct University Tuition Guard</p>
-          <p className="text-xs text-blue-800 mt-0.5 leading-relaxed">
-            University application fees and semester tuition installments are always paid by students directly to verified university accounts. Ferex does not hold or collect tuition installments.
-          </p>
-        </div>
-      </div>
+      )}
 
-      {/* Direct UPI toggle */}
-      <div className="p-5 bg-white border border-slate-200/90 rounded-2xl shadow-xs space-y-4">
-        <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-[#58051E]/10 text-[#58051E] rounded-xl border border-[#58051E]/20">
-              <Coins className="w-5 h-5" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className={isRegistration ? '' : 'lg:col-span-2'}>
+          <label className={labelClass}>Fee name</label>
+          <input className={inputClass} value={fee.title} onChange={e => change(fee.id, { title: e.target.value })} placeholder="e.g. Legalization fee" />
+        </div>
+        {fee.recipient === 'ferex' ? (
+          <>
+            <div>
+              <label className={labelClass}>Amount</label>
+              <input type="number" min="0" step="0.01" aria-label="Common amount" className={inputClass} value={fee.amount} onChange={e => change(fee.id, { amount: Number(e.target.value) })} />
             </div>
             <div>
-              <p className="text-xs font-black text-slate-900">Direct UPI Payments</p>
-              <p className="text-[11px] text-slate-500">Students pay configured fees by UPI (Google Pay, PhonePe, Paytm, QR) and submit the UTR for finance verification</p>
+              <label className={labelClass}>Currency</label>
+              <select className={inputClass} value={fee.currency} onChange={e => change(fee.id, { currency: e.target.value as EducationFee['currency'] })}>
+                {['INR', 'EUR', 'USD', 'GBP', 'PLN'].map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
+            <div>
+              <label className={labelClass}>Tax included (%)</label>
+              <input type="number" min="0" max="100" step="0.01" className={inputClass} value={fee.tax_rate_percent ?? 0} onChange={e => change(fee.id, { tax_rate_percent: Number(e.target.value) })} />
+            </div>
+          </>
+        ) : (
+          <div className="lg:col-span-2">
+            <label className={labelClass}>Paid to</label>
+            <input className={inputClass} value={fee.direct_recipient_institution || ''} onChange={e => change(fee.id, { direct_recipient_institution: e.target.value })} placeholder="e.g. VFS Global, the embassy, the university" />
           </div>
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={upiEnabled}
-              onChange={e => {
-                setDirty(true);
-                setUpiEnabled(e.target.checked);
-              }}
-              className="w-4 h-4 rounded text-[#58051E] focus:ring-[#58051E] border-slate-300 cursor-pointer"
-            />
-            <span className="text-xs font-bold text-slate-700">Enable UPI</span>
-          </label>
+        )}
+        <div>
+          <label className={labelClass}>Due</label>
+          <select aria-label="Payable" className={inputClass} value={fee.timing} onChange={e => change(fee.id, { timing: e.target.value as EducationFee['timing'] })}>
+            <option value="before">Before this step</option>
+            <option value="after">After this step</option>
+          </select>
         </div>
-
+        <div className="sm:col-span-2">
+          <label className={labelClass}>Step in the student journey</label>
+          <select aria-label="Workflow stage" className={inputClass} value={fee.stage} onChange={e => change(fee.id, { stage: Number(e.target.value) })}>
+            {educationStages.map((name, i) => <option key={name} value={i + 1}>{i + 1}. {name}</option>)}
+          </select>
+        </div>
       </div>
 
-      {/* Fees List */}
-      <fieldset disabled={saving} className="space-y-4">
-        {fees.map((fee, index) => {
-          const isCore = ['registration', 'agency', 'vfs'].includes(fee.id);
-          return (
-            <article
-              key={fee.id}
-              className={`rounded-2xl border transition-all duration-200 bg-white p-5 space-y-4 shadow-xs ${
-                fee.enabled ? 'border-slate-200/90' : 'border-slate-200/60 opacity-60'
-              }`}
-            >
-              {/* Fee Card Header */}
-              <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={fee.enabled}
-                    onChange={e => change(fee.id, { enabled: e.target.checked })}
-                    className="w-4 h-4 rounded text-[#58051E] focus:ring-[#58051E] border-slate-300 cursor-pointer"
-                  />
-                  <div>
-                    <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                      <span>{fee.title || 'Untitled Fee'}</span>
-                      {fee.enabled ? (
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          Active
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
-                          Disabled
-                        </span>
-                      )}
-                    </h3>
-                    <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                      Fee #{index + 1} • {fee.timing === 'before' ? 'Before' : 'After'} Stage {fee.stage}: {educationStages[fee.stage - 1]}
-                    </p>
-                  </div>
-                </div>
+      <div>
+        <label className={labelClass}>Note shown to the student</label>
+        <textarea rows={2} className="w-full p-3" value={fee.description} onChange={e => change(fee.id, { description: e.target.value })} placeholder={fee.recipient === 'ferex' ? 'Anything the student should know about this fee' : 'Where and how the student should pay it'} />
+      </div>
+      {fee.recipient === 'direct_third_party' && <p className="text-xs text-slate-500">The student sees the name and who to pay, never an amount, and nothing is collected by Ferex.</p>}
+      {fee.currency !== 'INR' && fee.recipient === 'ferex' && (
+        <p className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs font-medium text-amber-800 flex gap-2"><AlertCircle className="w-4 h-4 shrink-0" /> UPI accepts INR only. Other currencies can be recorded by an administrator.</p>
+      )}
+    </article>
+  );
 
-                {!isCore && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDirty(true);
-                      setFees(fees.filter(f => f.id !== fee.id));
-                    }}
-                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" /> Remove fee
-                  </button>
-                )}
-              </div>
+  return (
+    <section className="space-y-8 text-left">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Fees</h2>
+          <p className="text-sm text-slate-500 mt-1 max-w-2xl">Set what students pay. Every student pays the registration fee. After that, you confirm for each student either the normal flow or a country package.</p>
+        </div>
+        {dirty && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-600/20 shrink-0"><span className="w-2 h-2 rounded-full bg-amber-500" /> Unsaved changes</span>}
+      </div>
 
-              {/* Form Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <div>
-                  <label className={labelClass}>Fee Name</label>
-                  <input
-                    className={inputClass}
-                    value={fee.title}
-                    onChange={e => change(fee.id, { title: e.target.value })}
-                  />
-                </div>
+      <fieldset disabled={saving} className="space-y-8">
+        <div className="space-y-3">
+          <div><h3 className="text-base font-bold text-slate-900">1. Registration fee</h3><p className="text-sm text-slate-500">Applies to every student. It is the only fee a student sees until you confirm their payment plan.</p></div>
+          {registration ? card(registration, true) : <button type="button" onClick={() => add({ id: 'registration', title: 'Advanced Registration Fee', stage: 3 })} className="h-10 px-4 rounded-xl border border-dashed border-slate-300 text-sm font-semibold text-slate-600 cursor-pointer">Add the registration fee</button>}
+        </div>
 
-                <div>
-                  <label className={labelClass}>Common Amount</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    aria-label="Common amount"
-                    className={inputClass}
-                    value={fee.amount}
-                    onChange={e => change(fee.id, { amount: Number(e.target.value) })}
-                  />
-                </div>
+        <div className="space-y-3">
+          <div><h3 className="text-base font-bold text-slate-900">2. Normal flow fees</h3><p className="text-sm text-slate-500">The common fees for students you put on the normal flow. Add anything you need: legalization, visa support, agency, documents. Fees the student pays to the university or embassy are shown to them as a message, without an amount.</p></div>
+          {flowFees.map(f => card(f))}
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => add({ title: 'Legalization fee', stage: 5 })} className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-[#58051E]/40 hover:text-[#58051E] inline-flex items-center gap-1.5 cursor-pointer"><Plus className="w-4 h-4" /> Legalization fee</button>
+            <button type="button" onClick={() => add({ title: 'Visa support fee', stage: 9 })} className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-[#58051E]/40 hover:text-[#58051E] inline-flex items-center gap-1.5 cursor-pointer"><Plus className="w-4 h-4" /> Visa support fee</button>
+            <button type="button" onClick={() => add({ title: 'Visa fee', recipient: 'direct_third_party', is_direct_payment: true, direct_recipient_institution: 'the embassy or visa centre', stage: 9 })} className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-[#58051E]/40 hover:text-[#58051E] inline-flex items-center gap-1.5 cursor-pointer"><Plus className="w-4 h-4" /> Visa fee (paid directly)</button>
+            <button type="button" onClick={() => add({})} className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-[#58051E]/40 hover:text-[#58051E] inline-flex items-center gap-1.5 cursor-pointer"><Plus className="w-4 h-4" /> Add another fee</button>
+          </div>
+        </div>
 
-                <div>
-                  <label className={labelClass}>Currency</label>
-                  <select
-                    className={inputClass}
-                    value={fee.currency}
-                    onChange={e => change(fee.id, { currency: e.target.value as EducationFee['currency'] })}
-                  >
-                    {['INR', 'EUR', 'USD', 'GBP', 'PLN'].map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className={labelClass}>Tax Included (%)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    className={inputClass}
-                    value={fee.tax_rate_percent ?? 0}
-                    onChange={e => change(fee.id, { tax_rate_percent: Number(e.target.value) })}
-                  />
-                </div>
-
-                <div>
-                  <label className={labelClass}>Payable Timing</label>
-                  <select
-                    aria-label="Payable"
-                    className={inputClass}
-                    value={fee.timing}
-                    onChange={e => change(fee.id, { timing: e.target.value as EducationFee['timing'] })}
-                  >
-                    <option value="before">Before stage</option>
-                    <option value="after">After stage</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className={labelClass}>Workflow Stage</label>
-                  <select
-                    aria-label="Workflow stage"
-                    className={inputClass}
-                    value={fee.stage}
-                    onChange={e => change(fee.id, { stage: Number(e.target.value) })}
-                  >
-                    {educationStages.map((name, i) => (
-                      <option key={name} value={i + 1}>
-                        {i + 1}. {name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className={labelClass}>Recipient Authority</label>
-                  <select
-                    className={inputClass}
-                    value={fee.recipient}
-                    onChange={e => change(fee.id, { recipient: e.target.value as EducationFee['recipient'] })}
-                  >
-                    <option value="ferex">Ferex — student UPI / admin entry</option>
-                    <option value="direct_third_party">Direct to institution / authority</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Instructions */}
-              <div>
-                <label className={labelClass}>Student Instructions / Notes</label>
-                <textarea
-                  rows={2}
-                  className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20 focus:border-[#58051E] transition-all"
-                  value={fee.description}
-                  onChange={e => change(fee.id, { description: e.target.value })}
-                  placeholder="Instructions displayed to students on their portal..."
-                />
-              </div>
-
-              {fee.currency !== 'INR' && fee.recipient === 'ferex' && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-xs font-semibold text-amber-800">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
-                  <span>UPI accepts INR only. This currency can be recorded by an administrator. Configure INR to offer student UPI.</span>
-                </div>
-              )}
-            </article>
-          );
-        })}
-
-        {/* Add Another Fee Button */}
-        <button
-          type="button"
-          onClick={() => {
-            setDirty(true);
-            setFees([
-              ...fees,
-              {
-                id: crypto.randomUUID(),
-                title: 'Additional fee',
-                enabled: true,
-                amount: 0,
-                currency: 'INR',
-                recipient: 'ferex',
-                timing: 'before',
-                stage: 1,
-                description: ''
-              }
-            ]);
-          }}
-          className="w-full py-3.5 border-2 border-dashed border-slate-200 hover:border-[#58051E]/40 hover:bg-[#58051E]/5 rounded-2xl text-xs font-bold text-slate-600 hover:text-[#58051E] transition-all flex items-center justify-center gap-2 cursor-pointer"
-        >
-          <Plus className="w-4 h-4" /> Add another fee
-        </button>
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-5">
+          <label className="flex items-center justify-between gap-4 cursor-pointer">
+            <span>
+              <span className="block text-sm font-bold text-slate-900">Let students pay by UPI</span>
+              <span className="block text-xs text-slate-500 mt-0.5">Students pay by UPI and submit the reference. You verify it before it counts.</span>
+            </span>
+            <input type="checkbox" checked={upiEnabled} onChange={e => { setDirty(true); setUpiEnabled(e.target.checked); }} aria-label="Enable UPI" />
+          </label>
+        </div>
       </fieldset>
 
-      {/* Status Alert */}
       {message && (
-        <div
-          role="status"
-          className={`p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2 ${
-            messageType === 'success'
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-              : messageType === 'error'
-              ? 'bg-rose-50 text-rose-800 border border-rose-200'
-              : 'bg-slate-100 text-slate-800 border border-slate-200'
-          }`}
-        >
-          {messageType === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          ) : messageType === 'error' ? (
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-          ) : (
-            <RefreshCw className="w-4 h-4 text-slate-600 shrink-0 animate-spin" />
-          )}
+        <div role="status" className={`p-3.5 rounded-2xl text-sm font-semibold flex items-center gap-2 ${messageType === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : messageType === 'error' ? 'bg-rose-50 text-rose-800 border border-rose-200' : 'bg-slate-100 text-slate-800 border border-slate-200'}`}>
+          {messageType === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : messageType === 'error' ? <AlertCircle className="w-4 h-4 shrink-0" /> : <RefreshCw className="w-4 h-4 shrink-0 animate-spin" />}
           <span>{message}</span>
         </div>
       )}
 
-      {/* Save Action Footer */}
       <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-        <button
-          type="button"
-          disabled={saving || !dirty}
-          onClick={handleSave}
-          className="h-10 px-6 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-[#58051E]/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
-        >
-          {saving ? (
-            <>
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-              <span>Saving…</span>
-            </>
-          ) : (
-            <>
-              <Save className="w-3.5 h-3.5" />
-              <span>Save fee configuration</span>
-            </>
-          )}
+        <button type="button" disabled={saving || !dirty} onClick={handleSave} className="h-10 px-6 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-sm font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-50">
+          {saving ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /><span>Saving…</span></> : <><Save className="w-3.5 h-3.5" /><span>Save fee configuration</span></>}
         </button>
       </div>
     </section>

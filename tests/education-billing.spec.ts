@@ -85,23 +85,26 @@ test('student sees country override, only UPI and pending verification after sub
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(saved[0].status).toBe('Pending Verification'); expect(saved[0].amount).toBe(2000); expect(saved[0].payment_method).toBe('UPI');
 });
-test('admin records three payment entries as one atomic request', async ({ page }) => {
+test('admin picks a student, sees their fees in order and records three entries as one request', async ({ page }) => {
   const { saved } = await setup(page); await page.goto('/admin/payment-control');
-  await page.getByRole('combobox', { name: 'Student', exact: true }).selectOption(studentId);
-  await page.getByRole('button', { name: 'Collect fee (full, partial or split)' }).click();
-  await page.getByLabel('Entry 1 amount').fill('1000'); await page.getByLabel('Entry 1 reference').fill('BANK-1');
-  await page.getByRole('button', { name: 'Add payment entry', exact: true }).click();
-  await page.getByLabel('Entry 2 amount').fill('600'); await page.getByLabel('Entry 2 reference').fill('CASH-1');
-  await page.getByRole('button', { name: 'Add payment entry', exact: true }).click();
-  await page.getByLabel('Entry 3 reference').fill('UPI-1'); await page.getByLabel('Entry 3 method').selectOption('UPI');
-  await page.getByRole('button', { name: 'Record payment entries', exact: true }).click();
+  await page.getByRole('button', { name: /Test Student/ }).click();
+  await expect(page.getByText('Not confirmed').first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Registration fee', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Record payment' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.locator('input[type="number"]').nth(0).fill('1000'); await dialog.locator('input:not([type])').nth(0).fill('BANK-1');
+  await dialog.getByRole('button', { name: '+ Add another entry (split payment)' }).click();
+  await dialog.locator('input[type="number"]').nth(1).fill('600'); await dialog.locator('input:not([type])').nth(1).fill('CASH-1');
+  await dialog.getByRole('button', { name: '+ Add another entry (split payment)' }).click();
+  await dialog.locator('select').nth(2).selectOption('UPI'); await dialog.locator('input[type="number"]').nth(2).fill('400'); await dialog.locator('input:not([type])').nth(2).fill('UPI-1');
+  await dialog.getByRole('button', { name: 'Save payment' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0); expect(saved).toHaveLength(3);
   expect(saved.map(p => p.amount)).toEqual([1000, 600, 400]); expect(saved.every(p => p.status === 'Paid')).toBe(true);
 });
 test('student can pay part of a fee and sees the position clearly', async ({ page }) => {
   const { saved } = await setup(page, 'student'); await page.goto('/student/payments');
-  await expect(page.getByLabel('Payment summary INR')).toContainText('Balance to pay');
-  await expect(page.getByText('Unpaid', { exact: true }).first()).toBeVisible();
+  await expect(page.getByLabel('Payment summary INR')).toContainText('Left to pay');
+  await expect(page.getByText('Not paid', { exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Pay by UPI', exact: true }).click();
   await page.getByLabel('Amount to pay').fill('500');
   await page.getByLabel('UPI transaction reference').fill('123456789012');

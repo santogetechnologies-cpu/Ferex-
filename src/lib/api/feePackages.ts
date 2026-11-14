@@ -35,8 +35,8 @@ export interface CountryFeePackage {
   updated_at: string;
 }
 
-/** auto: the active plan for the student's country applies; normal: standard fees only; package: a pinned plan. */
-export type StudentBillingFlowMode = 'auto' | 'normal' | 'package';
+/** pending: not confirmed yet, only the registration fee applies; normal: the common flow; package: a confirmed country package. */
+export type StudentBillingFlowMode = 'pending' | 'normal' | 'package';
 
 export interface StudentBillingAssignment {
   student_id: string;
@@ -216,7 +216,7 @@ export async function getStudentBillingAssignment(studentId: string): Promise<St
     if (data) {
       return {
         student_id: studentId,
-        flow_mode: (data.fee_flow_mode as StudentBillingFlowMode) || 'auto',
+        flow_mode: (data.fee_flow_mode as StudentBillingFlowMode) || 'pending',
         package_id: data.fee_package_id || undefined,
         assigned_at: data.fee_package_assigned_at || undefined,
         assigned_by: data.fee_package_assigned_by || undefined,
@@ -238,6 +238,14 @@ export async function getStudentFeeCountry(studentId: string): Promise<string> {
     const { data } = await supabase.from('education_student_preferences').select('country').eq('student_id', studentId).maybeSingle();
     return data?.country || '';
   } catch { return ''; }
+}
+
+export async function getBillingAssignments(): Promise<Record<string, StudentBillingAssignment>> {
+  const { data, error } = await supabase.from('education_student_preferences').select('student_id, fee_flow_mode, fee_package_id, fee_package_assigned_at, fee_package_assigned_by');
+  if (error) throw new Error(`Could not load payment plans: ${error.message}`);
+  const out: Record<string, StudentBillingAssignment> = {};
+  for (const r of data || []) out[r.student_id] = { student_id: r.student_id, flow_mode: (r.fee_flow_mode as StudentBillingFlowMode) || 'pending', package_id: r.fee_package_id || undefined, assigned_at: r.fee_package_assigned_at || undefined, assigned_by: r.fee_package_assigned_by || undefined };
+  return out;
 }
 
 export async function setStudentBillingFlow(

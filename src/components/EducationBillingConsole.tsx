@@ -32,7 +32,7 @@ import {
   type CountryFeePackage, type StudentBillingAssignment
 } from '../lib/api/feePackages';
 import {
-  studentFees, feeBalance, feeIsDue, resolveStudentPackage,
+  studentFees, feeBalance, feeIsDue, resolveStudentPackage, isDirectFee, directFeeMessage,
   educationStages, money, cents, type EducationFee, type PaymentPart
 } from '../lib/educationBilling';
 import {
@@ -190,7 +190,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
       const completed = new Set(stored.filter(s => s.status === 'Completed' && s.stage_number !== 3).map(s => s.stage_number));
       completed.add(1);
       if (agreement?.status === 'Signed') completed.add(2);
-      const registration = studentFees(config, destination || country, { pkg: activePackage, overrides: feeOverrides }).find(f => f.id === 'registration');
+      const registration = studentFees(config, destination || country, { flow: studentAssignment?.flow_mode ?? 'pending', pkg: activePackage, overrides: feeOverrides }).find(f => f.id === 'registration');
       if (!registration || feeBalance(registration, studentPayments).remaining === 0) completed.add(3);
       if (application && application.status !== 'Draft') completed.add(6);
       if (application?.offer_letter_url || ['Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Enrolled'].includes(application?.status || '')) completed.add(7);
@@ -216,7 +216,8 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
     return () => { cancelled = true; };
   }, [targetId, application?.id, application?.status, config, payments]);
 
-  const fees = studentFees(config, country, { pkg: activePackage, overrides: feeOverrides });
+  const fees = studentFees(config, country, { flow: studentAssignment?.flow_mode ?? 'pending', pkg: activePackage, overrides: feeOverrides }).sort((a, b) => (a.timing === 'before' ? a.stage - 0.5 : a.stage) - (b.timing === 'before' ? b.stage - 0.5 : b.stage));
+  const flowPending = !studentAssignment || studentAssignment.flow_mode === 'pending';
 
   const totals = useMemo(() => {
     const result: Record<string, { paid: number; pending: number }> = {};
@@ -463,16 +464,13 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
               <CreditCard className="w-6 h-6 text-[#58051E]" />
-              {admin ? 'Payment History' : 'Payments & billing'}
+              {admin ? 'Payments' : 'Payments'}
             </h1>
-            <span className="text-[10px] font-extrabold bg-[#58051E]/10 text-[#58051E] px-2.5 py-0.5 rounded-full border border-[#58051E]/20">
-              {admin ? 'Finance Authority' : 'Student Ledger'}
-            </span>
           </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             {admin
               ? 'Record student payments and issue receipts.'
-              : 'Pay your education fees directly by UPI with a receipt after finance verification.'}
+              : 'Pay what is due by UPI. You get a receipt once the payment is verified.'}
           </p>
         </div>
 
@@ -573,12 +571,19 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
             </div>
           ) : targetId && !error && (
             <>
-              {!country && (
+              {admin && !country && (
                 <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-800 flex items-start gap-2.5">
                   <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                   <span>
                     This student has no destination country yet. Select a university or destination so the right fee plan applies.
                   </span>
+                </div>
+              )}
+
+              {!admin && flowPending && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
+                  <p className="text-sm font-bold text-slate-900">Your payment plan is not confirmed yet</p>
+                  <p className="text-sm text-slate-600 mt-1">For now only the registration fee is shown. Your counselor will confirm your plan, and the other fees will appear here once they do.</p>
                 </div>
               )}
 
@@ -680,10 +685,10 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
               {Object.entries(feeSummary).map(([currency, row]) => (
                 <section key={currency} aria-label={`Payment summary ${currency}`} className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
-                    ['Total fees', row.due, 'text-slate-900'],
+                    ['Total to pay', row.due, 'text-slate-900'],
                     ['Paid & verified', row.paid, 'text-emerald-700'],
                     ['In review', row.pending, 'text-amber-700'],
-                    ['Balance to pay', row.remaining, row.remaining > 0 ? 'text-[#58051E]' : 'text-emerald-700'],
+                    ['Left to pay', row.remaining, row.remaining > 0 ? 'text-[#58051E]' : 'text-emerald-700'],
                   ].map(([label, value, tone]) => (
                     <div key={label as string} className="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
                       <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">{label as string}</p>
@@ -693,146 +698,100 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                 </section>
               ))}
 
-              {/* Configured Fee Cards */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <Coins className="w-4 h-4 text-[#58051E]" /> Fee Schedule & Milestones
-                  </h2>
-                  <span className="text-[11px] font-bold text-slate-500">
-                    {fees.length} Active {fees.length === 1 ? 'Milestone' : 'Milestones'}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {fees.map(fee => {
-                    const balance = feeBalance(fee, studentPayments);
-                    const needsCountry = !country && Object.keys(fee.countryAmounts || {}).length > 0;
-                    const isThirdParty = fee.recipient === 'direct_third_party';
-                    const percentPaid = fee.amount > 0 ? Math.min(100, Math.round((balance.paid / fee.amount) * 100)) : 100;
-
-                    return (
-                      <article
-                        key={fee.id}
-                        className="border border-slate-200/90 rounded-2xl bg-white p-5 space-y-4 shadow-xs relative flex flex-col justify-between"
-                      >
-                        <div className="space-y-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <h3 className="font-black text-sm text-slate-900">{fee.title}</h3>
-                              {!isThirdParty && (() => {
-                                const state = balance.remaining === 0 ? ['Paid in full', 'bg-emerald-50 text-emerald-700 border-emerald-200']
-                                  : balance.pending > 0 && balance.payable === 0 ? ['Awaiting verification', 'bg-amber-50 text-amber-800 border-amber-200']
-                                  : balance.paid > 0 || balance.pending > 0 ? ['Partially paid', 'bg-blue-50 text-blue-800 border-blue-200']
-                                  : ['Unpaid', 'bg-slate-100 text-slate-600 border-slate-200'];
-                                return <span className={`inline-block mt-1 text-[10px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full border ${state[1]}`}>{state[0]}</span>;
-                              })()}
-                              <p className="text-[11px] font-semibold text-slate-500 mt-0.5 flex items-center gap-1">
-                                <Clock className="w-3 h-3 text-slate-400" />
-                                <span>{fee.timing === 'before' ? 'Before' : 'After'} {educationStages[fee.stage - 1]}{country ? ` • ${country}` : ''}</span>
-                              </p>
-                            </div>
-                            <div className="text-right shrink-0">
-                              {fee.original_amount !== undefined && (
-                                <span className="block text-[11px] font-bold text-slate-400 line-through">{money(fee.original_amount, fee.currency)}</span>
-                              )}
-                              <span className="text-base font-black text-[#58051E]">
-                                {money(fee.amount, fee.currency)}
-                              </span>
-                              {fee.original_amount !== undefined && (
-                                <span className="block mt-0.5 text-[10px] font-extrabold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
-                                  {fee.discount_percent ? `${fee.discount_percent}% discount` : 'Discount applied'}
-                                </span>
-                              )}
-                              {fee.package_id && (
-                                <span className="block mt-0.5 text-[10px] font-extrabold uppercase tracking-wide text-[#58051E]">Package fee</span>
-                              )}
-                            </div>
-                          </div>
-
-                          {fee.description && (
-                            <p className="text-xs text-slate-600 leading-relaxed bg-slate-50/70 p-2.5 rounded-xl border border-slate-100">
-                              {fee.description}
-                            </p>
-                          )}
-
-                          {isThirdParty ? (
-                            <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-1">
-                              <div className="flex items-start gap-2">
-                                <Building2 className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
-                                <p className="text-xs font-semibold text-blue-900">
-                                  Pay directly to the university or embassy. Ferex does not collect university tuition or government fees.
-                                </p>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              {/* Balance Breakdown */}
-                              <div className="flex items-center justify-between text-xs font-bold">
-                                <span className="text-emerald-700">Verified: {money(balance.paid, fee.currency)}</span>
-                                <span className="text-slate-700">Outstanding: {money(balance.remaining, fee.currency)}</span>
-                              </div>
-
-                              {/* Progress Bar */}
-                              <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                                <div
-                                  className="bg-emerald-600 h-full transition-all duration-300 rounded-full"
-                                  style={{ width: `${percentPaid}%` }}
-                                />
-                              </div>
-
-                              {balance.pending > 0 && (
-                                <p className="text-[11px] font-bold text-amber-700 flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  <span>In review: {money(balance.pending, fee.currency)}</span>
-                                </p>
-                              )}
-                            </div>
-                          )}
+              {/* Fees Ferex collects, in the order they fall due */}
+              {(() => {
+                const collected = fees.filter(f => !isDirectFee(f));
+                const direct = fees.filter(isDirectFee);
+                return (
+                  <>
+                    <section className="space-y-3" aria-label="Your fees">
+                      <div className="flex items-end justify-between gap-3">
+                        <div>
+                          <h2 className="text-base font-bold text-slate-900">{flowPending && !admin ? 'Registration fee' : 'Your fees, in order'}</h2>
+                          <p className="text-xs text-slate-500 mt-0.5">{flowPending && !admin ? 'The one fee that applies to every student.' : 'Pay each one when it falls due. You can pay by UPI and get a receipt once it is verified.'}</p>
                         </div>
+                      </div>
+                      {collected.length === 0 && <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">No fees to pay right now.</p>}
+                      <ol className="space-y-3">
+                        {collected.map((fee, index) => {
+                          const balance = feeBalance(fee, studentPayments);
+                          const needsCountry = !country && Object.keys(fee.countryAmounts || {}).length > 0;
+                          const percentPaid = fee.amount > 0 ? Math.min(100, Math.round((balance.paid / fee.amount) * 100)) : 100;
+                          const state = balance.remaining === 0 ? ['Paid in full', 'bg-emerald-50 text-emerald-700 ring-emerald-600/15']
+                            : balance.pending > 0 && balance.payable === 0 ? ['Awaiting verification', 'bg-amber-50 text-amber-800 ring-amber-600/20']
+                            : balance.paid > 0 || balance.pending > 0 ? ['Partly paid', 'bg-sky-50 text-sky-700 ring-sky-600/15']
+                            : ['Not paid', 'bg-slate-100 text-slate-600 ring-slate-500/15'];
+                          return (
+                            <li key={fee.id} className="rounded-2xl border border-slate-200/80 bg-white p-5">
+                              <div className="flex items-start gap-4">
+                                <span className={`grid place-items-center w-8 h-8 rounded-full text-xs font-bold shrink-0 ${balance.remaining === 0 ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>{balance.remaining === 0 ? <Check className="w-4 h-4" /> : index + 1}</span>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-start justify-between gap-3">
+                                    <div>
+                                      <h3 className="text-sm font-bold text-slate-900">{fee.title}</h3>
+                                      <p className="text-xs text-slate-500 mt-0.5">Due {fee.timing === 'before' ? 'before' : 'after'} {educationStages[fee.stage - 1]?.toLowerCase()}</p>
+                                    </div>
+                                    <div className="text-right">
+                                      {fee.original_amount !== undefined && <span className="block text-xs text-slate-400 line-through">{money(fee.original_amount, fee.currency)}</span>}
+                                      <span className="text-lg font-bold text-slate-900 tabular-nums">{money(fee.amount, fee.currency)}</span>
+                                      {fee.original_amount !== undefined && <span className="block text-xs font-semibold text-emerald-700">{fee.discount_percent ? `${fee.discount_percent}% discount` : 'Discount applied'}</span>}
+                                    </div>
+                                  </div>
+                                  {fee.description && <p className="mt-2 text-sm text-slate-600">{fee.description}</p>}
+                                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                                    <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ring-1 ring-inset ${state[1]}`}>{state[0]}</span>
+                                    <span className="text-xs text-slate-500">Paid {money(balance.paid, fee.currency)} · Left {money(balance.remaining, fee.currency)}{balance.pending > 0 ? ` · In review ${money(balance.pending, fee.currency)}` : ''}</span>
+                                  </div>
+                                  <div className="mt-3 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden"><div className="h-full rounded-full bg-emerald-600 transition-all" style={{ width: `${percentPaid}%` }} /></div>
+                                  {balance.payable > 0 && (
+                                    <div className="mt-4">
+                                      <button className={primaryBtn} disabled={needsCountry} onClick={() => openPayment(fee)}>
+                                        {admin ? <><CreditCard className="w-4 h-4" /><span>Record payment</span></> : <><QrCode className="w-4 h-4" /><span>Pay by UPI</span></>}
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ol>
+                    </section>
 
-                        {/* Card Action */}
-                        {!isThirdParty && balance.payable > 0 && (
-                          <div className="pt-3 border-t border-slate-100">
-                            <button
-                              className={primaryBtn}
-                              disabled={needsCountry}
-                              onClick={() => openPayment(fee)}
-                            >
-                              {admin ? (
-                                <>
-                                  <CreditCard className="w-4 h-4" />
-                                  <span>Collect fee (full, partial or split)</span>
-                                </>
-                              ) : (
-                                <>
-                                  <QrCode className="w-4 h-4" />
-                                  <span>Pay by UPI</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        )}
-                      </article>
-                    );
-                  })}
-                </div>
+                    {direct.length > 0 && (
+                      <section className="space-y-3" aria-label="Fees you pay directly">
+                        <div>
+                          <h2 className="text-base font-bold text-slate-900">Fees you pay directly</h2>
+                          <p className="text-xs text-slate-500 mt-0.5">These go straight to the authority. Ferex does not collect them, so there is nothing to pay here.</p>
+                        </div>
+                        <ul className="grid gap-3 md:grid-cols-2">
+                          {direct.map(fee => (
+                            <li key={fee.id} className="rounded-2xl border border-sky-200 bg-sky-50/50 p-4 flex gap-3">
+                              <Building2 className="w-5 h-5 text-sky-700 shrink-0 mt-0.5" />
+                              <div>
+                                <h3 className="text-sm font-bold text-slate-900">{fee.title}</h3>
+                                <p className="text-sm text-slate-700 mt-0.5">{directFeeMessage(fee)}</p>
+                                {fee.description && <p className="text-xs text-slate-500 mt-1">{fee.description}</p>}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    )}
 
-                {/* Direct University Tuition Notice */}
-                <section className="p-4 rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50/60 to-indigo-50/40 space-y-1">
-                  <h2 className="text-xs font-black text-blue-950 uppercase tracking-wider flex items-center gap-1.5">
-                    <Building2 className="w-4 h-4 text-blue-700" /> University fees — paid directly by the student
-                  </h2>
-                  <p className="text-xs text-blue-800 leading-relaxed">
-                    Pay application fees and tuition only to the university's official account or payment portal. Ferex does not collect university fees or tuition installments.
-                  </p>
-                  {university && (
-                    <p className="text-xs font-bold text-blue-900 pt-1">
-                      {university.name} • Tuition reference: {application?.tuition_fee || university.tuition_range || 'Confirm with the university'}
-                    </p>
-                  )}
-                </section>
-              </div>
+                    {!flowPending && (
+                      <section className="rounded-2xl border border-sky-200 bg-sky-50/50 p-4 flex gap-3">
+                        <Building2 className="w-5 h-5 text-sky-700 shrink-0 mt-0.5" />
+                        <div>
+                          <h2 className="text-sm font-bold text-slate-900">University fees</h2>
+                          <p className="text-sm text-slate-700 mt-0.5">Pay application fees and tuition only to the university's official account or payment portal. Ferex does not collect them.</p>
+                          {university && <p className="text-xs font-semibold text-slate-600 mt-1">{university.name} · Tuition: {application?.tuition_fee || university.tuition_range || 'confirm with the university'}</p>}
+                        </div>
+                      </section>
+                    )}
+                  </>
+                );
+              })()}
             </>
           )}
 
@@ -841,10 +800,10 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <h2 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Receipt className="w-4 h-4 text-[#58051E]" /> Payment Ledger
+                  <Receipt className="w-4 h-4 text-[#58051E]" /> Your payments
                 </h2>
                 <p className="text-[11px] text-slate-500 font-medium">
-                  Persisted audit transactions, bank UTR references, split allocations, and cleared status.
+                  Every payment you have made, with its status and receipt.
                 </p>
               </div>
 
@@ -1199,11 +1158,11 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                   <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
                     <Receipt className="w-5 h-5" />
                   </div>
-                  <p className="text-xs font-bold text-slate-700">No payment records found</p>
+                  <p className="text-xs font-bold text-slate-700">No payments yet</p>
                   <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
                     {search || activeFilterCount > 0
                       ? 'No transactions matched your search or filter criteria. Try adjusting or clearing your filters.'
-                      : 'No payment transactions recorded in the system yet.'}
+                      : 'You have not made any payments yet.'}
                   </p>
                   {(search || activeFilterCount > 0) && (
                     <button

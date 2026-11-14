@@ -92,19 +92,19 @@ export function packageFees(pkg: CountryFeePackage, base: EducationFee[]): Educa
 
 /** The plan that bills this student, or null for standard fees. Mirrors the payment guard in the database. */
 export function resolveStudentPackage(
-  assignment: { flow_mode: 'auto' | 'normal' | 'package'; package_id?: string } | null | undefined,
+  assignment: { flow_mode: 'pending' | 'normal' | 'package'; package_id?: string } | null | undefined,
   packages: CountryFeePackage[],
-  country?: string
+  _country?: string
 ): CountryFeePackage | null {
-  const mode = assignment?.flow_mode ?? 'auto';
-  if (mode === 'normal') return null;
-  if (mode === 'package') return packages.find(p => p.id === assignment?.package_id) ?? null;
-  const wanted = (country || '').trim().toLowerCase();
-  if (!wanted) return null;
-  return packages.find(p => p.is_active !== false && p.country.trim().toLowerCase() === wanted) ?? null;
+  // Only the plan the admin confirmed applies. Nothing is matched automatically from the student's country.
+  if (assignment?.flow_mode !== 'package') return null;
+  return packages.find(p => p.id === assignment.package_id) ?? null;
 }
+
+/** Where a student stands: 'pending' until education admin confirms the normal flow or a country package. */
+export type PlanFlow = 'pending' | 'normal' | 'package';
 export interface StudentFeeProfile
- { pkg?: CountryFeePackage | null; overrides?: Record<string, StudentFeeAdjustment> }
+ { flow?: PlanFlow; pkg?: CountryFeePackage | null; overrides?: Record<string, StudentFeeAdjustment> }
 
 // The signed-in student's package/discount profile, filled by the student layout so that
 // stage gating and fee displays outside the billing console see the same fees.
@@ -112,12 +112,29 @@ let activeProfile: StudentFeeProfile | undefined;
 export const setActiveStudentFeeProfile = (profile?: StudentFeeProfile) => { activeProfile = profile; };
 export const getActiveStudentFeeProfile = () => activeProfile;
 
-/** Enabled fees for a student after package selection, country amounts and discounts. */
+/**
+ * Enabled fees for a student. Until education admin confirms the student's plan only the registration fee applies;
+ * then it is either the common (normal) flow fees or the confirmed country package.
+ */
 export function studentFees(config: SystemFeeConfig, country?: string, profile?: StudentFeeProfile): EducationFee[] {
   const base = educationFees(config);
-  const list = profile?.pkg ? packageFees(profile.pkg, base) : base;
+  const flow: PlanFlow = profile?.flow ?? (profile?.pkg ? 'package' : 'pending');
+  const list = flow === 'package' && profile?.pkg ? packageFees(profile.pkg, base)
+    : flow === 'normal' ? base
+    : base.filter(f => f.id === 'registration');
   return list.filter(f => f.enabled).map(f => resolveEducationFee(f, country, profile?.overrides));
 }
+
+/** Fees the student pays to someone else (university, embassy, visa centre). Shown as a message, never with an amount. */
+export const isDirectFee = (fee: EducationFee) => fee.recipient !== 'ferex';
+export function directPayee(fee: EducationFee): string {
+  if (fee.direct_recipient_institution?.trim()) return fee.direct_recipient_institution.trim();
+  const t = `${fee.title} ${fee.id}`.toLowerCase();
+  if (/university|tuition/.test(t)) return 'the university';
+  if (/vfs|visa|embassy|consular/.test(t)) return 'the embassy or visa centre';
+  return 'the authority concerned';
+}
+export const directFeeMessage = (fee: EducationFee) => `Pay this directly to ${directPayee(fee)}. Ferex does not collect it.`;
 
 export function feeIsDue(fee: EducationFee, stages: JourneyStage[]): boolean {
   const required = fee.timing === 'after' ? fee.stage : fee.stage - 1;
