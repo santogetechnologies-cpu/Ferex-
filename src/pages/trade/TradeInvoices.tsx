@@ -315,9 +315,7 @@ export const TradeInvoices: React.FC = () => {
             <FileSpreadsheet className="w-5 h-5 text-[#58051E]" />
             Invoices
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Issue international trade invoices with dynamic line items, freight & insurance breakdowns, and automatic payment reconciliation.
-          </p>
+          <p className="text-xs text-slate-500 mt-0.5">Create invoices with line items, freight and insurance, and track payment.</p>
         </div>
         <Button
           size="sm"

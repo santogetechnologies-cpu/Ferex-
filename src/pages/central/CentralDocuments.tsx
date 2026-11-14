@@ -94,9 +94,7 @@ export const CentralDocuments: React.FC = () => {
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <Folder className="w-6 h-6 text-[#58051E]" /> Documents
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Executive oversight of applicant identity records, academic certificates, and consular compliance files.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Student identity, academic and visa documents.</p>
         </div>
         <Button size="sm" variant="outline" className="text-xs font-bold" onClick={loadData}>
           <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh Documents

@@ -237,9 +237,7 @@ export const AdminDocumentConfig: React.FC = () => {
               <h1 className="text-xl font-black text-slate-900 tracking-tight">
                 Document requirements
               </h1>
-              <p className="text-xs font-medium text-slate-500">
-                Configure country-specific document checklists, legalization requirements, processing times & fees.
-              </p>
+              <p className="text-xs font-medium text-slate-500">Set the documents, legalization steps, timing and fees for each country.</p>
             </div>
           </div>
         </div>

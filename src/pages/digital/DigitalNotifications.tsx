@@ -213,9 +213,7 @@ export const DigitalNotifications: React.FC = () => {
             <h1 className="text-2xl font-black tracking-tight text-slate-900">
               Notifications
             </h1>
-            <p className="text-xs md:text-sm font-medium text-slate-500 mt-1 max-w-2xl leading-relaxed">
-              Real-time updates for client invoice settlements, project deliverables, assigned sprint milestones, and client review meetings.
-            </p>
+            <p className="text-xs md:text-sm font-medium text-slate-500 mt-1 max-w-2xl leading-relaxed">Payments, deliverables, milestones and meetings.</p>
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0 flex-wrap">

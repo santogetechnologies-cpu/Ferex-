@@ -225,9 +225,7 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
             </span>
             Pre-departure
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Manage post-travel flight itineraries, airport concierge pickup drivers, and dormitory housing room key allocations for enrolled students.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Flights, pickups and housing for enrolled students.</p>
         </div>
 
         <button

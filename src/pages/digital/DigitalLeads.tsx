@@ -263,9 +263,7 @@ export const DigitalLeads: React.FC = () => {
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <Target className="w-5 h-5 text-[#58051E]" /> Leads
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Ferex Digital ERP • Pipeline deal qualification, lead stage tracking, and client conversion.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Track prospects from first contact to client.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => setShowCategoryMgr(true)}>

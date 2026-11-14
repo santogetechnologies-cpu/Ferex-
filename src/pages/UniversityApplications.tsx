@@ -100,9 +100,7 @@ export const UniversityApplications: React.FC = () => {
             </span>
             University Applications
           </h1>
-          <p className="text-sm font-semibold text-slate-500">
-            Track submitted portfolios, admission timelines, and active reviewing status.
-          </p>
+          <p className="text-sm font-semibold text-slate-500">Where each of your applications stands.</p>
         </div>
 
         <button

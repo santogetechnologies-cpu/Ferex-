@@ -251,9 +251,7 @@ export const TradeBillsOfLading: React.FC = () => {
             <FileCheck2 className="w-5 h-5 text-[#58051E]" />
             Bills of lading
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Issue, amend, release and track maritime title documents with carrier vessel schedules and notify party details.
-          </p>
+          <p className="text-xs text-slate-500 mt-0.5">Issue, amend, release and track bills of lading.</p>
         </div>
         <Button
           size="sm"

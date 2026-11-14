@@ -175,9 +175,7 @@ export const PreDeparture: React.FC = () => {
           <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900">
             Pre-departure
           </h1>
-          <p className="text-xs md:text-sm text-slate-500 mt-1.5 leading-relaxed font-medium">
-            Manage your confirmed flight itinerary, university dormitory housing, airport concierge pickup, and complete the campus arrival checklist.
-          </p>
+          <p className="text-xs md:text-sm text-slate-500 mt-1.5 leading-relaxed font-medium">Flights, housing, airport pickup and your arrival checklist.</p>
 
           <div className="mt-4 flex flex-wrap items-center gap-2.5">
             <span className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 border ${

@@ -190,9 +190,7 @@ export const DigitalExpenses: React.FC = () => {
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
             <Receipt className="w-6 h-6 text-[#58051E]" /> Expenses
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Real-time tracking of AWS/GCP cloud clusters, Figma & SaaS licenses, campaign ad spends, and renewals.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Cloud, software, advertising and other agency costs.</p>
         </div>
         <div className="flex items-center gap-2">
           {activeTab === 'expenses' ? (

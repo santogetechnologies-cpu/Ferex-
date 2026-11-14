@@ -66,9 +66,7 @@ export const StaffDestinations: React.FC = () => {
           <h1 className="text-2xl font-black text-slate-900 mt-1 flex items-center gap-2">
             <Globe className="w-6 h-6 text-[#58051E]" /> Destinations
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-0.5">
-            Key study destinations, immigration authorities, visa fees, standard processing turnaround, and counselor guidelines.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-0.5">Destination countries, authorities, visa fees and processing times.</p>
         </div>
 
         <div className="flex items-center gap-2.5">

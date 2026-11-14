@@ -124,9 +124,7 @@ export const TradeMessages: React.FC = () => {
         <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
           <MessageSquare className="w-5 h-5 text-[#58051E]" /> Messages
         </h1>
-        <p className="text-xs font-semibold text-slate-500 mt-1">
-          Direct messaging with port logistics officers, buyers, and banking LC managers.
-        </p>
+        <p className="text-xs font-semibold text-slate-500 mt-1">Messages with logistics officers, buyers and banks.</p>
       </div>
 
       <Card className="grid grid-cols-1 md:grid-cols-3 overflow-hidden border border-slate-200/80 shadow-xs h-[540px] p-0">

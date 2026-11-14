@@ -196,9 +196,7 @@ export const TradeTickets: React.FC = () => {
             <LifeBuoy className="w-5 h-5 text-[#58051E]" />
             Support
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-0.5">
-            Manually log complaints, inquiries, or requests received via Phone, Email, WhatsApp, or In-Person.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-0.5">Log requests received by phone, email, WhatsApp or in person.</p>
         </div>
         <Button
           size="sm"

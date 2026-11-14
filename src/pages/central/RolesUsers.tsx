@@ -471,9 +471,7 @@ export const RolesUsers: React.FC = () => {
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <Lock className="w-6 h-6 text-[#58051E]" /> Roles & Users
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Super Admin Console • Manage system role definitions and provision user accounts across all 4 enterprise divisions.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Review roles and create logins for your team.</p>
         </div>
         {activeTab === 'users' && (
           <div className="flex items-center gap-3">

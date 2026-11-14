@@ -103,9 +103,7 @@ export const RimiDeliveryRoutes: React.FC = () => {
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <Navigation className="w-5 h-5 text-[#58051E]" /> Delivery routes
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Rimi Cold Chain Console • Multi-stop drop circuits, reefer truck route optimization, and delivery timing.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Multi-stop routes and delivery timing.</p>
         </div>
         {canManage && (
           <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => { setNewRoute(blankRoute); setShowAddModal(true); }}>

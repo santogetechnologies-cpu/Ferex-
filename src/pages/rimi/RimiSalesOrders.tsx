@@ -320,9 +320,7 @@ export const RimiSalesOrders: React.FC = () => {
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <ShoppingCart className="w-5 h-5 text-[#58051E]" /> Sales orders
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-0.5">
-            Single unified workflow connecting CRM Customer → Batch Allocation → Reefer Delivery → Payment.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-0.5">Orders from customer to batch, delivery and payment.</p>
         </div>
 
         <Button

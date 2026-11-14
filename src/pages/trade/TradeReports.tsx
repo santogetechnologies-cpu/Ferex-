@@ -173,9 +173,7 @@ export const TradeReports: React.FC = () => {
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
             <BarChart3 className="w-6 h-6 text-[#58051E]" /> Reports
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Comprehensive audit reports for quarterly trade turnover, European port clearance velocity, and customs duty.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Turnover, port clearance and customs duty reports.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => showToastMsg('Exporting Consolidated Master Trade Audit Deck...')}>

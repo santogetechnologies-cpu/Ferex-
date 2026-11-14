@@ -349,9 +349,7 @@ export const ServiceAgreement: React.FC = () => {
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             Service agreement
           </h1>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">
-            Stage 2 in your journey: Executed after Lead Inquiry & before Advanced Registration Fee.
-          </p>
+          <p className="text-xs text-slate-500 font-medium mt-0.5">Read and sign your service agreement to continue.</p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">

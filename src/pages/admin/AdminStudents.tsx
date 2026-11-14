@@ -199,9 +199,9 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
         (s as any).destination_country ||
         ((s as any).country && (s as any).country !== 'India' && (s as any).country !== 'Global' ? (s as any).country : null) ||
         studentApp?.universities?.country ||
-        'Not set';
+        'Not chosen yet';
 
-      const countryMeta = COUNTRY_FLAGS[rawCountry] || { flag: rawCountry ? rawCountry.substring(0, 2).toUpperCase() : 'EU', authority: 'Academic Legalization' };
+      const countryMeta = COUNTRY_FLAGS[rawCountry] || { flag: rawCountry && rawCountry !== 'Not chosen yet' ? rawCountry.substring(0, 2).toUpperCase() : '—', authority: 'Legalization' };
       
       const assignedCounselor = (s.assigned_counselor && s.assigned_counselor !== 'Admin' && s.assigned_counselor !== '--')
         ? s.assigned_counselor
@@ -216,9 +216,9 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
         targetCountry: rawCountry,
         targetFlag: countryMeta.flag,
         workflowAuthority: countryMeta.authority,
-        university: (studentApp?.university_name && studentApp.university_name !== 'Pending University Selection') ? studentApp.university_name : (studentApp?.universities?.name || `${rawCountry} Partner University`),
-        course: studentApp?.program_name || studentApp?.course || 'Program Pending Selection',
-        intake: studentApp?.intake || 'Upcoming Intake',
+        university: (studentApp?.university_name && studentApp.university_name !== 'Pending University Selection') ? studentApp.university_name : (studentApp?.universities?.name || 'No university chosen yet'),
+        course: studentApp?.program_name || studentApp?.course || 'No program chosen yet',
+        intake: studentApp?.intake || 'Intake not set',
         status: studentApp?.status || 'Active',
         statusColor:
           studentApp?.status === 'Enrolled'
@@ -555,8 +555,8 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
           </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             {isStaff
-              ? 'Student dossiers, destination routing, document verification audit, and counselor guidance.'
-              : 'Global Student Applications • Destination Routing, Auto Counselor Assignment, Document Audit & Country Legalization.'}
+              ? 'Your students, their applications and documents.'
+              : 'Every student, their destination, counselor, documents and application status.'}
           </p>
         </div>
 
@@ -641,7 +641,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
 
       {/* Table Container with Horizontal Scroll & Sticky Actions */}
       <div className="bg-white border border-slate-200/70 rounded-2xl shadow-xs overflow-x-auto scrollbar-thin">
-        <table className="w-full text-xs min-w-[1150px] border-collapse">
+        <table className="w-full text-xs min-w-[1180px] border-collapse">
           <thead>
             <tr className="border-b border-slate-150 bg-slate-50 text-slate-500 uppercase text-[9.5px] font-extrabold tracking-wider">
               <th className="text-left px-5 py-3.5 min-w-[200px]">Student Name</th>
@@ -764,7 +764,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                         className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#58051E] hover:bg-[#720a28] text-white rounded-lg text-xs font-black shadow-xs transition-all cursor-pointer"
                       >
                         <ExternalLink className="w-3.5 h-3.5 text-amber-300" />
-                        <span className="hidden sm:inline">Login as Student</span>
+                        <span className="hidden 2xl:inline">Open as student</span>
                       </button>
                       <button
                         onClick={() => setViewStudent(s)}

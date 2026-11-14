@@ -197,9 +197,7 @@ export const RimiNotifications: React.FC = () => {
             <h1 className="text-2xl font-black tracking-tight text-slate-900">
               Notifications
             </h1>
-            <p className="text-xs md:text-sm font-medium text-slate-500 mt-1 max-w-2xl leading-relaxed">
-              Cold room temperature alerts, expiring batch notices, reefer fleet dispatches, and incoming wholesale customer orders.
-            </p>
+            <p className="text-xs md:text-sm font-medium text-slate-500 mt-1 max-w-2xl leading-relaxed">Temperature alerts, expiring batches, dispatches and new orders.</p>
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0 flex-wrap">

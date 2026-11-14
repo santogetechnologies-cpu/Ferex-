@@ -1,4 +1,5 @@
 import { useStudentAgreement } from '../hooks/useStudentAgreement';
+import { PageHeader, StatTile } from '../components/Kit';
 import { useFeeConfig } from '../hooks/useFeeConfig';
 import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { registrationSettled, getActiveStudentFeeProfile } from '../lib/educationBilling';
@@ -236,161 +237,49 @@ export const StudentDashboard: React.FC = () => {
       animate="visible"
       className="space-y-5 text-left"
     >
-      {/* Service Agreement Mandatory Alert Banner if not signed */}
-      {!isAgreementDone && (
-        <motion.div variants={itemVariants}>
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
-                <ScrollText className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-black text-amber-950 dark:text-amber-200">
-                  Action Required: Student Service Agreement (Stage 2)
-                </h4>
-                <p className="text-amber-800 dark:text-amber-300 font-medium mt-0.5">
-                  Please review and electronically sign the official Ferex Education Service Agreement before proceeding to Advanced Registration Fee.
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => navigate('/student/agreement')}
-              className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-[#570229] hover:bg-[#6F0335] shadow-xs cursor-pointer shrink-0 flex items-center gap-1.5"
-            >
-              Sign Agreement <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+      <PageHeader
+        eyebrow="Student portal"
+        title={`Welcome back, ${(studentName || '').split(' ')[0] || 'there'}`}
+        subtitle="Your applications, documents, payments and visa in one place."
+        actions={<>
+          <Button size="md" onClick={() => handleQuickAction('/student/select-university')}>Browse universities <ArrowRight className="w-4 h-4 ml-1.5" /></Button>
+          <Button size="md" variant="outline" onClick={() => handleQuickAction('/student/journey-tracker')}>My journey</Button>
+        </>}
+      />
+
+      {(!isAgreementDone || !targetCountry) && (
+        <motion.div variants={itemVariants} className="rounded-2xl border border-amber-200 bg-amber-50/70 p-5">
+          <p className="text-xs font-bold uppercase tracking-wider text-amber-800">Your next step</p>
+          <div className="mt-3 space-y-3">
+            {!isAgreementDone && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div><p className="text-sm font-bold text-slate-900">Sign your service agreement</p><p className="text-sm text-slate-600">It is needed before you pay the registration fee.</p></div>
+                <Button size="md" onClick={() => navigate('/student/agreement')}>Sign agreement <ArrowRight className="w-4 h-4 ml-1.5" /></Button>
+              </div>)}
+            {!targetCountry && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div><p className="text-sm font-bold text-slate-900">Choose your target country</p><p className="text-sm text-slate-600">We use it to show the right documents and requirements.</p></div>
+                <Button size="md" variant="outline" onClick={() => navigate('/student/profile')}>Choose country</Button>
+              </div>)}
           </div>
         </motion.div>
       )}
 
-      {/* Clean Modern Welcome Header */}
-      <motion.div variants={itemVariants}>
-        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-black uppercase tracking-wider text-[#58051E] bg-[#58051E]/10 px-2.5 py-0.5 rounded-md">
-                Student Portal
-              </span>
-              <span className="text-[11px] font-semibold text-slate-400">
-                Admission & Visa Roadmap
-              </span>
-            </div>
-            <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-900">
-              Welcome back, {studentName}
-            </h1>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
-              Track your university applications, document verification, and embassy visa readiness.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2.5 shrink-0">
-            <button
-              onClick={() => handleQuickAction('/student/select-university')}
-              className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-[#58051E] hover:bg-[#430316] shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
-            >
-              Browse Universities <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => handleQuickAction('/student/journey-tracker')}
-              className="h-9 px-3.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all cursor-pointer"
-            >
-              12-Stage Journey
-            </button>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Key Metrics Bento Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        {[
-          { title: 'Target Universities', value: `${realApplications.length}`, sub: `${realApplications.filter(a => a.status !== 'Draft').length} Active Applications`, icon: GraduationCap, path: '/student/applications' },
-          { title: 'Journey Progress', value: `${completedCount} / 12`, sub: 'Milestones Completed', icon: Compass, path: '/student/journey-tracker' },
-          {
-            title: 'Documents Status',
-            value: dossierStatus.isComplete ? 'Complete' : 'Incomplete',
-            sub: dossierStatus.isComplete
-              ? `${approvedDocs} / ${documents.length} Files Verified`
-              : `${dossierStatus.uploadedMandatoryCount} / ${dossierStatus.mandatoryCount || 2} Mandatory Uploaded`,
-            icon: FileCheck,
-            path: '/student/documents'
-          },
-          { title: 'Payments Cleared', value: `₹${paidSum.toLocaleString()}`, sub: 'Fee Ledger Total', icon: CreditCard, path: '/student/payments' },
-        ].map((stat, idx) => (
-          <motion.div key={idx} variants={itemVariants} onClick={() => navigate(stat.path)}>
-            <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-subtle hover:shadow-card hover:border-slate-300 transition-all cursor-pointer group">
-              <div className="flex items-center justify-between mb-2.5">
-                <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">{stat.title}</span>
-                <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200/60 text-slate-700 flex items-center justify-center group-hover:text-[#58051E] group-hover:border-[#58051E]/30 transition-colors">
-                  <stat.icon className="w-4 h-4" />
-                </div>
-              </div>
-              <span className="text-xl font-bold text-slate-900 leading-none tracking-tight block">{stat.value}</span>
-              <span className="text-[10px] font-medium text-slate-400 block mt-1">{stat.sub}</span>
-            </div>
-          </motion.div>
-        ))}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatTile label="Applications" value={realApplications.length} hint={`${realApplications.filter(a => a.status !== 'Draft').length} submitted`} icon={GraduationCap} tone="brand" to="/student/applications" />
+        <StatTile label="Journey" value={`${completedCount} of ${checklistItems.length}`} hint="Steps completed" icon={Compass} tone="blue" to="/student/journey-tracker" />
+        <StatTile label="Documents" value={dossierStatus.isComplete ? 'Complete' : 'Incomplete'} hint={dossierStatus.isComplete ? `${approvedDocs} of ${documents.length} verified` : `${dossierStatus.uploadedMandatoryCount} of ${dossierStatus.mandatoryCount || 2} required uploaded`} icon={FileCheck} tone={dossierStatus.isComplete ? 'green' : 'amber'} to="/student/documents" />
+        <StatTile label="Paid so far" value={`₹${paidSum.toLocaleString('en-IN')}`} hint="Cleared payments" icon={CreditCard} tone="green" to="/student/payments" />
       </div>
 
-
-      {/* Missing Target Country Prompt */}
-      {!targetCountry && (
-        <motion.div variants={itemVariants}>
-          <div className="p-5 bg-amber-50 border border-amber-200 rounded-2xl text-left flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-subtle">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold text-amber-900 text-sm">
-                  Please select your target country to view specific admission requirements & guidelines
-                </p>
-                <p className="text-xs text-amber-700 mt-1">
-                  Your admission roadmap, country-specific legalization rules, and embassy documentation checklist will configure automatically.
-                </p>
-              </div>
-            </div>
-            <button 
-              onClick={() => navigate('/student/profile')}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs shrink-0 cursor-pointer shadow-xs transition-colors"
-            >
-              Select Country in Profile
-            </button>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Country Legalization Progress Banner */}
       {legalizationRecord && targetWf && (
-        <motion.div variants={itemVariants}>
-          <div className="p-4 rounded-2xl border border-slate-200/80 bg-white shadow-subtle">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 flex items-center justify-center shrink-0">
-                  <ScrollText className="w-4.5 h-4.5 text-[#58051E]" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-900">{targetWf?.authority_badge || 'Legalization Audit'}</span>
-                    <span className="px-2 py-0.2 rounded text-[9.5px] font-bold bg-slate-100 text-slate-700 uppercase border border-slate-200">
-                      {legalizationRecord.ref_no || legalizationRecord.nawa_ref_no}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">
-                    Stage Progress: <span className="font-semibold text-slate-800">Step {legalizationRecord.current_step} of 4 — {legalizationRecord.status}</span>
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => navigate('/student/journey-tracker')}
-                  className="gap-1.5"
-                >
-                  View Workflow Tracking <ArrowRight className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            </div>
+        <motion.div variants={itemVariants} className="rounded-2xl border border-slate-200/80 bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="grid place-items-center w-10 h-10 rounded-xl bg-[#58051E]/8 text-[#58051E]"><ScrollText className="w-5 h-5" /></span>
+            <div><p className="text-sm font-bold text-slate-900">Legalization · {legalizationRecord.ref_no || legalizationRecord.nawa_ref_no}</p>
+              <p className="text-xs text-slate-500">Step {legalizationRecord.current_step} of 4 · {legalizationRecord.status}</p></div>
           </div>
+          <Button size="sm" variant="outline" onClick={() => navigate('/student/journey-tracker')}>View progress <ArrowRight className="w-3.5 h-3.5 ml-1" /></Button>
         </motion.div>
       )}
 

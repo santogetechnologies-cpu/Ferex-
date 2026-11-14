@@ -190,9 +190,7 @@ export const CentralSupport: React.FC = () => {
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <LifeBuoy className="w-6 h-6 text-[#58051E]" /> Support
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Centrally inspect, reply, resolve, and reassign support tickets across all enterprise divisions.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Read, reply to, resolve and reassign tickets from every platform.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button

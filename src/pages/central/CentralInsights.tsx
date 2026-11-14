@@ -58,9 +58,7 @@ export const CentralInsights: React.FC = () => {
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-[#58051E]" /> Insights
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Super Admin Console • Platform health score, revenue forecasting models, and executive recommendations.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Platform health, revenue outlook and recommendations.</p>
         </div>
         <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => showToastMsg('Generated Executive Intelligence Brief (PDF)')}>
           <ArrowUpRight className="w-4 h-4 mr-1.5" /> Download CEO Intelligence Deck

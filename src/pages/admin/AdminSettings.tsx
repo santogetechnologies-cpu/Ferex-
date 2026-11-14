@@ -211,9 +211,7 @@ export const AdminSettings: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight">Settings</h1>
-          <p className="text-xs font-medium text-slate-500 mt-0.5">
-            Manage your organization profile, lead capture form controls, WhatsApp API automations, and credentials.
-          </p>
+          <p className="text-xs font-medium text-slate-500 mt-0.5">Organisation profile, lead form, WhatsApp and account settings.</p>
         </div>
       </div>
 

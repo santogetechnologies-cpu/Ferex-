@@ -204,9 +204,7 @@ export const TradeCertificates: React.FC = () => {
             <Award className="w-5 h-5 text-[#58051E]" />
             Certificates
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Certificates of Origin, Phytosanitary health checks, SGS Quality Analysis, and EUR.1 movement compliance.
-          </p>
+          <p className="text-xs text-slate-500 mt-0.5">Certificates of origin, health, quality and movement.</p>
         </div>
         <Button
           size="sm"

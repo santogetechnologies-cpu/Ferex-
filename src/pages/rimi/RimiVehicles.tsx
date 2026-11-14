@@ -140,9 +140,7 @@ export const RimiVehicles: React.FC = () => {
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <Truck className="w-5 h-5 text-[#58051E]" /> Vehicles
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Rimi Cold Chain Console • Live fleet telematics, reefer temperature sensors (-20°C), and driver contact directory.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Refrigerated vehicles and drivers.</p>
         </div>
         <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => { setNewVehicle(emptyVehicle); setShowAddModal(true); }}>
           <Plus className="w-4 h-4 mr-1.5" /> Register Reefer Vehicle

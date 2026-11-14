@@ -157,9 +157,7 @@ export const CentralRimi: React.FC = () => {
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <Snowflake className="w-6 h-6 text-cyan-600" /> Rimi Frozen
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Central oversight across distributors, retailers, wholesalers, sales orders, and cold storage inventory.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Customers, sales orders and cold storage across Rimi Frozen.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" className="text-xs font-bold" onClick={handleExportSalesCsv}>

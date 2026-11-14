@@ -254,9 +254,7 @@ export const OfferLetters: React.FC = () => {
             </span>
             Offer letters
           </h1>
-          <p className="text-sm font-semibold text-slate-500">
-            Review initial admission offer letters, pay tuition directly to the university, and download your Official Final Acceptance Letter from the University.
-          </p>
+          <p className="text-sm font-semibold text-slate-500">Review your offers, pay tuition to the university and download your final acceptance letter.</p>
         </div>
       </div>
 

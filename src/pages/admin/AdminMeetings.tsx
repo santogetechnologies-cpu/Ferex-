@@ -287,9 +287,7 @@ export const AdminMeetings: React.FC<AdminMeetingsProps> = ({ isStaff = false })
             </span>
             Meetings
           </h1>
-          <p className="text-sm font-semibold text-slate-500">
-            Interactive calendar schedule, cross-portal counseling bookings, and advisor capacity management.
-          </p>
+          <p className="text-sm font-semibold text-slate-500">Calendar of counseling sessions and advisor availability.</p>
         </div>
 
         <button

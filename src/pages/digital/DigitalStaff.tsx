@@ -208,9 +208,7 @@ export const DigitalStaff: React.FC = () => {
               </span>
             </div>
             <h1 className="text-2xl font-black tracking-tight text-slate-900">Staff</h1>
-            <p className="text-xs md:text-sm text-slate-500 max-w-2xl font-medium">
-              Manage project managers, UI/UX designers, developers, and specialists. Allocate client engagements and deliverables.
-            </p>
+            <p className="text-xs md:text-sm text-slate-500 max-w-2xl font-medium">Project managers, designers and developers, and what they work on.</p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 shrink-0">

@@ -101,9 +101,7 @@ export const CentralRoles: React.FC = () => {
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <UserCheck className="w-6 h-6 text-[#58051E]" /> Roles
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Super Admin Console • Permission boundaries and operational scopes across all 4 enterprise divisions.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">What each role can see and do on every platform.</p>
         </div>
         <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-md" onClick={() => setShowAddModal(true)}>
           <Plus className="w-4 h-4 mr-1.5" /> Define Custom Role

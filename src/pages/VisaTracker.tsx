@@ -181,9 +181,7 @@ export const VisaTracker: React.FC = () => {
           <h1 className="text-xl md:text-2xl font-bold tracking-tight mb-1 text-white">
             Visa
           </h1>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            Track your visa application progress from document preparation to biometric appointment and passport dispatch.
-          </p>
+          <p className="text-xs text-slate-400 leading-relaxed">Your visa progress from documents to appointment and passport return.</p>
         </div>
         <Button 
           variant="outline" 

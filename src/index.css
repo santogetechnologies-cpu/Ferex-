@@ -514,3 +514,19 @@ h1, h2, h3, h4, .font-heading {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
+
+.app-main h1 + p, .app-main h1 ~ p { font-size: 0.875rem; line-height: 1.5; font-weight: 500; color: rgb(100 116 139); margin-top: 0.375rem; max-width: 42rem; }
+.app-main h1 > svg { display: none; }
+.app-main h1 ~ span[class*="uppercase"], .app-main h1 ~ span[class*="tracking-wider"] { display: none; }
+
+/* Tables look the same everywhere: quiet header row, roomy cells, soft hover. */
+.app-main table thead th { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: rgb(100 116 139); background: rgb(248 250 252 / 0.8); white-space: nowrap; }
+.app-main table tbody tr { transition: background-color 120ms ease; }
+.app-main table tbody tr:hover { background-color: rgb(248 250 252 / 0.9); }
+.app-main table tbody td { vertical-align: middle; }
+.app-main select { cursor: pointer; }
+
+.app-main div:has(> h1) + p { font-size: 0.875rem; line-height: 1.5; font-weight: 500; color: rgb(100 116 139); margin-top: 0.375rem; max-width: 42rem; }
+.app-main h1 ~ span[class*="rounded"] { display: none; }
+.app-main table thead th[class*="sticky"] { background: rgb(248 250 252); }
+.app-main table tbody td[class*="sticky"] { background: #fff; }

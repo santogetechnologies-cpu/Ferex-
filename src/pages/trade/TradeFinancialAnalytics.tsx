@@ -82,9 +82,7 @@ export const TradeFinancialAnalytics: React.FC = () => {
         <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
           <DollarSign className="w-5 h-5 text-[#58051E]" /> Finance reports
         </h1>
-        <p className="text-xs font-semibold text-slate-500 mt-1">
-          Ferex Trade Intelligence • International revenue ledger, gross turnover, LC exposure, and live payment settlements in INR (₹).
-        </p>
+        <p className="text-xs font-semibold text-slate-500 mt-1">Revenue, turnover, letter of credit exposure and settlements.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

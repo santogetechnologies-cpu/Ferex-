@@ -167,9 +167,7 @@ export const CentralStudents: React.FC = () => {
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <GraduationCap className="w-6 h-6 text-[#58051E]" /> Students
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Consolidated oversight of student journeys, process stages, tuition fee settlements, document compliance, and counselor assignments.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Students, their stage, payments, documents and counselor.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" className="text-xs font-bold" onClick={loadData}>

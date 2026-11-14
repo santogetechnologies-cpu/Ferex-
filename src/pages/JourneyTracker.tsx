@@ -443,9 +443,7 @@ export const JourneyTracker: React.FC = () => {
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
             My journey
           </h1>
-          <p className="text-xs md:text-sm text-slate-300 mt-2 leading-relaxed">
-            Monitor real-time progress across the three sequential operational pillars: University Application, Consular Visa Filing, and Travel & Settlement.
-          </p>
+          <p className="text-xs md:text-sm text-slate-300 mt-2 leading-relaxed">Your progress from application to arrival, step by step.</p>
 
           <div className="mt-5 flex items-center gap-3 flex-wrap text-xs font-medium text-slate-300">
             <span className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-1.5">

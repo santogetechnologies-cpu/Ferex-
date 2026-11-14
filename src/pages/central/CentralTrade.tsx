@@ -190,9 +190,7 @@ export const CentralTrade: React.FC = () => {
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <Globe className="w-6 h-6 text-indigo-600" /> Global Trade
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Central executive oversight of international freight, trade documentation, and logistics tracking.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Shipments, trade documents and logistics across Global Trade.</p>
         </div>
         <Button size="sm" variant="outline" className="text-xs font-bold" onClick={loadData}>
           <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh Feeds

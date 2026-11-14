@@ -276,9 +276,7 @@ export const TradePayments: React.FC = () => {
             <CreditCard className="w-5 h-5 text-[#58051E]" />
             Payments
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-0.5">
-            Manage Advance Paid, Balance Settlements, Full Completions, and LC drawdowns with instant receipts.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-0.5">Advances, balances, final payments and letter of credit drawdowns.</p>
         </div>
         <Button
           size="sm"

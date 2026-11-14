@@ -416,9 +416,7 @@ export const SelectUniversity: React.FC = () => {
             </span>
             Universities
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Browse accredited partner universities, compare degree programs, and submit your direct application.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Compare partner universities and programs, then apply.</p>
         </div>
 
         {/* Assigned Counselor Status Pill (Clean SaaS style) */}

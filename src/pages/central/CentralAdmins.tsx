@@ -363,9 +363,7 @@ export const CentralAdmins: React.FC = () => {
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <ShieldCheck className="w-6 h-6 text-[#58051E]" /> Users & staff
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Super Admin Console • Real-time live creation and management of Division Admins and Staff logins (Admissions Counselors, Digital PMs, Trade Officers).
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Create and manage platform admins and staff logins.</p>
         </div>
 
         <div className="flex items-center gap-3">

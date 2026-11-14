@@ -214,9 +214,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff 
             <h1 className="text-2xl font-black tracking-tight text-slate-900">
               Notifications
             </h1>
-            <p className="text-xs md:text-sm font-medium text-slate-500 mt-1 max-w-2xl leading-relaxed">
-              Monitor real-time alerts across university applications, student tuition payments, visa filings, document legalization, and publish broadcast announcements.
-            </p>
+            <p className="text-xs md:text-sm font-medium text-slate-500 mt-1 max-w-2xl leading-relaxed">Alerts about applications, payments, visas and documents.</p>
           </div>
 
           <div className="flex items-center gap-2 shrink-0 flex-wrap">

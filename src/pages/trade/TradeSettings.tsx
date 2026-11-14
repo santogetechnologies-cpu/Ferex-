@@ -138,9 +138,7 @@ export const TradeSettings: React.FC = () => {
             <Settings className="w-5 h-5 text-[#58051E]" />
             Settings
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1 max-w-2xl">
-            Configure Incoterms defaults (CIF/FOB), Letter of Credit (LC) banking rules, port corridors, and trade partner notifications.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1 max-w-2xl">Incoterm defaults, letter of credit rules, ports and notifications.</p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">

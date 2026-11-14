@@ -524,7 +524,7 @@ startxref
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900">Applications</h1>
-          <p className="text-xs font-semibold text-slate-400 mt-0.5">Manage, review, and issue official offer letters & final acceptance letters across all destination countries</p>
+          <p className="text-xs font-semibold text-slate-400 mt-0.5">Review applications and issue offer and acceptance letters.</p>
         </div>
         <button
           onClick={() => refresh()}

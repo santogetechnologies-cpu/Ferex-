@@ -236,9 +236,7 @@ export const RimiCollections: React.FC = () => {
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-[#58051E]" /> Payment Collections & Receivables Settlement
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-0.5">
-            Log incoming customer remittances, credit settlements, and auto-sync ledger balances.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-0.5">Record payments from customers and see balances update.</p>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">

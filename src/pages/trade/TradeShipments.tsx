@@ -238,9 +238,7 @@ export const TradeShipments: React.FC = () => {
             <PackageCheck className="w-5 h-5 text-[#58051E]" />
             Orders
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-0.5">
-            Full 7-stage order lifecycle with 1-click stage confirmation and synchronized operations.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-0.5">Every order through its seven stages.</p>
         </div>
         <Button
           size="sm"

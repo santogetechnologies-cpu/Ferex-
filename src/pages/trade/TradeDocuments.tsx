@@ -327,9 +327,7 @@ export const TradeDocuments: React.FC = () => {
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
             <FolderArchive className="w-6 h-6 text-[#58051E]" /> Documents
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Manage the 7 core international trade documents with upload facility, internal verification (Pending / Submitted / Verified / Rejected), and automated client dispatches.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Upload and verify the core trade documents for each order.</p>
         </div>
         <Button
           size="sm"

@@ -155,9 +155,7 @@ export const CentralDigital: React.FC = () => {
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <Monitor className="w-6 h-6 text-emerald-600" /> Ferex Digital
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Central executive oversight of client deliverables, engineering project stages, and milestones.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Client projects, stages and milestones across Ferex Digital.</p>
         </div>
         <Button size="sm" variant="outline" className="text-xs font-bold" onClick={loadData}>
           <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh Pipeline

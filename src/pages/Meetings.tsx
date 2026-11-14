@@ -170,9 +170,7 @@ export const Meetings: React.FC = () => {
             </span>
             Meetings
           </h1>
-          <p className="text-sm font-semibold text-slate-500">
-            Book and join 1-on-1 advisory sessions, document verification checks, and visa guidance.
-          </p>
+          <p className="text-sm font-semibold text-slate-500">Book a session with your counselor.</p>
         </div>
 
         <button

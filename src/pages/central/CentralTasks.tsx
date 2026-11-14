@@ -195,9 +195,7 @@ export const CentralTasks: React.FC = () => {
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <CheckSquare className="w-6 h-6 text-[#58051E]" /> Tasks
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Centrally delegate, track, and reassign high-priority operational workflows across all 4 enterprise platforms.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Assign and follow important work across all platforms.</p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">

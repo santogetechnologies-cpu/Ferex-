@@ -87,9 +87,7 @@ export const Receipts: React.FC = () => {
             </span>
             Payment Receipts
           </h1>
-          <p className="text-sm font-semibold text-slate-500">
-            Bank-style payment confirmations for every cleared transaction. Download as PDF anytime.
-          </p>
+          <p className="text-sm font-semibold text-slate-500">A receipt for every payment you have made.</p>
         </div>
         {totalReceived > 0 && (
           <div className="px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-center shrink-0">

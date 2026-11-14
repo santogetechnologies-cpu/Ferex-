@@ -270,9 +270,7 @@ export const DigitalClients: React.FC = () => {
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <Users className="w-5 h-5 text-[#58051E]" /> Clients
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-1">
-            Ferex Digital ERP • Centralized directory of Internal Platforms, External Accounts & Leads.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Your clients, internal platforms and leads.</p>
         </div>
         <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
           <Plus className="w-4 h-4 mr-1.5" /> Add Client

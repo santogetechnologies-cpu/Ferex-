@@ -240,9 +240,7 @@ export const RimiInventory: React.FC = () => {
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <Boxes className="w-5 h-5 text-[#58051E]" /> Inventory
           </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-0.5">
-            Merged batch tracking, automatic expiry shelf life alerts, and continuous stock audit movements.
-          </p>
+          <p className="text-xs font-semibold text-slate-500 mt-0.5">Batches, expiry dates and stock movements.</p>
         </div>
 
         <Button

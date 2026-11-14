@@ -477,9 +477,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
             </span>
             Visa
           </h1>
-          <p className="text-sm font-semibold text-slate-500">
-            Initiate VFS process for students, update appointment slots, embassy stages, and official visa verdict.
-          </p>
+          <p className="text-sm font-semibold text-slate-500">Start visa cases, set appointments and record decisions.</p>
         </div>
 
         <div className="flex items-center gap-2">
