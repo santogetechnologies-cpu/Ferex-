@@ -125,7 +125,6 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
 
   // DEBUG: Log universities state changes
   React.useEffect(() => {
-    console.log('[AdminUniversities] Universities state updated:', universities.length, universities.map(u => u.name));
   }, [universities]);
 
   // Top view tab: 'universities' or 'countries'
@@ -628,23 +627,18 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
       };
 
       if (editingId) {
-        console.log('[AdminUniversities] Updating university:', editingId, name);
         await updateUniversity(editingId, payload);
         showToast(`University "${name}" updated successfully!`);
       } else {
-        console.log('[AdminUniversities] Adding new university:', name, 'in', targetCountry);
         const result = await addUniversity(payload);
-        console.log('[AdminUniversities] Add university result:', result);
         showToast(`University "${name}" created and published!`);
       }
 
-      console.log('[AdminUniversities] Closing modal, refreshing list');
       setShowAddModal(false);
       setEditingId(null);
       
       // Force a refresh after a short delay to ensure events have propagated
       setTimeout(() => {
-        console.log('[AdminUniversities] Forcing refresh after add/update');
         refresh();
       }, 500);
     } catch (err: any) {
@@ -676,17 +670,6 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
     const matchesCountry = countryFilter === 'All' || u.country === countryFilter;
     return matchesSearch && matchesCountry;
   });
-
-  // DEBUG: Log filter results
-  React.useEffect(() => {
-    console.log('[AdminUniversities] Filtered:', {
-      total: universities.length,
-      filtered: filteredUniversities.length,
-      search,
-      countryFilter,
-      universities: universities.map(u => ({ name: u.name, country: u.country }))
-    });
-  }, [universities, filteredUniversities.length, search, countryFilter]);
 
   // Filter logic for countries
   const filteredCountries = sortByFeatured(countryList, countryList, c => c.name).filter(c => {

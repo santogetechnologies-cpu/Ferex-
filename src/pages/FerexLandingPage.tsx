@@ -140,12 +140,10 @@ export const FerexLandingPage: React.FC = () => {
   const [calcUniId, setCalcUniId] = useState<string>('');
 
   React.useEffect(() => {
-    console.log('[Cost Calculator] Universities in country:', universitiesInCalcCountry.length);
     if (universitiesInCalcCountry.length > 0) {
       const currentUniValid = universitiesInCalcCountry.some(u => u.id === calcUniId);
       if (!currentUniValid) {
         const firstUni = universitiesInCalcCountry[0];
-        console.log('[Cost Calculator] Setting to first uni:', firstUni.name);
         setCalcUniId(firstUni.id);
       }
     } else {

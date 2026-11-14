@@ -55,3 +55,16 @@ createRoot(document.getElementById('root')!).render(
     </ErrorBoundary>
   </StrictMode>,
 )
+
+// Any picture that fails to load (deleted file, bad link, offline) shows a neutral placeholder instead of a broken-image icon.
+const PLACEHOLDER = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 90" preserveAspectRatio="xMidYMid slice"><rect width="120" height="90" fill="#eef0f3"/><g fill="none" stroke="#a3acb9" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="40" y="27" width="40" height="34" rx="5"/><circle cx="52" cy="39" r="3.5"/><path d="M42 58l12-11 9 8 7-6 8 9"/></g></svg>'
+);
+document.addEventListener('error', (e) => {
+  const el = e.target;
+  if (el instanceof HTMLImageElement && !el.dataset.fallbackApplied && !el.src.startsWith('data:')) {
+    el.dataset.fallbackApplied = 'true';
+    el.src = PLACEHOLDER;
+    el.srcset = '';
+  }
+}, true);

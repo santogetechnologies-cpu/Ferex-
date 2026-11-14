@@ -14,7 +14,7 @@ const inputClass = 'w-full h-10 px-3 bg-white border border-slate-200 rounded-xl
 const labelClass = 'block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1.5';
 
 export function EducationFeeEditor() {
-  const { config } = useFeeConfig();
+  const { config, ready } = useFeeConfig();
   const { destinations } = useDestinations();
   const { universities } = useUniversities();
   const [fees, setFees] = useState<EducationFee[]>(() => educationFees(config));
@@ -71,6 +71,8 @@ export function EducationFeeEditor() {
       setSaving(false);
     }
   };
+
+  if (!ready) return <div className="py-16 text-center text-sm font-medium text-slate-500" role="status">Loading fees…</div>;
 
   return (
     <section className="space-y-6 text-left">

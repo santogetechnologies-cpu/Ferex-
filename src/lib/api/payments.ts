@@ -308,7 +308,6 @@ export async function verifyPayment(id: string, reviewerNotes?: string): Promise
           due_date: paidAt,
           created_at: paidAt
         });
-        console.log('✅ [invoices]: Successfully issued tax invoice to invoices table in Supabase!');
       } catch (e) {}
     };
     reader.readAsDataURL(pdfBlob);
@@ -329,7 +328,6 @@ export async function verifyPayment(id: string, reviewerNotes?: string): Promise
       issued_at: paidAt,
       created_at: paidAt
     });
-    console.log('✅ [receipts]: Successfully issued payment receipt to receipts table in Supabase!');
   } catch (err) {}
 
   return updatedPayment;

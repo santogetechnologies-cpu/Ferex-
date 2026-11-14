@@ -92,7 +92,6 @@ export function dispatchSyncEvent(eventType: SyncEventType, detail?: SyncEventDe
     window.dispatchEvent(new Event(eventType));
   }
   
-  console.log(`[SYNC] Dispatched: ${eventType}`, detail || '');
 }
 
 /**

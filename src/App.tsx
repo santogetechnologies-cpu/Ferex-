@@ -1,162 +1,162 @@
-import { Receipts } from './pages/Receipts';
-import { DigitalBusinessInsights } from './pages/digital/DigitalBusinessInsights';
-import { DigitalCommerce } from './pages/digital/DigitalCommerce';
-import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+const Receipts = lazy(() => import('./pages/Receipts').then(m => ({ default: m.Receipts })));
+const DigitalBusinessInsights = lazy(() => import('./pages/digital/DigitalBusinessInsights').then(m => ({ default: m.DigitalBusinessInsights })));
+const DigitalCommerce = lazy(() => import('./pages/digital/DigitalCommerce').then(m => ({ default: m.DigitalCommerce })));
+import React, { useEffect, lazy, Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthLayout } from './layouts/AuthLayout';
-import { LoginPage } from './pages/LoginPage';
-import { ResetPasswordPage } from './pages/ResetPasswordPage';
-import { FerexLandingPage } from './pages/FerexLandingPage';
+const LoginPage = lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage })));
+const FerexLandingPage = lazy(() => import('./pages/FerexLandingPage').then(m => ({ default: m.FerexLandingPage })));
 import { StudentLayout } from './layouts/StudentLayout';
-import { StudentDashboard } from './pages/StudentDashboard';
-import { ServiceAgreement } from './pages/ServiceAgreement';
-import { JourneyTracker } from './pages/JourneyTracker';
-import { SelectUniversity } from './pages/SelectUniversity';
-import { UniversityApplications } from './pages/UniversityApplications';
-import { OfferLetters } from './pages/OfferLetters';
-import { Documents } from './pages/Documents';
-import { Payments } from './pages/Payments';
-import { Invoices } from './pages/Invoices';
-import { Meetings } from './pages/Meetings';
-import { Chat } from './pages/Chat';
-import { SupportTickets } from './pages/SupportTickets';
-import { Notifications } from './pages/Notifications';
-import { MyProfile } from './pages/MyProfile';
-import { VisaTracker } from './pages/VisaTracker';
-import { PreDeparture } from './pages/PreDeparture';
-import { EnterpriseAIPage } from './pages/EnterpriseAIPage';
+const StudentDashboard = lazy(() => import('./pages/StudentDashboard').then(m => ({ default: m.StudentDashboard })));
+const ServiceAgreement = lazy(() => import('./pages/ServiceAgreement').then(m => ({ default: m.ServiceAgreement })));
+const JourneyTracker = lazy(() => import('./pages/JourneyTracker').then(m => ({ default: m.JourneyTracker })));
+const SelectUniversity = lazy(() => import('./pages/SelectUniversity').then(m => ({ default: m.SelectUniversity })));
+const UniversityApplications = lazy(() => import('./pages/UniversityApplications').then(m => ({ default: m.UniversityApplications })));
+const OfferLetters = lazy(() => import('./pages/OfferLetters').then(m => ({ default: m.OfferLetters })));
+const Documents = lazy(() => import('./pages/Documents').then(m => ({ default: m.Documents })));
+const Payments = lazy(() => import('./pages/Payments').then(m => ({ default: m.Payments })));
+const Invoices = lazy(() => import('./pages/Invoices').then(m => ({ default: m.Invoices })));
+const Meetings = lazy(() => import('./pages/Meetings').then(m => ({ default: m.Meetings })));
+const Chat = lazy(() => import('./pages/Chat').then(m => ({ default: m.Chat })));
+const SupportTickets = lazy(() => import('./pages/SupportTickets').then(m => ({ default: m.SupportTickets })));
+const Notifications = lazy(() => import('./pages/Notifications').then(m => ({ default: m.Notifications })));
+const MyProfile = lazy(() => import('./pages/MyProfile').then(m => ({ default: m.MyProfile })));
+const VisaTracker = lazy(() => import('./pages/VisaTracker').then(m => ({ default: m.VisaTracker })));
+const PreDeparture = lazy(() => import('./pages/PreDeparture').then(m => ({ default: m.PreDeparture })));
+const EnterpriseAIPage = lazy(() => import('./pages/EnterpriseAIPage').then(m => ({ default: m.EnterpriseAIPage })));
 
 // Admin imports
 import { AdminLayout } from './layouts/AdminLayout';
-import { AdminLoginPage } from './pages/admin/AdminLoginPage';
-import { AdminDashboard } from './pages/admin/AdminDashboard';
-import { AdminStudents } from './pages/admin/AdminStudents';
-import { AdminUniversities } from './pages/admin/AdminUniversities';
-import { AdminVisaTracker } from './pages/admin/AdminVisaTracker';
-import { AdminPreDeparture } from './pages/admin/AdminPreDeparture';
-import { AdminTaskManagement } from './pages/admin/AdminTaskManagement';
-import { AdminApplications } from './pages/admin/AdminApplications';
-import { AdminDocumentReview } from './pages/admin/AdminDocumentReview';
-import { AdminPayments } from './pages/admin/AdminPayments';
-import { AdminSupportTickets } from './pages/admin/AdminSupportTickets';
-import { AdminChatSupport } from './pages/admin/AdminChatSupport';
-import { AdminReports } from './pages/admin/AdminReports';
-import { AdminStaffManagement } from './pages/admin/AdminStaffManagement';
-import { AdminNotifications } from './pages/admin/AdminNotifications';
-import { AdminSettings } from './pages/admin/AdminSettings';
-import { AdminCustomizationPolicies } from './pages/admin/AdminCustomizationPolicies';
-import { AdminFeeConfig } from './pages/admin/AdminFeeConfig';
-import { AdminMeetings } from './pages/admin/AdminMeetings';
-import { AdminNawaTracker } from './pages/admin/AdminNawaTracker';
-import { AdminDocumentConfig } from './pages/admin/AdminDocumentConfig';
-import { AdminPaymentControl } from './pages/admin/AdminPaymentControl';
-import { StudyAbroadLeadLandingPage } from './pages/StudyAbroadLeadLandingPage';
-import { AdminStudentEnquiries } from './pages/admin/AdminStudentEnquiries';
+const AdminLoginPage = lazy(() => import('./pages/admin/AdminLoginPage').then(m => ({ default: m.AdminLoginPage })));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const AdminStudents = lazy(() => import('./pages/admin/AdminStudents').then(m => ({ default: m.AdminStudents })));
+const AdminUniversities = lazy(() => import('./pages/admin/AdminUniversities').then(m => ({ default: m.AdminUniversities })));
+const AdminVisaTracker = lazy(() => import('./pages/admin/AdminVisaTracker').then(m => ({ default: m.AdminVisaTracker })));
+const AdminPreDeparture = lazy(() => import('./pages/admin/AdminPreDeparture').then(m => ({ default: m.AdminPreDeparture })));
+const AdminTaskManagement = lazy(() => import('./pages/admin/AdminTaskManagement').then(m => ({ default: m.AdminTaskManagement })));
+const AdminApplications = lazy(() => import('./pages/admin/AdminApplications').then(m => ({ default: m.AdminApplications })));
+const AdminDocumentReview = lazy(() => import('./pages/admin/AdminDocumentReview').then(m => ({ default: m.AdminDocumentReview })));
+const AdminPayments = lazy(() => import('./pages/admin/AdminPayments').then(m => ({ default: m.AdminPayments })));
+const AdminSupportTickets = lazy(() => import('./pages/admin/AdminSupportTickets').then(m => ({ default: m.AdminSupportTickets })));
+const AdminChatSupport = lazy(() => import('./pages/admin/AdminChatSupport').then(m => ({ default: m.AdminChatSupport })));
+const AdminReports = lazy(() => import('./pages/admin/AdminReports').then(m => ({ default: m.AdminReports })));
+const AdminStaffManagement = lazy(() => import('./pages/admin/AdminStaffManagement').then(m => ({ default: m.AdminStaffManagement })));
+const AdminNotifications = lazy(() => import('./pages/admin/AdminNotifications').then(m => ({ default: m.AdminNotifications })));
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
+const AdminCustomizationPolicies = lazy(() => import('./pages/admin/AdminCustomizationPolicies').then(m => ({ default: m.AdminCustomizationPolicies })));
+const AdminFeeConfig = lazy(() => import('./pages/admin/AdminFeeConfig').then(m => ({ default: m.AdminFeeConfig })));
+const AdminMeetings = lazy(() => import('./pages/admin/AdminMeetings').then(m => ({ default: m.AdminMeetings })));
+const AdminNawaTracker = lazy(() => import('./pages/admin/AdminNawaTracker').then(m => ({ default: m.AdminNawaTracker })));
+const AdminDocumentConfig = lazy(() => import('./pages/admin/AdminDocumentConfig').then(m => ({ default: m.AdminDocumentConfig })));
+const AdminPaymentControl = lazy(() => import('./pages/admin/AdminPaymentControl').then(m => ({ default: m.AdminPaymentControl })));
+const StudyAbroadLeadLandingPage = lazy(() => import('./pages/StudyAbroadLeadLandingPage').then(m => ({ default: m.StudyAbroadLeadLandingPage })));
+const AdminStudentEnquiries = lazy(() => import('./pages/admin/AdminStudentEnquiries').then(m => ({ default: m.AdminStudentEnquiries })));
 import { getImpersonatedStudent } from './lib/api/studentImpersonation';
 
 // Central imports
 import { CentralLayout } from './layouts/CentralLayout';
-import { CentralDashboard } from './pages/central/CentralDashboard';
-import { CentralPayments } from './pages/central/CentralPayments';
-import { CentralReports } from './pages/central/CentralReports';
-import { CentralAdmins } from './pages/central/CentralAdmins';
-import { RolesUsers } from './pages/central/RolesUsers';
-import { CentralTasks } from './pages/central/CentralTasks';
-import { CentralActivity } from './pages/central/CentralActivity';
-import { CentralNotifications } from './pages/central/CentralNotifications';
-import { CentralSettings } from './pages/central/CentralSettings';
-import { CentralTrade } from './pages/central/CentralTrade';
-import { CentralRimi } from './pages/central/CentralRimi';
-import { CentralDigital } from './pages/central/CentralDigital';
-import { CentralSupport } from './pages/central/CentralSupport';
-import { CentralEducation } from './pages/central/CentralEducation';
-import { CentralStudents } from './pages/central/CentralStudents';
-import { CentralEmailLogs } from './pages/central/CentralEmailLogs';
+const CentralDashboard = lazy(() => import('./pages/central/CentralDashboard').then(m => ({ default: m.CentralDashboard })));
+const CentralPayments = lazy(() => import('./pages/central/CentralPayments').then(m => ({ default: m.CentralPayments })));
+const CentralReports = lazy(() => import('./pages/central/CentralReports').then(m => ({ default: m.CentralReports })));
+const CentralAdmins = lazy(() => import('./pages/central/CentralAdmins').then(m => ({ default: m.CentralAdmins })));
+const RolesUsers = lazy(() => import('./pages/central/RolesUsers').then(m => ({ default: m.RolesUsers })));
+const CentralTasks = lazy(() => import('./pages/central/CentralTasks').then(m => ({ default: m.CentralTasks })));
+const CentralActivity = lazy(() => import('./pages/central/CentralActivity').then(m => ({ default: m.CentralActivity })));
+const CentralNotifications = lazy(() => import('./pages/central/CentralNotifications').then(m => ({ default: m.CentralNotifications })));
+const CentralSettings = lazy(() => import('./pages/central/CentralSettings').then(m => ({ default: m.CentralSettings })));
+const CentralTrade = lazy(() => import('./pages/central/CentralTrade').then(m => ({ default: m.CentralTrade })));
+const CentralRimi = lazy(() => import('./pages/central/CentralRimi').then(m => ({ default: m.CentralRimi })));
+const CentralDigital = lazy(() => import('./pages/central/CentralDigital').then(m => ({ default: m.CentralDigital })));
+const CentralSupport = lazy(() => import('./pages/central/CentralSupport').then(m => ({ default: m.CentralSupport })));
+const CentralEducation = lazy(() => import('./pages/central/CentralEducation').then(m => ({ default: m.CentralEducation })));
+const CentralStudents = lazy(() => import('./pages/central/CentralStudents').then(m => ({ default: m.CentralStudents })));
+const CentralEmailLogs = lazy(() => import('./pages/central/CentralEmailLogs').then(m => ({ default: m.CentralEmailLogs })));
 
 // Trade imports
 import { TradeLayout } from './layouts/TradeLayout';
-import { TradeDashboard } from './pages/trade/TradeDashboard';
-import { TradeCRM } from './pages/trade/TradeCRM';
-import { TradeShipments } from './pages/trade/TradeShipments';
-import { TradeInvoices } from './pages/trade/TradeInvoices';
-import { TradePackingLists } from './pages/trade/TradePackingLists';
-import { TradeBillsOfLading } from './pages/trade/TradeBillsOfLading';
-import { TradeCertificates } from './pages/trade/TradeCertificates';
-import { TradeDocuments } from './pages/trade/TradeDocuments';
-import { TradeLettersOfCredit } from './pages/trade/TradeLettersOfCredit';
-import { TradePayments } from './pages/trade/TradePayments';
-import { TradeReports } from './pages/trade/TradeReports';
-import { TradeShipmentAnalytics } from './pages/trade/TradeShipmentAnalytics';
-import { TradeFinancialAnalytics } from './pages/trade/TradeFinancialAnalytics';
-import { TradeMessages } from './pages/trade/TradeMessages';
-import { TradeNotifications } from './pages/trade/TradeNotifications';
-import { TradeProfile } from './pages/trade/TradeProfile';
-import { TradeSettings } from './pages/trade/TradeSettings';
-import { TradeTasks } from './pages/trade/TradeTasks';
-import { TradeTickets } from './pages/trade/TradeTickets';
-import { TradeClientPortal } from './pages/trade/TradeClientPortal';
-import { TradeLoginPage } from './pages/trade/TradeLoginPage';
+const TradeDashboard = lazy(() => import('./pages/trade/TradeDashboard').then(m => ({ default: m.TradeDashboard })));
+const TradeCRM = lazy(() => import('./pages/trade/TradeCRM').then(m => ({ default: m.TradeCRM })));
+const TradeShipments = lazy(() => import('./pages/trade/TradeShipments').then(m => ({ default: m.TradeShipments })));
+const TradeInvoices = lazy(() => import('./pages/trade/TradeInvoices').then(m => ({ default: m.TradeInvoices })));
+const TradePackingLists = lazy(() => import('./pages/trade/TradePackingLists').then(m => ({ default: m.TradePackingLists })));
+const TradeBillsOfLading = lazy(() => import('./pages/trade/TradeBillsOfLading').then(m => ({ default: m.TradeBillsOfLading })));
+const TradeCertificates = lazy(() => import('./pages/trade/TradeCertificates').then(m => ({ default: m.TradeCertificates })));
+const TradeDocuments = lazy(() => import('./pages/trade/TradeDocuments').then(m => ({ default: m.TradeDocuments })));
+const TradeLettersOfCredit = lazy(() => import('./pages/trade/TradeLettersOfCredit').then(m => ({ default: m.TradeLettersOfCredit })));
+const TradePayments = lazy(() => import('./pages/trade/TradePayments').then(m => ({ default: m.TradePayments })));
+const TradeReports = lazy(() => import('./pages/trade/TradeReports').then(m => ({ default: m.TradeReports })));
+const TradeShipmentAnalytics = lazy(() => import('./pages/trade/TradeShipmentAnalytics').then(m => ({ default: m.TradeShipmentAnalytics })));
+const TradeFinancialAnalytics = lazy(() => import('./pages/trade/TradeFinancialAnalytics').then(m => ({ default: m.TradeFinancialAnalytics })));
+const TradeMessages = lazy(() => import('./pages/trade/TradeMessages').then(m => ({ default: m.TradeMessages })));
+const TradeNotifications = lazy(() => import('./pages/trade/TradeNotifications').then(m => ({ default: m.TradeNotifications })));
+const TradeProfile = lazy(() => import('./pages/trade/TradeProfile').then(m => ({ default: m.TradeProfile })));
+const TradeSettings = lazy(() => import('./pages/trade/TradeSettings').then(m => ({ default: m.TradeSettings })));
+const TradeTasks = lazy(() => import('./pages/trade/TradeTasks').then(m => ({ default: m.TradeTasks })));
+const TradeTickets = lazy(() => import('./pages/trade/TradeTickets').then(m => ({ default: m.TradeTickets })));
+const TradeClientPortal = lazy(() => import('./pages/trade/TradeClientPortal').then(m => ({ default: m.TradeClientPortal })));
+const TradeLoginPage = lazy(() => import('./pages/trade/TradeLoginPage').then(m => ({ default: m.TradeLoginPage })));
 
 // Rimi Frozen Distribution imports
 import { RimiLayout } from './layouts/RimiLayout';
-import { RimiDashboard } from './pages/rimi/RimiDashboard';
-import { RimiCustomers } from './pages/rimi/RimiCustomers';
-import { RimiSalesOrders } from './pages/rimi/RimiSalesOrders';
-import { RimiProducts } from './pages/rimi/RimiProducts';
-import { RimiInventory } from './pages/rimi/RimiInventory';
-import { RimiWarehouses } from './pages/rimi/RimiWarehouses';
-import { RimiDeliveries } from './pages/rimi/RimiDeliveries';
-import { RimiCollections } from './pages/rimi/RimiCollections';
-import { RimiVehicles } from './pages/rimi/RimiVehicles';
-import { RimiDeliveryRoutes } from './pages/rimi/RimiDeliveryRoutes';
-import { RimiAnalytics } from './pages/rimi/RimiAnalytics';
-import { RimiNotifications } from './pages/rimi/RimiNotifications';
-import { RimiProfile } from './pages/rimi/RimiProfile';
-import { RimiTasks } from './pages/rimi/RimiTasks';
-import { RimiLoginPage } from './pages/rimi/RimiLoginPage';
+const RimiDashboard = lazy(() => import('./pages/rimi/RimiDashboard').then(m => ({ default: m.RimiDashboard })));
+const RimiCustomers = lazy(() => import('./pages/rimi/RimiCustomers').then(m => ({ default: m.RimiCustomers })));
+const RimiSalesOrders = lazy(() => import('./pages/rimi/RimiSalesOrders').then(m => ({ default: m.RimiSalesOrders })));
+const RimiProducts = lazy(() => import('./pages/rimi/RimiProducts').then(m => ({ default: m.RimiProducts })));
+const RimiInventory = lazy(() => import('./pages/rimi/RimiInventory').then(m => ({ default: m.RimiInventory })));
+const RimiWarehouses = lazy(() => import('./pages/rimi/RimiWarehouses').then(m => ({ default: m.RimiWarehouses })));
+const RimiDeliveries = lazy(() => import('./pages/rimi/RimiDeliveries').then(m => ({ default: m.RimiDeliveries })));
+const RimiCollections = lazy(() => import('./pages/rimi/RimiCollections').then(m => ({ default: m.RimiCollections })));
+const RimiVehicles = lazy(() => import('./pages/rimi/RimiVehicles').then(m => ({ default: m.RimiVehicles })));
+const RimiDeliveryRoutes = lazy(() => import('./pages/rimi/RimiDeliveryRoutes').then(m => ({ default: m.RimiDeliveryRoutes })));
+const RimiAnalytics = lazy(() => import('./pages/rimi/RimiAnalytics').then(m => ({ default: m.RimiAnalytics })));
+const RimiNotifications = lazy(() => import('./pages/rimi/RimiNotifications').then(m => ({ default: m.RimiNotifications })));
+const RimiProfile = lazy(() => import('./pages/rimi/RimiProfile').then(m => ({ default: m.RimiProfile })));
+const RimiTasks = lazy(() => import('./pages/rimi/RimiTasks').then(m => ({ default: m.RimiTasks })));
+const RimiLoginPage = lazy(() => import('./pages/rimi/RimiLoginPage').then(m => ({ default: m.RimiLoginPage })));
 
 // Digital imports
 import { DigitalLayout } from './layouts/DigitalLayout';
-import { DigitalDashboard } from './pages/digital/DigitalDashboard';
-import { DigitalClients } from './pages/digital/DigitalClients';
-import { DigitalLeads } from './pages/digital/DigitalLeads';
-import { DigitalProjects } from './pages/digital/DigitalProjects';
-import { DigitalTasks } from './pages/digital/DigitalTasks';
-import { DigitalMeetings } from './pages/digital/DigitalMeetings';
-import { DigitalExpenses } from './pages/digital/DigitalExpenses';
-import { DigitalNotifications } from './pages/digital/DigitalNotifications';
-import { DigitalProfile } from './pages/digital/DigitalProfile';
-import { DigitalSettings } from './pages/digital/DigitalSettings';
-import { DigitalDeliverables } from './pages/digital/DigitalDeliverables';
-import { DigitalStaff } from './pages/digital/DigitalStaff';
-import { DigitalLoginPage } from './pages/digital/DigitalLoginPage';
-import DigitalClientPortal from './pages/digital/DigitalClientWorkspace';
+const DigitalDashboard = lazy(() => import('./pages/digital/DigitalDashboard').then(m => ({ default: m.DigitalDashboard })));
+const DigitalClients = lazy(() => import('./pages/digital/DigitalClients').then(m => ({ default: m.DigitalClients })));
+const DigitalLeads = lazy(() => import('./pages/digital/DigitalLeads').then(m => ({ default: m.DigitalLeads })));
+const DigitalProjects = lazy(() => import('./pages/digital/DigitalProjects').then(m => ({ default: m.DigitalProjects })));
+const DigitalTasks = lazy(() => import('./pages/digital/DigitalTasks').then(m => ({ default: m.DigitalTasks })));
+const DigitalMeetings = lazy(() => import('./pages/digital/DigitalMeetings').then(m => ({ default: m.DigitalMeetings })));
+const DigitalExpenses = lazy(() => import('./pages/digital/DigitalExpenses').then(m => ({ default: m.DigitalExpenses })));
+const DigitalNotifications = lazy(() => import('./pages/digital/DigitalNotifications').then(m => ({ default: m.DigitalNotifications })));
+const DigitalProfile = lazy(() => import('./pages/digital/DigitalProfile').then(m => ({ default: m.DigitalProfile })));
+const DigitalSettings = lazy(() => import('./pages/digital/DigitalSettings').then(m => ({ default: m.DigitalSettings })));
+const DigitalDeliverables = lazy(() => import('./pages/digital/DigitalDeliverables').then(m => ({ default: m.DigitalDeliverables })));
+const DigitalStaff = lazy(() => import('./pages/digital/DigitalStaff').then(m => ({ default: m.DigitalStaff })));
+const DigitalLoginPage = lazy(() => import('./pages/digital/DigitalLoginPage').then(m => ({ default: m.DigitalLoginPage })));
+const DigitalClientPortal = lazy(() => import('./pages/digital/DigitalClientWorkspace'));
 
 // Digital Project Manager imports (Pure Supabase Rebuild)
-import { AttendancePage } from './pages/attendance/AttendancePage';
+const AttendancePage = lazy(() => import('./pages/attendance/AttendancePage').then(m => ({ default: m.AttendancePage })));
 import { DigitalPMLayout } from './layouts/DigitalPMLayout';
-import { DigitalPMDashboard } from './pages/digital/pm/DigitalPMDashboard';
-import { DigitalPMProjects } from './pages/digital/pm/DigitalPMProjects';
-import { DigitalPMTickets } from './pages/digital/pm/DigitalPMTickets';
-import { DigitalPMSprints } from './pages/digital/pm/DigitalPMSprints';
-import { DigitalPMMilestones } from './pages/digital/pm/DigitalPMMilestones';
-import { DigitalPMDocuments } from './pages/digital/pm/DigitalPMDocuments';
-import { DigitalPMNotifications } from './pages/digital/pm/DigitalPMNotifications';
-import { DigitalPMProfile } from './pages/digital/pm/DigitalPMProfile';
+const DigitalPMDashboard = lazy(() => import('./pages/digital/pm/DigitalPMDashboard').then(m => ({ default: m.DigitalPMDashboard })));
+const DigitalPMProjects = lazy(() => import('./pages/digital/pm/DigitalPMProjects').then(m => ({ default: m.DigitalPMProjects })));
+const DigitalPMTickets = lazy(() => import('./pages/digital/pm/DigitalPMTickets').then(m => ({ default: m.DigitalPMTickets })));
+const DigitalPMSprints = lazy(() => import('./pages/digital/pm/DigitalPMSprints').then(m => ({ default: m.DigitalPMSprints })));
+const DigitalPMMilestones = lazy(() => import('./pages/digital/pm/DigitalPMMilestones').then(m => ({ default: m.DigitalPMMilestones })));
+const DigitalPMDocuments = lazy(() => import('./pages/digital/pm/DigitalPMDocuments').then(m => ({ default: m.DigitalPMDocuments })));
+const DigitalPMNotifications = lazy(() => import('./pages/digital/pm/DigitalPMNotifications').then(m => ({ default: m.DigitalPMNotifications })));
+const DigitalPMProfile = lazy(() => import('./pages/digital/pm/DigitalPMProfile').then(m => ({ default: m.DigitalPMProfile })));
 
 // Staff Panel Imports (Admissions Counselor)
 import { StaffLayout } from './components/layout/StaffLayout';
-import { StaffDashboard } from './pages/staff/StaffDashboard';
-import { StaffTasks } from './pages/staff/StaffTasks';
-import { StaffStudents } from './pages/staff/StaffStudents';
-import { StaffApplications } from './pages/staff/StaffApplications';
-import { StaffUniversities } from './pages/staff/StaffUniversities';
-import { StaffDestinations } from './pages/staff/StaffDestinations';
-import { StaffDocuments } from './pages/staff/StaffDocuments';
-import { StaffTickets } from './pages/staff/StaffTickets';
-import { StaffProfile } from './pages/staff/StaffProfile';
+const StaffDashboard = lazy(() => import('./pages/staff/StaffDashboard').then(m => ({ default: m.StaffDashboard })));
+const StaffTasks = lazy(() => import('./pages/staff/StaffTasks').then(m => ({ default: m.StaffTasks })));
+const StaffStudents = lazy(() => import('./pages/staff/StaffStudents').then(m => ({ default: m.StaffStudents })));
+const StaffApplications = lazy(() => import('./pages/staff/StaffApplications').then(m => ({ default: m.StaffApplications })));
+const StaffUniversities = lazy(() => import('./pages/staff/StaffUniversities').then(m => ({ default: m.StaffUniversities })));
+const StaffDestinations = lazy(() => import('./pages/staff/StaffDestinations').then(m => ({ default: m.StaffDestinations })));
+const StaffDocuments = lazy(() => import('./pages/staff/StaffDocuments').then(m => ({ default: m.StaffDocuments })));
+const StaffTickets = lazy(() => import('./pages/staff/StaffTickets').then(m => ({ default: m.StaffTickets })));
+const StaffProfile = lazy(() => import('./pages/staff/StaffProfile').then(m => ({ default: m.StaffProfile })));
 
 
 
@@ -187,6 +187,17 @@ const PM_ROLES = ['project_manager', 'digital_manager', 'digimanager', 'pm', 'di
 const STAFF_ROLES = ['staff', 'counselor', 'admin', 'education_admin'];
 
 // Guards portal routes — redirects to login if not authenticated, or to proper portal if role mismatched
+const NotFound: React.FC = () => (
+  <main className="min-h-screen grid place-items-center bg-slate-50 px-6 text-center">
+    <div>
+      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#58051E] mb-2">Error 404</p>
+      <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">This page does not exist</h1>
+      <p className="mt-2 text-sm font-medium text-slate-500">The link may be old or mistyped.</p>
+      <Link to="/" className="inline-flex mt-6 h-10 items-center px-5 rounded-xl bg-[#58051E] text-white text-sm font-semibold hover:bg-[#430316]">Go to the home page</Link>
+    </div>
+  </main>
+);
+
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({ children, allowedRoles }) => {
   const { session, user, profile, loading } = useAuth();
   const location = useLocation();
@@ -279,6 +290,7 @@ function App() {
         <Router>
           <HashMigrationRedirect />
           <AppInitializer />
+          <Suspense fallback={<div className="min-h-screen grid place-items-center bg-slate-50"><div className="w-8 h-8 border-4 border-[#58051E] border-t-transparent rounded-full animate-spin" role="status" aria-label="Loading" /></div>}>
           <Routes>
             {/* ── Official FEREX Education Website & Login Portal ── */}
             <Route path="/" element={<FerexLandingPage />} />
@@ -561,8 +573,9 @@ function App() {
           <Route path="/employee/shift-details" element={<Navigate to="/staff/attendance" replace />} />
 
           {/* Catch-all */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
+          </Suspense>
       </Router>
     </AuthProvider>
     </ThemeProvider>

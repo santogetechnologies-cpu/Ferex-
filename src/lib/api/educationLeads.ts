@@ -789,7 +789,6 @@ export async function sendLeadWhatsAppWelcome(
 
   // 2. Client-side fallback if edge function was unavailable or simulation
   if (!success) {
-    console.log(`[WhatsApp Direct Simulator] To: ${lead.phone}\nBody: ${textMessage}`);
     success = true;
     providerUsed = 'direct_simulation';
   }
