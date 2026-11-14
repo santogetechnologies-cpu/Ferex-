@@ -723,7 +723,7 @@ export const RimiCollections: React.FC = () => {
               <div className="max-w-2xl mx-auto border-2 border-slate-800 p-6 rounded-2xl space-y-6">
                 <div className="flex justify-between items-start border-b-2 border-slate-800 pb-4">
                   <div>
-                    <h1 className="text-2xl font-black text-[#58051E] tracking-tight">FEREX RIMI FROZEN FMCG</h1>
+                    <h1 className="text-2xl font-black text-[#58051E] tracking-tight">Collections</h1>
                     <p className="text-xs font-semibold text-slate-600">Cold Chain Distribution & Logistics • National Warehouse Network</p>
                     <p className="text-[10px] text-slate-500 mt-1">Regd Office: Corporate Towers, Marine Lines, Mumbai | GSTIN: 27AAACF8921M1Z4</p>
                   </div>

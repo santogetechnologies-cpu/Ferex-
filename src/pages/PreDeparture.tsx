@@ -173,7 +173,7 @@ export const PreDeparture: React.FC = () => {
             <Plane className="w-3.5 h-3.5" /> Phase 03 • Pre-Departure & Campus Arrival
           </div>
           <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900">
-            Travel, Campus Arrival & Welfare Support
+            Pre-departure
           </h1>
           <p className="text-xs md:text-sm text-slate-500 mt-1.5 leading-relaxed font-medium">
             Manage your confirmed flight itinerary, university dormitory housing, airport concierge pickup, and complete the campus arrival checklist.

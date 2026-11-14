@@ -138,7 +138,7 @@ export const CentralEducation: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <GraduationCap className="w-5 h-5 text-[#58051E]" /> Education Alliances & Universities
+            <GraduationCap className="w-5 h-5 text-[#58051E]" /> Ferex Education
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Super Admin Console • Global partner university network, multi-currency tuition (PLN, EUR, USD, INR), banner imagery and quotas.

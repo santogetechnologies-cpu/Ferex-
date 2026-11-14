@@ -78,7 +78,7 @@ export const TradeShipmentAnalytics: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <div>
         <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-[#58051E]" /> Shipment & Logistics Analytics
+          <TrendingUp className="w-5 h-5 text-[#58051E]" /> Shipment reports
         </h1>
         <p className="text-xs font-semibold text-slate-500 mt-1">
           Ferex Trade Intelligence • Dynamic container turnaround times, maritime route efficiency, and port clearance speeds from live database.

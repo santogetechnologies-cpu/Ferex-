@@ -56,7 +56,7 @@ export const CentralInsights: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-[#58051E]" /> Executive Insights & CEO Command Overview
+            <TrendingUp className="w-5 h-5 text-[#58051E]" /> Insights
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Super Admin Console • Platform health score, revenue forecasting models, and executive recommendations.

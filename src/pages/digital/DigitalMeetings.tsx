@@ -191,7 +191,7 @@ export const DigitalMeetings: React.FC = () => {
               <Video className="w-4 h-4" />
             </div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              Client Meetings & Discovery Calls
+              Meetings
             </h1>
             <Badge variant="brand">{filteredMeetings.length} Scheduled</Badge>
           </div>

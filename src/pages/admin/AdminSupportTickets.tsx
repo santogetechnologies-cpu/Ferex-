@@ -336,7 +336,7 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
       <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4 shrink-0">
         <div>
           <h1 className="text-xl font-extrabold text-slate-955 flex items-center gap-2">
-            Support Control Room
+            Support
           </h1>
           <p className="text-xs font-semibold text-slate-400 mt-0.5">Manage, delegate, and resolve student helpdesk tickets.</p>
         </div>

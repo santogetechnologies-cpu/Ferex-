@@ -1033,7 +1033,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
         </header>
 
         {/* MAIN BODY AREA */}
-        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden print:overflow-visible print:h-auto print:min-h-0 print:block">
+        <main className="app-main flex-1 min-h-0 overflow-y-auto overflow-x-hidden print:overflow-visible print:h-auto print:min-h-0 print:block">
           <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto print:p-0 print:m-0 print:max-w-none print:w-full print:block print:h-auto print:overflow-visible">
             <motion.div
               key={location.pathname}

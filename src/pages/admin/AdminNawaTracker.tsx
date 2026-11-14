@@ -410,7 +410,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-black text-slate-900 tracking-tight">
-              Country Workflows & Legalization Management
+              Legalization
             </h1>
             <span className="text-[10px] font-black uppercase tracking-wider bg-[#58051E]/10 text-[#58051E] px-2.5 py-0.5 rounded-md border border-[#58051E]/20">
               SuperAdmin Config

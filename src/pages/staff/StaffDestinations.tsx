@@ -64,7 +64,7 @@ export const StaffDestinations: React.FC = () => {
             <span className="text-[10px] font-bold text-slate-400">● Saved</span>
           </div>
           <h1 className="text-2xl font-black text-slate-900 mt-1 flex items-center gap-2">
-            <Globe className="w-6 h-6 text-[#58051E]" /> Study Destinations & Visa Catalog
+            <Globe className="w-6 h-6 text-[#58051E]" /> Destinations
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">
             Key study destinations, immigration authorities, visa fees, standard processing turnaround, and counselor guidelines.

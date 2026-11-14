@@ -301,7 +301,7 @@ export const SupportTickets: React.FC = () => {
       <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4 shrink-0">
         <div>
           <h1 className="text-xl font-extrabold text-slate-950 flex items-center gap-2">
-            Support Helpdesk
+            Support
           </h1>
           <p className="text-xs font-semibold text-slate-450 mt-0.5">Submit inquiries, track statuses, and chat with counselors in real-time.</p>
         </div>

@@ -275,7 +275,7 @@ export const RimiProducts: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Package className="w-5 h-5 text-[#58051E]" /> Frozen Food Product Master Catalog
+            <Package className="w-5 h-5 text-[#58051E]" /> Products
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Rimi Cold Chain Console • Master SKU list, dynamic product categories, unit prices (₹), and storage temp standards.

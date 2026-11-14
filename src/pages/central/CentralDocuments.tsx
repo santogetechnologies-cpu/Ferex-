@@ -92,7 +92,7 @@ export const CentralDocuments: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Folder className="w-6 h-6 text-[#58051E]" /> Central Document Repository
+            <Folder className="w-6 h-6 text-[#58051E]" /> Documents
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Executive oversight of applicant identity records, academic certificates, and consular compliance files.

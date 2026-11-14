@@ -464,7 +464,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
         </header>
 
         {/* Page Body Viewport */}
-        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+        <main className="app-main flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
           <div className="p-4 md:p-8 max-w-7xl w-full mx-auto">
             {children}
           </div>

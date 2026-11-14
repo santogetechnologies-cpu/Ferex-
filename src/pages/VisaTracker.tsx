@@ -179,7 +179,7 @@ export const VisaTracker: React.FC = () => {
             Consular Phase 02 • 8 Sequential Milestones
           </div>
           <h1 className="text-xl md:text-2xl font-bold tracking-tight mb-1 text-white">
-            Visa Processing Status
+            Visa
           </h1>
           <p className="text-xs text-slate-400 leading-relaxed">
             Track your visa application progress from document preparation to biometric appointment and passport dispatch.

@@ -349,7 +349,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Users className="w-5 h-5 text-[#58051E]" /> Student Enquiries & Admissions CRM
+              <Users className="w-5 h-5 text-[#58051E]" /> Enquiries
             </h1>
             <span className="text-[10px] font-extrabold bg-[#58051E]/10 text-[#58051E] px-2.5 py-0.5 rounded-full border border-[#58051E]/20">
               {isStaff ? 'My Assigned Leads' : 'Full Admissions Pipeline'}

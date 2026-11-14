@@ -212,7 +212,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff 
               <Bell className="w-3.5 h-3.5" /> Communications & Announcements
             </div>
             <h1 className="text-2xl font-black tracking-tight text-slate-900">
-              Education Notifications & Announcements
+              Notifications
             </h1>
             <p className="text-xs md:text-sm font-medium text-slate-500 mt-1 max-w-2xl leading-relaxed">
               Monitor real-time alerts across university applications, student tuition payments, visa filings, document legalization, and publish broadcast announcements.

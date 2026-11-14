@@ -92,7 +92,7 @@ export const DigitalPMProfile: React.FC = () => {
             <User className="w-4 h-4" />
           </div>
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-            Project Manager Profile & Security
+            Profile
           </h1>
           <Badge variant="brand">Authenticated Staff Lead</Badge>
         </div>

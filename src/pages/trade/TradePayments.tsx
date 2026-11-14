@@ -274,7 +274,7 @@ export const TradePayments: React.FC = () => {
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-[#58051E]" />
-            Trade Payment & Settlement Ledger
+            Payments
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">
             Manage Advance Paid, Balance Settlements, Full Completions, and LC drawdowns with instant receipts.

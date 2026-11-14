@@ -171,7 +171,7 @@ export const TradeReports: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-3">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <BarChart3 className="w-6 h-6 text-[#58051E]" /> Executive Trade Reports & Customs Audit
+            <BarChart3 className="w-6 h-6 text-[#58051E]" /> Reports
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Comprehensive audit reports for quarterly trade turnover, European port clearance velocity, and customs duty.

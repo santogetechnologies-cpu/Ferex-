@@ -181,7 +181,7 @@ export const DigitalPMDashboard: React.FC = () => {
               <Sparkles className="w-4 h-4" />
             </div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              Project Manager Workspace
+              Dashboard
             </h1>
             <Badge variant="brand">FEREX Digital</Badge>
           </div>

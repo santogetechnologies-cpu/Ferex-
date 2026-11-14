@@ -265,7 +265,7 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
         </header>
 
         {/* Content Wrapper */}
-        <main className="flex-1 p-5 md:p-7 max-w-7xl mx-auto w-full">
+        <main className="app-main flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
           {children}
         </main>
       </div>

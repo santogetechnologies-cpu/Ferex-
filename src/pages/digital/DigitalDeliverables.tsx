@@ -189,7 +189,7 @@ export const DigitalDeliverables: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Project Deliverables & Artifacts</h1>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Deliverables</h1>
             <span className="text-[10px] font-bold text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded-md border border-[#58051E]/20">
               Files & Assets
             </span>

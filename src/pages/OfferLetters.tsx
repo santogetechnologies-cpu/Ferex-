@@ -252,7 +252,7 @@ export const OfferLetters: React.FC = () => {
             <span className="w-8 h-8 rounded-lg bg-[#58051E]/5 text-[#58051E] flex items-center justify-center">
               <FileText className="w-5 h-5" />
             </span>
-            Offer Letters & Final Acceptance Certificates
+            Offer letters
           </h1>
           <p className="text-sm font-semibold text-slate-500">
             Review initial admission offer letters, pay tuition directly to the university, and download your Official Final Acceptance Letter from the University.

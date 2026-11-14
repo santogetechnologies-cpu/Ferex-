@@ -240,7 +240,7 @@ export const DigitalPMSprints: React.FC = () => {
               <Layers className="w-4 h-4" />
             </div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              Sprint Kanban Board
+              Sprints
             </h1>
             <Badge variant="brand">{filteredTasks.length} Active Items</Badge>
           </div>

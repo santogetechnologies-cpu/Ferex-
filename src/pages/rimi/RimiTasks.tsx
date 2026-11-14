@@ -221,7 +221,7 @@ export const RimiTasks: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-black tracking-tight text-slate-900">
-              Operations & Task Management
+              Tasks
             </h1>
             <span className="text-[10px] uppercase font-black tracking-wider bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-200">
               {isAdmin ? 'Admin & Central Assignment' : 'My Assigned Tasks'}

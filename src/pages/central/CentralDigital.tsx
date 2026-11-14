@@ -153,7 +153,7 @@ export const CentralDigital: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Monitor className="w-6 h-6 text-emerald-600" /> Digital & Engineering Projects Overview
+            <Monitor className="w-6 h-6 text-emerald-600" /> Ferex Digital
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Central executive oversight of client deliverables, engineering project stages, and milestones.

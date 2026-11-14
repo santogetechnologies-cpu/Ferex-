@@ -227,7 +227,7 @@ export const TradeCRM: React.FC = () => {
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
             <Building2 className="w-5 h-5 text-[#58051E]" />
-            Trade CRM & Partner Entities
+            Partners
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Centralized registry of buyers, importers, suppliers, freight forwarders, and trade finance banks.

@@ -308,7 +308,7 @@ export const CentralActivity: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Activity className="w-6 h-6 text-[#58051E]" /> Security & Multi-App Audit Trail
+              <Activity className="w-6 h-6 text-[#58051E]" /> Activity log
             </h1>
             <span className="text-[10px] font-black bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
               Live Event Stream

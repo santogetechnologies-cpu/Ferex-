@@ -263,7 +263,7 @@ export const TradeTasks: React.FC = () => {
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
             <ListTodo className="w-5 h-5 text-[#58051E]" />
-            Trade Task & Operations Assignment
+            Tasks
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">
             Assign and monitor order handling, documentation, customs, and logistics tasks across Trade Officers.

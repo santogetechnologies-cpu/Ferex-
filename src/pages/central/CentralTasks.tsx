@@ -193,7 +193,7 @@ export const CentralTasks: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <CheckSquare className="w-6 h-6 text-[#58051E]" /> Cross-Divisional Operations & Task Center
+            <CheckSquare className="w-6 h-6 text-[#58051E]" /> Tasks
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Centrally delegate, track, and reassign high-priority operational workflows across all 4 enterprise platforms.

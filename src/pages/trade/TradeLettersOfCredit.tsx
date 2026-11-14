@@ -265,7 +265,7 @@ export const TradeLettersOfCredit: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-[#58051E]" /> International Letters of Credit (LC Duty & Guarantees)
+            <Building2 className="w-5 h-5 text-[#58051E]" /> Letters of credit
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Ferex Trade Console • Irrevocable documentary credits, banking guarantees, UCP 600 compliance, and cross-border bank settlement.

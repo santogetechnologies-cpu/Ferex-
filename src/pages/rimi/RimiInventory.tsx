@@ -238,7 +238,7 @@ export const RimiInventory: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Boxes className="w-5 h-5 text-[#58051E]" /> Unified Cold Inventory & Batch Management
+            <Boxes className="w-5 h-5 text-[#58051E]" /> Inventory
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">
             Merged batch tracking, automatic expiry shelf life alerts, and continuous stock audit movements.

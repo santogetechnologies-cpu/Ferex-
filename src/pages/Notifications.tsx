@@ -276,7 +276,7 @@ export const Notifications: React.FC = () => {
               <Bell className="w-3.5 h-3.5" /> Communications & Updates
             </div>
             <h1 className="text-2xl font-black tracking-tight text-slate-900">
-              Notifications & Activity Center
+              Notifications
             </h1>
             <p className="text-xs md:text-sm font-medium text-slate-500 mt-1 max-w-2xl leading-relaxed">
               Updates for university admissions, offer letters, fee receipts, counselor notes, document verifications, and visa status.

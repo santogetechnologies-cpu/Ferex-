@@ -188,7 +188,7 @@ export const CentralSupport: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <LifeBuoy className="w-6 h-6 text-[#58051E]" /> Support & Ticket Escalations
+            <LifeBuoy className="w-6 h-6 text-[#58051E]" /> Support
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Centrally inspect, reply, resolve, and reassign support tickets across all enterprise divisions.

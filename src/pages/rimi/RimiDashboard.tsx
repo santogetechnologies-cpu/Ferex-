@@ -125,21 +125,21 @@ export const RimiDashboard: React.FC = () => {
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                <ShoppingCart className="w-4 h-4 text-[#58051E]" /> Active Distribution Orders
+                <ShoppingCart className="w-4 h-4 text-[#58051E]" /> Recent orders
               </h3>
               <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
-                Continuous order lifecycle from receipt to reefer delivery.
+                The latest sales orders and their status.
               </p>
             </div>
             <Link to="/rimi/sales-orders" className="text-xs font-bold text-[#58051E] hover:underline flex items-center gap-1">
-              <span>View All Orders</span>
+              <span>All orders</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
           {metrics.recentOrders.length === 0 ? (
             <div className="p-8 text-center text-xs font-semibold text-slate-400 bg-slate-50 rounded-2xl">
-              No sales orders placed yet. Create an order to initiate distribution.
+              No sales orders yet. Create the first order to get started.
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -187,10 +187,10 @@ export const RimiDashboard: React.FC = () => {
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                <Activity className="w-4 h-4 text-[#58051E]" /> Audit Activity Feed
+                <Activity className="w-4 h-4 text-[#58051E]" /> Recent activity
               </h3>
               <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
-                Real-time chronological events.
+                Latest changes across orders and stock.
               </p>
             </div>
           </div>
@@ -230,14 +230,14 @@ export const RimiDashboard: React.FC = () => {
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div>
             <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-              <Warehouse className="w-4 h-4 text-[#58051E]" /> Cold Storage Facilities Status
+              <Warehouse className="w-4 h-4 text-[#58051E]" /> Cold storage
             </h3>
             <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
-              Temperature monitoring & pallet occupancy across primary hubs.
+              Pallet use in each warehouse.
             </p>
           </div>
           <Button size="sm" variant="outline" onClick={() => navigate('/rimi/warehouses')} className="text-xs font-bold">
-            Manage Facilities
+            Manage warehouses
           </Button>
         </div>
 

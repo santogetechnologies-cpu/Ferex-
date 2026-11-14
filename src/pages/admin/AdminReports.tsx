@@ -134,7 +134,7 @@ export const AdminReports: React.FC = () => {
 
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900">Reports & Analytics</h1>
+          <h1 className="text-xl font-extrabold text-slate-900">Reports</h1>
           <p className="text-xs font-semibold text-slate-400 mt-0.5">Insights across students, applications and payments</p>
         </div>
         <div className="flex items-center gap-2">

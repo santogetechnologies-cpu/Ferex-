@@ -198,7 +198,7 @@ export const AdminStaffManagement: React.FC = () => {
 
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900">Staff & Counselor Management</h1>
+          <h1 className="text-xl font-extrabold text-slate-900">Staff</h1>
           <p className="text-xs font-semibold text-slate-400 mt-0.5">{staff.length} Active Counselors, Admissions & Operations Staff</p>
         </div>
         <Link

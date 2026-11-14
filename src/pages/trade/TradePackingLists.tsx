@@ -216,7 +216,7 @@ export const TradePackingLists: React.FC = () => {
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
             <PackageCheck className="w-5 h-5 text-[#58051E]" />
-            Packing Lists & Manifests
+            Packing lists
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Export cargo packing declarations linked to ocean containers, weights, dimensions, and commercial invoices.

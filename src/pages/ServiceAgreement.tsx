@@ -347,7 +347,7 @@ export const ServiceAgreement: React.FC = () => {
             )}
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            Student Service Agreement
+            Service agreement
           </h1>
           <p className="text-xs text-slate-500 font-medium mt-0.5">
             Stage 2 in your journey: Executed after Lead Inquiry & before Advanced Registration Fee.

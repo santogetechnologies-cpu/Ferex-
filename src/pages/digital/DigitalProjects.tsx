@@ -437,10 +437,10 @@ export const DigitalProjects: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <FolderKanban className="w-5 h-5 text-[#58051E]" /> Marketing & Advertising Projects Portfolio
+            <FolderKanban className="w-5 h-5 text-[#58051E]" /> Projects
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Ferex Digital Agency • 6-Stage Lifecycle Tracker (Briefing → Closed), Deliverables Hub, and Staff Assignments.
+            Client work from briefing to delivery, with owners, deliverables and billing.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -449,7 +449,7 @@ export const DigitalProjects: React.FC = () => {
             className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-sm"
             onClick={() => setShowAddModal(true)}
           >
-            <Plus className="w-4 h-4 mr-1.5" /> Start New Project
+            <Plus className="w-4 h-4 mr-1.5" /> New project
           </Button>
         </div>
       </div>

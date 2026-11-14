@@ -155,7 +155,7 @@ export const CentralRimi: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Snowflake className="w-6 h-6 text-cyan-600" /> Cold Chain & Distribution Overview
+            <Snowflake className="w-6 h-6 text-cyan-600" /> Rimi Frozen
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Central oversight across distributors, retailers, wholesalers, sales orders, and cold storage inventory.

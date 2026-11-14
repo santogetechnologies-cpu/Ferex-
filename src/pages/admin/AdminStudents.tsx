@@ -547,7 +547,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <GraduationCap className="w-6 h-6 text-[#58051E]" /> Student Directory & Enrollments
+              <GraduationCap className="w-6 h-6 text-[#58051E]" /> Students
             </h1>
             <span className="text-[10px] font-extrabold bg-[#58051E]/10 text-[#58051E] px-2.5 py-0.5 rounded-full border border-[#58051E]/20">
               {isStaff ? 'Counselor CRM' : 'Multi-Country CRM'}

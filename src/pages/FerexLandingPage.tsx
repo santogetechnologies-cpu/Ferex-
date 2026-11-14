@@ -450,7 +450,7 @@ export const FerexLandingPage: React.FC = () => {
               
               {/* Main Headline (Clean, no wavy underline) */}
               <h1 className="text-3xl sm:text-4xl lg:text-[46px] font-serif font-black tracking-tight text-[#1F2937] leading-[1.16]">
-                Study in <span className="text-[#570229]">Europe</span> with Guaranteed Admission & Visa Support
+                Study in <span className="text-[#570229]">Europe</span> with expert admission & visa support
               </h1>
 
               {/* Subtitle */}

@@ -170,7 +170,7 @@ export const CentralSettings: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Settings className="w-6 h-6 text-[#58051E]" /> Central System Settings
+              <Settings className="w-6 h-6 text-[#58051E]" /> Settings
             </h1>
             <span className="text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full">
               Live DB Sync

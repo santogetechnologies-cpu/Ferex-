@@ -475,7 +475,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
             <span className="w-8 h-8 rounded-lg bg-[#58051E]/5 text-[#58051E] flex items-center justify-center">
               <ShieldCheck className="w-5 h-5" />
             </span>
-            VFS & Embassy Visa Management
+            Visa
           </h1>
           <p className="text-sm font-semibold text-slate-500">
             Initiate VFS process for students, update appointment slots, embassy stages, and official visa verdict.

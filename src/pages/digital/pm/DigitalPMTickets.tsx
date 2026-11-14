@@ -152,7 +152,7 @@ export const DigitalPMTickets: React.FC = () => {
               <Headphones className="w-4 h-4" />
             </div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              Client Tickets & Revisions Desk
+              Support
             </h1>
             <Badge variant="brand">{filteredTickets.length} Tickets</Badge>
           </div>

@@ -168,7 +168,7 @@ export const Meetings: React.FC = () => {
             <span className="w-8 h-8 rounded-lg bg-[#58051E]/5 text-[#58051E] flex items-center justify-center">
               <CalendarIcon className="w-5 h-5" />
             </span>
-            Meetings & Advisory Center
+            Meetings
           </h1>
           <p className="text-sm font-semibold text-slate-500">
             Book and join 1-on-1 advisory sessions, document verification checks, and visa guidance.

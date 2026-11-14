@@ -445,7 +445,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </header>
 
         {/* Page Content with smooth route transition */}
-        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+        <main className="app-main flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
           <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
             <motion.div
               key={location.pathname}

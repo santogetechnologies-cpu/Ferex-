@@ -143,7 +143,7 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
               </div>
 
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
-                Study in Europe with <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-rose-300 to-cyan-300">Guaranteed Admissions</span> & Direct Schengen Visas
+                Study in Europe with <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-rose-300 to-cyan-300">Expert Admissions</span> & Visa Support
               </h1>
 
               <p className="text-sm sm:text-base text-slate-300 font-medium leading-relaxed max-w-2xl">

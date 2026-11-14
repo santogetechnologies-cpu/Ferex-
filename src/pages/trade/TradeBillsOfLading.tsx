@@ -249,7 +249,7 @@ export const TradeBillsOfLading: React.FC = () => {
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
             <FileCheck2 className="w-5 h-5 text-[#58051E]" />
-            Ocean & Air Bills of Lading (B/L)
+            Bills of lading
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Issue, amend, release and track maritime title documents with carrier vessel schedules and notify party details.

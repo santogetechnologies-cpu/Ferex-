@@ -194,7 +194,7 @@ export const TradeTickets: React.FC = () => {
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
             <LifeBuoy className="w-5 h-5 text-[#58051E]" />
-            Manual Client Support & Inquiry Desk
+            Support
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">
             Manually log complaints, inquiries, or requests received via Phone, Email, WhatsApp, or In-Person.

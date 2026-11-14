@@ -136,7 +136,7 @@ export const TradeSettings: React.FC = () => {
           </div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
             <Settings className="w-5 h-5 text-[#58051E]" />
-            Trade & Customs Settings
+            Settings
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1 max-w-2xl">
             Configure Incoterms defaults (CIF/FOB), Letter of Credit (LC) banking rules, port corridors, and trade partner notifications.

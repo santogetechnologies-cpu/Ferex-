@@ -407,7 +407,7 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-3">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-black text-slate-900 tracking-tight">Status Tracker</h1>
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">Tasks</h1>
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20">
               {isStaff ? 'My Assigned Deliverables' : 'Operational Workflow'}
             </span>

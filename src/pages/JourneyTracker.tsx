@@ -441,7 +441,7 @@ export const JourneyTracker: React.FC = () => {
             Admissions & Mobility Lifecycle
           </div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
-            Student Journey Tracker
+            My journey
           </h1>
           <p className="text-xs md:text-sm text-slate-300 mt-2 leading-relaxed">
             Monitor real-time progress across the three sequential operational pillars: University Application, Consular Visa Filing, and Travel & Settlement.

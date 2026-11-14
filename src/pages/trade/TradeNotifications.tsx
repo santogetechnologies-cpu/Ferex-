@@ -140,7 +140,7 @@ export const TradeNotifications: React.FC = () => {
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
             <Mail className="w-5 h-5 text-[#58051E]" />
-            Automated Emails & Notification Audit Center
+            Notifications
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">
             Full list of 8 automatic email triggers synced in real-time across order stages, payments, and documents.

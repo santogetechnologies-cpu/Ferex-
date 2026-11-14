@@ -103,7 +103,7 @@ export const RimiAnalytics: React.FC = () => {
             </span>
           </div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight mt-1 flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-[#58051E]" /> Finance, Revenue & Inventory Analytics
+            <BarChart3 className="w-5 h-5 text-[#58051E]" /> Reports
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">
             Real-time sales realization, receivables ledger, product sales velocity, and cold chain batch risk valuation.

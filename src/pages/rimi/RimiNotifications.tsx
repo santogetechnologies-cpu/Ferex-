@@ -195,7 +195,7 @@ export const RimiNotifications: React.FC = () => {
               <Snowflake className="w-3.5 h-3.5 text-cyan-600" /> FMCG Cold Chain Monitoring
             </div>
             <h1 className="text-2xl font-black tracking-tight text-slate-900">
-              Operations Alert & Notification Center
+              Notifications
             </h1>
             <p className="text-xs md:text-sm font-medium text-slate-500 mt-1 max-w-2xl leading-relaxed">
               Cold room temperature alerts, expiring batch notices, reefer fleet dispatches, and incoming wholesale customer orders.
