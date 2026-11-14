@@ -82,7 +82,11 @@ async function select<T>(q: PromiseLike<{ data: any; error: { message: string } 
   return (data || []) as T[];
 }
 
-export const getContext = () => rpc<AttendanceContext>('attendance_context');
+export async function getContext(): Promise<AttendanceContext> {
+  const c = await rpc<AttendanceContext>('attendance_context');
+  if (!c || !c.user_id || !c.rules) throw new Error('Could not load your attendance profile');
+  return c;
+}
 export const getTeam = () => rpc<TeamMember[]>('attendance_team');
 
 export const clockIn = (note = '') => write<AttendanceDay>('attendance_clock_in', { p_note: note });
