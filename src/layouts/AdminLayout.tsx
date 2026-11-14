@@ -37,7 +37,7 @@ const baseMenuItems = [
   { name: 'Status Tracker', path: '/admin/tasks', icon: ClipboardList, badge: null, hasUpdate: false },
   { name: 'Support Tickets', path: '/admin/support', icon: Headphones, badge: null, hasUpdate: false },
   { name: 'Advisory Chat', path: '/admin/chat', icon: MessageSquare, badge: null, hasUpdate: false },
-  { name: 'Staff Attendance & Hours', path: '/admin/attendance', icon: Clock, badge: null, hasUpdate: false },
+  { name: 'Attendance', path: '/admin/attendance', icon: Clock, badge: null, hasUpdate: false },
   { name: 'Staff Management', path: '/admin/staff', icon: Users, badge: null, hasUpdate: false },
   { name: 'Meetings & Planner', path: '/admin/meetings', icon: Calendar, badge: null, hasUpdate: false },
   { name: 'Reports & Analytics', path: '/admin/reports', icon: BarChart3, badge: null, hasUpdate: false },

@@ -119,7 +119,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
       title: 'TRADE OPERATIONS',
       items: [
         { name: 'Orders & Tracking', path: '/trade/shipments', icon: PackageCheck },
-        { name: 'Floor Hours & Shifts', path: '/trade/attendance', icon: Clock },
+        { name: 'Attendance', path: '/trade/attendance', icon: Clock },
         { name: 'Trade Documents', path: '/trade/documents', icon: FolderArchive },
         { name: 'Task Assignment', path: '/trade/tasks', icon: ListTodo },
         { name: 'Support & Tickets', path: '/trade/tickets', icon: LifeBuoy },
@@ -148,7 +148,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
       title: 'STAFF OPERATIONS PORTAL',
       items: [
         { name: 'Dashboard', path: '/trade/dashboard', icon: LayoutDashboard },
-        { name: 'My Shift & Hours', path: '/trade/attendance', icon: Clock },
+        { name: 'Attendance', path: '/trade/attendance', icon: Clock },
         { name: 'Active Orders', path: '/trade/shipments', icon: PackageCheck },
         { name: 'My Assigned Tasks', path: '/trade/tasks', icon: ListTodo },
         { name: 'Document Verification', path: '/trade/documents', icon: FolderArchive },

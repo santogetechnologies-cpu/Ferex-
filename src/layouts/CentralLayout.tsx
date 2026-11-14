@@ -50,7 +50,7 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
     {
       title: 'ENTERPRISE FINANCE & HR',
       items: [
-        { name: 'Attendance & Payroll', path: '/central/attendance', icon: Clock },
+        { name: 'Attendance', path: '/central/attendance', icon: Clock },
         { name: 'Finance & Analytics', path: '/central/reports', icon: BarChart3 },
         { name: 'Enterprise Ledger', path: '/central/finance', icon: CreditCard },
       ]

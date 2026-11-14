@@ -74,12 +74,6 @@ import { CentralSupport } from './pages/central/CentralSupport';
 import { CentralEducation } from './pages/central/CentralEducation';
 import { CentralStudents } from './pages/central/CentralStudents';
 import { CentralEmailLogs } from './pages/central/CentralEmailLogs';
-import { CentralAttendance } from './pages/central/CentralAttendance';
-import { AdminAttendance } from './pages/admin/AdminAttendance';
-import { StaffAttendance } from './pages/staff/StaffAttendance';
-import { TradeAttendance } from './pages/trade/TradeAttendance';
-import { RimiAttendance } from './pages/rimi/RimiAttendance';
-import { DigitalPMAttendance } from './pages/digital/pm/DigitalPMAttendance';
 
 // Trade imports
 import { TradeLayout } from './layouts/TradeLayout';
@@ -132,7 +126,6 @@ import { DigitalProjects } from './pages/digital/DigitalProjects';
 import { DigitalTasks } from './pages/digital/DigitalTasks';
 import { DigitalMeetings } from './pages/digital/DigitalMeetings';
 import { DigitalExpenses } from './pages/digital/DigitalExpenses';
-import { DigitalAttendance } from './pages/digital/DigitalAttendance';
 import { DigitalNotifications } from './pages/digital/DigitalNotifications';
 import { DigitalProfile } from './pages/digital/DigitalProfile';
 import { DigitalSettings } from './pages/digital/DigitalSettings';
@@ -142,6 +135,7 @@ import { DigitalLoginPage } from './pages/digital/DigitalLoginPage';
 import DigitalClientPortal from './pages/digital/DigitalClientWorkspace';
 
 // Digital Project Manager imports (Pure Supabase Rebuild)
+import { AttendancePage } from './pages/attendance/AttendancePage';
 import { DigitalPMLayout } from './layouts/DigitalPMLayout';
 import { DigitalPMDashboard } from './pages/digital/pm/DigitalPMDashboard';
 import { DigitalPMProjects } from './pages/digital/pm/DigitalPMProjects';
@@ -350,7 +344,7 @@ function App() {
           <Route path="/admin/meetings" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminMeetings /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/notifications" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminNotifications /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/fee-config" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminFeeConfig /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/attendance" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminAttendance /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/attendance" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AttendancePage /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/timesheets" element={<Navigate to="/admin/attendance" replace />} />
           <Route path="/admin/customization-policies" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminCustomizationPolicies /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/customization" element={<Navigate to="/admin/customization-policies" replace />} />
@@ -374,7 +368,7 @@ function App() {
           <Route path="/central/activity" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralActivity /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/notifications" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralNotifications /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/finance-analytics" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralReports /></CentralLayout></ProtectedRoute>} />
-          <Route path="/central/attendance" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralAttendance /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/attendance" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><AttendancePage /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/payroll" element={<Navigate to="/central/attendance" replace />} />
           <Route path="/central/settings" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralSettings /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/workflow-guide" element={<Navigate to="/central/dashboard" replace />} />
@@ -411,10 +405,10 @@ function App() {
           <Route path="/trade/emails" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><CentralEmailLogs defaultDivision="trade" /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/tasks" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeTasks /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/tickets" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeTickets /></TradeLayout></ProtectedRoute>} />
-          <Route path="/trade/attendance" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeAttendance /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/attendance" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><AttendancePage /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/timesheets" element={<Navigate to="/trade/attendance" replace />} />
-          <Route path="/trade/shifts" element={<Navigate to="/trade/attendance?tab=shifts" replace />} />
-          <Route path="/trade/shift-details" element={<Navigate to="/trade/attendance?tab=shifts" replace />} />
+          <Route path="/trade/shifts" element={<Navigate to="/trade/attendance" replace />} />
+          <Route path="/trade/shift-details" element={<Navigate to="/trade/attendance" replace />} />
           <Route path="/trade/profile" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeProfile /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/settings" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeSettings /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/client-portal" element={<Navigate to="/trade/dashboard" replace />} />
@@ -445,10 +439,10 @@ function App() {
           <Route path="/rimi/messages" element={<Navigate to="/rimi/dashboard" replace />} />
           <Route path="/rimi/notifications" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiNotifications /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/emails" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><CentralEmailLogs defaultDivision="rimi" /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/attendance" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiAttendance /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/attendance" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><AttendancePage /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/timesheets" element={<Navigate to="/rimi/attendance" replace />} />
-          <Route path="/rimi/shifts" element={<Navigate to="/rimi/attendance?tab=shifts" replace />} />
-          <Route path="/rimi/shift-details" element={<Navigate to="/rimi/attendance?tab=shifts" replace />} />
+          <Route path="/rimi/shifts" element={<Navigate to="/rimi/attendance" replace />} />
+          <Route path="/rimi/shift-details" element={<Navigate to="/rimi/attendance" replace />} />
           <Route path="/rimi/profile" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiProfile /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/settings" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiProfile /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/tasks" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiTasks /></RimiLayout></ProtectedRoute>} />
@@ -488,10 +482,10 @@ function App() {
           <Route path="/digital/finance/billing" element={<Navigate to="/digital/billing" replace />} />
 
           {/* Digital Team */}
-          <Route path="/digital/attendance" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalAttendance /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/attendance" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><AttendancePage /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/timesheets" element={<Navigate to="/digital/attendance" replace />} />
-          <Route path="/digital/shifts" element={<Navigate to="/digital/attendance?tab=shifts" replace />} />
-          <Route path="/digital/shift-details" element={<Navigate to="/digital/attendance?tab=shifts" replace />} />
+          <Route path="/digital/shifts" element={<Navigate to="/digital/attendance" replace />} />
+          <Route path="/digital/shift-details" element={<Navigate to="/digital/attendance" replace />} />
           <Route path="/digital/employees" element={<Navigate to="/central/roles-users" replace />} />
           <Route path="/digital/team/employees" element={<Navigate to="/central/roles-users" replace />} />
           <Route path="/digital/team/attendance" element={<Navigate to="/digital/attendance" replace />} />
@@ -522,10 +516,10 @@ function App() {
           <Route path="/digital/pm/milestones" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMMilestones /></DigitalPMLayout></ProtectedRoute>} />
           <Route path="/digital/pm/documents" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMDocuments /></DigitalPMLayout></ProtectedRoute>} />
           <Route path="/digital/pm/notifications" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMNotifications /></DigitalPMLayout></ProtectedRoute>} />
-          <Route path="/digital/pm/attendance" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMAttendance /></DigitalPMLayout></ProtectedRoute>} />
+          <Route path="/digital/pm/attendance" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><AttendancePage /></DigitalPMLayout></ProtectedRoute>} />
           <Route path="/digital/pm/timesheets" element={<Navigate to="/digital/pm/attendance" replace />} />
-          <Route path="/digital/pm/shifts" element={<Navigate to="/digital/pm/attendance?tab=shifts" replace />} />
-          <Route path="/digital/pm/shift-details" element={<Navigate to="/digital/pm/attendance?tab=shifts" replace />} />
+          <Route path="/digital/pm/shifts" element={<Navigate to="/digital/pm/attendance" replace />} />
+          <Route path="/digital/pm/shift-details" element={<Navigate to="/digital/pm/attendance" replace />} />
           <Route path="/digital/pm/profile" element={<ProtectedRoute allowedRoles={PM_ROLES}><DigitalPMLayout><DigitalPMProfile /></DigitalPMLayout></ProtectedRoute>} />
 
           {/* ── Ferex Digital Client Portal ── */}
@@ -550,10 +544,10 @@ function App() {
           <Route path="/staff/pre-departure" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminPreDeparture isStaff={true} /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/support" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffTickets /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/tickets" element={<Navigate to="/staff/support" replace />} />
-          <Route path="/staff/attendance" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffAttendance /></StaffLayout></ProtectedRoute>} />
+          <Route path="/staff/attendance" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AttendancePage /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/timesheets" element={<Navigate to="/staff/attendance" replace />} />
-          <Route path="/staff/shifts" element={<Navigate to="/staff/attendance?tab=shifts" replace />} />
-          <Route path="/staff/shift-details" element={<Navigate to="/staff/attendance?tab=shifts" replace />} />
+          <Route path="/staff/shifts" element={<Navigate to="/staff/attendance" replace />} />
+          <Route path="/staff/shift-details" element={<Navigate to="/staff/attendance" replace />} />
           <Route path="/staff/meetings" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminMeetings isStaff={true} /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/chat" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminChatSupport isStaff={true} /></StaffLayout></ProtectedRoute>} />
           <Route path="/staff/notifications" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><AdminNotifications isStaff={true} /></StaffLayout></ProtectedRoute>} />
@@ -561,10 +555,10 @@ function App() {
           <Route path="/staff/settings" element={<ProtectedRoute allowedRoles={STAFF_ROLES}><StaffLayout><StaffProfile /></StaffLayout></ProtectedRoute>} />
 
           {/* ── Global Employee Shift Aliases ── */}
-          <Route path="/shifts" element={<Navigate to="/staff/attendance?tab=shifts" replace />} />
-          <Route path="/shift-details" element={<Navigate to="/staff/attendance?tab=shifts" replace />} />
-          <Route path="/employee/shifts" element={<Navigate to="/staff/attendance?tab=shifts" replace />} />
-          <Route path="/employee/shift-details" element={<Navigate to="/staff/attendance?tab=shifts" replace />} />
+          <Route path="/shifts" element={<Navigate to="/staff/attendance" replace />} />
+          <Route path="/shift-details" element={<Navigate to="/staff/attendance" replace />} />
+          <Route path="/employee/shifts" element={<Navigate to="/staff/attendance" replace />} />
+          <Route path="/employee/shift-details" element={<Navigate to="/staff/attendance" replace />} />
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />

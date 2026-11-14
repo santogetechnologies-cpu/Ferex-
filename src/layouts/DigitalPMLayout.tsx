@@ -19,7 +19,7 @@ interface DigitalPMLayoutProps {
 
 const pmNavItems = [
   { name: 'Dashboard', path: '/digital/pm/dashboard', icon: LayoutDashboard },
-  { name: 'My Attendance', path: '/digital/pm/attendance', icon: Clock },
+  { name: 'Attendance', path: '/digital/pm/attendance', icon: Clock },
   { name: 'My Projects', path: '/digital/pm/projects', icon: FolderKanban },
   { name: 'Client Tickets', path: '/digital/pm/tickets', icon: Headphones },
   { name: 'Sprint Board', path: '/digital/pm/sprints', icon: Layers },

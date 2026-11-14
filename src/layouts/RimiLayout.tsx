@@ -135,7 +135,7 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
     {
       title: 'Operations & Alerts',
       items: [
-        { label: 'Staff Hours & Shifts', path: '/rimi/attendance', icon: Clock },
+        { label: 'Attendance', path: '/rimi/attendance', icon: Clock },
         { label: 'Finance & BI', path: '/rimi/analytics', icon: BarChart3 },
         { label: 'Tasks & Dispatch', path: '/rimi/tasks', icon: CheckCircle2 },
         { label: 'Notifications', path: '/rimi/notifications', icon: Bell, badge: unreadNotifCount > 0 ? String(unreadNotifCount) : undefined },

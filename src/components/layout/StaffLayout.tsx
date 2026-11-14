@@ -17,7 +17,7 @@ interface StaffLayoutProps {
 
 const baseStaffMenuItems = [
   { name: 'Dashboard', path: '/staff/dashboard', icon: LayoutDashboard },
-  { name: 'My Attendance & Hours', path: '/staff/attendance', icon: Clock },
+  { name: 'Attendance', path: '/staff/attendance', icon: Clock },
   { name: 'Student Enquiries', path: '/staff/enquiries', icon: Users },
   { name: 'Students', path: '/staff/students', icon: GraduationCap },
   { name: 'Universities', path: '/staff/universities', icon: Building2 },

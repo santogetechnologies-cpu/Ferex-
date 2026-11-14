@@ -715,20 +715,6 @@ export async function deleteDigitalEmployee(id: string) {
   return true;
 }
 
-// ─── Digital Attendance (legacy table) ──────────────────────────
-export async function getDigitalAttendance() {
-  return (ok(await supabase.from('digital_attendance').select('*').order('date', { ascending: false })) || []) as any[];
-}
-
-export async function recordDigitalAttendance(record: any) {
-  const row = ok(await supabase.from('digital_attendance').insert({
-    ...pick(record, ['employee_id', 'user_email', 'status', 'check_in', 'check_out', 'hours']),
-    date: record.date || new Date().toISOString().slice(0, 10),
-  }).select().single(), 'Could not record attendance');
-  triggerLocalSync('ferex_digital_attendance_change');
-  return row as any;
-}
-
 // ─── Digital Meetings ────────────────────────────────────────
 export interface DigitalMeetingRecord {
   id: string; title: string; client: string; client_id?: string; host_staff_name: string; host_staff_email?: string; time: string; date?: string;

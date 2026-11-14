@@ -120,7 +120,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
       title: 'Agency Operations',
       items: [
         { label: 'Clients', path: '/digital/clients', icon: Users },
-        { label: 'Attendance & Timesheets', path: '/digital/attendance', icon: Clock },
+        { label: 'Attendance', path: '/digital/attendance', icon: Clock },
         { label: 'Projects', path: '/digital/projects', icon: FolderKanban },
         { label: 'Deliverables', path: '/digital/deliverables', icon: Layers },
         { label: 'Task Assignment', path: '/digital/tasks', icon: CheckSquare },
@@ -166,7 +166,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
       title: 'Projects & Tasks',
       items: [
         { label: 'My Projects', path: '/digital/projects', icon: FolderKanban },
-        { label: 'My Attendance & Hours', path: '/digital/attendance', icon: Clock },
+        { label: 'Attendance', path: '/digital/attendance', icon: Clock },
         { label: 'Deliverables', path: '/digital/deliverables', icon: Layers },
         { label: 'Tasks Queue', path: '/digital/tasks', icon: CheckSquare },
         { label: 'Meetings', path: '/digital/meetings', icon: Calendar }
