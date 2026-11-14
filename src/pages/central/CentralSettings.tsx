@@ -614,7 +614,7 @@ export const CentralSettings: React.FC = () => {
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
               <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">Database Connectivity</h2>
-              <p className="text-xs font-medium text-slate-400 mt-0.5">Real-time health status and schema synchronization diagnostics.</p>
+              <p className="text-xs font-medium text-slate-400 mt-0.5">Connection and service status.</p>
             </div>
             <Button
               size="sm"
@@ -632,7 +632,7 @@ export const CentralSettings: React.FC = () => {
             <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100">
               <span className="text-[10px] font-bold text-emerald-700 uppercase block">Database System</span>
               <span className="text-sm font-black text-emerald-900 mt-1 block">PostgreSQL</span>
-              <span className="text-[10px] text-emerald-600 font-semibold mt-1 block">Active & Synchronized</span>
+              <span className="text-[10px] text-emerald-600 font-semibold mt-1 block">Active</span>
             </div>
 
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60">
@@ -644,7 +644,7 @@ export const CentralSettings: React.FC = () => {
             </div>
 
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60">
-              <span className="text-[10px] font-bold text-slate-400 uppercase block">Realtime Subscriptions</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase block">Live updates</span>
               <span className="text-sm font-black text-slate-900 mt-1 block">4 Active Channels</span>
               <span className="text-[10px] text-slate-400 font-semibold mt-1 block">Payments, Users, Audit, Emails</span>
             </div>

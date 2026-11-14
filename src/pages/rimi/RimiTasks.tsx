@@ -229,7 +229,7 @@ export const RimiTasks: React.FC = () => {
           </div>
           <p className="text-xs text-slate-500 font-semibold mt-1">
             {isAdmin
-              ? 'Assign, rename, and dynamically reassign tasks across operational staff, QC teams, and regional sales executives.'
+              ? 'Create tasks and assign them to your team.'
               : 'Working-level tasks assigned specifically to you. Update progress and mark completion in real time.'}
           </p>
         </div>

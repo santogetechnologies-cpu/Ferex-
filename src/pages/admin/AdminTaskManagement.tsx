@@ -413,7 +413,7 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
             </span>
           </div>
           <p className="text-xs font-semibold text-slate-400 mt-1">
-            {isStaff ? 'Operational tasks assigned to you by administrators.' : 'Assign work items, track progress, and manage staff deliverables.'}
+            {isStaff ? 'Operational tasks assigned to you by administrators.' : 'Create tasks and follow their progress.'}
           </p>
         </div>
 

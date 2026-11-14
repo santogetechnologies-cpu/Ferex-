@@ -323,18 +323,10 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
 
       {/* ── Executive Hero Card ─────────────────────────────────────────── */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden relative">
-        {/* Banner */}
-        <div className="h-32 md:h-40 bg-linear-to-r from-[#58051E] via-[#7a0d2e] to-slate-900 relative overflow-hidden">
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
-          <div className="absolute right-6 top-6 flex items-center gap-2">
-            <span className="px-3 py-1 bg-white/15 backdrop-blur-md text-white rounded-full text-[11px] font-bold tracking-wide border border-white/20">
-              Student ID: STU-{activeStudentId?.slice(0, 6).toUpperCase() || '1001'}
-            </span>
-          </div>
-        </div>
+        <div className="h-20 bg-[#58051E]/[0.07]" />
 
         {/* Profile Content Bar */}
-        <div className="px-6 md:px-8 pb-6 pt-0 relative flex flex-col md:flex-row md:items-end justify-between gap-6 -mt-14">
+        <div className="px-6 md:px-8 pb-6 pt-0 relative flex flex-col md:flex-row md:items-end justify-between gap-6 -mt-10">
           <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5">
             {/* Avatar */}
             <div className="relative group shrink-0">
@@ -375,7 +367,8 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
                 {personal.phone && (
                   <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5 text-slate-400" /> {personal.phone}</span>
                 )}
-                <span className="flex items-center gap-1"><Globe className="w-3.5 h-3.5 text-slate-400" /> {targetCountry !== 'Not Set' ? targetCountry : 'Global Admission'}</span>
+                <span className="flex items-center gap-1 text-slate-400">ID STU-{activeStudentId?.slice(0, 6).toUpperCase() || '—'}</span>
+                <span className="flex items-center gap-1"><Globe className="w-3.5 h-3.5 text-slate-400" /> {targetCountry !== 'Not Set' ? targetCountry : 'No country chosen'}</span>
               </p>
             </div>
           </div>

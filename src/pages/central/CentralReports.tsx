@@ -457,7 +457,7 @@ export const CentralReports: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-5 border border-slate-200/80 shadow-xs bg-white">
           <span className="text-[10.5px] font-extrabold uppercase text-slate-400 block mb-1">
-            Combined Revenue
+            Total revenue
           </span>
           <div className="text-2xl font-black text-slate-900 tracking-tight">
             ₹{totalCombinedRevenue.toLocaleString('en-IN')}
@@ -470,29 +470,29 @@ export const CentralReports: React.FC = () => {
 
         <Card className="p-5 border border-slate-200/80 shadow-xs bg-white">
           <span className="text-[10.5px] font-extrabold uppercase text-slate-400 block mb-1">
-            Verified & Cleared Treasury
+            Cleared payments
           </span>
           <div className="text-2xl font-black text-emerald-700 tracking-tight">
             ₹{totalClearedRevenue.toLocaleString('en-IN')}
           </div>
           <div className="flex items-center justify-between mt-2.5 text-[10px] font-bold text-slate-400">
             <span className="text-emerald-600">
-              {totalCombinedRevenue > 0 ? Math.round((totalClearedRevenue / totalCombinedRevenue) * 100) : 100}% Settlement Velocity
+              {totalCombinedRevenue > 0 ? Math.round((totalClearedRevenue / totalCombinedRevenue) * 100) : 100}% of total cleared
             </span>
-            <span className="font-semibold text-slate-500">Audited Inflow</span>
+            
           </div>
         </Card>
 
         <Card className="p-5 border border-slate-200/80 shadow-xs bg-white">
           <span className="text-[10.5px] font-extrabold uppercase text-slate-400 block mb-1">
-            Pending / In-Transit Settlements
+            Pending payments
           </span>
           <div className="text-2xl font-black text-amber-700 tracking-tight">
             ₹{totalPendingRevenue.toLocaleString('en-IN')}
           </div>
           <div className="flex items-center justify-between mt-2.5 text-[10px] font-bold text-amber-600">
-            <span>Requires Division Clearing</span>
-            <span className="text-slate-400 font-semibold">LC / Unverified</span>
+            <span>Waiting to clear</span>
+            
           </div>
         </Card>
 
@@ -504,8 +504,8 @@ export const CentralReports: React.FC = () => {
             ₹{totalTransactionsCount > 0 ? Math.round(totalCombinedRevenue / totalTransactionsCount).toLocaleString('en-IN') : 0}
           </div>
           <div className="flex items-center justify-between mt-2.5 text-[10px] font-bold text-slate-400">
-            <span className="text-indigo-600">Blended 4-Platform ARPU</span>
-            <span className="font-semibold text-slate-500">Cross-Division</span>
+            <span className="text-indigo-600">Per transaction</span>
+            
           </div>
         </Card>
       </div>
@@ -551,7 +551,7 @@ export const CentralReports: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${sub.badgeColor}`}>
-                      {share}% Enterprise Share
+                      {share}% of total
                     </span>
                     
                   </div>
@@ -579,7 +579,7 @@ export const CentralReports: React.FC = () => {
                 {/* Progress bar */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-[10.5px] font-bold">
-                    <span className="text-slate-500">Settlement Fulfillment Rate</span>
+                    <span className="text-slate-500">Share cleared</span>
                     <span className="text-slate-900 font-extrabold">{sub.clearedRate}%</span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
@@ -589,7 +589,7 @@ export const CentralReports: React.FC = () => {
                     />
                   </div>
                   <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium pt-1">
-                    <span>Primary Rail: <strong className="text-slate-700">{sub.topGateway}</strong></span>
+                    <span />
                     <span>{sub.transactionsCount} Recorded Deals</span>
                   </div>
                 </div>

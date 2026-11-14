@@ -196,7 +196,7 @@ export const DigitalMeetings: React.FC = () => {
             <Badge variant="brand">{filteredMeetings.length} Scheduled</Badge>
           </div>
           <p className="text-xs text-slate-500">
-            Schedule client architecture reviews, sprint demos, and discovery sessions with live staff hosts.
+            Schedule client calls and demos.
           </p>
         </div>
 

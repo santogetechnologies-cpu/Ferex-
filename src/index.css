@@ -582,3 +582,9 @@ h1, h2, h3, h4, .font-heading {
 
 .app-main td .font-mono, .app-main td [class*="font-mono"] { white-space: nowrap; }
 .app-main table tbody tr:hover td[class*="sticky"] { background-color: rgb(248 250 252); }
+
+/* Calmer, more editorial typography: no shouting micro-labels (table headers keep their caps). */
+.app-main [class*="uppercase"]:not(th):not([class*="tracking-[0.14em]"]):not(kbd) { text-transform: none; letter-spacing: 0; }
+.app-main [class*="uppercase"][class*="text-[8"], .app-main [class*="uppercase"][class*="text-[9"], .app-main [class*="uppercase"][class*="text-[10"] { font-size: 0.75rem; }
+.app-main h1 > span:has(> svg), .app-main h1 > svg { display: none; }
+.app-main :is([class*="bg-gradient-to-"],[class*="bg-linear-to-"])[class*="rounded"][class*="border"]:not([class*="text-white"]):not(button):not(a):not([class*="from-[#"]):not([class*="from-slate-9"]):not([class*="from-rose-9"]) { background-image: none; background-color: #fff; }

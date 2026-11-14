@@ -424,7 +424,7 @@ export const CentralRimi: React.FC = () => {
                 <div className="text-xs space-y-1 text-slate-600">
                   <div>Driver: <strong className="text-slate-800">{d.driver_name || 'Deepak Patil'}</strong> ({d.driver_phone || '+91 98200 11223'})</div>
                   <div>Destination: <span className="text-slate-800 font-semibold">{d.destination_city || 'Pune Cold Hub'}</span></div>
-                  <div>Sensor Telemetry: <strong className="text-cyan-700 font-mono">{d.departure_temp || '-19.4°C'}</strong></div>
+                  <div>Temperature: <strong className="text-cyan-700 font-mono">{d.departure_temp || '-19.4°C'}</strong></div>
                 </div>
               </Card>
             ))

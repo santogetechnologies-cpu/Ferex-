@@ -302,7 +302,7 @@ export const DigitalTasks: React.FC = () => {
 
         <div className="flex items-center justify-between text-xs font-bold text-slate-400 pt-1 border-t border-slate-100">
           <span>{filtered.length} Sprint Tasks matched {isStaff ? '(Personal Queue)' : ''}</span>
-          <span className="text-[11px] text-slate-500 font-semibold">Real-time sync with Admin & Staff desks</span>
+          <span className="text-[11px] text-slate-500 font-semibold"></span>
         </div>
       </Card>
 

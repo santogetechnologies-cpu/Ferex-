@@ -228,7 +228,7 @@ export const TradeClientPortal: React.FC = () => {
               <div className="p-12 text-center bg-slate-900 rounded-3xl border border-slate-800">
                 <PackageCheck className="w-10 h-10 text-slate-600 mx-auto mb-3" />
                 <h3 className="text-sm font-black text-white">No active orders found</h3>
-                <p className="text-xs text-slate-400 mt-1">Orders booked with FEREX Global Trade will appear here in real-time.</p>
+                <p className="text-xs text-slate-400 mt-1">Your orders will appear here once booked.</p>
               </div>
             ) : (
               orders.map((order) => {
@@ -451,7 +451,7 @@ export const TradeClientPortal: React.FC = () => {
             <div className="pb-3 border-b border-slate-800 flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-black text-white">Direct Line: FEREX Global Trade Operations Desk</h3>
-                <p className="text-[11px] text-slate-400">Real-time encrypted communication with assigned Trade & Logistics Officers</p>
+                <p className="text-[11px] text-slate-400">Messages with your Trade and Logistics officers</p>
               </div>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 Desk Live

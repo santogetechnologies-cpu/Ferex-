@@ -337,7 +337,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
                   </div>
                   <p className="text-[10px] text-white/80 font-medium flex items-center gap-1 mt-0.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>Live Intelligence</span>
+                    <span>Summary</span>
                   </p>
                 </div>
               </div>

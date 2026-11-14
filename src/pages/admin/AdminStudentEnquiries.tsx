@@ -356,7 +356,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
             </span>
           </div>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">
-            Incoming prospective student leads, bulk counselor distribution, WhatsApp triggers, and one-click account provisioning.
+            Student leads, counselor assignment and account creation.
           </p>
         </div>
 

@@ -208,7 +208,7 @@ export const TradeProfile: React.FC = () => {
         {activeTab === 'personal' && (
           <form onSubmit={handleSaveProfile} className="space-y-4 max-w-xl">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-2">
-              <h3 className="text-sm font-black text-slate-900">Executive Account Details</h3>
+              <h3 className="text-sm font-black text-slate-900">Account details</h3>
               <span className="text-[10px] font-bold text-slate-400 uppercase">Primary Profile</span>
             </div>
             <div className="grid grid-cols-2 gap-4">

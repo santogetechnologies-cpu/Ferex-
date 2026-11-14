@@ -195,7 +195,7 @@ export const DigitalDeliverables: React.FC = () => {
             </span>
           </div>
           <p className="text-xs text-slate-500 font-semibold mt-1">
-            Centralized repository for Figma UI designs, production code repositories, media reels, and client approval deliverables.
+            Files and links delivered to clients, with their approval status.
           </p>
         </div>
 
@@ -305,7 +305,7 @@ export const DigitalDeliverables: React.FC = () => {
           <FolderKanban className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <h4 className="text-sm font-black text-slate-800">No deliverables found</h4>
           <p className="text-xs text-slate-400 font-semibold mt-1">
-            Upload Figma files, live demo links, or code repositories to track deliverables.
+            Add a link to a design, demo or repository to track it here.
           </p>
         </Card>
       ) : (

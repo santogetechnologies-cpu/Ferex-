@@ -417,7 +417,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
             </span>
           </div>
           <p className="text-xs font-semibold text-slate-400 mt-1">
-            Configure country-specific legalization bodies (Poland NAWA, Germany APS, Italy CIMEA, Czech Nostrification, France Campus France, Spain UNEDasiss), customized workflow stages, document checklists, and visa procedures.
+            Set up the legalization steps, documents and visa procedure for each country.
           </p>
         </div>
 

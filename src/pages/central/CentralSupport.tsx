@@ -359,7 +359,7 @@ export const CentralSupport: React.FC = () => {
 
               <form onSubmit={handleSendReply} className="space-y-3">
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Super Admin Executive Response</label>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase mb-1">Admin reply</label>
                   <textarea
                     rows={3}
                     required

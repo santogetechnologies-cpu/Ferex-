@@ -673,7 +673,7 @@ export const TradeLettersOfCredit: React.FC = () => {
 
                 {dossier && (
                   <div className="space-y-3 pt-2">
-                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Linked Ecosystem Records</h4>
+                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Linked records</h4>
                     {dossier.shipments && dossier.shipments.length > 0 && (
                       <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 text-xs space-y-1">
                         <div className="font-bold text-blue-900 flex items-center gap-1.5"><Ship className="w-3.5 h-3.5" /> Linked Shipment</div>

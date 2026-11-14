@@ -303,7 +303,7 @@ export const SupportTickets: React.FC = () => {
           <h1 className="text-xl font-extrabold text-slate-950 flex items-center gap-2">
             Support
           </h1>
-          <p className="text-xs font-semibold text-slate-450 mt-0.5">Submit inquiries, track statuses, and chat with counselors in real-time.</p>
+          <p className="text-xs font-semibold text-slate-450 mt-0.5">Ask a question and chat with your counselor.</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
