@@ -15,6 +15,12 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
 import { getTradeNotifications, globalSearchTrade } from '../lib/api/trade';
 
+
+const pageLabelFromPath = (path: string) => {
+  const seg = path.split('/').filter(Boolean).pop() || 'dashboard';
+  return seg.replace(/-/g, ' ').replace(/^./, c => c.toUpperCase());
+};
+
 interface TradeLayoutProps {
   children: React.ReactNode;
 }
@@ -172,7 +178,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
 
   const menuSections = isAdmin ? adminMenuSections : staffMenuSections;
   const allMenuItems = menuSections.flatMap(s => s.items);
-  const activeItem = allMenuItems.find(item => location.pathname === item.path)?.name || 'Dashboard';
+  const activeItem = (allMenuItems.find(item => location.pathname === item.path) || allMenuItems.filter(item => location.pathname.startsWith(item.path + '/')).sort((a, b) => b.path.length - a.path.length)[0])?.name || pageLabelFromPath(location.pathname);
 
   const handleSignOut = () => {
     try { signOut(); } catch {}
@@ -281,7 +287,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
               <Menu size={18} />
             </button>
 
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+            <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-slate-500">
               <span>Trade</span>
               <span>/</span>
               <span className="text-slate-900 font-extrabold">{activeItem}</span>

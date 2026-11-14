@@ -13,6 +13,12 @@ import { AppSwitcher } from '../components/AppSwitcher';
 import { ClockInOutWidget } from '../components/ClockInOutWidget';
 import { ThemeToggle } from '../components/ThemeToggle';
 
+
+const pageLabelFromPath = (path: string) => {
+  const seg = path.split('/').filter(Boolean).pop() || 'dashboard';
+  return seg.replace(/-/g, ' ').replace(/^./, c => c.toUpperCase());
+};
+
 interface CentralLayoutProps {
   children: React.ReactNode;
 }
@@ -84,7 +90,7 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
   ];
 
   const allMenuItems = menuSections.flatMap(s => s.items);
-  const activeItem = allMenuItems.find(item => location.pathname === item.path)?.name || 'Dashboard';
+  const activeItem = (allMenuItems.find(item => location.pathname === item.path) || allMenuItems.filter(item => location.pathname.startsWith(item.path + '/')).sort((a, b) => b.path.length - a.path.length)[0])?.name || pageLabelFromPath(location.pathname);
   const superAdminName = profile?.full_name || 'Super Admin';
   const superAdminEmail = profile?.email || user?.email || 'admin@ferex.com';
 

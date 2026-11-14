@@ -17,6 +17,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { getDigitalNotifications } from '../lib/api/digital';
 import { supabase } from '../lib/supabase';
 
+
+const pageLabelFromPath = (path: string) => {
+  const seg = path.split('/').filter(Boolean).pop() || 'dashboard';
+  return seg.replace(/-/g, ' ').replace(/^./, c => c.toUpperCase());
+};
+
 interface DigitalLayoutProps {
   children: React.ReactNode;
 }
@@ -192,7 +198,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
     }, 500);
   };
 
-  const activeItem = navSections.flatMap(s => s.items).find(i => i.path === location.pathname);
+  const activeItem = (() => { const all = navSections.flatMap(s => s.items); return all.find(i => i.path === location.pathname) || all.filter(i => location.pathname.startsWith(i.path + '/')).sort((a, b) => b.path.length - a.path.length)[0]; })();
 
   return (
     <div className="h-screen overflow-hidden bg-slate-50 flex text-left font-sans antialiased text-slate-900 selection:bg-[#58051E] selection:text-white">
@@ -287,7 +293,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
               <span className="font-semibold text-slate-700">Ferex Digital</span>
               <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
               <span className="text-slate-900 font-semibold bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200/60 truncate">
-                {activeItem?.label || 'Overview'}
+                {activeItem?.label || pageLabelFromPath(location.pathname)}
               </span>
             </div>
           </div>
@@ -297,10 +303,10 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
             {/* Search Bar Trigger */}
             <button
               onClick={() => setShowSearchModal(true)}
-              className="flex items-center gap-2 h-9 px-3 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-medium text-slate-400 border border-slate-200 transition-all w-36 sm:w-56 cursor-pointer"
+              className="flex items-center gap-2 h-9 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-medium text-slate-400 border border-slate-200 transition-all w-9 sm:w-56 px-0 sm:px-3 justify-center sm:justify-start cursor-pointer"
             >
               <Search className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-              <span className="truncate">Search clients, projects...</span>
+              <span className="truncate hidden sm:inline">Search clients, projects...</span>
               <kbd className="hidden sm:inline-block ml-auto text-[9px] font-semibold bg-white text-slate-400 px-1.5 py-0.5 rounded border border-slate-200">⌘K</kbd>
             </button>
 

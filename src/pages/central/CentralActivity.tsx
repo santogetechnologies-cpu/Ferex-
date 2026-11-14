@@ -315,13 +315,13 @@ export const CentralActivity: React.FC = () => {
             </span>
           </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Real-time immutable audit records capturing every user operation, financial settlement, shipment change, and access token across all 4 platforms.
+            Every sign-in, payment, shipment and account change across all platforms.
           </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
           <div className="text-[11px] font-bold text-slate-400 bg-white border border-slate-200/80 px-3 py-1.5 rounded-xl">
-            Live Stream: <span className="text-slate-700 font-extrabold">{lastRefreshed || 'Active'}</span>
+            Updated: <span className="text-slate-700 font-extrabold">{lastRefreshed || 'Active'}</span>
           </div>
 
           <Button
@@ -348,7 +348,7 @@ export const CentralActivity: React.FC = () => {
         <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase block">Total Recorded Events</span>
           <span className="text-xl font-black text-slate-900 mt-0.5 block">{logs.length}</span>
-          <span className="text-[10px] text-emerald-600 font-bold mt-1 block">100% Real-Time Sync</span>
+          <span className="text-[10px] text-emerald-600 font-bold mt-1 block">Up to date</span>
         </div>
 
         <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">

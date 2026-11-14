@@ -112,7 +112,7 @@ export const CentralSupport: React.FC = () => {
         statusBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200'
       } : t));
 
-      showToastMsg('Official resolution response recorded & ticket resolved in Supabase');
+      showToastMsg('Reply sent and ticket resolved.');
       setSelectedTicket(null);
       setReplyText('');
     } catch (err: any) {

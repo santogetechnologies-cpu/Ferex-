@@ -65,7 +65,7 @@ export const StaffProfile: React.FC = () => {
         }
       }
 
-      setPasswordSuccess('Password successfully updated in Supabase Auth!');
+      setPasswordSuccess('Password updated.');
       setNewPassword('');
       setConfirmPassword('');
       showToast('Security credentials updated successfully.');
@@ -202,7 +202,7 @@ export const StaffProfile: React.FC = () => {
               className="w-full bg-[#58051E] hover:bg-[#430316] text-white font-black text-xs mt-2"
             >
               <Lock className="w-3.5 h-3.5 mr-1.5" />
-              {isUpdatingPassword ? 'Updating Password...' : 'Update Password in Supabase'}
+              {isUpdatingPassword ? 'Updating Password...' : 'Update password'}
             </Button>
           </form>
         </Card>

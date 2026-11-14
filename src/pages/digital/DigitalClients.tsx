@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { EmptyState } from '../../components/Kit';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Search, Plus, Edit3, Trash2, X, CheckCircle2, Mail, Phone, FolderKanban, FileText, CheckSquare, Eye, Lock, Globe, DollarSign, Building2, MapPin } from 'lucide-react';
 import { Card } from '../../components/Card';
@@ -328,6 +329,8 @@ export const DigitalClients: React.FC = () => {
 
       {loading ? (
         <div className="p-8 text-center text-xs font-bold text-slate-400">Loading client directory from database...</div>
+      ) : paginatedClients.length === 0 ? (
+        <div className="rounded-2xl border border-slate-200/80 bg-white"><EmptyState icon={Users} title={clients.length ? 'No clients match your filters' : 'No clients yet'} hint={clients.length ? 'Try a different search or clear the filters.' : 'Add your first client to start creating projects and billing.'} /></div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {paginatedClients.map((c) => (

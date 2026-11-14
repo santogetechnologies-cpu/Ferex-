@@ -815,7 +815,7 @@ export const CentralAdmins: React.FC = () => {
                     disabled={isSubmitting}
                     className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-md cursor-pointer"
                   >
-                    {isSubmitting ? 'Activating in Supabase...' : 'Activate Login'}
+                    {isSubmitting ? 'Creating login…' : 'Activate Login'}
                   </Button>
                 </div>
               </form>

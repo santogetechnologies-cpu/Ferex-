@@ -27,7 +27,7 @@ interface SubsidiaryFinancials {
   pendingAmount: number;
   clearedRate: number;
   topGateway: string;
-  growth: string;
+  growth?: string;
 }
 
 interface GatewayBreakdown {
@@ -186,7 +186,6 @@ export const CentralReports: React.FC = () => {
           pendingAmount: eduPending,
           clearedRate: eduTotal > 0 ? Math.round((eduCleared / eduTotal) * 100) : 100,
           topGateway: 'Bank Wire / UPI',
-          growth: '+18.4%',
         },
         {
           id: 'trade',
@@ -202,7 +201,6 @@ export const CentralReports: React.FC = () => {
           pendingAmount: tradePending,
           clearedRate: tradeTotal > 0 ? Math.round((tradeCleared / tradeTotal) * 100) : 100,
           topGateway: 'SWIFT / LC MT700',
-          growth: '+29.2%',
         },
         {
           id: 'rimi',
@@ -218,7 +216,6 @@ export const CentralReports: React.FC = () => {
           pendingAmount: rimiPending,
           clearedRate: rimiTotal > 0 ? Math.round((rimiCleared / rimiTotal) * 100) : 100,
           topGateway: 'RTGS / Distributor B2B',
-          growth: '+14.6%',
         },
         {
           id: 'digital',
@@ -234,7 +231,6 @@ export const CentralReports: React.FC = () => {
           pendingAmount: digPending,
           clearedRate: digTotal > 0 ? Math.round((digCleared / digTotal) * 100) : 100,
           topGateway: 'UPI / Stripe',
-          growth: '+22.1%',
         },
       ];
 
@@ -429,7 +425,7 @@ export const CentralReports: React.FC = () => {
             </span>
           </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Real-time financial performance, platform revenue distribution, and multi-gateway clearing intelligence.
+            Revenue, cleared and pending payments for every platform.
           </p>
         </div>
 
@@ -467,7 +463,7 @@ export const CentralReports: React.FC = () => {
             ₹{totalCombinedRevenue.toLocaleString('en-IN')}
           </div>
           <div className="flex items-center justify-between mt-2.5 text-[10px] font-bold text-emerald-600">
-            <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" /> +21.4% Growth</span>
+            <span>All platforms</span>
             <span className="text-slate-400 font-semibold">{totalTransactionsCount} Total Transactions</span>
           </div>
         </Card>
@@ -557,7 +553,7 @@ export const CentralReports: React.FC = () => {
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${sub.badgeColor}`}>
                       {share}% Enterprise Share
                     </span>
-                    <p className="text-[10px] font-bold text-emerald-600 mt-1">{sub.growth} YoY</p>
+                    
                   </div>
                 </div>
 

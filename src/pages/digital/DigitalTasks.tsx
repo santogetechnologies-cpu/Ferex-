@@ -228,7 +228,7 @@ export const DigitalTasks: React.FC = () => {
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <CheckSquare className="w-5 h-5 text-[#58051E]" />
-            {isStaff ? 'My Assigned Sprint Tasks' : 'Sprint Task Assignment & Pipeline'}
+            {isStaff ? 'My Assigned Sprint Tasks' : 'Tasks'}
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             {isStaff

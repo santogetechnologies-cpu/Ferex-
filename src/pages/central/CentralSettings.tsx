@@ -60,7 +60,7 @@ export const CentralSettings: React.FC = () => {
       const updated = await saveSystemConfig(config);
       setConfig(updated);
       setLastSaved(new Date().toLocaleTimeString());
-      showToastMsg('Enterprise AI & System Settings synchronized with Supabase database!');
+      showToastMsg('Settings saved.');
     } catch {
       showToastMsg('Failed to synchronize settings with database.');
     } finally {
@@ -83,7 +83,7 @@ export const CentralSettings: React.FC = () => {
       }
     } catch {
       setDbLatency(-1);
-      showToastMsg('Database ping failed. Check network or Supabase credentials.');
+      showToastMsg('Database ping failed. Check your connection.');
     } finally {
       setTestingDb(false);
     }

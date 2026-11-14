@@ -186,7 +186,7 @@ export const DigitalPMDashboard: React.FC = () => {
             <Badge variant="brand">FEREX Digital</Badge>
           </div>
           <p className="text-xs text-slate-500">
-            Sprint management, client deliverables, project milestones, assigned tasks, and tickets queue.
+            Your projects, tasks, sprints and client tickets.
           </p>
         </div>
 
@@ -270,7 +270,7 @@ export const DigitalPMDashboard: React.FC = () => {
               </div>
             ) : tasks.length === 0 ? (
               <div className="py-12 text-center text-slate-400 text-xs font-medium">
-                No tasks currently assigned to your account in Supabase.
+                No tasks currently assigned to you yet.
               </div>
             ) : (
               <div className="space-y-2.5">

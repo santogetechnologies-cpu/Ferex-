@@ -52,7 +52,7 @@ export const DigitalSettings: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Settings className="w-5 h-5 text-[#58051E]" /> Digital Settings
+            <Settings className="w-5 h-5 text-[#58051E]" /> Settings
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Manage your Digital admin settings

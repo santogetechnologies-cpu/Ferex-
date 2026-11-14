@@ -18,6 +18,12 @@ import { ClockInOutWidget } from '../components/ClockInOutWidget';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { Clock } from 'lucide-react';
 
+
+const pageLabelFromPath = (path: string) => {
+  const seg = path.split('/').filter(Boolean).pop() || 'dashboard';
+  return seg.replace(/-/g, ' ').replace(/^./, c => c.toUpperCase());
+};
+
 interface AdminLayoutProps { children: React.ReactNode; }
 
 const baseMenuItems = [
@@ -102,7 +108,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const hasUnreadVisa = hasUnreadCategory('Visa') || hasUnreadCategory('VFS') || hasUnreadCategory('Embassy');
   const hasUnreadLegalization = hasUnreadCategory('Legalization') || hasUnreadCategory('Apostille');
 
-  const active = baseMenuItems.find(m => location.pathname === m.path || (m.path === '/admin/payment-control' && location.pathname === '/admin/payments'))?.name || 'Dashboard';
+  const active = baseMenuItems.find(m => location.pathname === m.path || (m.path === '/admin/payment-control' && location.pathname === '/admin/payments'))?.name || pageLabelFromPath(location.pathname);
   const localSavedUser = (() => {
     try {
       const r = localStorage.getItem('ferex_user');

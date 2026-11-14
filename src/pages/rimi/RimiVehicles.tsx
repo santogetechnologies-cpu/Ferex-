@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { EmptyState } from '../../components/Kit';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Truck, Search, Plus, CheckCircle2, Thermometer, X, Trash2 } from 'lucide-react';
 import { Card } from '../../components/Card';
@@ -157,6 +158,8 @@ export const RimiVehicles: React.FC = () => {
 
       {loading ? (
         <div className="p-8 text-center text-xs font-bold text-slate-400">Loading fleet vehicles...</div>
+      ) : filteredVehicles.length === 0 ? (
+        <div className="rounded-2xl border border-slate-200/80 bg-white"><EmptyState icon={Truck} title={vehicles.length ? 'No vehicles match your search' : 'No vehicles yet'} hint={vehicles.length ? 'Try a different search.' : 'Register your refrigerated vehicles to assign deliveries.'} /></div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredVehicles.map((v) => (

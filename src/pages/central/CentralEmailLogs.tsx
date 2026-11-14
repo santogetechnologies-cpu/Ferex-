@@ -215,7 +215,7 @@ export const CentralEmailLogs: React.FC<CentralEmailLogsProps> = ({ defaultDivis
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
               <Mail className="w-6 h-6 text-[#58051E]" />
-              {defaultDivision === 'all' ? 'Automated Email Delivery & Dispatch Logs' : `${DIVISION_LABELS[defaultDivision]} — Email Delivery Logs`}
+              {defaultDivision === 'all' ? 'Emails' : `${DIVISION_LABELS[defaultDivision]} — Email Delivery Logs`}
             </h1>
             <span className="text-[10px] font-bold bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
               {DIVISION_LABELS[defaultDivision]}
@@ -231,7 +231,7 @@ export const CentralEmailLogs: React.FC<CentralEmailLogsProps> = ({ defaultDivis
 
         <div className="flex items-center gap-2 shrink-0">
           <div className="text-[11px] font-bold text-slate-400 bg-white border border-slate-200/80 px-3 py-1.5 rounded-xl">
-            Live Stream: <span className="text-slate-700 font-extrabold">{lastRefreshed || 'Active'}</span>
+            Updated: <span className="text-slate-700 font-extrabold">{lastRefreshed || 'Active'}</span>
           </div>
 
           <Button

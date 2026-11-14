@@ -530,3 +530,52 @@ h1, h2, h3, h4, .font-heading {
 .app-main h1 ~ span[class*="rounded"] { display: none; }
 .app-main table thead th[class*="sticky"] { background: rgb(248 250 252); }
 .app-main table tbody td[class*="sticky"] { background: #fff; }
+
+/* ─── One look for forms, labels, cards and dialogs in every app ──── */
+.app-main label, .app-main [role="dialog"] label { text-transform: none; letter-spacing: 0; }
+.app-main label[class*="uppercase"], .app-main [role="dialog"] label[class*="uppercase"] { font-size: 0.75rem; font-weight: 600; color: rgb(71 85 105); }
+.app-main .font-black { font-weight: 700; }
+.app-main .font-extrabold { font-weight: 700; }
+.app-main [class*="text-[9px]"], .app-main [class*="text-[9.5px]"], .app-main [class*="text-[10px]"] { font-size: 0.6875rem; }
+.app-main [class*="text-[10.5px]"] { font-size: 0.71875rem; }
+.app-main [class*="tracking-widest"] { letter-spacing: 0.08em; }
+
+.app-main input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]),
+.app-main select,
+.app-main textarea {
+  border-radius: 0.75rem;
+  border: 1px solid rgb(226 232 240);
+  background-color: #fff;
+  color: rgb(15 23 42);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.app-main input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):hover,
+.app-main select:hover, .app-main textarea:hover { border-color: rgb(203 213 225); }
+.app-main input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):focus,
+.app-main select:focus, .app-main textarea:focus {
+  outline: none; border-color: #58051E; box-shadow: 0 0 0 3px rgba(88, 5, 30, 0.1);
+}
+.app-main input:disabled, .app-main select:disabled, .app-main textarea:disabled { background-color: rgb(248 250 252); color: rgb(100 116 139); cursor: not-allowed; }
+.app-main input::placeholder, .app-main textarea::placeholder { color: rgb(148 163 184); font-weight: 400; }
+.app-main input[type="checkbox"], .app-main input[type="radio"] { accent-color: #58051E; }
+
+/* Dialogs: same corners, border and shadow wherever they appear. */
+.app-main [role="dialog"] > div, .app-main .fixed.inset-0 > div[class*="rounded"][class*="bg-white"] { border-radius: 1.25rem; box-shadow: 0 24px 60px -20px rgba(15, 23, 42, 0.35); }
+.fixed.inset-0[class*="bg-slate-900"], .fixed.inset-0[class*="bg-black"] { backdrop-filter: blur(3px); }
+
+/* Cards */
+.app-main [class*="rounded-2xl"][class*="border"][class*="bg-white"], .app-main [class*="rounded-xl"][class*="border"][class*="bg-white"] { border-color: rgb(226 232 240 / 0.9); }
+
+/* Pill-style filter and tab buttons */
+.app-main button { transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease, transform 80ms ease; }
+.app-main button:not(:disabled):active { transform: scale(0.985); }
+.app-main button:disabled { cursor: not-allowed; }
+
+/* Decorative caps pills above page titles add noise, hide them. */
+.app-main span[class*="uppercase"][class*="rounded"]:has(+ h1), .app-main div:has(> span[class*="uppercase"][class*="rounded"] + h1) > span[class*="uppercase"][class*="rounded"],
+.app-main div:has(> span[class*="uppercase"]):has(+ h1) { display: none; }
+/* Empty boxes look the same everywhere. */
+.app-main [class*="border-dashed"][class*="rounded"] { border-color: rgb(203 213 225); background-color: rgb(255 255 255 / 0.7); border-radius: 1rem; color: rgb(100 116 139); font-weight: 500; }
+.app-main div[class*="rounded"]:has(+ h1), .app-main div[class*="rounded"]:has(+ div > h1) { display: none; }

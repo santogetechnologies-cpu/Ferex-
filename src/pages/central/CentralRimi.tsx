@@ -175,7 +175,7 @@ export const CentralRimi: React.FC = () => {
           { label: 'Consolidated Sales', val: `₹${(totalSalesInr / 100000).toFixed(2)}L`, sub: `${orders.length} Batch Orders Logged`, color: 'text-cyan-700 bg-cyan-50 border-cyan-100' },
           { label: 'CRM Accounts (3 Tiers)', val: `${customers.length} Partners`, sub: 'Distributors, Shops, Wholesalers', color: 'text-blue-700 bg-blue-50 border-blue-100' },
           { label: 'Cold Storage Inventory', val: `${totalStockUnits.toLocaleString()} Units`, sub: '-18°C to -22°C Compliant', color: 'text-emerald-700 bg-emerald-50 border-emerald-100' },
-          { label: 'Active Reefer Fleet', val: `${activeReefersCount} Vehicles`, sub: 'Realtime GPS & Temp Log', color: 'text-amber-700 bg-amber-50 border-amber-100' },
+          { label: 'Active Reefer Fleet', val: `${activeReefersCount} Vehicles`, sub: 'Vehicles on the road', color: 'text-amber-700 bg-amber-50 border-amber-100' },
         ].map((kpi, idx) => (
           <Card key={idx} className="p-4 border border-slate-200/70 shadow-xs space-y-1">
             <span className="text-[10px] font-black uppercase text-slate-400">{kpi.label}</span>
@@ -436,7 +436,7 @@ export const CentralRimi: React.FC = () => {
       {activeTab === 'activity' && (
         <Card className="p-6 border border-slate-200/70 shadow-xs space-y-4">
           <h3 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-3">
-            Realtime CRM & Cold Chain Interaction Log
+            Customer and cold-chain activity
           </h3>
           <div className="space-y-3">
             {activities.length === 0 ? (

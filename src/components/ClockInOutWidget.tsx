@@ -67,11 +67,11 @@ export const ClockInOutWidget: React.FC<ClockInOutWidgetProps> = () => {
         ) : (
           <>
             <span className="text-xs font-black tabular-nums text-emerald-700">{elapsed}</span>
-            <button type="button" onClick={() => setAsking(true)} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 cursor-pointer inline-flex items-center gap-1"><LogOut className="w-3.5 h-3.5" /> Clock out</button>
+            <button type="button" onClick={() => setAsking(true)} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 cursor-pointer inline-flex items-center gap-1"><LogOut className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Clock out</span></button>
           </>
         )
       ) : (
-        <button type="button" disabled={busy} onClick={() => void run(() => clockIn())} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#58051E] text-white cursor-pointer disabled:opacity-50 inline-flex items-center gap-1"><LogIn className="w-3.5 h-3.5" /> Clock in</button>
+        <button type="button" disabled={busy} onClick={() => void run(() => clockIn())} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#58051E] text-white cursor-pointer disabled:opacity-50 inline-flex items-center gap-1"><LogIn className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Clock in</span></button>
       )}
       {message && <span role="alert" className="text-[11px] font-semibold text-rose-700">{message}</span>}
     </div>
