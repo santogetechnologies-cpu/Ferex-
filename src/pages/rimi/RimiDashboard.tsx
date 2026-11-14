@@ -10,6 +10,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { PageHeader, StatTile } from '../../components/Kit';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRimiAccess } from '../../lib/rimiAccess';
 import {
@@ -83,189 +84,39 @@ export const RimiDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left antialiased">
-      {/* Top Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-md bg-[#58051E]/10 text-[#58051E] text-[10px] font-black uppercase tracking-wider">
-              {isAdmin ? 'Cold Chain Operations Central' : 'Operations Staff Dashboard'}
-            </span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Live Monitoring
-            </span>
-          </div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight mt-1 flex items-center gap-2">
-            <Snowflake className="w-5 h-5 text-cyan-600" /> RIMI Frozen Foods Distribution Console
-          </h1>
-          <p className="text-xs font-semibold text-slate-500 mt-0.5">
-            Real-time cold storage inventory tracking, customer orders, and fleet logistics.
-          </p>
+      <PageHeader
+        eyebrow="Rimi Frozen"
+        title={(profile?.full_name || '').split(' ')[0] ? `Welcome back, ${(profile?.full_name || '').split(' ')[0]}` : 'Welcome back'}
+        subtitle="Customers, orders, cold-chain stock and deliveries at a glance."
+        actions={<>
+          <Button size="md" variant="outline" onClick={() => navigate('/rimi/inventory')}><Boxes className="w-4 h-4 mr-1.5" />Inventory</Button>
+          <Button size="md" onClick={() => navigate('/rimi/sales-orders')}><ShoppingCart className="w-4 h-4 mr-1.5" />New sales order</Button>
+        </>}
+      />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatTile label="Customers" value={loading ? '…' : metrics.totalCustomers} hint={`${metrics.activeDistributors} distributors · ${metrics.activeShops} shops · ${metrics.activeWholesalers} wholesalers`} icon={Users} tone="blue" to="/rimi/customers" />
+        <StatTile label="Orders today" value={loading ? '…' : metrics.ordersToday} hint={`${metrics.pendingDeliveries} deliveries scheduled`} icon={ShoppingCart} tone="brand" to="/rimi/sales-orders" />
+        <StatTile label="Outstanding payments" value={loading ? '…' : `₹${metrics.outstandingPayments.toLocaleString('en-IN')}`} hint="Open the collections list" icon={DollarSign} tone="amber" to="/rimi/collections" />
+        <StatTile label="Cold storage used" value={loading ? '…' : `${metrics.storageUtilizationPercentage}%`} hint={`${metrics.utilizedStorageCapacity} of ${metrics.totalStorageCapacity || 1000} pallets`} icon={Warehouse} tone={metrics.storageUtilizationPercentage > 85 ? 'rose' : 'blue'} to="/rimi/warehouses" />
+      </div>
+
+      {(metrics.expiringBatchesCount > 0 || metrics.lowStockCount > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {metrics.expiringBatchesCount > 0 && (
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
+              <div className="flex items-center gap-3"><span className="grid place-items-center w-10 h-10 rounded-xl bg-amber-100 text-amber-800"><Clock className="w-5 h-5" /></span>
+                <div><p className="text-sm font-bold text-slate-900">{metrics.expiringBatchesCount} batch{metrics.expiringBatchesCount === 1 ? '' : 'es'} expire within 30 days</p><p className="text-xs font-medium text-slate-600">Sell or move these first.</p></div></div>
+              <Button size="sm" variant="outline" onClick={() => navigate('/rimi/inventory')}>Review</Button>
+            </div>)}
+          {metrics.lowStockCount > 0 && (
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50/60 p-4">
+              <div className="flex items-center gap-3"><span className="grid place-items-center w-10 h-10 rounded-xl bg-rose-100 text-rose-800"><AlertTriangle className="w-5 h-5" /></span>
+                <div><p className="text-sm font-bold text-slate-900">{metrics.lowStockCount} product{metrics.lowStockCount === 1 ? '' : 's'} below minimum stock</p><p className="text-xs font-medium text-slate-600">Reorder to avoid running out.</p></div></div>
+              <Button size="sm" variant="outline" onClick={() => navigate('/rimi/products')}>Review</Button>
+            </div>)}
         </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => navigate('/rimi/inventory')}
-            className="text-xs font-bold border-slate-200 hover:border-slate-300"
-          >
-            <Boxes className="w-3.5 h-3.5 mr-1 text-[#58051E]" /> Batches & Expiry
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => navigate('/rimi/sales-orders')}
-            className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs"
-          >
-            <ShoppingCart className="w-3.5 h-3.5 mr-1" /> New Sales Order
-          </Button>
-        </div>
-      </div>
-
-      {/* KPI Cards Grid (100% Live Calculated from Supabase) */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Customers / Accounts */}
-        <Card className="p-4 border border-slate-200/80 shadow-xs space-y-2 hover:border-slate-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">CRM Accounts</span>
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
-              <Users className="w-4 h-4" />
-            </div>
-          </div>
-          <div>
-            <span className="text-2xl font-black text-slate-900 block tracking-tight">
-              {loading ? '...' : metrics.totalCustomers}
-            </span>
-            <div className="flex items-center gap-2 text-[10px] font-extrabold text-slate-500 mt-1">
-              <span className="text-blue-700">{metrics.activeDistributors} Dist.</span>
-              <span>•</span>
-              <span className="text-emerald-700">{metrics.activeShops} Retail</span>
-              <span>•</span>
-              <span className="text-purple-700">{metrics.activeWholesalers} W'sale</span>
-            </div>
-          </div>
-        </Card>
-
-        {/* Orders Today & Active Flow */}
-        <Card className="p-4 border border-slate-200/80 shadow-xs space-y-2 hover:border-slate-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Today's Orders</span>
-            <div className="w-8 h-8 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-bold">
-              <ShoppingCart className="w-4 h-4" />
-            </div>
-          </div>
-          <div>
-            <span className="text-2xl font-black text-slate-900 block tracking-tight">
-              {loading ? '...' : metrics.ordersToday}
-            </span>
-            <span className="text-[10px] font-extrabold text-slate-500 flex items-center gap-1 mt-1">
-              <Truck className="w-3 h-3 text-amber-600" />
-              <strong className="text-slate-800">{metrics.pendingDeliveries}</strong> dispatches scheduled
-            </span>
-          </div>
-        </Card>
-
-        {/* Outstanding Receivables */}
-        <Card className="p-4 border border-slate-200/80 shadow-xs space-y-2 hover:border-slate-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Receivables Ledger</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
-              <DollarSign className="w-4 h-4" />
-            </div>
-          </div>
-          <div>
-            <span className="text-2xl font-black text-slate-900 block tracking-tight">
-              {loading ? '...' : `₹${metrics.outstandingPayments.toLocaleString('en-IN')}`}
-            </span>
-            <Link to="/rimi/collections" className="text-[10px] font-bold text-[#58051E] hover:underline flex items-center gap-0.5 mt-1">
-              <span>View Collections Ledger</span>
-              <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-        </Card>
-
-        {/* Cold Storage Utilization */}
-        <Card className="p-4 border border-slate-200/80 shadow-xs space-y-2 hover:border-slate-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Cold Storage Capacity</span>
-            <div className="w-8 h-8 rounded-xl bg-cyan-50 text-cyan-700 flex items-center justify-center font-bold">
-              <Warehouse className="w-4 h-4" />
-            </div>
-          </div>
-          <div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-black text-slate-900 tracking-tight">
-                {loading ? '...' : `${metrics.storageUtilizationPercentage}%`}
-              </span>
-              <span className="text-[11px] font-extrabold text-slate-500">
-                {metrics.utilizedStorageCapacity} / {metrics.totalStorageCapacity || 1000} Pallets
-              </span>
-            </div>
-            <div className="w-full h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${
-                  metrics.storageUtilizationPercentage > 85 ? 'bg-rose-600' : 'bg-cyan-600'
-                }`}
-                style={{ width: `${Math.min(100, metrics.storageUtilizationPercentage)}%` }}
-              />
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Critical Stock & Expiry Alerts Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Expiring Batches Notice */}
-        <Card className="p-4 border border-slate-200/80 shadow-xs flex items-center justify-between gap-3 bg-gradient-to-r from-amber-50/50 to-white">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
-              <Clock className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider">Batch Shelf Life Watch</span>
-              <h4 className="text-sm font-black text-slate-900 mt-0.5">
-                {metrics.expiringBatchesCount} Lot Batches Expiring in &lt; 30 Days
-              </h4>
-              <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
-                Automated cold storage rotation priority assigned.
-              </p>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => navigate('/rimi/inventory')}
-            className="text-xs font-bold border-amber-300 text-amber-900 hover:bg-amber-100 shrink-0"
-          >
-            Review Batches
-          </Button>
-        </Card>
-
-        {/* Low Stock Warning */}
-        <Card className="p-4 border border-slate-200/80 shadow-xs flex items-center justify-between gap-3 bg-gradient-to-r from-rose-50/50 to-white">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-800 flex items-center justify-center shrink-0">
-              <AlertTriangle className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[10px] font-black uppercase text-rose-800 tracking-wider">Inventory Threshold Alert</span>
-              <h4 className="text-sm font-black text-slate-900 mt-0.5">
-                {metrics.lowStockCount} SKUs Below Safety Buffer
-              </h4>
-              <p className="text-[11px] text-slate-500 font-semibold mt-0.5">
-                Reorder triggers dispatched to central cold processing hub.
-              </p>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => navigate('/rimi/products')}
-            className="text-xs font-bold border-rose-300 text-rose-900 hover:bg-rose-100 shrink-0"
-          >
-            Stock Buffer
-          </Button>
-        </Card>
-      </div>
+      )}
 
       {/* Main Content Split: Recent Sales Orders & Live Activity Stream */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

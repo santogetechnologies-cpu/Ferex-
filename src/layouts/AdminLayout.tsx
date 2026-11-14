@@ -280,13 +280,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-medium text-slate-400 min-w-0">
             <Link to="/admin/dashboard" className="hover:text-slate-700 transition-colors flex items-center gap-1.5 text-slate-700 font-semibold shrink-0">
               <GraduationCap className="w-4 h-4 text-[#58051E]" />
-              <span className="hidden sm:inline">{config?.branding?.portal_title || 'Education Admin'}</span>
+              <span className="hidden sm:inline">Ferex Education</span>
             </Link>
-            {config?.branding?.division_name && (
-              <span className="text-[9.5px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200/80 px-2 py-0.2 rounded hidden md:inline-block truncate max-w-[160px]" title={config.branding.division_name}>
-                {config.branding.division_name}
-              </span>
-            )}
             <ChevronRight className="w-3 h-3 text-slate-300 shrink-0 hidden sm:inline-block" />
             <span className="text-slate-800 font-bold bg-slate-100/80 px-2 py-0.5 rounded-md border border-slate-200/60 truncate max-w-[110px] sm:max-w-none">{active}</span>
           </div>

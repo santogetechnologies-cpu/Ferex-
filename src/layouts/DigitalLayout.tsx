@@ -319,7 +319,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
                 className="h-9 px-3.5 rounded-xl bg-[#58051E] text-white text-xs font-semibold hover:bg-[#430316] transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">New Action</span>
+                <span className="hidden sm:inline">Create</span>
               </button>
 
               <AnimatePresence>

@@ -3,8 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, FileCheck, FolderOpen, CreditCard, Headphones,
-  Activity, Clock3, ArrowUpRight, ArrowRight, Plus,
-  GraduationCap, Crown
+  Clock3, ArrowRight, Plus, Crown
 } from 'lucide-react';
 import { getAdminDashboardStats } from '../../lib/api/dashboard';
 import { useStudents } from '../../hooks/useStudents';
@@ -12,7 +11,7 @@ import { useApplications } from '../../hooks/useApplications';
 import { useAuth } from '../../contexts/AuthContext';
 import { isSuperAdmin } from '../../lib/roleRouter';
 import { Button } from '../../components/Button';
-import { Badge } from '../../components/Badge';
+import { PageHeader, StatTile, Section, EmptyState } from '../../components/Kit';
 
 import { useTasks } from '../../hooks/useTasks';
 import { ClipboardList } from 'lucide-react';
@@ -165,179 +164,73 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
     }));
   }, [safeApps, safeStudents]);
 
+  const first = (profile?.full_name || '').split(' ')[0];
+  const base = isStaff ? '/staff' : '/admin';
+  const peak = Math.max(...activityBuckets.map(b => b.count), 0);
+
   return (
     <div className="space-y-6 relative text-left pb-8">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-[#58051E]/8 text-[#58051E] flex items-center justify-center">
-              <GraduationCap className="w-4 h-4" />
-            </div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              {isStaff ? 'Admissions Counselor Workspace' : 'Education Admin Console'}
-            </h1>
-            <Badge variant="brand">{isStaff ? 'Admissions Counselor' : 'Education Division'}</Badge>
-          </div>
-          <p className="text-xs text-slate-500">
-            {isStaff
-              ? 'Student dossiers, university admissions pipeline, assigned tasks, and document compliance.'
-              : 'Admissions pipeline, multi-country legalization dossiers, tuition ledgers, and consular mobility tracking.'}
-          </p>
-        </div>
+      <PageHeader
+        eyebrow={isStaff ? 'Ferex Education · Counselor' : 'Ferex Education'}
+        title={first ? `Welcome back, ${first}` : 'Welcome back'}
+        subtitle={isStaff ? 'Your students, applications, documents and tasks.' : 'Applications, documents, payments and your team across every student.'}
+        actions={<>
+          {!isStaff && isSuper && <Button variant="outline" size="md" onClick={() => navigate('/central/dashboard')} leftIcon={<Crown className="w-4 h-4 text-amber-600" />}>Central admin</Button>}
+          <Button size="md" onClick={() => navigate(`${base}/tasks`)} leftIcon={isStaff ? <ClipboardList className="w-4 h-4" /> : <Plus className="w-4 h-4" />}>{isStaff ? 'My tasks' : 'New task'}</Button>
+        </>}
+      />
 
-        <div className="flex items-center gap-2 shrink-0">
-          {!isStaff && isSuper && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/central/dashboard')}
-              leftIcon={<Crown className="w-3.5 h-3.5 text-amber-600" />}
-            >
-              Super Admin Console
-            </Button>
-          )}
-          <Button
-            size="sm"
-            onClick={() => navigate(isStaff ? '/staff/tasks' : '/admin/tasks')}
-            leftIcon={isStaff ? <ClipboardList className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-          >
-            {isStaff ? 'My Assigned Tasks' : 'New Task'}
-          </Button>
-        </div>
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {statCards.map(card => (
+          <StatTile key={card.label} label={card.label} value={card.value} hint={card.change} icon={card.icon} to={card.path}
+            tone={card.label.includes('Payment') ? 'brand' : card.label.includes('Ticket') ? 'rose' : card.label.includes('Document') ? 'amber' : card.label.includes('Application') ? 'violet' : card.label.includes('Task') ? 'green' : 'blue'} />
+        ))}
       </div>
 
-      {/* Stat Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
-        {statCards.map((card, idx) => {
-          const Icon = card.icon;
-          return (
-            <motion.div
-              key={card.label}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.03, duration: 0.15 }}
-              onClick={() => navigate(card.path)}
-              className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-subtle hover:border-slate-300 transition-all cursor-pointer group"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${card.color}`}>
-                  <Icon className="w-4 h-4" />
-                </div>
-                <ArrowUpRight className={`w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors`} />
-              </div>
-              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{card.label}</p>
-              <p className="text-xl font-bold text-slate-900 mt-0.5 tracking-tight">{card.value}</p>
-              <p className="text-[11px] text-slate-400 mt-1 truncate">{card.change}</p>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* Middle Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Application Status Chart */}
-        <div className="lg:col-span-2 bg-white border border-slate-200/80 rounded-xl p-5 shadow-subtle">
-          <div className="flex items-center justify-between mb-5 border-b border-slate-100 pb-3">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900">Application Pipeline Status</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Real-time status breakdown across active student files</p>
-            </div>
-            <Button
-              variant="ghost"
-              size="xs"
-              onClick={() => navigate(isStaff ? '/staff/applications' : '/admin/applications')}
-              rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
-            >
-              Manage Applications
-            </Button>
-          </div>
-
-          <div className="space-y-3.5">
+        <Section className="lg:col-span-2" title="Applications by status" hint="Across the student files you can see" action={{ label: 'Manage applications', to: `${base}/applications` }}>
+          <div className="space-y-4">
             {appStatusData.map((item) => (
               <div key={item.label}>
-                <div className="flex items-center justify-between mb-1 text-xs">
-                  <span className="font-medium text-slate-700">{item.label}</span>
-                  <span className="font-semibold text-slate-900">
-                    {item.value} <span className="text-[11px] text-slate-400 font-normal">({isNaN(item.pct) ? 0 : item.pct}%)</span>
-                  </span>
+                <div className="flex items-center justify-between mb-1.5 text-xs">
+                  <span className="font-semibold text-slate-700">{item.label}</span>
+                  <span className="font-bold text-slate-900 tabular-nums">{item.value} <span className="text-slate-400 font-medium">({isNaN(item.pct) ? 0 : item.pct}%)</span></span>
                 </div>
                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${isNaN(item.pct) ? 0 : item.pct}%` }}
-                    transition={{ duration: 0.5, delay: 0.1 }}
-                    className={`h-full rounded-full ${item.color}`}
-                  />
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${isNaN(item.pct) ? 0 : item.pct}%` }} transition={{ duration: 0.5 }} className={`h-full rounded-full ${item.color}`} />
                 </div>
               </div>
             ))}
           </div>
-
-          {/* Activity Bar */}
           <div className="mt-6 pt-5 border-t border-slate-100">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Weekly Activity Volume</p>
-              <Badge variant="success" dot>Up to date</Badge>
-            </div>
-            <div className="flex items-end gap-2 h-14">
+            <p className="text-xs font-semibold text-slate-500 mb-3">New students and applications, last 7 days</p>
+            <div className="flex items-end gap-2 h-20">
               {activityBuckets.map((bucket, i) => (
-                <div
-                  key={i}
-                  title={`${bucket.dayLabel}: ${bucket.count} recorded event${bucket.count === 1 ? '' : 's'}`}
-                  className="flex-1 rounded-t bg-[#58051E]/15 hover:bg-[#58051E] transition-colors cursor-pointer"
-                  style={{ height: `${bucket.heightPct}%` }}
-                />
+                <div key={i} className="flex-1 flex flex-col items-center gap-1.5" title={`${bucket.dayLabel}: ${bucket.count}`}>
+                  <div className="w-full flex-1 flex items-end"><div className={`w-full rounded-md transition-colors ${bucket.count === peak && peak > 0 ? 'bg-[#58051E]' : 'bg-[#58051E]/20 hover:bg-[#58051E]/60'}`} style={{ height: `${Math.max(4, Math.round(bucket.heightPct * 0.56))}px` }} /></div>
+                  <span className="text-[10px] font-semibold text-slate-400">{bucket.dayLabel}</span>
+                </div>
               ))}
             </div>
           </div>
-        </div>
+        </Section>
 
-        {/* Live Activity Feed */}
-        <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-subtle flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-semibold text-slate-900">Live Intake Activity</h3>
-              <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500 border border-slate-200/60">
-                <Activity className="w-3.5 h-3.5" />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {safeStudents.length === 0 ? (
-                <p className="text-xs text-slate-400 py-4 text-center">No recent platform activities recorded.</p>
-              ) : (
-                safeStudents.slice(0, 4).map((s, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => navigate(isStaff ? '/staff/students' : '/admin/students')}
-                    className="flex gap-2.5 items-start group cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 mt-1.5" />
-                    <div>
-                      <p className="text-xs font-medium text-slate-800 leading-snug group-hover:text-[#58051E] transition-colors">
-                        New student registered: {s.full_name || s.email}
-                      </p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        {s.created_at && !isNaN(new Date(s.created_at).getTime()) ? new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recently'}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate(isStaff ? '/staff/notifications' : '/admin/notifications')}
-            className="w-full mt-4"
-            rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
-          >
-            System Audit Log
-          </Button>
-        </div>
+        <Section title="Newest students" hint="Most recent registrations" action={{ label: 'All students', to: `${base}/students` }}>
+          {safeStudents.length === 0 ? <EmptyState icon={Users} title="No students yet" hint="New registrations will appear here." /> : (
+            <ul className="divide-y divide-slate-100">
+              {safeStudents.slice(0, 5).map((st, idx) => (
+                <li key={idx}>
+                  <button type="button" onClick={() => navigate(`${base}/students`)} className="w-full flex items-center gap-3 py-3 text-left cursor-pointer group">
+                    <span className="grid place-items-center w-9 h-9 rounded-full bg-[#58051E]/8 text-[#58051E] text-xs font-bold shrink-0">{(st.full_name || st.email || '?').slice(0, 1).toUpperCase()}</span>
+                    <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-slate-900 truncate group-hover:text-[#58051E]">{st.full_name || st.email}</span>
+                      <span className="block text-xs text-slate-500">{st.created_at && !isNaN(new Date(st.created_at).getTime()) ? new Date(st.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'Recently'}</span></span>
+                    <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-[#58051E]" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
       </div>
     </div>
   );

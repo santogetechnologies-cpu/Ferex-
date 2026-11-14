@@ -5,6 +5,8 @@ import {
   ArrowUpRight, Megaphone, Clock, CheckCircle2,
   RefreshCw, Briefcase, Layers, ArrowRight, ShieldCheck
 } from 'lucide-react';
+import { PageHeader, StatTile } from '../../components/Kit';
+import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import {
   getDigitalDashboardStats,
@@ -46,6 +48,9 @@ export const DigitalDashboard: React.FC = () => {
     totalProjectsCount: 0,
     totalPipelineValueStr: '₹0',
     totalCollectedStr: '₹0',
+    totalOutstandingStr: '',
+    totalOverdueStr: '',
+    overdueTermsCount: 0,
     pendingTasksCount: 0,
   });
   const [recentProjects, setRecentProjects] = useState<DigitalProjectRecord[]>([]);
@@ -158,91 +163,28 @@ export const DigitalDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Modern Clean Header */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 shadow-xs">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-1.5 max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] uppercase font-black tracking-widest bg-[#58051E]/10 text-[#58051E] px-2.5 py-1 rounded-md">
-                {isAdmin ? 'Agency Operations Dashboard' : 'My Project Workspace'}
-              </span>
-            </div>
-            <h1 className="text-2xl font-black tracking-tight text-slate-900">
-              {displayName}
-            </h1>
-            <p className="text-xs md:text-sm text-slate-500 leading-relaxed font-medium">
-              {isAdmin
-                ? 'Digital agency client engagements, project pipelines, sprint tracking, and deliverables.'
-                : 'Your active tasks and project deliverables queue. Review assigned milestones and updates.'}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
-            {isAdmin ? (
-              <>
-                <button
-                  onClick={() => navigate('/digital/projects')}
-                  className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-[#58051E] hover:bg-[#430316] transition-all shadow-xs flex items-center gap-2 cursor-pointer"
-                >
-                  Create Project <ArrowUpRight className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => navigate('/digital/deliverables')}
-                  className="h-9 px-4 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 transition-all shadow-xs cursor-pointer"
-                >
-                  Deliverables
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => navigate('/digital/projects')}
-                  className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-[#58051E] hover:bg-[#430316] transition-all shadow-xs flex items-center gap-2 cursor-pointer"
-                >
-                  My Projects <ArrowRight className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => navigate('/digital/deliverables')}
-                  className="h-9 px-4 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 transition-all shadow-xs cursor-pointer"
-                >
-                  Submit Deliverable
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Ferex Digital"
+        title={displayName}
+        subtitle={isAdmin ? 'Clients, projects, billing and your team.' : 'Your projects, tasks and deliverables.'}
+        actions={isAdmin ? <>
+          <Button size="md" onClick={() => navigate('/digital/projects')}>New project</Button>
+          <Button size="md" variant="outline" onClick={() => navigate('/digital/deliverables')}>Deliverables</Button>
+        </> : <>
+          <Button size="md" onClick={() => navigate('/digital/projects')}>My projects</Button>
+          <Button size="md" variant="outline" onClick={() => navigate('/digital/deliverables')}>Submit deliverable</Button>
+        </>}
+      />
 
       {/* ─── ROLE-SPLIT WORKSPACE ─── */}
       {isAdmin ? (
         /* ════════════════════ ADMIN VIEW ════════════════════ */
         <>
-          {/* Admin KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { title: 'Pipeline Project Value', value: stats.totalPipelineValueStr, sub: `${stats.totalProjectsCount} Total Projects`, icon: FolderKanban, color: 'text-blue-600 bg-blue-50 border-blue-100', badge: 'Live Pipeline', path: '/digital/projects' },
-              { title: 'Invoices Collected', value: stats.totalCollectedStr, sub: 'Settled Client Billings', icon: DollarSign, color: 'text-emerald-600 bg-emerald-50 border-emerald-100', badge: 'Verified', path: '/digital/invoices' },
-              { title: 'Enterprise Clients', value: `${stats.activeClientsCount} Accounts`, sub: 'Active B2B Directory', icon: Users, color: 'text-[#58051E] bg-[#58051E]/10 border-[#58051E]/20', badge: 'Active Directory', path: '/digital/clients' },
-              { title: 'Sprint Tasks', value: `${stats.pendingTasksCount} Open`, sub: 'Active Agency Queue', icon: CheckSquare, color: 'text-amber-600 bg-amber-50 border-amber-100', badge: 'In Queue', path: '/digital/tasks' },
-            ].map((stat, idx) => (
-              <Card key={idx} onClick={() => navigate(stat.path)} className="p-5 border border-slate-200/80 hover:border-slate-300 hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer group flex flex-col justify-between h-full">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={`w-11 h-11 rounded-xl border flex items-center justify-center ${stat.color} group-hover:scale-105 transition-transform`}>
-                      <stat.icon className="w-5 h-5" />
-                    </div>
-                    <span className="text-[10px] font-extrabold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
-                      {stat.badge}
-                    </span>
-                  </div>
-                  <span className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">{stat.title}</span>
-                  <span className="text-2xl font-black text-slate-900 leading-none">{stat.value}</span>
-                </div>
-                <div className="mt-3 pt-3 border-t border-slate-100 text-[10.5px] font-extrabold text-slate-500 truncate">
-                  {stat.sub}
-                </div>
-              </Card>
-            ))}
+            <StatTile label="Project value" value={stats.totalPipelineValueStr} hint={`${stats.totalProjectsCount} projects`} icon={FolderKanban} tone="blue" to="/digital/projects" />
+            <StatTile label="Collected" value={stats.totalCollectedStr} hint={stats.overdueTermsCount ? `${stats.totalOverdueStr} overdue` : stats.totalOutstandingStr && stats.totalOutstandingStr !== '—' ? `${stats.totalOutstandingStr} still to collect` : 'Payments received'} icon={DollarSign} tone="green" to="/digital/billing" />
+            <StatTile label="Active clients" value={stats.activeClientsCount} hint="In your directory" icon={Users} tone="brand" to="/digital/clients" />
+            <StatTile label="Open tasks" value={stats.pendingTasksCount} hint="Across all projects" icon={CheckSquare} tone="amber" to="/digital/tasks" />
           </div>
 
           {/* Main Grid */}

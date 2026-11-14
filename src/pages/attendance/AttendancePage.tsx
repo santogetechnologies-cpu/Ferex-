@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { getContext, getHolidays, getRules, platformName, type AttendanceContext, type AttendanceRules, type Holiday } from '../../lib/api/attendance';
 import { supabase } from '../../lib/supabase';
+import { PageHeader } from '../../components/Kit';
 import { ToastNotification } from '../../components/ToastNotification';
 import { MyAttendance } from './MyAttendance';
 import { TeamAttendance } from './TeamAttendance';
@@ -58,16 +59,14 @@ export const AttendancePage: React.FC<{ platform?: string }> = ({ platform }) =>
   const scope = ctx.level === 'superadmin' ? platform : undefined;
   const shared = { ctx, rules, holidays, toast, scope };
   return (
-    <div className="space-y-4 text-slate-900">
+    <div className="space-y-6 text-slate-900">
       <ToastNotification message={toastMsg} onClose={() => setToastMsg('')} />
-      <header>
-        <h1 className="text-xl sm:text-2xl font-black tracking-tight">Attendance</h1>
-        <p className="text-xs font-semibold text-slate-500">{scope ? platformName(scope) : ctx.level === 'superadmin' ? 'All platforms' : platformName(ctx.division)} · {ctx.level === 'superadmin' ? 'Superadmin' : ctx.level === 'admin' ? 'Platform administrator' : 'Team member'}</p>
-      </header>
+      <PageHeader eyebrow={scope ? platformName(scope) : ctx.level === 'superadmin' ? 'All platforms' : platformName(ctx.division)} title="Attendance"
+        subtitle={ctx.level === 'staff' ? 'Clock in and out, apply for leave and see your pay.' : ctx.level === 'admin' ? 'Verify your team, approve leave, log incentives and run payroll.' : 'Approve attendance, leave and payroll for every platform.'} />
       <nav className="flex flex-wrap gap-1 border-b border-slate-200" aria-label="Attendance sections">
         {tabs.map(t => (
           <button key={t.id} type="button" onClick={() => setParams({ tab: t.id }, { replace: true })}
-            className={`px-3 py-2 text-xs font-bold border-b-2 -mb-px cursor-pointer ${active === t.id ? 'border-[#58051E] text-[#58051E]' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{t.label}</button>))}
+            className={`px-3.5 py-2.5 text-sm font-semibold border-b-2 -mb-px cursor-pointer transition ${active === t.id ? 'border-[#58051E] text-[#58051E]' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{t.label}</button>))}
       </nav>
       {active === 'mine' && <MyAttendance {...shared} />}
       {active === 'team' && <TeamAttendance {...shared} />}

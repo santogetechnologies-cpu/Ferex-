@@ -172,22 +172,11 @@ export const CentralDashboard: React.FC = () => {
       {/* Toast Alert */}
       <ToastNotification message={toast} onClose={() => setToast('')} />
 
-      {/* Clean Minimal Executive Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#58051E] flex items-center justify-center text-white shadow-xs">
-              <Crown className="w-4.5 h-4.5 text-amber-300" />
-            </div>
-            <div>
-              <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                Executive Overview & Governance
-              </h1>
-              <p className="text-xs font-medium text-slate-400">
-                Revenue, people and activity across every Ferex platform.
-              </p>
-            </div>
-          </div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#58051E] mb-1.5">Central admin</p>
+          <h1 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-slate-900 leading-tight">Overview</h1>
+          <p className="mt-1.5 text-sm font-medium text-slate-500">Revenue, people and activity across every Ferex platform.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
@@ -225,7 +214,7 @@ export const CentralDashboard: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="p-5 border border-slate-200/80 shadow-xs bg-white">
           <div className="flex items-center justify-between text-slate-400 mb-1.5">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider">Combined Revenue</span>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider">Total revenue</span>
             <CreditCard className="w-4 h-4 text-[#58051E]" />
           </div>
           <div className="text-2xl font-black text-slate-900 tracking-tight">
@@ -239,7 +228,7 @@ export const CentralDashboard: React.FC = () => {
 
         <Card className="p-5 border border-slate-200/80 shadow-xs bg-white">
           <div className="flex items-center justify-between text-slate-400 mb-1.5">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider">Governed Users & Staff</span>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider">People</span>
             <Users className="w-4 h-4 text-[#58051E]" />
           </div>
           <div className="text-2xl font-black text-slate-900 tracking-tight">
@@ -253,14 +242,14 @@ export const CentralDashboard: React.FC = () => {
 
         <Card className="p-5 border border-slate-200/80 shadow-xs bg-white">
           <div className="flex items-center justify-between text-slate-400 mb-1.5">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider">Cross-App Transactions</span>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider">Transactions</span>
             <Activity className="w-4 h-4 text-[#58051E]" />
           </div>
           <div className="text-2xl font-black text-slate-900 tracking-tight">
             {totalSubsidiaryOperations}
           </div>
           <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 mt-2">
-            <span className="text-emerald-600">Active Consignments & Deals</span>
+            <span className="text-emerald-600">Orders and deals</span>
             <span>All platforms</span>
           </div>
         </Card>
@@ -272,13 +261,13 @@ export const CentralDashboard: React.FC = () => {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-            <Building className="w-4 h-4 text-[#58051E]" /> Platform Operations Overview
+            <Building className="w-4 h-4 text-[#58051E]" /> Platforms
           </h2>
           <Link
             to="/central/reports"
             className="text-xs font-bold text-[#58051E] hover:underline flex items-center gap-1"
           >
-            View Detailed Financial Analytics <ArrowUpRight className="w-3.5 h-3.5" />
+            View reports <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
@@ -347,17 +336,17 @@ export const CentralDashboard: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-              <BarChart3 className="w-4 h-4 text-[#58051E]" /> Cross-Platform Financial Distribution & Rail Flow
+              <BarChart3 className="w-4 h-4 text-[#58051E]" /> Revenue by platform
             </h2>
             <p className="text-[11px] font-medium text-slate-400 mt-0.5">
-              Relative treasury composition across Higher Education, Global Trade, Cold-Chain Distribution, and Digital Agency.
+              How revenue splits across the four platforms.
             </p>
           </div>
           <Link
             to="/central/finance"
             className="text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 px-3 py-1.5 rounded-xl flex items-center gap-1"
           >
-            Treasury Ledger <ChevronRight className="w-3.5 h-3.5" />
+            Finance <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
@@ -414,17 +403,17 @@ export const CentralDashboard: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-              <Activity className="w-4 h-4 text-[#58051E]" /> Live Cross-Platform Operations Feed
+              <Activity className="w-4 h-4 text-[#58051E]" /> Recent activity
             </h2>
             <p className="text-[11px] font-medium text-slate-400 mt-0.5">
-              Instant operations stream capturing recent tuition wires, cargo shipments, batch dispatch, and client deliverables.
+              The latest payments, shipments, dispatches and deliverables.
             </p>
           </div>
           <Link
             to="/central/activity"
             className="text-xs font-bold text-[#58051E] hover:underline flex items-center gap-1"
           >
-            Full Audit Trail <ArrowUpRight className="w-3.5 h-3.5" />
+            Activity log <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 

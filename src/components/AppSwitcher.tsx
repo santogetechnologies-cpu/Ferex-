@@ -23,8 +23,8 @@ interface AppItem {
 const FEREX_APPS: AppItem[] = [
   {
     id: 'central',
-    name: 'Central Super Admin',
-    subtitle: 'HQ Governance, Multi-App Finance & Audits',
+    name: 'Central admin',
+    subtitle: 'Revenue, people and activity',
     path: '/central/dashboard',
     matchPrefixes: ['/central'],
     icon: Crown,
@@ -34,7 +34,7 @@ const FEREX_APPS: AppItem[] = [
   {
     id: 'education',
     name: 'Ferex Education',
-    subtitle: 'Universities, Admissions, Visas & Student CRM',
+    subtitle: 'Students, universities and visas',
     path: '/admin/dashboard',
     matchPrefixes: ['/admin', '/student', '/staff'],
     icon: GraduationCap,
@@ -44,17 +44,17 @@ const FEREX_APPS: AppItem[] = [
   {
     id: 'digital',
     name: 'Ferex Digital',
-    subtitle: 'Tech Agency, Sprints, Retainers & Invoices',
+    subtitle: 'Clients, projects and billing',
     path: '/digital/dashboard',
     matchPrefixes: ['/digital'],
     icon: Monitor,
-    tag: 'Agency',
+    tag: 'Digital',
     tagClass: 'bg-emerald-50 text-emerald-700 border-emerald-200/70',
   },
   {
     id: 'trade',
     name: 'Global Trade',
-    subtitle: 'Export/Import, Letters of Credit & Cargo',
+    subtitle: 'Orders, shipping and payments',
     path: '/trade/dashboard',
     matchPrefixes: ['/trade'],
     icon: Globe,
@@ -64,11 +64,11 @@ const FEREX_APPS: AppItem[] = [
   {
     id: 'rimi',
     name: 'Rimi Frozen',
-    subtitle: 'FMCG Cold Chain, Distribution & Warehouses',
+    subtitle: 'Customers, stock and deliveries',
     path: '/rimi/dashboard',
     matchPrefixes: ['/rimi'],
     icon: Snowflake,
-    tag: 'Cold Chain',
+    tag: 'Rimi',
     tagClass: 'bg-sky-50 text-sky-700 border-sky-200/70',
   },
 ];
@@ -149,12 +149,10 @@ export const AppSwitcher: React.FC = () => {
             {/* Header */}
             <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-100 px-1">
               <div>
-                <h4 className="text-xs font-bold text-slate-900 tracking-tight">Portals</h4>
-                <p className="text-[10px] text-slate-400 font-medium">Switch platform workspace</p>
+                <h4 className="text-xs font-bold text-slate-900 tracking-tight">Switch app</h4>
+                <p className="text-[10px] text-slate-400 font-medium">Go to another Ferex app</p>
               </div>
-              <span className="text-[9.5px] font-bold text-[#58051E] bg-[#58051E]/5 px-2 py-0.5 rounded border border-[#58051E]/15">
-                SSO Active
-              </span>
+
             </div>
 
             {/* Apps List */}
