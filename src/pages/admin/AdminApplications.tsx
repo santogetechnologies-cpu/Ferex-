@@ -38,6 +38,7 @@ interface ApplicationItem {
   id: string;
   studentId: string;
   studentName: string;
+  studentEmail?: string;
   university: string;
   country: string;
   course: string;
@@ -132,12 +133,13 @@ export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFil
 
       return {
         id: a.id,
-        studentId: a.student_id || 'STU-1001',
+        studentId: a.student_id || '',
+        studentEmail: a.users?.email || '',
         studentName: a.student_name || a.users?.full_name || a.users?.email?.split('@')[0] || 'Student',
         university: (a.university_name && a.university_name !== 'Pending University Selection') ? a.university_name : (a.universities?.name || 'University Applied For'),
         country: resolvedCountry,
         course: a.program_name || a.course || 'Higher Studies',
-        intake: a.intake || 'October 2026',
+        intake: a.intake || 'Not set',
         status: (a.status as AppStatus) || 'Submitted',
         date: new Date(a.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         counselor: (a as any).counselor || a.users?.assigned_counselor || 'Admissions Desk',
@@ -521,45 +523,15 @@ startxref
       {/* Toast */}
       <ToastNotification message={toast} onClose={() => setToast('')} />
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900">Applications</h1>
-          <p className="text-xs font-semibold text-slate-400 mt-0.5">Review applications and issue offer and acceptance letters.</p>
+          <h1>Applications</h1>
+          <p className="text-sm font-medium text-slate-500">Review applications and issue offer and acceptance letters.</p>
         </div>
-        <button
-          onClick={() => refresh()}
-          className="flex items-center gap-1.5 px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-all shadow-xs self-start sm:self-auto cursor-pointer"
-        >
-          <RefreshCw className="w-3.5 h-3.5" /> Refresh Live Data
-        </button>
-      </div>
-
-      {/* Synchronization Banner with Country Workflows & Legalization Desk */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3.5 bg-gradient-to-r from-rose-50/70 via-amber-50/50 to-slate-50 border border-[#58051E]/15 rounded-2xl shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#58051E] text-white flex items-center justify-center shrink-0 shadow-xs">
-            <Compass className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-black text-slate-900">Multi-Country Admissions & Legalization Engine</span>
-              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live 2-Way Synced
-              </span>
-            </div>
-            <p className="text-[10.5px] font-medium text-slate-500 mt-0.5">
-              Legalization stages adapt dynamically by destination country: Poland (Legalization) • Germany (APS) • UK (CAS) • France (Campus France) • Italy (CIMEA) • USA (SEVIS) • Canada (PAL)
-            </p>
-          </div>
+        <div className="flex items-center gap-2">
+          <Link to="/admin/legalization" className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"><ShieldCheck className="w-4 h-4 text-[#58051E]" /> Legalization</Link>
+          <button onClick={() => refresh()} className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"><RefreshCw className="w-3.5 h-3.5" /> Refresh</button>
         </div>
-        <Link
-          to="/admin/legalization"
-          className="px-3.5 py-2 bg-white border border-[#58051E]/30 hover:bg-[#58051E] hover:text-white text-[#58051E] text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-xs shrink-0 cursor-pointer self-start md:self-auto"
-        >
-          <ShieldCheck className="w-4 h-4" />
-          <span>Country Workflows & Legalization Desk</span>
-          <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
-        </Link>
       </div>
 
       {/* Search Input and Destination Country Selector */}
@@ -607,7 +579,7 @@ startxref
 
       {/* Status filter pills */}
       <div className="flex items-center gap-2 flex-wrap">
-        {statusCounts.map((s) => (
+        {statusCounts.filter(s => s.key === 'All' || s.count > 0 || statusFilter === s.key).map((s) => (
           <button
             key={s.key}
             onClick={() => setStatusFilter(s.key)}
@@ -616,23 +588,21 @@ startxref
               : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
               }`}
           >
-            {s.label} <span className="ml-1 opacity-70 font-mono text-[11px]">({s.count})</span>
+            {s.label} <span className="ml-1 opacity-70 tabular-nums">{s.count}</span>
           </button>
         ))}
       </div>
 
       {/* Applications Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-xs">
-        <table className="w-full text-left text-xs">
+      <div className="bg-white rounded-2xl border border-slate-200/80 overflow-x-auto shadow-xs">
+        <table className="w-full min-w-[920px] text-left text-xs">
           <thead className="bg-slate-50 border-b border-slate-100 text-[10.5px] uppercase font-black tracking-wider text-slate-400">
             <tr>
               <th className="px-5 py-3.5">Student</th>
               <th className="px-5 py-3.5">University & Program</th>
-              <th className="px-5 py-3.5">Assigned Counselor</th>
               <th className="px-5 py-3.5">Intake</th>
               <th className="px-5 py-3.5">Status</th>
-              <th className="px-5 py-3.5">Upload Documents</th>
-              <th className="px-5 py-3.5">Actions</th>
+              <th className="px-5 py-3.5 text-right">Letters</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
@@ -641,8 +611,8 @@ startxref
               return (
                 <tr key={a.id} className="hover:bg-slate-50/60 transition-colors">
                   <td className="px-5 py-4">
-                    <span className="font-extrabold text-slate-900 block">{a.studentName}</span>
-                    <span className="text-[10px] font-mono text-slate-400">{a.studentId}</span>
+                    <span className="font-semibold text-slate-900 block whitespace-nowrap">{a.studentName}</span>
+                    <span className="text-xs text-slate-500">{a.studentEmail || a.counselor}</span>
                   </td>
                   <td className="px-5 py-4">
                     <span className="font-bold text-slate-900 block">{a.university}</span>
@@ -653,9 +623,6 @@ startxref
                         <span>{auth.acronym}</span>
                       </span>
                     </div>
-                  </td>
-                  <td className="px-5 py-4 text-slate-700 font-bold max-w-[150px] truncate">
-                    {a.counselor || 'Admin'}
                   </td>
                   <td className="px-5 py-4 text-slate-600 font-bold">{a.intake}</td>
 
@@ -675,9 +642,9 @@ startxref
                       <option value="NAWA Submitted">{auth.acronym} Submitted (Authority Lodged)</option>
                       <option value="NAWA Approved">{auth.acronym} Approved (Legalization Cleared)</option>
                       <option value="Under Review">Under Review</option>
-                      <option value="Offer Issued">Offer Issued (Attach Offer PDF)</option>
+                      <option value="Offer Issued">Offer issued</option>
                       <option value="Accepted">Accepted</option>
-                      <option value="Final Acceptance Issued">Final Acceptance Issued (Attach Acceptance PDF)</option>
+                      <option value="Final Acceptance Issued">Final acceptance issued</option>
                       <option value="Visa Processing">Visa Processing</option>
                       <option value="Visa Approved">Visa Approved</option>
                       <option value="Visa Rejected">Visa Rejected</option>
@@ -689,81 +656,19 @@ startxref
                   </td>
 
                 <td className="px-5 py-4">
-                  <div className="flex flex-col gap-1.5">
-                    {/* Offer Letter Upload Button */}
+                  <div className="flex items-center justify-end gap-1.5">
+                    <button onClick={() => setViewApp(a)} className="h-8 px-3 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 inline-flex items-center gap-1.5 cursor-pointer" title="View details"><Eye className="w-3.5 h-3.5" /> View</button>
                     <button
-                      onClick={() => {
-                        setOfferNotes(a.notes || `Official Admission Offer Letter for ${a.studentName}`);
-                        setOfferPdfUrlInput(a.offerLetterUrl || '');
-                        setOfferModalApp(a);
-                      }}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold flex items-center gap-1 transition-all ${a.offerLetterUrl
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                        }`}
-                    >
-                      <FileText className="w-3 h-3 text-emerald-600" />
-                      {a.offerLetterUrl ? 'Offer PDF Uploaded' : 'Upload Offer PDF'}
-                    </button>
-
-                    {/* Final Acceptance Upload Button */}
+                      onClick={() => { setOfferNotes(a.notes || `Official Admission Offer Letter for ${a.studentName}`); setOfferPdfUrlInput(a.offerLetterUrl || ''); setOfferPdfFile(null); setOfferModalApp(a); }}
+                      className={`h-8 px-3 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer border ${a.offerLetterUrl ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100' : 'bg-[#58051E] text-white border-[#58051E] hover:bg-[#430316]'}`}
+                      title={a.offerLetterUrl ? 'Replace the offer letter' : 'Upload the offer letter'}
+                    ><FileText className="w-3.5 h-3.5" /> {a.offerLetterUrl ? 'Offer' : '+ Offer'}</button>
                     <button
-                      onClick={() => {
-                        setFinalNotes(a.notes || `Official Final Acceptance Letter for ${a.studentName}`);
-                        setFinalPdfUrlInput(a.finalAcceptanceUrl || '');
-                        setFinalModalApp(a);
-                      }}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold flex items-center gap-1 transition-all ${a.finalAcceptanceUrl
-                        ? 'bg-teal-50 text-teal-800 border border-teal-200 hover:bg-teal-100'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                        }`}
-                    >
-                      <Award className="w-3 h-3 text-teal-600" />
-                      {a.finalAcceptanceUrl ? 'Final Acceptance PDF Uploaded' : 'Upload Final Acceptance PDF'}
-                    </button>
-                  </div>
-                </td>
-
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <button
-                      onClick={() => setViewApp(a)}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-all flex items-center gap-1 text-xs font-bold cursor-pointer"
-                      title="View Details"
-                    >
-                      <Eye className="w-3.5 h-3.5" /> View
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setOfferNotes(a.notes || `Congratulations ${a.studentName}! Your official admission offer letter for ${a.course} at ${a.university} has been released.`);
-                        setOfferPdfUrlInput(a.offerLetterUrl || '');
-                        setOfferPdfFile(null);
-                        setOfferModalApp(a);
-                      }}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs transition-all cursor-pointer ${
-                        a.offerLetterUrl || a.status === 'Offer Issued' || a.status === 'Accepted'
-                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                          : 'bg-[#58051E] hover:bg-[#430316] text-white'
-                      }`}
-                      title={a.offerLetterUrl ? 'Update Offer Letter' : 'Issue Official Offer Letter'}
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                      {a.offerLetterUrl || a.status === 'Offer Issued' ? 'Offer Issued' : 'Issue Offer Letter'}
-                    </button>
-
-                    {a.offerLetterUrl && (
-                      <a
-                        href={a.offerLetterUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        download={`Offer_Letter_${(a.studentName || 'Student').replace(/\s+/g, '_')}.pdf`}
-                        className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-all"
-                        title="Download Offer Letter PDF"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                      </a>
-                    )}
+                      onClick={() => { setFinalNotes(a.notes || `Official Final Acceptance Letter for ${a.studentName}`); setFinalPdfUrlInput(a.finalAcceptanceUrl || ''); setFinalModalApp(a); }}
+                      className={`h-8 px-3 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer border ${a.finalAcceptanceUrl ? 'bg-teal-50 text-teal-800 border-teal-200 hover:bg-teal-100' : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'}`}
+                      title={a.finalAcceptanceUrl ? 'Replace the final acceptance letter' : 'Upload the final acceptance letter'}
+                    ><Award className="w-3.5 h-3.5" /> {a.finalAcceptanceUrl ? 'Final' : '+ Final'}</button>
+                    {a.offerLetterUrl && <a href={a.offerLetterUrl} target="_blank" rel="noreferrer" download={`Offer_Letter_${(a.studentName || 'Student').replace(/\s+/g, '_')}.pdf`} className="h-8 w-8 grid place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50" title="Download the offer letter"><Download className="w-3.5 h-3.5" /></a>}
                   </div>
                 </td>
               </tr>
@@ -771,18 +676,18 @@ startxref
           })}
           {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-16 text-center">
+                <td colSpan={5} className="py-16 text-center">
                   <div className="max-w-md mx-auto space-y-3">
                     <div className="w-12 h-12 rounded-2xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center mx-auto">
                       <FileText className="w-6 h-6" />
                     </div>
                     <div>
                       <h4 className="text-sm font-black text-slate-800">
-                        {apps.length === 0 ? 'No Student Applications Yet' : `No applications match filter "${statusFilter}"`}
+                        {apps.length === 0 ? 'No applications yet' : `No applications match filter "${statusFilter}"`}
                       </h4>
                       <p className="text-xs text-slate-400 font-semibold mt-1">
                         {apps.length === 0
-                          ? 'When students select a course and submit their application from the student portal, it will automatically appear here live in real-time.'
+                          ? 'Applications appear here as soon as students submit them.'
                           : 'Try resetting the filter to "All" to view all student applications.'}
                       </p>
                     </div>
@@ -1019,9 +924,9 @@ startxref
                     <option value="NAWA Submitted">{getCountryAuthority(viewApp.country).acronym} Submitted (Authority Lodged)</option>
                     <option value="NAWA Approved">{getCountryAuthority(viewApp.country).acronym} Approved (Legalization Cleared)</option>
                     <option value="Under Review">Under Review</option>
-                    <option value="Offer Issued">Offer Issued (Attach Offer PDF)</option>
+                    <option value="Offer Issued">Offer issued</option>
                     <option value="Accepted">Accepted</option>
-                    <option value="Final Acceptance Issued">Final Acceptance Issued (Attach Acceptance PDF)</option>
+                    <option value="Final Acceptance Issued">Final acceptance issued</option>
                     <option value="Visa Processing">Visa Processing</option>
                     <option value="Visa Approved">Visa Approved</option>
                     <option value="Visa Rejected">Visa Rejected</option>

@@ -471,7 +471,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
           </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             {admin
-              ? 'Record confirmed student payments (Cash, UPI, Direct Bank Transfer) with automated receipts, and configure education fees.'
+              ? 'Record student payments and issue receipts.'
               : 'Pay your education fees directly by UPI with a receipt after finance verification.'}
           </p>
         </div>
@@ -1056,7 +1056,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                     <th className="py-3 px-4">Payment Method</th>
                     <th className="py-3 px-4">Transaction Reference</th>
                     <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+                    <th className="py-3 px-4 text-right sticky right-0 bg-slate-50 shadow-[-8px_0_10px_-8px_rgba(15,23,42,0.15)]">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1135,7 +1135,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                         </td>
 
                         {/* 8. Actions */}
-                        <td className="py-3 px-4 whitespace-nowrap text-right">
+                        <td className="py-3 px-4 whitespace-nowrap text-right sticky right-0 bg-white shadow-[-8px_0_10px_-8px_rgba(15,23,42,0.15)]">
                           <div className="inline-flex items-center justify-end gap-1.5">
                             <button
                               type="button"

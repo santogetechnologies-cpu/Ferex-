@@ -701,11 +701,11 @@ export const DigitalProjects: React.FC = () => {
                   </div>
 
                   {/* Actions Footer */}
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                     <Button
                       size="sm"
                       variant="outline"
-                      className="flex-1 text-xs font-bold"
+                      className="flex-1 text-xs font-bold whitespace-nowrap"
                       onClick={() => setSelectedProject(p)}
                     >
                       <Layers className="w-3.5 h-3.5 mr-1 text-[#58051E]" /> Deliverables ({ (p.deliverables || []).length })
@@ -741,7 +741,7 @@ export const DigitalProjects: React.FC = () => {
                           }}
                           title={canAdvance ? 'Advance to Next Stage' : 'Only assigned staff or admin can advance stage'}
                         >
-                          <span>Next</span>
+                          <span>Next stage</span>
                           <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
                         </Button>
                       ) : (

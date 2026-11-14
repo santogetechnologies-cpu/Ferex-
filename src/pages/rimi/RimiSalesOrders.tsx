@@ -432,6 +432,7 @@ export const RimiSalesOrders: React.FC = () => {
                   >
                     <Eye className="w-3 h-3 mr-1 text-[#58051E]" /> Details
                   </Button>
+                  {Number(ord.balance_amount) > 0 && (
                   <Button
                     size="sm"
                     onClick={() => {
@@ -443,6 +444,7 @@ export const RimiSalesOrders: React.FC = () => {
                   >
                     <DollarSign className="w-3 h-3 mr-1" /> Log Payment
                   </Button>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between pt-1">
