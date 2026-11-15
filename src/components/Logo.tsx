@@ -23,9 +23,9 @@ export const Logo: React.FC<LogoProps> = ({
   const { isDark } = useTheme();
   const isWhite = variant === 'white' || color === 'white' || color === '#ffffff' || color === '#fff' || color?.toLowerCase() === '#ffffff';
   
-  // When in dark mode and default burgundy was used, illuminate to a vibrant legible rose (#fb7185)
-  const defaultBrandColor = isDark ? '#fb7185' : '#570229';
-  const effectiveColor = color ? color : (isWhite ? '#ffffff' : defaultBrandColor);
+  // Dark mode: the whole logo turns white so it reads on any dark surface
+  const defaultBrandColor = isDark ? '#ffffff' : '#570229';
+  const effectiveColor = isDark ? '#ffffff' : (color ? color : (isWhite ? '#ffffff' : defaultBrandColor));
 
   // If variant is 'badge', render the signature burgundy rounded brand tile
   if (variant === 'badge') {
@@ -67,8 +67,8 @@ export const Logo: React.FC<LogoProps> = ({
     );
   }
 
-  const textColor = isWhite ? 'text-white' : 'text-[#570229] dark:text-rose-400';
-  const subtitleColor = isWhite ? 'text-white/80' : 'text-[#570229]/90 dark:text-rose-300/80';
+  const textColor = isWhite ? 'text-white' : 'text-[#570229] dark:text-white';
+  const subtitleColor = isWhite ? 'text-white/80' : 'text-[#570229]/90 dark:text-white/80';
   const iconColor = effectiveColor;
 
   const ferexSizeClass = {
@@ -98,11 +98,11 @@ export const Logo: React.FC<LogoProps> = ({
 
       {/* Typography */}
       <div className={`flex flex-col justify-center leading-none ${alignClass}`}>
-        <span className={`font-serif font-black uppercase tracking-wider ${textColor} ${ferexSizeClass}`}>
+        <span style={isDark ? { color: '#ffffff' } : undefined} className={`font-serif font-black uppercase tracking-wider ${textColor} ${ferexSizeClass}`}>
           FEREX
         </span>
         {showSubtitle && (
-          <span className={`font-sans font-extrabold uppercase mt-0.5 ${subtitleColor} ${eduSizeClass}`}>
+          <span style={isDark ? { color: 'rgba(255,255,255,0.8)' } : undefined} className={`font-sans font-extrabold uppercase mt-0.5 ${subtitleColor} ${eduSizeClass}`}>
             {subtitle}
           </span>
         )}
