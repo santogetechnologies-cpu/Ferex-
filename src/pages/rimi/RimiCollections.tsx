@@ -18,6 +18,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRimiAccess } from '../../lib/rimiAccess';
+import { BlockCap } from '../../components/CapLoader';
 
 type DateFilterType = 'All' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly' | 'Custom';
 
@@ -400,7 +401,7 @@ export const RimiCollections: React.FC = () => {
             <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400 font-bold">Loading payment collections...</td>
+                  <td colSpan={7} className="p-8"><BlockCap /></td>
                 </tr>
               ) : filteredPayments.length === 0 ? (
                 <tr>

@@ -16,6 +16,7 @@ import {
   getTradeCRMContacts
 } from '../../lib/api/trade';
 import { supabase } from '../../lib/supabase';
+import { BlockCap } from '../../components/CapLoader';
 
 export const TradePackingLists: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -246,7 +247,7 @@ export const TradePackingLists: React.FC = () => {
 
       {/* Table */}
       {loading ? (
-        <div className="p-12 text-center text-xs font-bold text-slate-400">Loading packing manifests...</div>
+        <BlockCap />
       ) : filteredLists.length === 0 ? (
         <Card className="p-12 text-center border border-dashed border-slate-200">
           <PackageCheck className="w-10 h-10 text-slate-300 mx-auto mb-3" />

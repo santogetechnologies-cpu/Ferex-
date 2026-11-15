@@ -18,6 +18,7 @@ import { useDocuments } from '../hooks/useDocuments';
 import { listDirectPayments } from '../lib/api/payments';
 import { canAccessPage, checkPaymentStage as checkPayment } from '../lib/paymentUnlock';
 import { motion, AnimatePresence } from 'framer-motion';
+import { BlockCap } from '../components/CapLoader';
 
 export const VisaTracker: React.FC = () => {
   const navigate = useNavigate();
@@ -151,7 +152,7 @@ export const VisaTracker: React.FC = () => {
   };
 
   if (isLoading) {
-    return <div className="py-16 text-center text-xs font-semibold text-slate-400">Loading visa processing status...</div>;
+    return <BlockCap />;
   }
 
   return (

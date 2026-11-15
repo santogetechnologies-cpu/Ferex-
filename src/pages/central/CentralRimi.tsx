@@ -18,6 +18,7 @@ import {
 } from '../../lib/api/rimi';
 import { getDivisionStaff, type DivisionStaffMember } from '../../lib/api/staff';
 import { supabase } from '../../lib/supabase';
+import { CapLoader } from '../../components/CapLoader';
 
 export const CentralRimi: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'customers' | 'sales' | 'inventory' | 'fleet' | 'activity'>('customers');
@@ -252,9 +253,7 @@ export const CentralRimi: React.FC = () => {
                 <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
                   {loading ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-xs font-bold text-slate-400">
-                        Loading CRM customer accounts from Supabase...
-                      </td>
+                      <td colSpan={6} className="py-12 text-center text-xs font-bold text-slate-400"><CapLoader size="sm" /></td>
                     </tr>
                   ) : filteredCustomers.length === 0 ? (
                     <tr>

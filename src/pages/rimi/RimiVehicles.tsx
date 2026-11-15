@@ -7,6 +7,7 @@ import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
 import { getRimiVehicles, createRimiVehicle, updateRimiVehicleStatus, deleteRimiVehicle } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
+import { BlockCap } from '../../components/CapLoader';
 
 export const RimiVehicles: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -157,7 +158,7 @@ export const RimiVehicles: React.FC = () => {
       </Card>
 
       {loading ? (
-        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading fleet vehicles...</div>
+        <BlockCap />
       ) : filteredVehicles.length === 0 ? (
         <div className="rounded-2xl border border-slate-200/80 bg-white"><EmptyState icon={Truck} title={vehicles.length ? 'No vehicles match your search' : 'No vehicles yet'} hint={vehicles.length ? 'Try a different search.' : 'Register your refrigerated vehicles to assign deliveries.'} /></div>
       ) : (

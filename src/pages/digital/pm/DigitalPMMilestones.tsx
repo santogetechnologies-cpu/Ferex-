@@ -17,6 +17,7 @@ import {
   getAssignedDigitalProjects,
   type DigitalMilestone
 } from '../../../lib/api/digitalPm';
+import { CapLoader } from '../../../components/CapLoader';
 
 export const DigitalPMMilestones: React.FC = () => {
   const { user, profile } = useAuth();
@@ -223,7 +224,7 @@ export const DigitalPMMilestones: React.FC = () => {
       {/* Milestones Grid */}
       {loading ? (
         <div className="py-16 flex justify-center items-center">
-          <div className="w-8 h-8 border-3 border-[#58051E] border-t-transparent rounded-full animate-spin" />
+          <CapLoader size="md" />
         </div>
       ) : filteredMilestones.length === 0 ? (
         <div className="bg-white border border-slate-200/80 rounded-xl p-12 text-center text-slate-400 text-xs">

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Inbox } from 'lucide-react';
 import { cn } from '../utils/cn';
+import { CapLoader } from './CapLoader';
 
 // The shared building blocks for every page in every app, so headers, tiles and empty states look and read the same everywhere.
 
@@ -59,13 +60,7 @@ export const EmptyState: React.FC<{ title: string; hint?: string; icon?: React.E
 
 export const Skeleton: React.FC<{ className?: string }> = ({ className }) => <div className={cn('animate-pulse rounded-lg bg-slate-200/70 dark:bg-slate-800', className)} />;
 
-export const PageSkeleton: React.FC = () => (
-  <div className="space-y-6" aria-busy="true" aria-label="Loading">
-    <div className="space-y-2"><Skeleton className="h-7 w-64" /><Skeleton className="h-4 w-96 max-w-full" /></div>
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-28 rounded-2xl" />)}</div>
-    <Skeleton className="h-64 rounded-2xl" />
-  </div>
-);
+export const PageSkeleton: React.FC = () => <div className="py-24 flex justify-center" aria-busy="true"><CapLoader size="lg" /></div>;
 
 export const StatusPill: React.FC<{ tone?: 'green' | 'amber' | 'rose' | 'blue' | 'slate'; children: React.ReactNode }> = ({ tone = 'slate', children }) => {
   const t = { green: 'bg-emerald-50 text-emerald-700 ring-emerald-600/15', amber: 'bg-amber-50 text-amber-800 ring-amber-600/20', rose: 'bg-rose-50 text-rose-700 ring-rose-600/15', blue: 'bg-sky-50 text-sky-700 ring-sky-600/15', slate: 'bg-slate-100 text-slate-600 ring-slate-500/15' }[tone];

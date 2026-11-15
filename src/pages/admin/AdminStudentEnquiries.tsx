@@ -28,6 +28,7 @@ import { getEducationStaff, type DivisionStaffMember } from '../../lib/api/staff
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { Link } from 'react-router-dom';
+import { BlockCap } from '../../components/CapLoader';
 
 interface AdminStudentEnquiriesProps {
   isStaff?: boolean; // When true, runs in Counselor portal view
@@ -681,7 +682,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
             <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400 font-bold">Loading admissions enquiries...</td>
+                  <td colSpan={8} className="p-8"><BlockCap /></td>
                 </tr>
               ) : filteredLeads.length === 0 ? (
                 <tr>

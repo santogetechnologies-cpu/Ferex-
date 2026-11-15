@@ -16,6 +16,7 @@ import type { NawaRecord } from '../../lib/api/nawa';
 import type { UserProfile, CountryWorkflowConfig, WorkflowStageConfig, WorkflowDocumentRequirement } from '../../lib/types';
 import { useAuth } from '../../contexts/AuthContext';
 import { ToastNotification } from '../../components/ToastNotification';
+import { BlockCap } from '../../components/CapLoader';
 
 export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = false }) => {
   const { user, profile } = useAuth();
@@ -509,7 +510,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
 
           {/* Records Table / Cards */}
           {loading ? (
-            <div className="py-16 text-center text-xs font-bold text-slate-400">Loading student legalization applications...</div>
+            <BlockCap />
           ) : filtered.length === 0 ? (
             <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-xs">
               <Stamp className="w-12 h-12 text-slate-300 mx-auto mb-3" />

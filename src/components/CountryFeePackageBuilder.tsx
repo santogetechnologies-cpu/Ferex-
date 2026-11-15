@@ -13,6 +13,7 @@ import {
 } from '../lib/api/feePackages';
 import { useDestinations } from '../hooks/useDestinations';
 import { useUniversities } from '../hooks/useUniversities';
+import { CapLoader } from './CapLoader';
 
 const inp = 'w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20 focus:border-[#58051E] transition-all';
 const lbl = 'block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1';
@@ -282,9 +283,7 @@ export function CountryFeePackageBuilder() {
 
       {/* Packages List */}
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-slate-400 text-sm font-semibold">
-          Loading packages...
-        </div>
+        <div className="flex items-center justify-center py-16 text-slate-400 text-sm font-semibold"><CapLoader size="sm" /></div>
       ) : packages.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
           <Package className="w-10 h-10" />

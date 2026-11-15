@@ -18,6 +18,7 @@ import {
   addRimiStock
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
+import { BlockCap } from '../../components/CapLoader';
 
 export const RimiProducts: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -342,7 +343,7 @@ export const RimiProducts: React.FC = () => {
       </Card>
 
       {loading ? (
-        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading catalog from database...</div>
+        <BlockCap />
       ) : filteredProducts.length === 0 ? (
         <Card className="p-12 text-center border border-dashed border-slate-200">
           <Package className="w-10 h-10 text-slate-300 mx-auto mb-3" />

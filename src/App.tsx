@@ -1,3 +1,4 @@
+import { FullScreenCap } from './components/CapLoader';
 const Receipts = lazy(() => import('./pages/Receipts').then(m => ({ default: m.Receipts })));
 const DigitalBusinessInsights = lazy(() => import('./pages/digital/DigitalBusinessInsights').then(m => ({ default: m.DigitalBusinessInsights })));
 const DigitalCommerce = lazy(() => import('./pages/digital/DigitalCommerce').then(m => ({ default: m.DigitalCommerce })));
@@ -43,7 +44,6 @@ const AdminPayments = lazy(() => import('./pages/admin/AdminPayments').then(m =>
 const AdminSupportTickets = lazy(() => import('./pages/admin/AdminSupportTickets').then(m => ({ default: m.AdminSupportTickets })));
 const AdminChatSupport = lazy(() => import('./pages/admin/AdminChatSupport').then(m => ({ default: m.AdminChatSupport })));
 const AdminReports = lazy(() => import('./pages/admin/AdminReports').then(m => ({ default: m.AdminReports })));
-const AdminStaffManagement = lazy(() => import('./pages/admin/AdminStaffManagement').then(m => ({ default: m.AdminStaffManagement })));
 const AdminNotifications = lazy(() => import('./pages/admin/AdminNotifications').then(m => ({ default: m.AdminNotifications })));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
 const AdminCustomizationPolicies = lazy(() => import('./pages/admin/AdminCustomizationPolicies').then(m => ({ default: m.AdminCustomizationPolicies })));
@@ -130,7 +130,6 @@ const DigitalNotifications = lazy(() => import('./pages/digital/DigitalNotificat
 const DigitalProfile = lazy(() => import('./pages/digital/DigitalProfile').then(m => ({ default: m.DigitalProfile })));
 const DigitalSettings = lazy(() => import('./pages/digital/DigitalSettings').then(m => ({ default: m.DigitalSettings })));
 const DigitalDeliverables = lazy(() => import('./pages/digital/DigitalDeliverables').then(m => ({ default: m.DigitalDeliverables })));
-const DigitalStaff = lazy(() => import('./pages/digital/DigitalStaff').then(m => ({ default: m.DigitalStaff })));
 const DigitalLoginPage = lazy(() => import('./pages/digital/DigitalLoginPage').then(m => ({ default: m.DigitalLoginPage })));
 const DigitalClientPortal = lazy(() => import('./pages/digital/DigitalClientWorkspace'));
 
@@ -210,12 +209,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-[#58051E] border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm font-semibold text-slate-500">Authenticating session...</p>
-        </div>
-      </div>
+      <FullScreenCap />
     );
   }
 
@@ -290,7 +284,7 @@ function App() {
         <Router>
           <HashMigrationRedirect />
           <AppInitializer />
-          <Suspense fallback={<div className="min-h-screen grid place-items-center bg-slate-50"><div className="w-8 h-8 border-4 border-[#58051E] border-t-transparent rounded-full animate-spin" role="status" aria-label="Loading" /></div>}>
+          <Suspense fallback={<FullScreenCap />}>
           <Routes>
             {/* ── Official FEREX Education Website & Login Portal ── */}
             <Route path="/" element={<FerexLandingPage />} />
@@ -352,7 +346,7 @@ function App() {
           <Route path="/admin/support" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminSupportTickets /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/chat" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminChatSupport /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminReports /></AdminLayout></ProtectedRoute>} />
-          <Route path="/admin/staff" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminStaffManagement /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/staff" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/admin/meetings" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminMeetings /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/notifications" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminNotifications /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/fee-config" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminFeeConfig /></AdminLayout></ProtectedRoute>} />
@@ -469,7 +463,7 @@ function App() {
           <Route path="/digital/projects" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalProjects /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/tasks" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalTasks /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/deliverables" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalDeliverables /></DigitalLayout></ProtectedRoute>} />
-          <Route path="/digital/staff" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalStaff /></DigitalLayout></ProtectedRoute>} />
+          <Route path="/digital/staff" element={<Navigate to="/digital/dashboard" replace />} />
           <Route path="/digital/meetings" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalMeetings /></DigitalLayout></ProtectedRoute>} />
           <Route path="/digital/emails" element={<ProtectedRoute allowedRoles={DIGITAL_ROLES}><DigitalLayout><DigitalCommerce view="emails" /></DigitalLayout></ProtectedRoute>} />
 

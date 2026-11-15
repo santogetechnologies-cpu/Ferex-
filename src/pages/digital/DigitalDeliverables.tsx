@@ -19,6 +19,7 @@ import {
   type DigitalDeliverable
 } from '../../lib/api/digital';
 import { getMasters } from '../../lib/api/masters';
+import { BlockCap } from '../../components/CapLoader';
 
 interface EnrichedDeliverable extends DigitalDeliverable {
   project_id: string;
@@ -299,7 +300,7 @@ export const DigitalDeliverables: React.FC = () => {
 
       {/* Deliverables Grid */}
       {loading ? (
-        <div className="py-16 text-center text-xs font-semibold text-slate-400">Loading deliverables...</div>
+        <BlockCap />
       ) : filteredDeliverables.length === 0 ? (
         <Card className="py-16 text-center border border-slate-200/80">
           <FolderKanban className="w-12 h-12 text-slate-300 mx-auto mb-3" />

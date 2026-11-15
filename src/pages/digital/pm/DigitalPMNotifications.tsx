@@ -8,6 +8,7 @@ import { Button } from '../../../components/Button';
 import { Badge } from '../../../components/Badge';
 import { ToastNotification } from '../../../components/ToastNotification';
 import { supabase } from '../../../lib/supabase';
+import { CapLoader } from '../../../components/CapLoader';
 
 export const DigitalPMNotifications: React.FC = () => {
   const { user, profile } = useAuth();
@@ -157,7 +158,7 @@ export const DigitalPMNotifications: React.FC = () => {
       <div className="bg-white border border-slate-200/80 rounded-xl shadow-subtle overflow-hidden">
         {loading ? (
           <div className="py-16 flex justify-center items-center">
-            <div className="w-8 h-8 border-3 border-[#58051E] border-t-transparent rounded-full animate-spin" />
+            <CapLoader size="md" />
           </div>
         ) : filteredNotifs.length === 0 ? (
           <div className="py-16 text-center text-slate-400 text-xs font-medium">

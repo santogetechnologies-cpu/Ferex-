@@ -11,6 +11,7 @@ import { ToastNotification } from '../../components/ToastNotification';
 import { getMasters, createMaster, deleteMaster } from '../../lib/api/masters';
 import { getDigitalLeads, createDigitalLead, updateDigitalClient, deleteDigitalClient, createDigitalProject, convertDigitalLead } from '../../lib/api/digital';
 import { supabase } from '../../lib/supabase';
+import { BlockCap } from '../../components/CapLoader';
 
 const DEFAULT_CATEGORIES = [
   'Web Development',
@@ -310,7 +311,7 @@ export const DigitalLeads: React.FC = () => {
 
       {/* Lead Cards */}
       {loading ? (
-        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading opportunity leads...</div>
+        <BlockCap />
       ) : filtered.length === 0 ? (
         <Card className="p-12 text-center border-dashed border-2 border-slate-200">
           <Target className="w-10 h-10 text-slate-300 mx-auto mb-2" />

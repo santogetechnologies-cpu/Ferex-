@@ -18,6 +18,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useDestinations } from '../../hooks/useDestinations';
 import { generateTempPassword, pickCounselorForNewStudent } from '../../lib/api/students';
+import { CapLoader } from '../../components/CapLoader';
 
 export const CentralStudents: React.FC = () => {
   const navigate = useNavigate();
@@ -224,9 +225,7 @@ export const CentralStudents: React.FC = () => {
             <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-xs font-bold text-slate-400">
-                    Loading consolidated student records from Supabase...
-                  </td>
+                  <td colSpan={7} className="py-12 text-center text-xs font-bold text-slate-400"><CapLoader size="sm" /></td>
                 </tr>
               ) : filteredStudents.length === 0 ? (
                 <tr>

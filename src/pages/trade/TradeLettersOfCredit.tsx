@@ -32,6 +32,7 @@ import {
   TRADE_MASTER_CURRENCIES
 } from '../../lib/api/trade';
 import { supabase } from '../../lib/supabase';
+import { BlockCap } from '../../components/CapLoader';
 
 const LC_STATUSES = [
   'Draft',
@@ -365,7 +366,7 @@ export const TradeLettersOfCredit: React.FC = () => {
 
       {/* LC Cards Grid */}
       {loading ? (
-        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading letters of credit...</div>
+        <BlockCap />
       ) : filteredLCs.length === 0 ? (
         <Card className="p-12 text-center border border-dashed border-slate-200">
           <Building2 className="w-10 h-10 text-slate-300 mx-auto mb-3" />

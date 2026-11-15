@@ -9,6 +9,7 @@ import { getDivisionStaff, type DivisionStaffMember } from '../../lib/api/staff'
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import type { SupportTicket } from '../../lib/types';
+import { BlockCap } from '../../components/CapLoader';
 
 export const CentralSupport: React.FC = () => {
   const { user } = useAuth();
@@ -232,7 +233,7 @@ export const CentralSupport: React.FC = () => {
       </Card>
 
       {loading ? (
-        <div className="p-12 text-center text-xs font-bold text-slate-400">Loading support tickets…</div>
+        <BlockCap />
       ) : filteredTickets.length === 0 ? (
         <Card className="p-12 text-center border border-slate-200/70 shadow-xs">
           <LifeBuoy className="w-12 h-12 text-slate-300 mx-auto mb-3" />

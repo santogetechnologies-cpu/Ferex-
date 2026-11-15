@@ -27,6 +27,7 @@ import {
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 import { useRimiAccess } from '../../lib/rimiAccess';
+import { BlockCap, CapLoader } from '../../components/CapLoader';
 
 const ORDER_STATUSES = ['Received', 'Confirmed', 'Cold Storage Picking', 'Dispatched', 'Delivered', 'Cancelled'] as const;
 
@@ -371,7 +372,7 @@ export const RimiSalesOrders: React.FC = () => {
 
       {/* Sales Orders Grid */}
       {loading ? (
-        <div className="p-12 text-center text-xs font-bold text-slate-400">Loading sales orders...</div>
+        <BlockCap />
       ) : filteredOrders.length === 0 ? (
         <Card className="p-12 text-center text-xs font-semibold text-slate-400 border-dashed">
           No sales orders found matching current filters.
@@ -697,7 +698,7 @@ export const RimiSalesOrders: React.FC = () => {
                   >
                     {isSubmittingOrder ? (
                       <span className="flex items-center justify-center gap-1.5">
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Confirming & Dispatching...
+                        <CapLoader size="sm" />
                       </span>
                     ) : (
                       'Confirm Order & Dispatch Truck'

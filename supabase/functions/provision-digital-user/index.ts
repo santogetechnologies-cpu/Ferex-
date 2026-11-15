@@ -9,10 +9,11 @@ Deno.serve(async req=>{
   const {data:{user}}=await caller.auth.getUser();if(!user)return reply({error:'Sign in required'},401);
   const {data:role}=await caller.rpc('ferex_role');
   const central=['central','superadmin','super_admin'].includes(role);
-  if(!central&&!['digital','digital_admin','ferex_digital'].includes(role))return reply({error:'Administrator required'},403);
+  // Every login is created by the Central admin only.
+  if(!central)return reply({error:'Only the Central admin can create logins'},403);
   const body=await req.json(),allowed=['digital_client','digital_staff','project_manager','designer','developer'];
   const centralRoles=[...allowed,'digital_admin','trade_admin','logistics_officer','rimi_admin','operations_manager','education_admin','staff','counselor','student'];
-  if(!(central?centralRoles:allowed).includes(body.role))return reply({error:'Invalid role'},400);
+  if(!centralRoles.includes(body.role))return reply({error:'Invalid role'},400);
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email||'')||!body.full_name?.trim())return reply({error:'Valid name and email required'},400);
   const db=createClient(url,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   if(body.role==='digital_client'){

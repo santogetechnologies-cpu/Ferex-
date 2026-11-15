@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { UploadCloud, X, FileText, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { UploadCloud, X, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
 import { ACCEPT_ATTR, MAX_FILE_MB, checkFile, formatSize, uploadStudentFile } from '../lib/documentFiles';
+import { CapLoader } from './CapLoader';
 
 export interface UploadDone { path: string; size: string; fileName: string; title: string; note: string }
 
@@ -120,7 +121,7 @@ export const DocumentUploadDialog: React.FC<Props> = ({ open, studentId, forStud
         {phase !== 'idle' && (
           <div aria-live="polite" className="space-y-1.5">
             <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
-              <span className="inline-flex items-center gap-1.5">{phase === 'done' ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Loader2 className="w-4 h-4 animate-spin text-[#58051E]" />}{phase === 'uploading' ? 'Uploading' : phase === 'saving' ? 'Saving' : 'Uploaded'}</span>
+              <span className="inline-flex items-center gap-1.5">{phase === 'done' ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <CapLoader size="xs" />}{phase === 'uploading' ? 'Uploading' : phase === 'saving' ? 'Saving' : 'Uploaded'}</span>
               <span className="tabular-nums">{phase === 'uploading' ? `${percent}%` : '100%'}</span>
             </div>
             <div className="h-2 rounded-full bg-slate-200 overflow-hidden" role="progressbar" aria-valuenow={phase === 'uploading' ? percent : 100} aria-valuemin={0} aria-valuemax={100}>

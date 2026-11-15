@@ -11,6 +11,7 @@ import { getTasks, createTask, updateTaskStatus, deleteTask, reassignTask } from
 import { getDivisionStaff, type DivisionStaffMember } from '../../lib/api/staff';
 import { supabase } from '../../lib/supabase';
 import type { Task } from '../../lib/types';
+import { BlockCap } from '../../components/CapLoader';
 
 export const CentralTasks: React.FC = () => {
   const [toast, setToast] = useState('');
@@ -278,7 +279,7 @@ export const CentralTasks: React.FC = () => {
 
       {/* Task Cards Listing */}
       {loading ? (
-        <div className="py-16 text-center text-xs font-bold text-slate-400">Loading tasks…</div>
+        <BlockCap />
       ) : filteredTasks.length === 0 ? (
         <Card className="p-12 text-center border border-slate-200/70 shadow-xs">
           <CheckSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />

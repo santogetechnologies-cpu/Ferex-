@@ -14,6 +14,7 @@ import { supabase } from '../../lib/supabase';
 import { getTradePayments } from '../../lib/api/trade';
 import { getRimiSalesOrders } from '../../lib/api/rimi';
 import { getDigitalInvoices } from '../../lib/api/digital';
+import { CapLoader } from '../../components/CapLoader';
 
 interface TransactionItem {
   id: string;
@@ -353,9 +354,7 @@ export const CentralPayments: React.FC = () => {
             <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400 text-xs font-semibold">
-                    Loading cross-divisional treasury records...
-                  </td>
+                  <td colSpan={8} className="py-8 text-center text-slate-400 text-xs font-semibold"><CapLoader size="sm" /></td>
                 </tr>
               ) : filteredTxns.length > 0 ? (
                 filteredTxns.map(t => (

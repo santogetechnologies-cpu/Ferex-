@@ -6,6 +6,7 @@ import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
 import { useDigitalPermissions } from '../../hooks/usePermissions';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   getDigitalClients,
   createDigitalClient,
@@ -17,6 +18,7 @@ import {
 } from '../../lib/api/digital';
 import { supabase } from '../../lib/supabase';
 import { provisionDigitalClientLogin, getDigitalClientAccess } from '../../lib/api/digital';
+import { BlockCap } from '../../components/CapLoader';
 
 const INDUSTRY_OPTIONS = [
   'Fintech & Banking',
@@ -35,6 +37,8 @@ const INDUSTRY_OPTIONS = [
 
 export const DigitalClients: React.FC = () => {
   const { isAdmin } = useDigitalPermissions();
+  const { profile: authProfile } = useAuth();
+  const isCentral = ['central', 'superadmin', 'super_admin'].includes((authProfile?.role || '').toLowerCase());
 
   const [clients, setClients] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -328,7 +332,7 @@ export const DigitalClients: React.FC = () => {
       </Card>
 
       {loading ? (
-        <div className="p-8 text-center text-xs font-bold text-slate-400">Loading client directory from database...</div>
+        <BlockCap />
       ) : paginatedClients.length === 0 ? (
         <div className="rounded-2xl border border-slate-200/80 bg-white"><EmptyState icon={Users} title={clients.length ? 'No clients match your filters' : 'No clients yet'} hint={clients.length ? 'Try a different search or clear the filters.' : 'Add your first client to start creating projects and billing.'} /></div>
       ) : (
@@ -751,9 +755,9 @@ export const DigitalClients: React.FC = () => {
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 flex items-center justify-between gap-3">
                     <div>
                       <div className="text-xs font-black text-slate-900">Client portal</div>
-                      <div className="text-[11px] font-semibold text-slate-500">{hasPortal ? 'This client has a login and can see their projects, milestones and invoices.' : 'Invite the client so they can follow their projects, milestones and payments.'}</div>
+                      <div className="text-[11px] font-semibold text-slate-500">{hasPortal ? 'This client has a login and can see their projects, milestones and invoices.' : 'The Central admin can invite the client so they can follow their projects, milestones and payments.'}</div>
                     </div>
-                    {isAdmin && (
+                    {isCentral && (
                       <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-[11px] font-bold shrink-0" disabled={inviting} onClick={handleInvite}>
                         {inviting ? 'Sending…' : hasPortal ? 'Resend invitation' : 'Send invitation'}
                       </Button>

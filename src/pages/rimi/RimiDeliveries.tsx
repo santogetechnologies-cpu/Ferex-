@@ -16,6 +16,7 @@ import {
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 import { useRimiAccess } from '../../lib/rimiAccess';
+import { BlockCap } from '../../components/CapLoader';
 
 export const RimiDeliveries: React.FC = () => {
   // Admin and Warehouse users both run dispatch.
@@ -172,7 +173,7 @@ export const RimiDeliveries: React.FC = () => {
 
       {/* Deliveries Grid */}
       {loading ? (
-        <div className="p-12 text-center text-xs font-bold text-slate-400">Loading fleet dispatches...</div>
+        <BlockCap />
       ) : filteredDeliveries.length === 0 ? (
         <Card className="p-12 text-center text-xs font-semibold text-slate-400 border-dashed">
           No delivery trips active or scheduled.

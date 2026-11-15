@@ -27,6 +27,7 @@ import {
   type RimiSalesOrderRecord
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
+import { BlockCap } from '../../components/CapLoader';
 
 const CUSTOMER_TYPES = ['Distributor', 'Shop / Retailer', 'Wholesaler', 'HORECA Partner'] as const;
 const PIPELINE_STAGES = ['Lead', 'Contacted', 'Sample Sent', 'Negotiation', 'Active Account', 'Suspended'] as const;
@@ -369,7 +370,7 @@ export const RimiCustomers: React.FC = () => {
 
       {/* Customer Directory Grid */}
       {loading ? (
-        <div className="p-12 text-center text-xs font-bold text-slate-400">Loading customer CRM database...</div>
+        <BlockCap />
       ) : filteredCustomers.length === 0 ? (
         <Card className="p-12 text-center text-xs font-semibold text-slate-400 border-dashed">
           No customer accounts found matching current filters.

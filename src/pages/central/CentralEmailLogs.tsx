@@ -11,6 +11,7 @@ import { ToastNotification } from '../../components/ToastNotification';
 import { supabase } from '../../lib/supabase';
 import { getLocalEmailLogs, type EmailLogEntry, logAutomatedEmail } from '../../lib/api/automatedEmails';
 import { sendStudentEmail } from '../../lib/api/email';
+import { CapLoader } from '../../components/CapLoader';
 
 interface CentralEmailLogsProps {
   defaultDivision?: 'all' | 'education' | 'trade' | 'rimi' | 'digital';
@@ -367,9 +368,7 @@ export const CentralEmailLogs: React.FC<CentralEmailLogsProps> = ({ defaultDivis
               {loading ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400 font-bold">
-                    <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-[#58051E]" />
-                    Loading email dispatch records...
-                  </td>
+                    <CapLoader size="sm" /></td>
                 </tr>
               ) : filteredLogs.length === 0 ? (
                 <tr>

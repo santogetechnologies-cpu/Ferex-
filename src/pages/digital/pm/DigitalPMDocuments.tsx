@@ -15,6 +15,7 @@ import {
   getAssignedDigitalProjects
 } from '../../../lib/api/digitalPm';
 import { getDigitalProjects } from '../../../lib/api/digital';
+import { CapLoader } from '../../../components/CapLoader';
 
 export const DigitalPMDocuments: React.FC = () => {
   const { user, profile } = useAuth();
@@ -168,7 +169,7 @@ export const DigitalPMDocuments: React.FC = () => {
       {/* Deliverables Grid */}
       {loading ? (
         <div className="py-16 flex justify-center items-center">
-          <div className="w-8 h-8 border-3 border-[#58051E] border-t-transparent rounded-full animate-spin" />
+          <CapLoader size="md" />
         </div>
       ) : filteredDocs.length === 0 ? (
         <div className="bg-white border border-slate-200/80 rounded-xl p-12 text-center text-slate-400 text-xs">

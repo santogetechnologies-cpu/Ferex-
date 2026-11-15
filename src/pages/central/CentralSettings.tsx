@@ -14,6 +14,7 @@ import { getSystemConfig, saveSystemConfig } from '../../lib/api/systemConfig';
 import type { SystemCustomizationConfig } from '../../lib/types';
 import { ChangePasswordForm } from '../../components/ChangePasswordForm';
 import { ToastNotification } from '../../components/ToastNotification';
+import { CapLoader } from '../../components/CapLoader';
 
 export const CentralSettings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'ai' | 'branding' | 'database' | 'password'>('ai');
@@ -119,8 +120,7 @@ export const CentralSettings: React.FC = () => {
 
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-400">
-        <RefreshCw className="w-8 h-8 animate-spin text-[#58051E] mb-3" />
-        <p className="text-sm font-bold">Synchronizing Central HQ Settings...</p>
+        <CapLoader size="sm" /><p className="text-sm font-bold">Synchronizing Central HQ Settings...</p>
       </div>
     );
   }

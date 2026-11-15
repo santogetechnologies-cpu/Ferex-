@@ -15,6 +15,7 @@ import {
   type DocumentRequirement
 } from '../../lib/api/documentRequirements';
 import { getDestinations, type DestinationItem } from '../../lib/api/destinations';
+import { CapLoader } from '../../components/CapLoader';
 
 const DOC_TYPES = [
   'Identification',
@@ -347,8 +348,8 @@ export const AdminDocumentConfig: React.FC = () => {
       <div className="space-y-3">
         {loading ? (
           <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
-            <div className="w-8 h-8 border-3 border-[#58051E] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-            <p className="text-xs font-semibold text-slate-500">Loading document configuration matrix...</p>
+            <CapLoader size="md" />
+            <p className="text-xs font-semibold text-slate-500"><CapLoader size="sm" /></p>
           </div>
         ) : filteredDocs.length === 0 ? (
           <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 space-y-3">

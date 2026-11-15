@@ -9,6 +9,7 @@ import { getVisaRecords } from '../../lib/api/visa';
 import { getAllPaymentsAdmin } from '../../lib/api/payments';
 import { getPreDepartureRecords, savePreDepartureRecord } from '../../lib/api/preDeparture';
 import type { PreDepartureRecord } from '../../lib/api/preDeparture';
+import { CapLoader } from '../../components/CapLoader';
 
 export interface AdminPreDepartureProps {
   isStaff?: boolean;
@@ -251,9 +252,7 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
       {/* Student List Table */}
       <Card className="p-0 border border-slate-200 bg-white overflow-hidden shadow-xs">
         {loading ? (
-          <div className="py-12 text-center text-xs font-bold text-slate-400 animate-pulse">
-            Loading Pre-Departure database records...
-          </div>
+          <div className="py-12 text-center text-xs font-bold text-slate-400 animate-pulse"><CapLoader size="sm" /></div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center text-xs font-bold text-slate-400">
             <Plane className="w-10 h-10 text-slate-300 mx-auto mb-2 opacity-50" />

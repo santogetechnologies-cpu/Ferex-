@@ -33,6 +33,7 @@ import { getCommerceSettings, saveContract } from '../../lib/api/digitalCommerce
 import { trackContract, money, type CommerceBody } from '../../lib/digitalCommerce';
 import { Link } from 'react-router-dom';
 import { DIGITAL_CURRENCIES, formatDigitalCurrency, getCurrencySymbol } from '../../lib/digitalCurrency';
+import { BlockCap } from '../../components/CapLoader';
 
 const DEFAULT_STAGES: DigitalProjectStage[] = ['Briefing', 'In Progress', 'Review', 'Revisions', 'Delivered', 'Closed'];
 
@@ -536,7 +537,7 @@ export const DigitalProjects: React.FC = () => {
 
       {/* Projects Grid */}
       {loading ? (
-        <div className="p-12 text-center text-xs font-bold text-slate-400">Loading digital projects...</div>
+        <BlockCap />
       ) : filteredProjects.length === 0 ? (
         <Card className="p-12 text-center border-dashed border-2 border-slate-200">
           <FolderKanban className="w-10 h-10 text-slate-300 mx-auto mb-2" />

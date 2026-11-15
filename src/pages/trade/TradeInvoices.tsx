@@ -20,6 +20,7 @@ import {
   TRADE_MASTER_PAYMENT_METHODS
 } from '../../lib/api/trade';
 import { supabase } from '../../lib/supabase';
+import { BlockCap } from '../../components/CapLoader';
 
 export const TradeInvoices: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -359,7 +360,7 @@ export const TradeInvoices: React.FC = () => {
 
       {/* Invoices Table */}
       {loading ? (
-        <div className="p-12 text-center text-xs font-bold text-slate-400">Loading commercial invoices...</div>
+        <BlockCap />
       ) : filteredInvoices.length === 0 ? (
         <Card className="p-12 text-center border border-dashed border-slate-200">
           <FileSpreadsheet className="w-10 h-10 text-slate-300 mx-auto mb-3" />

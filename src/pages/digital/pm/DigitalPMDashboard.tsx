@@ -20,6 +20,7 @@ import {
   updateDigitalTaskStatusDirect,
   type DigitalPMTask
 } from '../../../lib/api/digitalPm';
+import { CapLoader } from '../../../components/CapLoader';
 
 export const DigitalPMDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -266,7 +267,7 @@ export const DigitalPMDashboard: React.FC = () => {
 
             {loading ? (
               <div className="py-12 flex justify-center items-center">
-                <div className="w-6 h-6 border-2 border-[#58051E] border-t-transparent rounded-full animate-spin" />
+                <CapLoader size="sm" />
               </div>
             ) : tasks.length === 0 ? (
               <div className="py-12 text-center text-slate-400 text-xs font-medium">

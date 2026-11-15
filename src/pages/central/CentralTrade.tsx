@@ -19,6 +19,7 @@ import {
 import { getDivisionStaff, type DivisionStaffMember } from '../../lib/api/staff';
 import { sendTradeStageEmail } from '../../lib/api/automatedEmails';
 import { supabase } from '../../lib/supabase';
+import { CapLoader } from '../../components/CapLoader';
 
 export const CentralTrade: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'shipments' | 'documents' | 'lcs' | 'clients'>('shipments');
@@ -332,9 +333,7 @@ export const CentralTrade: React.FC = () => {
                 <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
                   {loading ? (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-xs font-bold text-slate-400">
-                        Loading trade shipments from Supabase...
-                      </td>
+                      <td colSpan={7} className="py-12 text-center text-xs font-bold text-slate-400"><CapLoader size="sm" /></td>
                     </tr>
                   ) : filteredShipments.length === 0 ? (
                     <tr>

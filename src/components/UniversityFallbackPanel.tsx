@@ -1,9 +1,10 @@
 import React, { useRef, useState } from 'react';
-import { ImagePlus, Trash2, Loader2 } from 'lucide-react';
+import { ImagePlus, Trash2 } from 'lucide-react';
 import { uploadFileToBucket } from '../lib/storage';
 import { saveUniversityFallbackImage } from '../lib/api/universityFallback';
 import { useUniversityFallback } from '../hooks/useUniversityFallback';
 import { UniversityFallback } from './UniversityImage';
+import { CapLoader } from './CapLoader';
 
 // Admin control: the default picture used for every university that has no picture of its own.
 export const UniversityFallbackPanel: React.FC<{ onMessage?: (m: string) => void }> = ({ onMessage }) => {
@@ -42,7 +43,7 @@ export const UniversityFallbackPanel: React.FC<{ onMessage?: (m: string) => void
         <input ref={input} type="file" accept="image/*" className="hidden" onChange={e => upload(e.target.files?.[0])} />
         <div className="flex flex-wrap gap-2 pt-1">
           <button type="button" disabled={busy} onClick={() => input.current?.click()} className="h-9 px-4 rounded-xl bg-[#58051E] text-white text-xs font-bold hover:bg-[#430316] disabled:opacity-50 inline-flex items-center gap-1.5 cursor-pointer">
-            {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}{busy ? 'Saving…' : current ? 'Replace picture' : 'Upload picture'}
+            {busy ? <CapLoader size="xs" tone="light" /> : <ImagePlus className="w-3.5 h-3.5" />}{busy ? 'Saving…' : current ? 'Replace picture' : 'Upload picture'}
           </button>
           {current && <button type="button" disabled={busy} onClick={remove} className="h-9 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 inline-flex items-center gap-1.5 cursor-pointer"><Trash2 className="w-3.5 h-3.5" />Remove</button>}
         </div>

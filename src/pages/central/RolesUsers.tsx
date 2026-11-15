@@ -14,6 +14,7 @@ import { ToastNotification } from '../../components/ToastNotification';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { isSuperAdmin } from '../../lib/roleRouter';
+import { CapLoader } from '../../components/CapLoader';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -581,8 +582,8 @@ export const RolesUsers: React.FC = () => {
                     <tr>
                       <td colSpan={5} className="py-10 text-center">
                         <div className="flex flex-col items-center gap-2">
-                          <div className="w-6 h-6 border-2 border-[#58051E] border-t-transparent rounded-full animate-spin" />
-                          <span className="text-xs font-bold text-slate-400">Loading user accounts...</span>
+                          <CapLoader size="sm" />
+                          <span className="text-xs font-bold text-slate-400"><CapLoader size="sm" /></span>
                         </div>
                       </td>
                     </tr>

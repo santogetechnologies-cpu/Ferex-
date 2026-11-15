@@ -17,6 +17,7 @@ import {
   type DigitalMeetingRecord
 } from '../../lib/api/digitalMeetings';
 import { getDigitalClients, type DigitalClientRecord } from '../../lib/api/digital';
+import { CapLoader } from '../../components/CapLoader';
 
 const MEETING_TYPES = [
   'Discovery Call',
@@ -258,7 +259,7 @@ export const DigitalMeetings: React.FC = () => {
       {/* Meetings Grid / List */}
       {loading ? (
         <div className="py-20 flex justify-center items-center">
-          <div className="w-8 h-8 border-3 border-[#58051E] border-t-transparent rounded-full animate-spin" />
+          <CapLoader size="md" />
         </div>
       ) : filteredMeetings.length === 0 ? (
         <div className="bg-white border border-slate-200/80 rounded-xl p-16 text-center text-slate-400 text-xs font-medium">

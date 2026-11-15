@@ -41,6 +41,7 @@ import {
 } from '../lib/api/paymentGateways';
 import type { Application, JourneyStage, Payment, UserProfile } from '../lib/types';
 import { supabase } from '../lib/supabase';
+import { CapLoader } from './CapLoader';
 
 const fieldClass = 'w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20 focus:border-[#58051E] transition-all';
 const primaryBtn = 'h-9.5 px-4 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-[#58051E]/20 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50';
@@ -567,8 +568,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
 
           {loading || !configReady ? (
             <div className="p-8 text-center text-xs font-bold text-slate-500 bg-white border border-slate-200 rounded-2xl flex items-center justify-center gap-2">
-              <RefreshCw className="w-4 h-4 animate-spin text-[#58051E]" />
-              <span>Loading billing records…</span>
+              <CapLoader size="sm" /><span><CapLoader size="sm" /></span>
             </div>
           ) : targetId && !error && (
             <>
@@ -1478,8 +1478,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
               >
                 {busy ? (
                   <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Saving…</span>
+                    <CapLoader size="sm" /><span>Saving…</span>
                   </>
                 ) : (
                   <span>{admin ? 'Record payment entries' : 'Submit UPI reference'}</span>

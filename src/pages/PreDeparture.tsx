@@ -16,6 +16,7 @@ import { getPreDepartureRecords, savePreDepartureRecord } from '../lib/api/preDe
 import type { PreDepartureRecord } from '../lib/api/preDeparture';
 import { canAccessPage, checkPaymentStage } from '../lib/paymentUnlock';
 import { useNavigate } from 'react-router-dom';
+import { CapLoader } from '../components/CapLoader';
 
 export const PreDeparture: React.FC = () => {
   const navigate = useNavigate();
@@ -243,7 +244,7 @@ export const PreDeparture: React.FC = () => {
       {loading ? (
         <div className="py-16 text-center text-xs font-bold text-slate-400 animate-pulse space-y-2">
           <Clock className="w-8 h-8 mx-auto text-slate-300" />
-          <p>Loading Travel & Pre-Departure packet...</p>
+          <p><CapLoader size="sm" /></p>
         </div>
       ) : (
         <AnimatePresence mode="wait">

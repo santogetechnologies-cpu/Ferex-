@@ -21,6 +21,7 @@ import {
   type DigitalSprint,
   type TaskOriginInfo
 } from '../../../lib/api/digitalPm';
+import { CapLoader } from '../../../components/CapLoader';
 
 const COLUMNS: { title: string; status: DigitalPMTask['status']; color: string }[] = [
   { title: 'Sprint Backlog', status: 'To Do', color: 'bg-slate-100 text-slate-700 border-slate-200' },
@@ -373,7 +374,7 @@ export const DigitalPMSprints: React.FC = () => {
       {/* Kanban Columns Grid */}
       {loading ? (
         <div className="py-20 flex justify-center items-center">
-          <div className="w-8 h-8 border-3 border-[#58051E] border-t-transparent rounded-full animate-spin" />
+          <CapLoader size="md" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">

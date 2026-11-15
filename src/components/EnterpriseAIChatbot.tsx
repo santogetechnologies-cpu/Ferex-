@@ -13,6 +13,7 @@ import {
 } from '../lib/api/aiRealtimeService';
 import { useAuth } from '../contexts/AuthContext';
 import type { LiveStudentContext } from '../lib/api/openrouterChat';
+import { CapLoader } from './CapLoader';
 
 interface EnterpriseAIChatbotProps {
   role?: UserRoleType;
@@ -533,8 +534,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
                       title="Send"
                     >
                       {isLoading ? (
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                      ) : (
+                        <CapLoader size="sm" />) : (
                         <Send className="w-4 h-4" />
                       )}
                     </button>

@@ -13,6 +13,7 @@ import {
 } from '../lib/api/aiRealtimeService';
 import { useAuth } from '../contexts/AuthContext';
 import type { LiveStudentContext } from '../lib/api/openrouterChat';
+import { CapLoader } from '../components/CapLoader';
 
 interface EnterpriseAIPageProps {
   role?: UserRoleType;
@@ -508,8 +509,7 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
                   aria-label="Send message"
                 >
                   {isLoading ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
+                    <CapLoader size="sm" />) : (
                     <>
                       <Send className="w-4 h-4" />
                       <span className="hidden sm:inline">Send</span>

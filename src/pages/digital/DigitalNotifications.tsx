@@ -17,6 +17,7 @@ import {
   createDigitalNotification
 } from '../../lib/api/digital';
 import { supabase } from '../../lib/supabase';
+import { CapLoader } from '../../components/CapLoader';
 
 interface NotificationItem {
   id: string;
@@ -300,9 +301,7 @@ export const DigitalNotifications: React.FC = () => {
       <div className="space-y-3">
         {loading ? (
           <div className="p-12 text-center text-xs font-bold text-slate-400 bg-white rounded-2xl border border-slate-200/80">
-            <RefreshCw className="w-6 h-6 animate-spin mx-auto text-slate-400 mb-2" />
-            Loading real-time agency alerts...
-          </div>
+            <CapLoader size="sm" /></div>
         ) : filteredNotifications.length === 0 ? (
           <Card className="p-12 text-center bg-white border border-slate-200/80 rounded-2xl space-y-2">
             <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2">

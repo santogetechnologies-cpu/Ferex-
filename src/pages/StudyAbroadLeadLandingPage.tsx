@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import {
-  User, Mail, GraduationCap, MapPin, CalendarDays, ChevronDown, ArrowRight, ShieldCheck, FileCheck2, BookOpenCheck, Headphones, Loader2, Check,
+  User, Mail, GraduationCap, MapPin, CalendarDays, ChevronDown, ArrowRight, ShieldCheck, FileCheck2, BookOpenCheck, Headphones, Check,
 } from 'lucide-react';
 import { FerexVectorMark } from '../components/Logo';
 import { getLeadFormConfig, createEducationLead, type LeadFormConfig, DEFAULT_LEAD_FORM_CONFIG } from '../lib/api/educationLeads';
@@ -9,6 +9,7 @@ import { useDestinations } from '../hooks/useDestinations';
 import { sortByFeatured } from '../lib/api/destinations';
 import { CountryFlag } from '../components/CountryFlag';
 import { useRealtimeTable } from '../hooks/useRealtimeTable';
+import { CapLoader } from '../components/CapLoader';
 
 const FALLBACK_COUNTRIES = ['Poland', 'United Kingdom', 'Germany', 'Italy', 'Spain', 'France'];
 const MAX_BUBBLES = 12;
@@ -283,7 +284,7 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
 
                   <motion.button variants={rise} whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.98 }} type="submit" disabled={busy}
                     className="lead-cta relative overflow-hidden w-full h-12 sm:h-14 rounded-full bg-gradient-to-r from-[#8C1D4F] via-[#6B0F36] to-[#4a0220] text-white text-lg sm:text-xl font-bold shadow-[0_16px_34px_-14px_rgba(87,2,41,0.8)] inline-flex items-center justify-center gap-3 disabled:opacity-70 cursor-pointer">
-                    {busy ? <><Loader2 className="w-5 h-5 animate-spin" />Sending…</> : <>{cfg.submit_button_text?.trim() || 'Get Free Counselling'} <motion.span animate={{ x: [0, 6, 0] }} transition={{ duration: 1.6, repeat: Infinity }}><ArrowRight className="w-6 h-6" /></motion.span></>}
+                    {busy ? <CapLoader size="sm" tone="light" /> : <>{cfg.submit_button_text?.trim() || 'Get Free Counselling'} <motion.span animate={{ x: [0, 6, 0] }} transition={{ duration: 1.6, repeat: Infinity }}><ArrowRight className="w-6 h-6" /></motion.span></>}
                   </motion.button>
 
 

@@ -20,6 +20,7 @@ import {
   type RimiStockMovementRecord
 } from '../../lib/api/rimi';
 import { useRimiAccess } from '../../lib/rimiAccess';
+import { BlockCap } from '../../components/CapLoader';
 
 /** Occupancy keeps two decimals so a small but real load (e.g. 4 of 1300 pallets = 0.31%) never shows as 0%. */
 const fmtPct = (used: number, total: number) => {
@@ -261,7 +262,7 @@ export const RimiWarehouses: React.FC = () => {
 
       {/* Facilities Grid */}
       {loading ? (
-        <div className="p-12 text-center text-xs font-bold text-slate-400">Loading cold facilities...</div>
+        <BlockCap />
       ) : filteredFacilities.length === 0 ? (
         <Card className="p-12 text-center text-xs font-semibold text-slate-400 border-dashed">
           No cold storage facilities registered in database.

@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useMeetings } from '../../hooks/useMeetings';
 import { computeEndTime } from '../../lib/api/meetings';
 import { getStudents, getStaffMembers } from '../../lib/api/students';
+import { BlockCap } from '../../components/CapLoader';
 
 export interface AdminMeetingsProps {
   isStaff?: boolean;
@@ -722,7 +723,7 @@ export const AdminMeetings: React.FC<AdminMeetingsProps> = ({ isStaff = false })
 
           {/* Table of Meetings */}
           {loading && filteredMeetings.length === 0 ? (
-            <div className="py-24 text-center text-xs font-bold text-slate-400">Loading scheduled advisory meetings...</div>
+            <BlockCap />
           ) : filteredMeetings.length === 0 ? (
             <Card className="p-16 text-center border border-slate-200/80 w-full bg-white">
               <CalendarIcon className="w-12 h-12 text-slate-300 mx-auto mb-3" />
@@ -919,7 +920,7 @@ export const AdminMeetings: React.FC<AdminMeetingsProps> = ({ isStaff = false })
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 z-10 text-left"
+              className="relative bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100 z-10 text-left"
             >
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
                 <h3 className="text-base font-black text-slate-900">Reschedule Advisory Session</h3>
@@ -995,7 +996,7 @@ export const AdminMeetings: React.FC<AdminMeetingsProps> = ({ isStaff = false })
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 z-10 text-left"
+              className="relative bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100 z-10 text-left"
             >
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
                 <h3 className="text-base font-black text-slate-900">Schedule Advisory Meeting</h3>

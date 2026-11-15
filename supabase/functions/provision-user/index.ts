@@ -16,8 +16,9 @@ Deno.serve(async req => {
     const allowedCallers = [...centralRoles, ...educationRoles, 'counselor', 'staff'];
     if (roleError || !allowedCallers.includes(role)) return reply({ error: 'Administrator access required' }, 403);
     const body = await req.json();
-    if (!supportedRoles.includes(body.role) || (!centralRoles.includes(role) && !['student', 'staff', 'counselor'].includes(body.role))) return reply({ error: 'You cannot provision this role' }, 403);
-    if (['counselor', 'staff'].includes(role) && body.role !== 'student') return reply({ error: 'Admissions counselors can only provision student accounts' }, 403);
+    if (!supportedRoles.includes(body.role)) return reply({ error: 'You cannot provision this role' }, 403);
+    // Logins for staff, counselors and every admin are created by the Central admin only. Education admins and counselors may open student accounts.
+    if (!centralRoles.includes(role) && body.role !== 'student') return reply({ error: 'Only the Central admin can create staff and admin logins' }, 403);
     const email = String(body.email || '').trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !String(body.full_name || '').trim()) return reply({ error: 'A valid name and email are required' }, 400);
     if (body.password && (typeof body.password !== 'string' || body.password.length < 8)) return reply({ error: 'Password must contain at least 8 characters' }, 400);

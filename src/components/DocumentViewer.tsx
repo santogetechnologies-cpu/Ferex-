@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { X, Download, ExternalLink, FileText, ZoomIn, ZoomOut, Loader2, AlertCircle } from 'lucide-react';
+import { X, Download, ExternalLink, FileText, ZoomIn, ZoomOut, AlertCircle } from 'lucide-react';
 import { resolveDocumentUrl, previewKind } from '../lib/documentFiles';
+import { CapLoader } from './CapLoader';
 
 export interface ViewerDoc { name: string; url: string; subtitle?: string }
 
@@ -46,7 +47,7 @@ export const DocumentViewer: React.FC<{ doc: ViewerDoc | null; onClose: () => vo
         <button aria-label="Close" onClick={onClose} className={`${btn} bg-white/10 hover:bg-white/20 text-white w-9 justify-center px-0`}><X className="w-4 h-4" /></button>
       </header>
       <div className="flex-1 min-h-0 overflow-auto flex items-center justify-center p-3 sm:p-6" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-        {loading && <div className="text-white/80 text-sm flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Opening document…</div>}
+        {loading && <CapLoader size="md" tone="light" />}
         {error && <div className="max-w-sm text-center text-white space-y-2"><AlertCircle className="w-8 h-8 mx-auto text-amber-300" /><p className="text-sm font-semibold">{error}</p></div>}
         {url && kind === 'pdf' && <iframe title={doc.name} src={url} className="w-full h-full max-w-5xl rounded-lg bg-white" />}
         {url && kind === 'image' && <img src={url} alt={doc.name} style={{ transform: `scale(${zoom})`, transformOrigin: 'center' }} className="max-w-full max-h-full object-contain rounded-lg bg-white transition-transform" />}

@@ -11,6 +11,7 @@ import { ToastNotification } from '../../components/ToastNotification';
 import { DocumentViewer, type ViewerDoc } from '../../components/DocumentViewer';
 import { DocumentUploadDialog, type UploadDone } from '../../components/DocumentUploadDialog';
 import { PageHeader, EmptyState } from '../../components/Kit';
+import { BlockCap } from '../../components/CapLoader';
 import { useAuth } from '../../contexts/AuthContext';
 import type { StudentDocument } from '../../lib/types';
 
@@ -241,7 +242,7 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
         <aside className={`${selected ? 'hidden lg:block' : ''} space-y-3`}>
           <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search students" className="w-full h-10 pl-9 pr-3" /></div>
           <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer"><input type="checkbox" checked={queueOnly} onChange={e => setQueueOnly(e.target.checked)} className="w-4 h-4 accent-[#58051E]" />Only students with files to review</label>
-          {loading ? <div className="space-y-2">{[0, 1, 2, 3].map(i => <div key={i} className="h-16 rounded-xl bg-slate-100 animate-pulse" />)}</div> : visible.length === 0 ? (
+          {loading ? <BlockCap /> : visible.length === 0 ? (
             <EmptyState icon={Users} title={rows.length ? 'No students match' : isStaff ? 'No students assigned to you' : 'No students yet'} hint={rows.length ? 'Clear the search or the review filter.' : 'Students appear here once they register.'} />
           ) : (
             <ul className="space-y-2 max-h-[70vh] overflow-y-auto pr-1">

@@ -44,7 +44,6 @@ const baseMenuItems = [
   { name: 'Support', path: '/admin/support', icon: Headphones, badge: null, hasUpdate: false },
   { name: 'Chat', path: '/admin/chat', icon: MessageSquare, badge: null, hasUpdate: false },
   { name: 'Attendance', path: '/admin/attendance', icon: Clock, badge: null, hasUpdate: false },
-  { name: 'Staff', path: '/admin/staff', icon: Users, badge: null, hasUpdate: false },
   { name: 'Meetings', path: '/admin/meetings', icon: Calendar, badge: null, hasUpdate: false },
   { name: 'Reports', path: '/admin/reports', icon: BarChart3, badge: null, hasUpdate: false },
   { name: 'Emails', path: '/admin/emails', icon: Mail, badge: null, hasUpdate: false },

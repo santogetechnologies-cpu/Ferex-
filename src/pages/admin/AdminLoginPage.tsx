@@ -8,6 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { getDashboardRoute, getPortalLabel, isSuperAdmin } from '../../lib/roleRouter';
 import { supabase } from '../../lib/supabase';
 import { getAdminSupabaseClient } from '../../lib/adminAuthClient';
+import { CapLoader } from '../../components/CapLoader';
 
 export const AdminLoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -347,13 +348,7 @@ export const AdminLoginPage: React.FC = () => {
                   className="w-full h-11 bg-[#570229] hover:bg-[#6F0335] text-white text-xs font-extrabold rounded-xl transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-[#570229]/40 mt-4 cursor-pointer"
                 >
                   {isLoading ? (
-                    <>
-                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Authenticating Super Admin...
-                    </>
+                    <CapLoader size="xs" tone="light" />
                   ) : (
                     <>
                       <Lock className="w-3.5 h-3.5" /> Sign In as Super Admin
@@ -429,13 +424,7 @@ export const AdminLoginPage: React.FC = () => {
                   className="w-full h-11 bg-[#570229] hover:bg-[#6F0335] text-white text-xs font-extrabold rounded-xl transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-[#570229]/40 mt-3 cursor-pointer"
                 >
                   {isLoading ? (
-                    <>
-                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Creating Super Admin Credentials...
-                    </>
+                    <CapLoader size="xs" tone="light" />
                   ) : (
                     <>
                       <UserPlus className="w-3.5 h-3.5" /> Create Super Admin Account

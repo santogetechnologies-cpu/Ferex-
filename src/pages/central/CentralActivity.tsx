@@ -10,6 +10,7 @@ import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
 import { supabase } from '../../lib/supabase';
 import { getActivityLogs } from '../../lib/api/activity';
+import { CapLoader } from '../../components/CapLoader';
 
 export interface ComprehensiveAuditItem {
   id: string;
@@ -463,8 +464,7 @@ export const CentralActivity: React.FC = () => {
               {loading ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400 font-bold">
-                    <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-[#58051E]" />
-                    Streaming live audit records from Supabase...
+                    <CapLoader size="sm" />Streaming live audit records from Supabase...
                   </td>
                 </tr>
               ) : filteredLogs.length === 0 ? (

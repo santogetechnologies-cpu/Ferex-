@@ -21,6 +21,7 @@ import {
   assignDigitalProject,
   type DigitalProjectRecord
 } from '../../lib/api/digital';
+import { BlockCap } from '../../components/CapLoader';
 
 export const DigitalStaff: React.FC = () => {
   const { profile } = useAuth();
@@ -281,7 +282,7 @@ export const DigitalStaff: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="py-12 text-center text-xs font-semibold text-slate-400">Loading agency team...</div>
+          <BlockCap />
         ) : staffList.length === 0 ? (
           <div className="py-12 text-center text-xs font-semibold text-slate-400">
             No team members found. Click "Add Team Member" to provision an account.

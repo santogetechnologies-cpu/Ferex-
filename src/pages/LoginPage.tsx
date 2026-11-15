@@ -12,6 +12,7 @@ import { getDashboardRoute, getPortalLabel, isSuperAdmin } from '../lib/roleRout
 import { supabase } from '../lib/supabase';
 import { getAdminSupabaseClient } from '../lib/adminAuthClient';
 import { sendStudentWelcomeEmail } from '../lib/api/email';
+import { CapLoader } from '../components/CapLoader';
 
 const fieldCls = 'h-12 lg:h-14 rounded-2xl bg-white/80 border-slate-200 text-sm font-medium focus:bg-white';
 const labelCls = 'text-sm font-bold text-slate-800 mb-1.5';
@@ -285,7 +286,7 @@ export const LoginPage: React.FC = () => {
 
     const portalLabel = getPortalLabel(role, cleanEmail);
     const targetRoute = getDashboardRoute(role, cleanEmail);
-    setSuccessMsg(`Authorization successful. Loading ${portalLabel}...`);
+    setSuccessMsg(`Welcome back.`);
     setIsLoading(false);
 
     setTimeout(() => {
@@ -635,8 +636,8 @@ export const LoginPage: React.FC = () => {
                 >
                   {isLoading ? (
                     <span className="flex items-center gap-2">
-                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Signing you in…
+                      <CapLoader size="xs" tone="light" />
+                      Signing in
                     </span>
                   ) : (
                     <>
@@ -757,7 +758,7 @@ export const LoginPage: React.FC = () => {
                 >
                   {isLoading ? (
                     <span className="flex items-center gap-2">
-                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <CapLoader size="xs" tone="light" />
                       Creating Account & Verifying Consent...
                     </span>
                   ) : (

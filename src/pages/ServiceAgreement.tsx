@@ -15,6 +15,7 @@ import {
   COMPANY_OFFICIAL_DETAILS,
   type ServiceAgreementData,
 } from '../lib/api/agreement';
+import { CapLoader } from '../components/CapLoader';
 
 export const ServiceAgreement: React.FC = () => {
   const navigate = useNavigate();
@@ -307,7 +308,7 @@ export const ServiceAgreement: React.FC = () => {
   if (loading) {
   return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[#570229] border-t-transparent rounded-full animate-spin" />
+        <CapLoader size="md" />
       </div>
     );
   }
@@ -753,7 +754,7 @@ export const ServiceAgreement: React.FC = () => {
                   >
                     {isSubmitting ? (
                       <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <CapLoader size="xs" />
                         <span>Registering Legal Signature...</span>
                       </>
                     ) : (

@@ -10,6 +10,7 @@ import { useMeetings } from '../hooks/useMeetings';
 import { computeEndTime } from '../lib/api/meetings';
 import { getStaffMembers } from '../lib/api/students';
 import { sendStudentMeetingScheduledEmail } from '../lib/api/email';
+import { BlockCap } from '../components/CapLoader';
 
 export const Meetings: React.FC = () => {
   const { user, profile } = useAuth();
@@ -242,7 +243,7 @@ export const Meetings: React.FC = () => {
           <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest pl-1 mb-3">Scheduled Advisory</h3>
           
           {loading ? (
-            <div className="py-8 text-center text-xs font-bold text-slate-400">Loading meetings...</div>
+            <BlockCap />
           ) : meetings.length === 0 ? (
             <div className="bg-white border border-slate-200/70 rounded-2xl p-8 text-center shadow-xs">
               <CalendarIcon className="w-10 h-10 text-slate-300 mx-auto mb-2" />

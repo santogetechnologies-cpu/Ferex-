@@ -7,6 +7,7 @@ import { ThemeToggle } from '../../components/ThemeToggle';
 import { Button } from '../../components/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { CapLoader } from '../../components/CapLoader';
 
 export const DigitalLoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ export const DigitalLoginPage: React.FC = () => {
       const { error } = await signIn(cleanEmail, password);
       
       if (!error) {
-        setSuccessMsg('Authorization successful. Loading Ferex Digital Console...');
+        setSuccessMsg('Welcome back.');
         setTimeout(() => {
           navigate('/digital/dashboard', { replace: true });
         }, 300);

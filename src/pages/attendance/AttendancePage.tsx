@@ -10,6 +10,7 @@ import { LeaveApprovals } from './LeaveApprovals';
 import { Incentives } from './Incentives';
 import { PayrollTab } from './PayrollTab';
 import { RulesTab } from './RulesTab';
+import { BlockCap } from '../../components/CapLoader';
 
 type TabId = 'mine' | 'team' | 'leave' | 'incentives' | 'payroll' | 'rules';
 
@@ -54,7 +55,7 @@ export const AttendancePage: React.FC<{ platform?: string }> = ({ platform }) =>
   const active: TabId = tabs.find(t => t.id === requested)?.id || tabs[0]?.id || 'mine';
 
   if (error) return <div className="p-6"><p role="alert" className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-sm font-semibold text-rose-700">{error}</p></div>;
-  if (!ctx) return <div className="p-6 text-sm font-semibold text-slate-500">Loading attendance…</div>;
+  if (!ctx) return <BlockCap />;
 
   const scope = ctx.level === 'superadmin' ? platform : undefined;
   const shared = { ctx, rules, holidays, toast, scope };

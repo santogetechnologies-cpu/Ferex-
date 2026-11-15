@@ -11,6 +11,7 @@ import { useUniversities } from '../../hooks/useUniversities';
 import { useDestinations } from '../../hooks/useDestinations';
 import type { University } from '../../lib/types';
 import { formatFeeEURandINR } from '../admin/AdminUniversities';
+import { BlockCap } from '../../components/CapLoader';
 
 export const CentralEducation: React.FC = () => {
   const { universities, loading, refresh, addUniversity, updateUniversity, removeUniversity } = useUniversities();
@@ -183,7 +184,7 @@ export const CentralEducation: React.FC = () => {
 
       {/* University Grid */}
       {loading ? (
-        <div className="py-16 text-center text-xs font-bold text-slate-400">Loading alliance universities...</div>
+        <BlockCap />
       ) : filteredPartners.length === 0 ? (
         <div className="bg-white border border-slate-200/70 rounded-2xl p-12 text-center shadow-xs">
           <GraduationCap className="w-12 h-12 text-slate-300 mx-auto mb-3" />

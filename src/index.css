@@ -609,3 +609,19 @@ h1, h2, h3, h4, .font-heading {
 .dark .app-main [class*="border-dashed"][class*="rounded"] { border-color: #334155; background-color: rgb(15 23 42 / 0.6); color: #94a3b8; }
 .dark .app-main :focus-visible { outline-color: rgba(251, 113, 133, 0.6); }
 .dark .app-main [role="dialog"] > div, .dark .app-main .fixed.inset-0 > div[class*="rounded"][class*="bg-white"] { box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.7); }
+
+/* Every dialog stays inside the screen and scrolls on its own when its content is taller. */
+.fixed.inset-0 > div[class*="bg-white"][class*="rounded"][class*="max-w-"]:not([class*="h-full"]) {
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* ─── Graduation-cap loader ─────────────────────────────────────── */
+@keyframes cap-bob { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-9%) rotate(3deg); } }
+@keyframes cap-tassel { 0%, 100% { transform: rotate(10deg); } 50% { transform: rotate(-12deg); } }
+@keyframes cap-shadow { 0%, 100% { transform: scaleX(1); opacity: 0.18; } 50% { transform: scaleX(0.7); opacity: 0.08; } }
+.cap-loader .cap-bob { transform-box: fill-box; transform-origin: 50% 60%; animation: cap-bob 1.6s ease-in-out infinite; }
+.cap-loader .cap-tassel { transform-box: fill-box; transform-origin: 90% 0%; animation: cap-tassel 1.6s ease-in-out infinite; }
+.cap-loader .cap-shadow { transform-box: fill-box; transform-origin: center; animation: cap-shadow 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .cap-loader .cap-bob, .cap-loader .cap-tassel, .cap-loader .cap-shadow { animation-duration: 3s !important; animation-iteration-count: infinite !important; } }

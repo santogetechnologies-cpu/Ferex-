@@ -7,6 +7,7 @@ import {
   type ChatThread, type ChatMsg,
 } from '../lib/api/chat';
 import { getStudents } from '../lib/api/students';
+import { BlockCap } from './CapLoader';
 
 const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -120,7 +121,7 @@ export function ChatPanel({ mode, studentId }: { mode: 'student' | 'staff'; stud
         </div>
         <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
           {loading ? (
-            <div className="p-6 text-center text-xs font-bold text-slate-400">Loading…</div>
+            <BlockCap />
           ) : visible.length === 0 ? (
             <div className="p-6 text-center text-xs font-bold text-slate-400">No active chat threads.</div>
           ) : visible.map(t => {

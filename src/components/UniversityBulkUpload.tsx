@@ -8,6 +8,7 @@ import { createUniversity } from '../lib/api/universities';
 import { createDestination } from '../lib/api/destinations';
 import { countryKey, universityKey, parseUniversityImport, universityImportTemplate } from '../lib/universityImport';
 import type { UniversityImportRow } from '../lib/universityImport';
+import { CapLoader } from './CapLoader';
 
 interface UniversityBulkUploadProps {
   onComplete: () => Promise<unknown>;
@@ -316,8 +317,7 @@ export function UniversityBulkUpload({ onComplete, className }: UniversityBulkUp
                   ) : messageType === 'error' ? (
                     <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                   ) : (
-                    <RefreshCw className="w-4 h-4 text-slate-600 shrink-0 mt-0.5 animate-spin" />
-                  )}
+                    <CapLoader size="sm" />)}
                   <div className="whitespace-pre-wrap">{message}</div>
                 </div>
               )}
@@ -341,8 +341,7 @@ export function UniversityBulkUpload({ onComplete, className }: UniversityBulkUp
               >
                 {busy ? (
                   <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Importing…</span>
+                    <CapLoader size="sm" /><span>Importing…</span>
                   </>
                 ) : (
                   <>

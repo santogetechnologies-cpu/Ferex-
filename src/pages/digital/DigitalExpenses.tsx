@@ -18,6 +18,7 @@ import {
   getDigitalAssetCostSummary,
   type DigitalAsset
 } from '../../lib/api/digital';
+import { BlockCap } from '../../components/CapLoader';
 
 export const DigitalExpenses: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'expenses' | 'assets'>('expenses');
@@ -278,7 +279,7 @@ export const DigitalExpenses: React.FC = () => {
       {activeTab === 'expenses' && (
         <>
           {loading ? (
-            <div className="p-8 text-center text-xs font-bold text-slate-400">Loading expense vouchers...</div>
+            <BlockCap />
           ) : filteredExpenses.length === 0 ? (
             <Card className="p-12 text-center border border-dashed border-slate-200">
               <Receipt className="w-10 h-10 text-slate-300 mx-auto mb-3" />

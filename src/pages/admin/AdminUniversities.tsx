@@ -16,6 +16,7 @@ import { uploadFileToBucket } from '../../lib/storage';
 import type { University, PaymentInstallment, CourseSemester, CourseProgram } from '../../lib/types';
 import { sortByFeatured, type DestinationItem } from '../../lib/api/destinations';
 import { ToastNotification } from '../../components/ToastNotification';
+import { BlockCap, CapLoader } from '../../components/CapLoader';
 
 export function formatFeeEURandINR(feeStr?: string): string {
   if (!feeStr || feeStr === 'N/A' || feeStr === '—') return '—';
@@ -773,7 +774,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
 
           {/* Universities Grid */}
           {loading ? (
-            <div className="py-16 text-center text-xs font-bold text-slate-400">Loading university catalog...</div>
+            <BlockCap />
           ) : filteredUniversities.length === 0 ? (
             <div className="bg-white border border-slate-200/70 rounded-2xl p-12 text-center shadow-xs">
               <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
@@ -1338,8 +1339,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                         >
                           <div className="w-12 h-12 rounded-2xl bg-[#58051E]/10 group-hover:bg-[#58051E] text-[#58051E] group-hover:text-white flex items-center justify-center transition-colors">
                             {uploadingImage ? (
-                              <RefreshCw className="w-6 h-6 animate-spin" />
-                            ) : (
+                              <CapLoader size="sm" />) : (
                               <Upload className="w-6 h-6" />
                             )}
                           </div>

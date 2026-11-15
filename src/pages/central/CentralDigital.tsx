@@ -17,6 +17,7 @@ import {
 } from '../../lib/api/digital';
 import { sendDigitalProjectMilestoneEmail } from '../../lib/api/automatedEmails';
 import { supabase } from '../../lib/supabase';
+import { CapLoader } from '../../components/CapLoader';
 
 export const CentralDigital: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'projects' | 'clients' | 'invoices'>('projects');
@@ -302,9 +303,7 @@ export const CentralDigital: React.FC = () => {
                 <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
                   {loading ? (
                     <tr>
-                      <td colSpan={8} className="py-12 text-center text-xs font-bold text-slate-400">
-                        Loading digital projects from Supabase...
-                      </td>
+                      <td colSpan={8} className="py-12 text-center text-xs font-bold text-slate-400"><CapLoader size="sm" /></td>
                     </tr>
                   ) : filteredProjects.length === 0 ? (
                     <tr>

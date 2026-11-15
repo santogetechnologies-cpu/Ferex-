@@ -16,6 +16,7 @@ import {
 import { getDigitalProjects, getDigitalClients } from '../../lib/api/digital';
 import { useDigitalPermissions } from '../../hooks/usePermissions';
 import { supabase } from '../../lib/supabase';
+import { BlockCap } from '../../components/CapLoader';
 
 type View = 'billing' | 'invoices' | 'payments' | 'emails';
 
@@ -301,7 +302,7 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
         ))}
       </nav>
 
-      {!loaded && <p className="text-xs font-semibold text-slate-500">Loading billing…</p>}
+      {!loaded && <BlockCap />}
 
       {loaded && (view === 'billing' || view === 'payments') && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

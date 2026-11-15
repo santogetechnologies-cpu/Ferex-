@@ -12,6 +12,7 @@ import { supabase } from '../lib/supabase';
 import { Button } from '../components/Button';
 import { ToastNotification } from '../components/ToastNotification';
 import { sendStudentTicketCreatedEmail } from '../lib/api/email';
+import { CapLoader } from '../components/CapLoader';
 const QUICK_REPLIES = [
   "Thank you for the update!",
   "I have uploaded the requested documents.",
@@ -353,8 +354,7 @@ export const SupportTickets: React.FC = () => {
           <div className="flex-1 overflow-y-auto divide-y divide-slate-105">
             {loading ? (
               <div className="py-12 text-center text-xs font-semibold text-slate-400 flex items-center justify-center gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin text-slate-350" /> Loading queue...
-              </div>
+                <CapLoader size="sm" /></div>
             ) : filtered.length === 0 ? (
               <div className="py-16 text-center">
                 <HelpCircle className="w-8 h-8 text-slate-200 mx-auto mb-2" />

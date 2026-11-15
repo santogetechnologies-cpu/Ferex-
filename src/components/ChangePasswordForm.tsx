@@ -5,6 +5,7 @@ import { Button } from './Button';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { getAdminSupabaseClient } from '../lib/adminAuthClient';
+import { CapLoader } from './CapLoader';
 
 interface ChangePasswordFormProps {
   title?: string;
@@ -258,7 +259,7 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
             className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold px-5 h-10 rounded-xl flex items-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
           >
             {loading ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <CapLoader size="xs" />
             ) : (
               <Lock className="w-4 h-4" />
             )}

@@ -26,6 +26,7 @@ import { aiProxyFetch } from '../../lib/api/aiProxy';
 import { getRealtimeSystemPrompt, type UserRoleType } from '../../lib/api/aiRealtimeService';
 import { AIVoiceVisualizer } from './AIVoiceVisualizer';
 import type { LiveStudentContext } from '../../lib/api/openrouterChat';
+import { CapLoader } from '../../components/CapLoader';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -483,7 +484,7 @@ export const RealtimeVoiceWebRTC: React.FC<RealtimeVoiceWebRTCProps> = ({
           transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
           className="w-12 h-12 rounded-full border-3 border-emerald-500/20 border-t-emerald-400 shadow-lg shadow-emerald-500/10"
         />
-        <p className="text-white/60 text-xs font-medium tracking-wide animate-pulse">Loading…</p>
+        <p className="text-white/60 text-xs font-medium tracking-wide animate-pulse"><CapLoader size="sm" /></p>
       </div>
     );
   }

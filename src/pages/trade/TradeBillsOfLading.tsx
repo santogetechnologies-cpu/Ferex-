@@ -20,6 +20,7 @@ import {
   TRADE_BL_STATUSES
 } from '../../lib/api/trade';
 import { supabase } from '../../lib/supabase';
+import { BlockCap } from '../../components/CapLoader';
 
 export const TradeBillsOfLading: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -295,7 +296,7 @@ export const TradeBillsOfLading: React.FC = () => {
 
       {/* Table */}
       {loading ? (
-        <div className="p-12 text-center text-xs font-bold text-slate-400">Loading Bills of Lading...</div>
+        <BlockCap />
       ) : filteredBills.length === 0 ? (
         <Card className="p-12 text-center border border-dashed border-slate-200">
           <FileCheck2 className="w-10 h-10 text-slate-300 mx-auto mb-3" />

@@ -24,6 +24,7 @@ import {
   type TradePaymentRecord
 } from '../../lib/api/trade';
 import { supabase } from '../../lib/supabase';
+import { BlockCap } from '../../components/CapLoader';
 
 export const TradeCRM: React.FC = () => {
   const navigate = useNavigate();
@@ -301,7 +302,7 @@ export const TradeCRM: React.FC = () => {
 
       {/* Partners Grid */}
       {loading ? (
-        <div className="p-12 text-center text-xs font-bold text-slate-400">Loading Trade CRM records...</div>
+        <BlockCap />
       ) : filteredCompanies.length === 0 ? (
         <Card className="p-12 text-center border border-dashed border-slate-200">
           <Building2 className="w-10 h-10 text-slate-300 mx-auto mb-3" />

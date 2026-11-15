@@ -4,6 +4,7 @@ import { ShieldCheck, AlertCircle, KeyRound, ArrowLeft, CheckCircle2 } from 'luc
 import { useNavigate } from 'react-router-dom';
 import { Input } from '../components/Input';
 import { useAuth } from '../contexts/AuthContext';
+import { CapLoader } from '../components/CapLoader';
 
 export const ResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
@@ -134,7 +135,7 @@ export const ResetPasswordPage: React.FC = () => {
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <CapLoader size="xs" tone="light" />
                   Updating Password...
                 </span>
               ) : (

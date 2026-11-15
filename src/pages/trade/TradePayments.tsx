@@ -20,6 +20,7 @@ import {
 } from '../../lib/api/trade';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { CapLoader } from '../../components/CapLoader';
 
 export const TradePayments: React.FC = () => {
   const { profile } = useAuth();
@@ -449,8 +450,7 @@ export const TradePayments: React.FC = () => {
       {/* Receipts Ledger Table */}
       {loading ? (
         <div className="p-12 text-center text-xs font-bold text-slate-400 flex items-center justify-center gap-2">
-          <RefreshCw className="w-4 h-4 animate-spin text-[#58051E]" /> Loading payment receipts...
-        </div>
+          <CapLoader size="sm" /></div>
       ) : filteredPayments.length === 0 ? (
         <Card className="p-12 text-center border border-dashed border-slate-200">
           <CreditCard className="w-10 h-10 text-slate-300 mx-auto mb-3" />

@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useApplications } from '../hooks/useApplications';
 import { isRealApplication } from '../lib/api/applications';
+import { BlockCap } from '../components/CapLoader';
 
 const getStatusStyle = (status: string) => {
   switch (status) {
@@ -113,7 +114,7 @@ export const UniversityApplications: React.FC = () => {
 
       {/* Grid of Applications */}
       {loading && validApplications.length === 0 ? (
-        <div className="py-16 text-center text-xs font-bold text-slate-400">Loading applications...</div>
+        <BlockCap />
       ) : validApplications.length === 0 ? (
         <div className="bg-white border border-slate-200/70 rounded-2xl p-12 text-center shadow-xs">
           <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />

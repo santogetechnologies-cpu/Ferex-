@@ -10,6 +10,7 @@ import { useApplications } from '../../hooks/useApplications';
 import { useAuth } from '../../contexts/AuthContext';
 import { generateUUID } from '../../utils/uuid';
 import { ToastNotification } from '../../components/ToastNotification';
+import { CapLoader } from '../../components/CapLoader';
 
 export interface AdminVisaTrackerProps {
   isStaff?: boolean;
@@ -577,7 +578,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
                     disabled={isSaving}
                     className="flex-1 h-9 bg-[#58051E] text-white text-xs font-black rounded-xl hover:bg-[#430316] shadow-xs cursor-pointer disabled:opacity-50"
                   >
-                    {isSaving ? 'Processing...' : 'Start VFS Tracking'}
+                    {isSaving ? <CapLoader size="xs" tone="light" /> : 'Start VFS Tracking'}
                   </button>
                 </div>
               </form>

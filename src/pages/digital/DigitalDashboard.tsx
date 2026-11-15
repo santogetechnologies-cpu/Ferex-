@@ -19,6 +19,7 @@ import { useDigitalConfig } from '../../hooks/useDigitalConfig';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDigitalPermissions } from '../../hooks/usePermissions';
 import { supabase } from '../../lib/supabase';
+import { BlockCap } from '../../components/CapLoader';
 
 export const DigitalDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -202,7 +203,7 @@ export const DigitalDashboard: React.FC = () => {
                 </div>
 
                 {loading ? (
-                  <div className="py-8 text-center text-xs font-semibold text-slate-400">Loading projects...</div>
+                  <BlockCap />
                 ) : recentProjects.length === 0 ? (
                   <div className="py-8 text-center text-xs font-semibold text-slate-400">
                     <FolderKanban className="w-8 h-8 text-slate-300 mx-auto mb-2" />

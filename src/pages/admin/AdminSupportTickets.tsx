@@ -11,6 +11,7 @@ import { getStaffMembers } from '../../lib/api/students';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { ToastNotification } from '../../components/ToastNotification';
+import { CapLoader } from '../../components/CapLoader';
 
 type TicketStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed';
 type TicketPriority = 'High' | 'Medium' | 'Low';
@@ -388,8 +389,7 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
             {loading ? (
               <div className="py-12 text-center text-xs font-semibold text-slate-400 flex items-center justify-center gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin text-slate-350" /> Loading inbox...
-              </div>
+                <CapLoader size="sm" /></div>
             ) : filtered.length === 0 ? (
               <div className="py-16 text-center">
                 <HelpCircle className="w-8 h-8 text-slate-200 mx-auto mb-2" />

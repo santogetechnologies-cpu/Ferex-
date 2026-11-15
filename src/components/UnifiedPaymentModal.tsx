@@ -14,6 +14,7 @@ import {
   DEFAULT_PAYMENT_GATEWAYS,
   FEREX_OFFICIAL_BANK_ACCOUNTS,
 } from '../lib/api/paymentGateways';
+import { CapLoader } from './CapLoader';
 
 export interface UnifiedPaymentModalProps {
   isOpen: boolean;
@@ -458,7 +459,7 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
                     >
                       {isProcessing ? (
                         <span className="flex items-center gap-1.5">
-                          <Clock className="w-4 h-4 animate-spin" /> Verifying UTR Settlement...
+                          <CapLoader size="xs" tone="light" />
                         </span>
                       ) : (
                         `Confirm & Clear UPI Payment (${formatAmount(amount)})`
@@ -559,7 +560,7 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
                     >
                       {isProcessing ? (
                         <span className="flex items-center gap-1.5">
-                          <Clock className="w-4 h-4 animate-spin" /> Recording Wire Clearance...
+                          <CapLoader size="xs" tone="light" />
                         </span>
                       ) : (
                         `Confirm Bank Wire Settlement (${formatAmount(amount)})`
@@ -617,7 +618,7 @@ export const UnifiedPaymentModal: React.FC<UnifiedPaymentModalProps> = ({
                     >
                       {isProcessing ? (
                         <span className="flex items-center gap-1.5">
-                          <Clock className="w-4 h-4 animate-spin" /> Issuing Counter Cash Voucher...
+                          <CapLoader size="xs" tone="light" />
                         </span>
                       ) : (
                         `Issue Cash Payment Receipt Voucher (${formatAmount(amount)})`

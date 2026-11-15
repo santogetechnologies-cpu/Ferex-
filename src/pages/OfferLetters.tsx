@@ -13,6 +13,7 @@ import { isRealApplication } from '../lib/api/applications';
 import { usePayments } from '../hooks/usePayments';
 import { triggerOfferAcceptanceWorkflow } from '../lib/syncEvents';
 import { checkPaymentStage } from '../lib/paymentUnlock';
+import { BlockCap } from '../components/CapLoader';
 
 // Generate 100% Valid PDF Binary Blob with Embedded Fonts & Structured Text Layout
 export function createValidOfferPdfBlob(app: {
@@ -260,7 +261,7 @@ export const OfferLetters: React.FC = () => {
 
       {/* Applications List */}
       {loading && applications.length === 0 ? (
-        <div className="py-16 text-center text-xs font-bold text-slate-400">Loading university decisions...</div>
+        <BlockCap />
       ) : offerApps.length === 0 ? (
         <div className="bg-white border border-slate-200/70 rounded-2xl p-10 text-center shadow-xs max-w-2xl mx-auto space-y-4">
           <div className="w-14 h-14 rounded-2xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center mx-auto">

@@ -14,6 +14,7 @@ import { sendStudentDocumentUploadedEmail } from '../lib/api/email';
 import { DocumentViewer, type ViewerDoc } from '../components/DocumentViewer';
 import { DocumentUploadDialog, type UploadDone } from '../components/DocumentUploadDialog';
 import { PageHeader, EmptyState } from '../components/Kit';
+import { BlockCap } from '../components/CapLoader';
 
 type Norm = 'Approved' | 'Under Review' | 'Needs action' | 'Submitted';
 const norm = (s: string): Norm => {
@@ -160,7 +161,7 @@ export const Documents: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="space-y-3">{[0, 1, 2].map(i => <div key={i} className="h-20 rounded-2xl bg-slate-100 animate-pulse" />)}</div>
+        <BlockCap />
       ) : tab === 'checklist' ? (
         <div className="space-y-3">
           {dossier.results.length === 0 && <EmptyState icon={ShieldCheck} title="No checklist yet" hint="When your counselor sets the document list for your country it will appear here. You can still upload any document under All my files." />}

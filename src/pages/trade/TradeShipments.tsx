@@ -27,6 +27,7 @@ import {
 } from '../../lib/api/trade';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { CapLoader } from '../../components/CapLoader';
 
 export const TradeShipments: React.FC = () => {
   const { profile } = useAuth();
@@ -326,8 +327,7 @@ export const TradeShipments: React.FC = () => {
       {/* Orders Table */}
       {loading ? (
         <div className="p-12 text-center text-xs font-bold text-slate-400 flex items-center justify-center gap-2">
-          <RefreshCw className="w-4 h-4 animate-spin text-[#58051E]" /> Loading trade orders...
-        </div>
+          <CapLoader size="sm" /></div>
       ) : filteredOrders.length === 0 ? (
         <Card className="p-12 text-center border border-dashed border-slate-200">
           <PackageCheck className="w-10 h-10 text-slate-300 mx-auto mb-3" />
@@ -437,7 +437,7 @@ export const TradeShipments: React.FC = () => {
                               className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-black shadow-2xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
                               title={`Advance to ${nextStage}`}
                             >
-                              {isAdvancing ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                              {isAdvancing ? <CapLoader size="sm" />: <Send className="w-3 h-3" />}
                               Confirm {nextStage}
                             </button>
                           )}

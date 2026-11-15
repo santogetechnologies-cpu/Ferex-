@@ -7,6 +7,7 @@ import { uploadOfferPdfToSupabase } from '../../lib/api/applications';
 import { updateNawaStep } from '../../lib/api/nawa';
 import { ToastNotification } from '../../components/ToastNotification';
 import { useAuth } from '../../contexts/AuthContext';
+import { CapLoader } from '../../components/CapLoader';
 
 export const COUNTRY_AUTHORITIES: Record<string, { acronym: string; name: string; flag: string }> = {
   'Poland': { acronym: 'Legalization', name: 'Polish Ministry of Science & Legalization', flag: 'PL' },
@@ -794,7 +795,7 @@ startxref
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                   <button type="button" onClick={() => setOfferModalApp(null)} className="h-9 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">Cancel</button>
                   <button type="submit" disabled={isUploadingOffer} className="h-9 px-5 bg-[#58051E] text-white rounded-xl text-xs font-black hover:bg-[#430316] shadow-xs flex items-center gap-1.5">
-                    {isUploadingOffer ? 'Processing...' : 'Confirm & Issue Offer Letter PDF'}
+                    {isUploadingOffer ? <CapLoader size="xs" tone="light" /> : 'Confirm & Issue Offer Letter PDF'}
                   </button>
                 </div>
               </form>
@@ -882,7 +883,7 @@ startxref
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                   <button type="button" onClick={() => setFinalModalApp(null)} className="h-9 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">Cancel</button>
                   <button type="submit" disabled={isUploadingOffer} className="h-9 px-5 bg-teal-700 text-white rounded-xl text-xs font-black hover:bg-teal-800 shadow-xs flex items-center gap-1.5">
-                    {isUploadingOffer ? 'Processing...' : 'Confirm & Issue Final Acceptance PDF'}
+                    {isUploadingOffer ? <CapLoader size="xs" tone="light" /> : 'Confirm & Issue Final Acceptance PDF'}
                   </button>
                 </div>
               </form>

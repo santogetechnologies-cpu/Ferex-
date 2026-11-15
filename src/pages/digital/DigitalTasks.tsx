@@ -19,6 +19,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDigitalPermissions } from '../../hooks/usePermissions';
 import { getMasters } from '../../lib/api/masters';
+import { BlockCap } from '../../components/CapLoader';
 
 export const DigitalTasks: React.FC = () => {
   const { profile } = useAuth();
@@ -307,7 +308,7 @@ export const DigitalTasks: React.FC = () => {
       </Card>
 
       {loading ? (
-        <div className="p-12 text-center text-xs font-bold text-slate-400">Loading sprint tasks queue...</div>
+        <BlockCap />
       ) : filtered.length === 0 ? (
         <Card className="p-12 text-center border-dashed border-2 border-slate-200">
           <CheckSquare className="w-10 h-10 text-slate-300 mx-auto mb-2" />
