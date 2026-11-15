@@ -45,6 +45,7 @@ const DEFAULTS: Record<string, Record<string, string[]>> = {
       'Design Files', 'Figma Link', 'Google Drive', 'Website URL',
       'Final Assets', 'Video Reel', 'PDF / Document', 'GitHub / Code',
     ],
+    lead_categories: ['Web Development', 'Mobile App', 'UI/UX Design', 'Digital Marketing', 'SEO', 'Branding'],
     invoice_statuses: ['Paid', 'Pending', 'Partial', 'Overdue'],
   },
 };
@@ -61,7 +62,26 @@ function lsKey(app: 'rimi' | 'digital', type: string) {
  * Get all values for a master type.
  * Returns merged defaults + any custom values added by admin.
  */
+// Digital's lists live in the database (digital_settings), shared by every user and device. The saved list replaces the
+// built-in one, so an admin can remove values as well as add them. Nothing is kept in the browser.
+async function digitalList(type: string): Promise<string[]> {
+  const defaults = DEFAULTS.digital[type] ?? [];
+  const { data, error } = await supabase.from('digital_settings').select('value').eq('key', 'masters').maybeSingle();
+  if (error) throw new Error(error.message);
+  const saved = data?.value?.[type];
+  return Array.isArray(saved) && saved.length ? saved.map(String) : defaults;
+}
+async function digitalSave(type: string, values: string[]): Promise<string[]> {
+  const { data, error } = await supabase.rpc('digital_set_master', { p_type: type, p_values: values });
+  if (error) throw new Error(error.message);
+  triggerSync('ferex_masters_digital_' + type + '_change');
+  return Array.isArray(data?.[type]) ? data[type] : values;
+}
+
 export async function getMasters(app: 'rimi' | 'digital', type: string): Promise<string[]> {
+  if (app === 'digital') {
+    try { return await digitalList(type); } catch { return DEFAULTS.digital[type] ?? []; }
+  }
   const defaults = DEFAULTS[app]?.[type] ?? [];
   const customSet = new Set<string>(defaults);
 
@@ -102,6 +122,10 @@ export async function getMasters(app: 'rimi' | 'digital', type: string): Promise
 export async function createMaster(app: 'rimi' | 'digital', type: string, value: string): Promise<string[]> {
   const trimmed = value.trim();
   if (!trimmed) return getMasters(app, type);
+  if (app === 'digital') {
+    const list = await digitalList(type);
+    return list.includes(trimmed) ? list : digitalSave(type, [...list, trimmed]);
+  }
 
   const current = await getMasters(app, type);
   if (current.includes(trimmed)) return current;
@@ -126,6 +150,7 @@ export async function createMaster(app: 'rimi' | 'digital', type: string, value:
  */
 export async function deleteMaster(app: 'rimi' | 'digital', type: string, value: string): Promise<string[]> {
   const trimmed = value.trim();
+  if (app === 'digital') return digitalSave(type, (await digitalList(type)).filter(v => v !== trimmed));
 
   // Try Supabase
   try {
@@ -146,6 +171,7 @@ export async function deleteMaster(app: 'rimi' | 'digital', type: string, value:
  */
 export function getMastersSync(app: 'rimi' | 'digital', type: string): string[] {
   const defaults = DEFAULTS[app]?.[type] ?? [];
+  if (app === 'digital') return defaults;
   const s = new Set<string>(defaults);
   try {
     const local = localStorage.getItem(lsKey(app, type));

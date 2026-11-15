@@ -49,3 +49,11 @@ export async function updateTerm(contract: CommerceContract, part: string, label
   if (error) throw new Error(error.message);
   return data as CommerceContract;
 }
+
+export interface ProjectTerm { id: string; label: string; due_date: string; status: 'Paid' | 'Partially Paid' | 'Unpaid' }
+/** Payment term names, due dates and status for a project, without amounts: safe for project managers. */
+export async function getProjectTerms(project: string): Promise<ProjectTerm[]> {
+  const { data, error } = await supabase.rpc('digital_project_terms', { p_project: project });
+  if (error) throw new Error(error.message);
+  return (data || []) as ProjectTerm[];
+}

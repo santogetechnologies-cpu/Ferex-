@@ -45,7 +45,7 @@ const DIGITAL_ADMIN_ROLES = ['digital_admin', 'ferex_digital', 'digital', 'centr
 export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { profile } = useAuth();
+  const { profile, signOut } = useAuth();
 
   const userRole = profile?.role || '';
   const userName = profile?.full_name || '';
@@ -191,11 +191,10 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
 
   const navSections = isAdmin ? adminNavSections : staffNavSections;
 
-  const handleLogout = () => {
-    showToastMsg('Signing out from Ferex Digital...');
-    setTimeout(() => {
-      navigate('/');
-    }, 500);
+  // Signing out ends the session on the server too; going to the home page alone left the user signed in.
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login', { replace: true });
   };
 
   const activeItem = (() => { const all = navSections.flatMap(s => s.items); return all.find(i => i.path === location.pathname) || all.filter(i => location.pathname.startsWith(i.path + '/')).sort((a, b) => b.path.length - a.path.length)[0]; })();

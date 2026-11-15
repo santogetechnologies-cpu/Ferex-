@@ -9,7 +9,7 @@ import { Button } from '../../../components/Button';
 import { Badge } from '../../../components/Badge';
 import { ToastNotification } from '../../../components/ToastNotification';
 import { supabase } from '../../../lib/supabase';
-import { commerceList } from '../../../lib/api/digitalCommerce';
+import { getProjectTerms, type ProjectTerm } from '../../../lib/api/digitalCommerce';
 import {
   getAssignedDigitalMilestones,
   createDigitalMilestoneDirect,
@@ -46,7 +46,7 @@ export const DigitalPMMilestones: React.FC = () => {
     part_id: '',
     deliverables_summary: ''
   });
-  const [contracts, setContracts] = useState<any[]>([]);
+  const [terms, setTerms] = useState<ProjectTerm[]>([]);
 
   const pmIdentity = {
     id: user?.id,
@@ -65,14 +65,20 @@ export const DigitalPMMilestones: React.FC = () => {
       ]);
       setMilestones(mList || []);
       setProjects(pList || []);
-      // Payment terms are visible to administrators only; for anyone else the link simply is not offered.
-      commerceList('digital_contracts').then(setContracts).catch(() => setContracts([]));
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to load milestones from database.');
     } finally {
       setLoading(false);
     }
   };
+
+  // Payment terms (names, due dates, status; never amounts) for the project chosen in the form.
+  useEffect(() => {
+    let live = true;
+    setTerms([]);
+    if (newMilestone.project_id) getProjectTerms(newMilestone.project_id).then(t => { if (live) setTerms(t); }).catch(() => { if (live) setTerms([]); });
+    return () => { live = false; };
+  }, [newMilestone.project_id]);
 
   useEffect(() => {
     loadMilestoneData();
@@ -361,7 +367,7 @@ export const DigitalPMMilestones: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  {(contracts.find(c => c.project_id === newMilestone.project_id)?.body.parts || []).length > 0 && (
+                  {terms.length > 0 && (
                   <div className="col-span-2">
                     <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Linked payment term (invoice is flagged when approved)</label>
                     <select
@@ -370,7 +376,7 @@ export const DigitalPMMilestones: React.FC = () => {
                       className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white"
                     >
                       <option value="">Not linked to a payment</option>
-                      {contracts.find(c => c.project_id === newMilestone.project_id).body.parts.map((t: any) => <option key={t.id} value={t.id}>{t.label} · due {t.due_date}</option>)}
+                      {terms.map(t => <option key={t.id} value={t.id}>{t.label} · due {t.due_date} · {t.status}</option>)}
                     </select>
                   </div>)}
                   <div>

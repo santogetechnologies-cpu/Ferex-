@@ -9,6 +9,7 @@ import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
 import { getMasters, createMaster, deleteMaster } from '../../lib/api/masters';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { getDigitalLeads, createDigitalLead, updateDigitalClient, deleteDigitalClient, createDigitalProject, convertDigitalLead } from '../../lib/api/digital';
 import { supabase } from '../../lib/supabase';
 import { BlockCap } from '../../components/CapLoader';
@@ -118,6 +119,9 @@ export const DigitalLeads: React.FC = () => {
       window.removeEventListener('ferex_digital_clients_change', handleLocalChange);
     };
   }, [loadData]);
+
+  const reloadCategories = useCallback(() => { void getMasters('digital', 'lead_categories').then(list => { if (list.length) setCategories(list); }); }, []);
+  useRealtimeTable('digital_settings', reloadCategories);
 
   const showToast = (msg: string) => {
     setToast(msg);

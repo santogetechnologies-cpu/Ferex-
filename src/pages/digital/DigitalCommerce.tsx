@@ -213,7 +213,10 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
 
   const addLine = (body: CommerceBody, setter: (b: CommerceBody) => void) => {
     const tax = settings.taxes.find(t => t.country === body.country) || settings.taxes.find(t => t.country === '*');
-    setter({ ...body, lines: [...body.lines, { id: uid(), title: '', amount: 0, tax_rate: tax?.rate || 0, tax_label: tax?.label || 'No tax' }] });
+    const id = uid();
+    // A new service joins every term that already covers all the existing services, so a template chosen first still adds up.
+    const coversAll = (p: CommercePart) => body.lines.every(l => p.service_ids.includes(l.id));
+    setter({ ...body, lines: [...body.lines, { id, title: '', amount: 0, tax_rate: tax?.rate || 0, tax_label: tax?.label || 'No tax' }], parts: body.parts.map(p => (coversAll(p) ? { ...p, service_ids: [...p.service_ids, id] } : p)) });
   };
 
   // ── Rendering helpers ──

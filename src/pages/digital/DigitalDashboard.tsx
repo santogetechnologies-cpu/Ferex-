@@ -15,7 +15,6 @@ import {
   type DigitalProjectRecord,
   type DigitalTaskRecord
 } from '../../lib/api/digital';
-import { useDigitalConfig } from '../../hooks/useDigitalConfig';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDigitalPermissions } from '../../hooks/usePermissions';
 import { supabase } from '../../lib/supabase';
@@ -23,7 +22,6 @@ import { BlockCap } from '../../components/CapLoader';
 
 export const DigitalDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { config } = useDigitalConfig();
   const { profile } = useAuth();
   const { isAdmin, isStaff } = useDigitalPermissions();
 

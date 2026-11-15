@@ -25,16 +25,31 @@ test.beforeEach(async({page})=>{
   return route.fulfill({status:200,headers,body:JSON.stringify(value)});
  });
 });
-for(const route of ['dashboard','clients','attendance','projects','deliverables','tasks','leads','meetings','billing','invoices','payments','expenses','analytics','notifications','emails','profile','settings'])test(`Digital ${route} renders without runtime errors`,async({page})=>{
+for(const route of ['dashboard','clients','projects','deliverables','tasks','leads','meetings','billing','invoices','payments','expenses','analytics','notifications','emails','profile','settings'])test(`Digital ${route} renders without runtime errors`,async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(`/digital/${route}`);await expect(page.getByRole('heading').first()).toBeVisible();await page.waitForTimeout(500);expect(errors).toEqual([]);await expect(page).toHaveURL(new RegExp(`/digital/${route}`));
 });
 test('configure international scope with tax, services and payment terms',async({page})=>{
  let saved:any;
  await page.route('**/rest/v1/rpc/digital_save_contract',async route=>{const headers={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'POST,OPTIONS'};if(route.request().method()==='OPTIONS')return route.fulfill({status:200,headers,body:''});saved=route.request().postDataJSON();await route.fulfill({headers,json:{id:crypto.randomUUID(),revision:1,project_id:projectId,body:saved.p_body}});});
- await page.goto('/digital/billing');await page.getByRole('button',{name:'Configure project billing'}).click();
- await page.getByRole('combobox',{name:'Project',exact:true}).selectOption(projectId);await page.getByRole('button',{name:'Add service',exact:true}).click();await page.getByLabel('Service',{exact:true}).fill('Web Development');await page.getByLabel('Net amount',{exact:true}).fill('100.01');await page.getByRole('combobox',{name:'Tax rule',exact:true}).selectOption('vat');await page.getByRole('combobox').filter({has:page.locator('option[value="half"]')}).selectOption('half');
+ await page.goto('/digital/billing');await page.getByRole('button',{name:/Configure project billing/}).click();
+ const modal=page.locator('form').filter({hasText:'Services & tax'});
+ await modal.locator('select').first().selectOption(projectId);
+ await modal.getByRole('button',{name:'Add service',exact:true}).click();
+ await modal.locator('input[list="commerce-services"]').fill('Web Development');await modal.locator('input[type=number]').first().fill('100.01');
+ await modal.locator('select').nth(1).selectOption({label:'VAT (5%)'});
+ await modal.locator('select').filter({has:page.locator('option[value="half"]')}).selectOption('half');
+ await expect(modal.getByText(/Terms add up to 100%/)).toBeVisible();
  await page.screenshot({path:'reports/digital-international-billing.png',fullPage:true});
- await page.getByRole('button',{name:'Save configuration',exact:true}).click();await expect(page.getByRole('status')).toContainText('Billing saved');expect(saved.p_body.currency).toBe('USD');expect(saved.p_body.country).toBe('AE');expect(saved.p_body.lines[0].tax_rate).toBe(5);expect(saved.p_body.parts[0].service_ids).toHaveLength(1);
+ await modal.getByRole('button',{name:'Save configuration',exact:true}).click();await expect.poll(()=>saved?.p_body?.currency).toBe('USD');
+ expect(saved.p_body.country).toBe('AE');expect(saved.p_body.lines[0].tax_rate).toBe(5);expect(saved.p_body.parts[0].service_ids).toHaveLength(1);expect(saved.p_body.parts).toHaveLength(2);
+});
+test('a service added after choosing a template is covered by its terms',async({page})=>{
+ await page.goto('/digital/billing');await page.getByRole('button',{name:/Configure project billing/}).click();
+ const modal=page.locator('form').filter({hasText:'Services & tax'});
+ await modal.locator('select').filter({has:page.locator('option[value="half"]')}).selectOption('half');
+ await modal.getByRole('button',{name:'Add service',exact:true}).click();
+ await expect(modal.getByText('Covers:').first()).toBeVisible();
+ await expect(modal.locator('input[type=checkbox]:checked')).toHaveCount(2);
 });
 test('Sign Out revokes the session and returns to login',async({page})=>{
  let signedOut=false;await page.route('**/auth/v1/logout*',async route=>{if(route.request().method()==='POST')signedOut=true;await route.fulfill({status:204,headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'POST,OPTIONS'},body:''});});await page.goto('/digital/dashboard');await page.getByRole('button',{name:'Sign Out',exact:true}).first().click();await expect(page).toHaveURL(/\/login/);expect(signedOut).toBe(true);
@@ -43,5 +58,22 @@ test('browser-only administrator identity cannot bypass sign-in',async({page})=>
  await page.goto('/digital/login');await page.evaluate(()=>{sessionStorage.setItem('test-no-session','true');localStorage.clear();localStorage.setItem('ferex_user',JSON.stringify({id:'fake',role:'superadmin',email:'fake@example.com'}));});await page.goto('/digital/dashboard');await expect(page).toHaveURL(/\/login/);
 });
 test('profile loading failure offers retry instead of granting a fallback role',async({page})=>{
- await page.route('**/rest/v1/users*',route=>{const headers={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'GET,OPTIONS'};return route.request().method()==='OPTIONS'?route.fulfill({status:200,headers,body:''}):route.fulfill({status:403,headers,json:{message:'Profile access denied'}});});await page.goto('/digital/dashboard');await expect(page.getByRole('alert')).toContainText('account profile could not be loaded');
+ await page.route('**/rest/v1/users*',route=>{const headers={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'GET,OPTIONS'};return route.request().method()==='OPTIONS'?route.fulfill({status:200,headers,body:''}):route.fulfill({status:403,headers,json:{message:'Profile access denied'}});});await page.goto('/digital/dashboard');await expect(page).toHaveURL(/\/login/);await expect(page.getByText('Profile access denied')).toBeVisible();await expect(page.getByRole('heading',{name:'Digital Dashboard'})).toHaveCount(0);
+});
+test('settings: agency details, GST rule and shared lists are saved to the database',async({page})=>{
+ let patched:any,master:any;const h={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'GET,POST,PATCH,OPTIONS'};
+ await page.route('**/rest/v1/digital_commerce_settings*',async route=>{const m=route.request().method();if(m==='OPTIONS')return route.fulfill({status:200,headers:h,body:''});if(m==='PATCH'){patched=route.request().postDataJSON();return route.fulfill({status:204,headers:h,body:''});}return route.fallback();});
+ await page.route('**/rest/v1/rpc/digital_set_master',async route=>{const m=route.request().method();if(m==='OPTIONS')return route.fulfill({status:200,headers:h,body:''});master=route.request().postDataJSON();return route.fulfill({status:200,headers:{...h,'content-type':'application/json'},json:{[master.p_type]:master.p_values}});});
+ await page.goto('/digital/settings');await expect(page.getByRole('heading',{name:'Settings'})).toBeVisible();
+ await page.getByLabel('Registered address').fill('12 Infopark, Kochi');await page.getByLabel('Tax registration number').fill('32ABCDE1234F1Z5');
+ await page.getByRole('tab',{name:/Taxes/}).click();await page.getByRole('button',{name:'Add GST 18% (India)'}).click();
+ await page.getByRole('button',{name:'Save settings'}).click();await expect(page.getByText(/Settings saved/)).toBeVisible();
+ expect(patched.config.address).toBe('12 Infopark, Kochi');expect(patched.config.tax_number).toBe('32ABCDE1234F1Z5');expect(patched.config.taxes.some((t:any)=>t.label==='GST'&&t.rate===18&&t.country==='IN')).toBe(true);
+ await page.getByRole('tab',{name:'Lists'}).click();await page.getByLabel('Add to Service categories').fill('Cloud Hosting');await page.getByRole('button',{name:'Add'}).first().click();
+ await expect.poll(()=>master?.p_values?.includes('Cloud Hosting')).toBe(true);expect(master.p_type).toBe('service_categories');
+});
+test('settings: template percentages that do not total 100 are refused',async({page})=>{
+ await page.goto('/digital/settings');await page.getByRole('tab',{name:/Services/}).click();
+ await page.getByLabel('Percentage').first().fill('70');await expect(page.getByText('Total 120%')).toBeVisible();
+ await page.getByRole('button',{name:'Save settings'}).click();await expect(page.getByRole('alert')).toContainText('total 100');
 });

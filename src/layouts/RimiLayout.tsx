@@ -44,7 +44,7 @@ interface NavSection {
 export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { profile } = useAuth();
+  const { profile, signOut } = useAuth();
 
   // Role and identity come only from the signed-in profile, never from the email address or browser storage.
   const userEmail = (profile?.email || '').toLowerCase();
@@ -157,11 +157,10 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
     }
   ];
 
-  const handleLogout = () => {
-    showToastMsg('Signing out from Rimi Distribution Console...');
-    setTimeout(() => {
-      navigate('/');
-    }, 500);
+  // Signing out ends the session on the server too; going to the home page alone left the user signed in.
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login', { replace: true });
   };
 
   const activeItem = (() => { const all = navSections.flatMap(s => s.items); return all.find(i => i.path === location.pathname) || all.filter(i => location.pathname.startsWith(i.path + '/')).sort((a, b) => b.path.length - a.path.length)[0]; })();

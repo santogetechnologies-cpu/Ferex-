@@ -29,6 +29,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useDigitalPermissions } from '../../hooks/usePermissions';
 import { getMasters } from '../../lib/api/masters';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { getCommerceSettings, saveContract } from '../../lib/api/digitalCommerce';
 import { trackContract, money, type CommerceBody } from '../../lib/digitalCommerce';
 import { Link } from 'react-router-dom';
@@ -140,6 +141,8 @@ export const DigitalProjects: React.FC = () => {
       setLoading(false);
     }
   }, []);
+
+  useRealtimeTable('digital_settings', loadData);
 
   useEffect(() => {
     loadData();

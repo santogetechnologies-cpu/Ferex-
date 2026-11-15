@@ -19,6 +19,7 @@ import {
   type DigitalDeliverable
 } from '../../lib/api/digital';
 import { getMasters } from '../../lib/api/masters';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { BlockCap } from '../../components/CapLoader';
 
 interface EnrichedDeliverable extends DigitalDeliverable {
@@ -78,6 +79,7 @@ export const DigitalDeliverables: React.FC = () => {
       setLoading(false);
     }
   }, [isAdmin, isStaff, profile]);
+  useRealtimeTable('digital_settings', loadData);
 
   useEffect(() => {
     loadData();
