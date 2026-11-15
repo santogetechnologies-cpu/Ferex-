@@ -164,6 +164,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
     }));
   }, [safeApps, safeStudents]);
 
+  // Real seven-day trends for the tiles that have dated records.
+  const dayKey = (v?: string) => { try { return v ? new Date(v).toISOString().slice(0, 10) : ''; } catch { return ''; } };
+  const last7 = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - (6 - i)); return d.toISOString().slice(0, 10); });
+  const trendOf = (items: any[], pick: (x: any) => string | undefined) => last7.map(k => items.filter(x => dayKey(pick(x)) === k).length);
+  const studentTrend = trendOf(safeStudents, (x) => x.created_at);
+  const appTrend = trendOf(safeApps, (x) => x.created_at);
   const first = (profile?.full_name || '').split(' ')[0];
   const base = isStaff ? '/staff' : '/admin';
   const peak = Math.max(...activityBuckets.map(b => b.count), 0);
@@ -180,9 +186,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
         </>}
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 2xl:grid-cols-6 gap-4">
         {statCards.map(card => (
-          <StatTile key={card.label} label={card.label} value={card.value} hint={card.change} icon={card.icon} to={card.path}
+          <StatTile key={card.label} label={card.label} value={card.value} hint={card.change} icon={card.icon} to={card.path} trend={/Student/.test(card.label) ? studentTrend : /Application/.test(card.label) ? appTrend : undefined}
             tone={card.label.includes('Payment') ? 'brand' : card.label.includes('Ticket') ? 'rose' : card.label.includes('Document') ? 'amber' : card.label.includes('Application') ? 'violet' : card.label.includes('Task') ? 'green' : 'blue'} />
         ))}
       </div>
@@ -204,10 +210,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
           </div>
           <div className="mt-6 pt-5 border-t border-slate-100">
             <p className="text-xs font-semibold text-slate-500 mb-3">New students and applications, last 7 days</p>
-            <div className="flex items-end gap-2 h-20">
+            <div className="flex items-end gap-3 h-32">
               {activityBuckets.map((bucket, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1.5" title={`${bucket.dayLabel}: ${bucket.count}`}>
-                  <div className="w-full flex-1 flex items-end"><div className={`w-full rounded-md transition-colors ${bucket.count === peak && peak > 0 ? 'bg-[#58051E]' : 'bg-[#58051E]/20 hover:bg-[#58051E]/60'}`} style={{ height: `${Math.max(4, Math.round(bucket.heightPct * 0.56))}px` }} /></div>
+                  <div className="w-full flex-1 flex items-end"><div className={`w-full rounded-xl transition-all duration-300 ${bucket.count === peak && peak > 0 ? 'bg-gradient-to-b from-[#B2306E] to-[#58051E] shadow-[0_14px_24px_-12px_rgba(88,5,30,0.7)]' : 'bg-[#E4D6F3] hover:bg-[#D3BFEA] dark:bg-white/10'}`} style={{ height: `${Math.max(8, Math.round(bucket.heightPct * 0.95))}px` }} /></div>
                   <span className="text-[10px] font-semibold text-slate-400">{bucket.dayLabel}</span>
                 </div>
               ))}

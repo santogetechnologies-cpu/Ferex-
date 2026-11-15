@@ -33,6 +33,8 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
   initialOpen = false,
 }) => {
   const { user, profile } = useAuth();
+  // On chat pages the launcher sits above the message box instead of covering Send.
+  const onChatPage = typeof window !== 'undefined' && /\/chat\/?$/.test(window.location.pathname);
   const [isOpen, setIsOpen] = useState(initialOpen);
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeMode, setActiveMode] = useState<'chat' | 'voice'>('chat');
@@ -561,7 +563,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0, opacity: 0, y: 20 }}
             transition={{ type: 'spring', stiffness: 360, damping: 24 }}
-            className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-40 flex items-center gap-3 cursor-pointer group select-none"
+            className={`fixed right-5 sm:right-6 z-40 flex items-center gap-3 cursor-pointer group select-none ${onChatPage ? "bottom-28" : "bottom-5 sm:bottom-6"}`}
             onClick={() => setIsOpen(true)}
           >
             {/* Chat Bubble Outside / To the Left */}

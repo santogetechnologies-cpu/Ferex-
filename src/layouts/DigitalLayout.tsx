@@ -201,11 +201,11 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
   const activeItem = (() => { const all = navSections.flatMap(s => s.items); return all.find(i => i.path === location.pathname) || all.filter(i => location.pathname.startsWith(i.path + '/')).sort((a, b) => b.path.length - a.path.length)[0]; })();
 
   return (
-    <div className="h-screen overflow-hidden bg-slate-50 flex text-left font-sans antialiased text-slate-900 selection:bg-[#58051E] selection:text-white">
+    <div className="fx-app h-screen overflow-hidden bg-slate-50 flex text-left font-sans antialiased text-slate-900 selection:bg-[#58051E] selection:text-white">
       <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Modern SaaS Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 fixed top-0 bottom-0 left-0 z-30 select-none">
+      <aside className="fx-sidebar hidden lg:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 fixed top-0 bottom-0 left-0 z-30 select-none">
         {/* Brand Header */}
         <div className="h-16 px-5 border-b border-slate-100 flex items-center shrink-0">
           <Link to="/digital/dashboard" className="flex items-center gap-3">
@@ -281,7 +281,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
       {/* Main Workspace Layout */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden lg:pl-64">
         {/* Top Navbar */}
-        <header className="h-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 shrink-0 z-20 px-4 sm:px-6 flex items-center justify-between gap-3 select-none">
+        <header className="fx-topbar h-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 shrink-0 z-20 px-4 sm:px-6 flex items-center justify-between gap-3 select-none">
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => setMobileMenuOpen(true)}

@@ -99,7 +99,7 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
+    <div className="fx-app h-screen overflow-hidden bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
       {/* Mobile Backdrop */}
       <AnimatePresence>
         {isMobileOpen && (
@@ -115,7 +115,7 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
 
       {/* Sidebar Panel — Identical to FEREX Design Language */}
       <aside
-        className={`fixed top-0 left-0 bottom-0 h-screen w-60 bg-white border-r border-slate-200/80 z-40 flex flex-col transition-transform duration-200 ease-out select-none
+        className={`fx-sidebar fixed top-0 left-0 bottom-0 h-screen w-60 bg-white border-r border-slate-200/80 z-40 flex flex-col transition-transform duration-200 ease-out select-none
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
         {/* Logo Header */}
@@ -227,7 +227,7 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden min-w-0 lg:pl-60">
         {/* Header — Identical to FEREX Design Language */}
-        <header className="h-14 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 flex items-center px-4 sm:px-6 gap-3 shrink-0 z-30 select-none">
+        <header className="fx-topbar h-14 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 flex items-center px-4 sm:px-6 gap-3 shrink-0 z-30 select-none">
           <button
             onClick={() => setIsMobileOpen(true)}
             className="lg:hidden p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"

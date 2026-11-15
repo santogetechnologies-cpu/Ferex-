@@ -616,7 +616,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 flex text-slate-800 dark:text-slate-100 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E] print:h-auto print:min-h-0 print:overflow-visible print:block">
+    <div className="fx-app h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 flex text-slate-800 dark:text-slate-100 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E] print:h-auto print:min-h-0 print:overflow-visible print:block">
 
       {/* MOBILE SIDEBAR DRAWER BACKDROP */}
       <AnimatePresence>
@@ -630,7 +630,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
       </AnimatePresence>
 
       {/* SIDEBAR NAVIGATION PANEL */}
-      <aside className={`fixed top-0 left-0 bottom-0 h-screen bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 z-40 flex flex-col transition-all duration-200 ease-out select-none print:hidden
+      <aside className={`fx-sidebar fixed top-0 left-0 bottom-0 h-screen bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 z-40 flex flex-col transition-all duration-200 ease-out select-none print:hidden
         ${isCollapsed ? 'w-18' : 'w-60'}
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
 
@@ -726,7 +726,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
         )}
 
         {/* TOP NAVBAR */}
-        <header className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none shrink-0 print:hidden">
+        <header className="fx-topbar bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none shrink-0 print:hidden">
 
           {/* Left part: Toggles & Breadcrumbs */}
           <div className="flex items-center gap-2.5">

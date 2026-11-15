@@ -100,7 +100,7 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
+    <div className="fx-app h-screen overflow-hidden bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
       
       {/* MOBILE SIDEBAR DRAWER BACKDROP */}
       <AnimatePresence>
@@ -117,7 +117,7 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
 
       {/* SIDEBAR PANEL */}
       <aside
-        className={`fixed top-0 left-0 bottom-0 h-screen bg-white border-r border-slate-200/80 z-40 flex flex-col justify-between transition-all duration-200 ease-out select-none
+        className={`fx-sidebar fixed top-0 left-0 bottom-0 h-screen bg-white border-r border-slate-200/80 z-40 flex flex-col justify-between transition-all duration-200 ease-out select-none
           ${isCollapsed ? 'lg:w-[70px]' : 'lg:w-[250px]'} 
           ${isMobileOpen ? 'translate-x-0 w-[250px]' : '-translate-x-full lg:translate-x-0'}`}
       >
@@ -208,7 +208,7 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
       <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-hidden transition-all duration-200 ${isCollapsed ? 'lg:pl-[70px]' : 'lg:pl-[250px]'}`}>
         
         {/* TOP NAVBAR */}
-        <header className="shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none">
+        <header className="fx-topbar shrink-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200/80 dark:border-slate-800 z-30 h-14 flex items-center justify-between px-4 sm:px-6 select-none">
           
           {/* Left part: Toggles, Breadcrumbs & Division Switcher */}
           <div className="flex items-center gap-2.5">
