@@ -155,7 +155,7 @@ export const TradeClientPortal: React.FC = () => {
   const handleLogout = () => {
     try { signOut(); } catch {}
     localStorage.removeItem('ferex_user');
-    navigate('/trade/login');
+    navigate('/login');
   };
 
   const getStageIndex = (stage: TradeOrderStage) => TRADE_ORDER_STAGES.indexOf(stage);

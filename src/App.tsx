@@ -31,7 +31,6 @@ const EnterpriseAIPage = lazy(() => import('./pages/EnterpriseAIPage').then(m =>
 
 // Admin imports
 import { AdminLayout } from './layouts/AdminLayout';
-const AdminLoginPage = lazy(() => import('./pages/admin/AdminLoginPage').then(m => ({ default: m.AdminLoginPage })));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const AdminStudents = lazy(() => import('./pages/admin/AdminStudents').then(m => ({ default: m.AdminStudents })));
 const AdminUniversities = lazy(() => import('./pages/admin/AdminUniversities').then(m => ({ default: m.AdminUniversities })));
@@ -98,7 +97,6 @@ const TradeSettings = lazy(() => import('./pages/trade/TradeSettings').then(m =>
 const TradeTasks = lazy(() => import('./pages/trade/TradeTasks').then(m => ({ default: m.TradeTasks })));
 const TradeTickets = lazy(() => import('./pages/trade/TradeTickets').then(m => ({ default: m.TradeTickets })));
 const TradeClientPortal = lazy(() => import('./pages/trade/TradeClientPortal').then(m => ({ default: m.TradeClientPortal })));
-const TradeLoginPage = lazy(() => import('./pages/trade/TradeLoginPage').then(m => ({ default: m.TradeLoginPage })));
 
 // Rimi Frozen Distribution imports
 import { RimiLayout } from './layouts/RimiLayout';
@@ -116,7 +114,6 @@ const RimiAnalytics = lazy(() => import('./pages/rimi/RimiAnalytics').then(m => 
 const RimiNotifications = lazy(() => import('./pages/rimi/RimiNotifications').then(m => ({ default: m.RimiNotifications })));
 const RimiProfile = lazy(() => import('./pages/rimi/RimiProfile').then(m => ({ default: m.RimiProfile })));
 const RimiTasks = lazy(() => import('./pages/rimi/RimiTasks').then(m => ({ default: m.RimiTasks })));
-const RimiLoginPage = lazy(() => import('./pages/rimi/RimiLoginPage').then(m => ({ default: m.RimiLoginPage })));
 
 // Digital imports
 import { DigitalLayout } from './layouts/DigitalLayout';
@@ -131,7 +128,6 @@ const DigitalNotifications = lazy(() => import('./pages/digital/DigitalNotificat
 const DigitalProfile = lazy(() => import('./pages/digital/DigitalProfile').then(m => ({ default: m.DigitalProfile })));
 const DigitalSettings = lazy(() => import('./pages/digital/DigitalSettings').then(m => ({ default: m.DigitalSettings })));
 const DigitalDeliverables = lazy(() => import('./pages/digital/DigitalDeliverables').then(m => ({ default: m.DigitalDeliverables })));
-const DigitalLoginPage = lazy(() => import('./pages/digital/DigitalLoginPage').then(m => ({ default: m.DigitalLoginPage })));
 const DigitalClientPortal = lazy(() => import('./pages/digital/DigitalClientWorkspace'));
 
 // Digital Project Manager imports (Pure Supabase Rebuild)
@@ -215,9 +211,9 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
   }
 
   const effectiveUser = user || session?.user;
-  if (!session || !effectiveUser) return <Navigate to={location.pathname.startsWith('/digital') ? '/digital/login' : '/login'} replace />;
+  if (!session || !effectiveUser) return <Navigate to={'/login'} replace />;
   if (!profile || profile.is_active === false || ['deleted', 'inactive', 'deactivated', 'suspended'].includes(((profile as any).status || '').toLowerCase())) {
-    return <Navigate to={location.pathname.startsWith('/digital') ? '/digital/login' : '/login'} replace />;
+    return <Navigate to={'/login'} replace />;
   }
   const rawRole = profile.role;
   const userEmail = effectiveUser?.email || profile?.email || '';
@@ -297,8 +293,8 @@ function App() {
             <Route path="/reset-password" element={<AuthLayout><ResetPasswordPage /></AuthLayout>} />
             <Route path="/admin/login" element={<Navigate to="/login" replace />} />
             <Route path="/trade/login" element={<Navigate to="/login" replace />} />
-            <Route path="/rimi/login" element={<RimiLoginPage />} />
-            <Route path="/digital/login" element={<DigitalLoginPage />} />
+            <Route path="/rimi/login" element={<Navigate to="/login" replace />} />
+            <Route path="/digital/login" element={<Navigate to="/login" replace />} />
 
             {/* ── Student Routes (STRICTLY role = 'student' ONLY) ── */}
             <Route path="/student/dashboard" element={<ProtectedRoute allowedRoles={['student']}><StudentLayout><StudentDashboard /></StudentLayout></ProtectedRoute>} />

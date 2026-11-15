@@ -772,18 +772,8 @@ export const LoginPage: React.FC = () => {
             )}
 
             {/* Footer */}
-            <div className="mt-6 pt-4 border-t border-slate-200/70 grid grid-cols-[1fr_auto_1fr] items-center text-sm text-slate-700 font-semibold">
-              <span className="flex items-center justify-center gap-2">
-                <Lock className="w-[18px] h-[18px] text-[#8C1D4F]" /> Secure sign-in
-              </span>
-              <span className="w-px h-5 bg-slate-300" />
-              <button
-                type="button"
-                onClick={() => navigate('/admin/login')}
-                className="flex items-center justify-center gap-2 hover:text-[#6B0F36] transition-colors cursor-pointer"
-              >
-                <ShieldCheck className="w-[18px] h-[18px] text-[#8C1D4F]" /> Admin sign-in
-              </button>
+            <div className="mt-6 pt-4 border-t border-slate-200/70 flex items-center justify-center gap-2 text-sm text-slate-700 font-semibold">
+              <Lock className="w-[18px] h-[18px] text-[#8C1D4F]" /> Secure sign-in
             </div>
           </motion.div>
         ) : (

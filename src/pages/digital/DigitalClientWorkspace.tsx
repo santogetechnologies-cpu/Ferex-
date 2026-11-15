@@ -45,7 +45,7 @@ export default function DigitalClientWorkspace() {
         </div>
         <div className="flex gap-2">
           <button className="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 bg-white cursor-pointer" onClick={() => void load()}>Refresh</button>
-          <button className="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 bg-white cursor-pointer" onClick={async () => { await signOut(); window.location.assign('/digital/login'); }}>Sign out</button>
+          <button className="px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 bg-white cursor-pointer" onClick={async () => { await signOut(); window.location.assign('/login'); }}>Sign out</button>
         </div>
       </header>
 

@@ -127,7 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await signOut();
 
     const isDigital = typeof window !== 'undefined' && window.location.pathname.startsWith('/digital');
-    const targetLogin = isDigital ? '/digital/login' : '/login';
+    const targetLogin = '/login';
     if (typeof window !== 'undefined' && window.location.pathname !== targetLogin) {
       window.location.href = targetLogin;
     }
