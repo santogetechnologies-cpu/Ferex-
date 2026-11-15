@@ -42,6 +42,7 @@ import {
 import type { Application, JourneyStage, Payment, UserProfile } from '../lib/types';
 import { supabase } from '../lib/supabase';
 import { CapLoader } from './CapLoader';
+import { payEducationFeeOnline } from '../lib/api/razorpayCheckout';
 
 const fieldClass = 'w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20 focus:border-[#58051E] transition-all';
 const primaryBtn = 'h-9.5 px-4 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-[#58051E]/20 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50';
@@ -81,6 +82,8 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   const [notes, setNotes] = useState('');
   const [batchId, setBatchId] = useState('');
   const [busy, setBusy] = useState(false);
+  const [onlineFee, setOnlineFee] = useState('');
+  const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
   const [review, setReview] = useState<{ payment: Payment; approve: boolean } | null>(null);
   const [reviewNotes, setReviewNotes] = useState('');
   const [lastReceiptData, setLastReceiptData] = useState<{
@@ -430,6 +433,25 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
     setMessage('');
   };
 
+  // Opens Razorpay for the amount still due on a fee. The server confirms the payment before it is marked Paid.
+  const payOnline = async (fee: EducationFee) => {
+    const amount = feeBalance(fee, studentPayments).payable;
+    setOnlineFee(fee.id); setNotice(null);
+    const failed = (e: Event) => setNotice({ tone: 'error', text: `${(e as CustomEvent).detail || 'The payment failed'}. You can try again in the payment window.` });
+    window.addEventListener('ferex_payment_failed', failed);
+    try {
+      const result = await payEducationFeeOnline({ paymentType: `education:${fee.id}`, amount, description: fee.title });
+      setNotice(result === 'paid' ? { tone: 'ok', text: `Payment received for ${fee.title}. Your receipt is ready under Payments.` } : { tone: 'error', text: 'Payment cancelled. Nothing was charged.' });
+    } catch (e) {
+      setNotice({ tone: 'error', text: (e as Error).message });
+    } finally {
+      window.removeEventListener('ferex_payment_failed', failed);
+      setOnlineFee('');
+      window.dispatchEvent(new Event('ferex_payment_change'));
+      window.dispatchEvent(new Event('ferex_journey_unlock'));
+    }
+  };
+
   const uri = activeFee && upiAvailable ? generateUpiPaymentUri({
     upiId,
     merchantName: gateway?.divisions.education.customMerchantName || gateway?.upi.merchantName || 'FEREX HIGHER EDUCATION',
@@ -712,6 +734,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                           <p className="text-xs text-slate-500 mt-0.5">{flowPending && !admin ? 'The one fee that applies to every student.' : 'Pay each one when it falls due. You can pay by UPI and get a receipt once it is verified.'}</p>
                         </div>
                       </div>
+                      {notice && <p role={notice.tone === 'error' ? 'alert' : 'status'} className={`rounded-xl px-4 py-3 text-sm font-semibold ${notice.tone === 'ok' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>{notice.text}</p>}
                       {collected.length === 0 && <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">No fees to pay right now.</p>}
                       <ol className="space-y-3">
                         {collected.map((fee, index) => {
@@ -747,9 +770,16 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                                   <div className="mt-3 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden"><div className="h-full rounded-full bg-emerald-600 transition-all" style={{ width: `${percentPaid}%` }} /></div>
                                   {balance.payable > 0 && (
                                     <div className="mt-4">
-                                      <button className={primaryBtn} disabled={needsCountry} onClick={() => openPayment(fee)}>
-                                        {admin ? <><CreditCard className="w-4 h-4" /><span>Record payment</span></> : <><QrCode className="w-4 h-4" /><span>Pay by UPI</span></>}
-                                      </button>
+                                      {admin ? (
+                                        <button className={primaryBtn} disabled={needsCountry} onClick={() => openPayment(fee)}><CreditCard className="w-4 h-4" /><span>Record payment</span></button>
+                                      ) : (
+                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                                          <button className={primaryBtn} disabled={needsCountry || !!onlineFee} onClick={() => payOnline(fee)}>
+                                            {onlineFee === fee.id ? <CapLoader size="sm" tone="light" /> : <><CreditCard className="w-4 h-4" /><span>Pay {money(balance.payable, fee.currency)} now</span></>}
+                                          </button>
+                                          {fee.currency === 'INR' && upiAvailable && <button type="button" className="text-xs font-semibold text-slate-600 underline underline-offset-2 cursor-pointer" disabled={!!onlineFee} onClick={() => openPayment(fee)}>Pay by UPI and enter the reference</button>}
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </div>
