@@ -48,6 +48,18 @@ try {
   }
 } catch {}
 
+// After a new release the old page's file names no longer exist. Load the new release once instead of showing an error.
+const reloadForNewRelease = () => {
+  try {
+    const last = Number(sessionStorage.getItem('ferex_chunk_reload') || 0);
+    if (Date.now() - last < 30_000) return false;
+    sessionStorage.setItem('ferex_chunk_reload', String(Date.now()));
+  } catch { /* storage blocked: still reload once */ }
+  window.location.reload();
+  return true;
+};
+window.addEventListener('vite:preloadError', (e) => { if (reloadForNewRelease()) e.preventDefault(); });
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>

@@ -22,6 +22,13 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('[ErrorBoundary caught error]:', error, errorInfo);
+    // A file from an older release is gone: fetch the new release once, automatically.
+    if (/dynamically imported module|Importing a module script failed|Loading chunk|error loading dynamically/i.test(String(error?.message))) {
+      try {
+        const last = Number(sessionStorage.getItem('ferex_chunk_reload') || 0);
+        if (Date.now() - last > 30_000) { sessionStorage.setItem('ferex_chunk_reload', String(Date.now())); window.location.reload(); }
+      } catch { window.location.reload(); }
+    }
   }
 
   public handleReload = () => {
