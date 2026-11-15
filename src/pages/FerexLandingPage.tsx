@@ -14,10 +14,10 @@ import { getDashboardRoute } from '../lib/roleRouter';
 import type { University } from '../lib/types';
 import { Logo } from '../components/Logo';
 import { EnterpriseAIChatbot } from '../components/EnterpriseAIChatbot';
-import { ThemeToggle } from '../components/ThemeToggle';
+import { LandingHeader } from '../components/hero/LandingHeader';
+import { LandingHero } from '../components/hero/LandingHero';
 
 // Student images provided by the user
-import heroStudentTransparent from '../assets/hero-student-transparent.png';
 import aboutStudentsCampus from '../assets/about-students-campus.jpg';
 
 export function formatFeeEURandINR(feeStr?: string): string {
@@ -371,143 +371,20 @@ export const FerexLandingPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-[#1F2937] font-sans selection:bg-[#570229] selection:text-white">
-      {/* STICKY FROSTED NAVIGATION HEADER */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[#ECE7EA]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
-          
-          {/* Brand Logo */}
-          <div className="cursor-pointer" onClick={() => navigate('/')}>
-            <Logo size="md" variant="full" color="#570229" />
-          </div>
+    <div className="fx fx-page min-h-screen text-[#1F2937] font-sans selection:bg-[#570229] selection:text-white">
+      <LandingHeader
+        signedIn={Boolean(session && user)}
+        countries={availableCountries}
+        onGoto={scrollToSection}
+        onPickCountry={(c) => { setSelectedCountryFilter(c); scrollToSection('universities'); }}
+        onHome={() => navigate('/')}
+        onLogin={() => goToLogin('signin')}
+        onApply={() => navigate('/study-abroad')}
+        onDashboard={handleAuthAction}
+        onSignOut={handleSignOut}
+      />
 
-          {/* Center Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-7 text-xs font-bold text-[#6B7280]">
-            <button onClick={() => scrollToSection('about')} className="hover:text-[#570229] transition-colors cursor-pointer">
-              About Ferex
-            </button>
-            <button onClick={() => scrollToSection('destinations')} className="hover:text-[#570229] transition-colors cursor-pointer">
-              Schengen Destinations
-            </button>
-            <button onClick={() => scrollToSection('calculator')} className="hover:text-[#570229] transition-colors cursor-pointer">
-              Cost Calculator
-            </button>
-            <button onClick={() => scrollToSection('universities')} className="hover:text-[#570229] transition-colors cursor-pointer">
-              Partner Universities
-            </button>
-            <button onClick={() => scrollToSection('roadmap')} className="hover:text-[#570229] transition-colors cursor-pointer">
-              Admissions Roadmap
-            </button>
-            <button onClick={() => scrollToSection('faq')} className="hover:text-[#570229] transition-colors cursor-pointer">
-              FAQ
-            </button>
-          </nav>
-
-          {/* Right Action Controls */}
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            {session && user ? (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleAuthAction}
-                  className="h-10 px-4 rounded-xl bg-[#570229] text-white text-xs font-bold hover:bg-[#6F0335] transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
-                >
-                  <User className="w-3.5 h-3.5" /> Dashboard
-                </button>
-                <button
-                  onClick={handleSignOut}
-                  className="h-10 px-3 rounded-xl border border-[#ECE7EA] text-[#6B7280] hover:bg-[#F7F4F2] text-xs font-bold transition-all cursor-pointer"
-                  title="Sign Out"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2.5">
-                <button
-                  onClick={() => goToLogin('signin')}
-                  className="h-10 px-4 rounded-xl text-xs font-bold text-[#1F2937] hover:text-[#570229] hover:bg-[#F7F4F2] transition-all cursor-pointer flex items-center gap-1.5 border border-[#ECE7EA]"
-                >
-                  <LogIn className="w-3.5 h-3.5 text-[#570229]" /> Portal Login
-                </button>
-                <button
-                  onClick={() => navigate('/study-abroad')}
-                  className="h-10 px-5 rounded-xl bg-[#570229] text-white text-xs font-black hover:bg-[#6F0335] transition-all shadow-md shadow-[#570229]/20 flex items-center gap-1.5 active:scale-98 cursor-pointer"
-                >
-                  Apply Online <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* 3. HERO SECTION (MINIMAL, COMPACT, PURE WHITE CANVAS, SEAMLESS IMAGE BLEND) */}
-      <section className="relative bg-white py-6 lg:py-10 border-b border-[#ECE7EA]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-6 items-center">
-            
-            {/* Left Column: Headlines, Subtitle, CTAs & Metrics */}
-            <div className="lg:col-span-6 space-y-5 text-left">
-              
-              {/* Main Headline (Clean, no wavy underline) */}
-              <h1 className="text-3xl sm:text-4xl lg:text-[46px] font-serif font-black tracking-tight text-[#1F2937] leading-[1.16]">
-                Study in <span className="text-[#570229]">Europe</span> with expert admission & visa support
-              </h1>
-
-              {/* Subtitle */}
-              <p className="text-sm sm:text-base text-[#6B7280] font-normal leading-relaxed max-w-lg">
-                Direct university applications across <strong className="text-[#1F2937] font-bold">Poland, Germany, Czechia, Italy, Spain & France</strong>. End-to-end government academic apostille, university wire verification, and 1-on-1 consular visa mock interviews.
-              </p>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-3.5 pt-1">
-                <button
-                  onClick={() => navigate('/study-abroad')}
-                  className="h-12 px-7 rounded-xl bg-[#570229] hover:bg-[#6F0335] text-white text-xs sm:text-sm font-bold transition-all shadow-lg shadow-[#570229]/20 flex items-center gap-2 cursor-pointer active:scale-98"
-                >
-                  Apply for Intake 2026-27 <ArrowRight className="w-4 h-4" />
-                </button>
-
-                <button
-                  onClick={() => scrollToSection('calculator')}
-                  className="h-12 px-5 rounded-xl bg-white border border-[#ECE7EA] hover:border-[#570229] text-[#1F2937] hover:text-[#570229] text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer"
-                >
-                  <Calculator className="w-4 h-4 text-[#570229]" /> Calculate Total Cost
-                </button>
-              </div>
-
-              {/* Micro Trust Indicators Bar */}
-              <div className="grid grid-cols-3 gap-4 pt-5 border-t border-[#ECE7EA]">
-                <div>
-                  <div className="text-xl sm:text-2xl font-black text-[#570229]">45+</div>
-                  <div className="text-[11px] font-bold text-[#6B7280]">Partner EU Universities</div>
-                </div>
-                <div>
-                  <div className="text-xl sm:text-2xl font-black text-[#570229]">100%</div>
-                  <div className="text-[11px] font-bold text-[#6B7280]">Govt & MEA Legalized</div>
-                </div>
-                <div>
-                  <div className="text-xl sm:text-2xl font-black text-[#570229]">27</div>
-                  <div className="text-[11px] font-bold text-[#6B7280]">Schengen Nations</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column: Hero Student Image (Seamless Transparent Blend on White Background) */}
-            <div className="lg:col-span-6 flex justify-center lg:justify-end">
-              <div className="w-full max-w-[520px]">
-                <img
-                  src={heroStudentTransparent}
-                  alt="European University Student - FEREX Education"
-                  className="w-full h-auto object-contain block select-none"
-                />
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </section>
+      <LandingHero onApply={() => navigate('/study-abroad')} onCalculate={() => scrollToSection('calculator')} onBadge={() => scrollToSection('destinations')} />
 
       {/* 4. ABOUT US SECTION (MATCHING USER'S ATTACHED SCREENSHOT MODEL WITH SEAMLESS IMAGE BLEND) */}
       <section id="about" className="py-16 lg:py-20 bg-white border-b border-[#ECE7EA]">
