@@ -5,6 +5,7 @@ import { commerceList } from '../../lib/api/digitalCommerce';
 import { money, trackContract, type TermStatus } from '../../lib/digitalCommerce';
 import { ChangePasswordForm } from '../../components/ChangePasswordForm';
 import { Card } from '../../components/Card';
+import { openDocument } from '../../lib/digitalDocument';
 
 const STATUS_STYLE: Record<TermStatus, string> = {
   Paid: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -89,7 +90,7 @@ export default function DigitalClientWorkspace() {
                     </div>
                   ))}
                 </div>
-                {c.body.payment_instructions && <p className="text-xs font-semibold text-slate-600 whitespace-pre-wrap">Payment instructions: {c.body.payment_instructions}</p>}
+                {(() => { const ins = c.body.payment_instructions || documents.find(d => d.contract_id === c.id && d.body?.payment_instructions)?.body.payment_instructions; return ins ? <p className="text-xs font-semibold text-slate-600 whitespace-pre-wrap">Payment instructions: {ins}</p> : null; })()}
                 <p className="text-[11px] font-semibold text-slate-500">Part payments can be made against any milestone. Your agency records each payment when the funds arrive.</p>
               </div>
             )}
@@ -115,7 +116,7 @@ export default function DigitalClientWorkspace() {
               <p className="text-sm mt-2">{d.body.project_title}{d.body.part?.label ? ` · ${d.body.part.label}` : ''}</p>
               {d.body.notes && <p className="text-sm text-slate-600">{d.body.notes}</p>}
               <p className="text-xs text-slate-500">{new Date(d.created_at).toLocaleDateString()}</p>
-              <button className="underline text-xs font-bold cursor-pointer" onClick={() => window.print()}>Print / save PDF</button>
+              <button className="underline text-xs font-bold cursor-pointer" onClick={() => { if (!openDocument(d)) setError('Allow pop-ups to print the document'); }}>Print / save PDF</button>
             </details>
           ))}
         </section>

@@ -17,6 +17,7 @@ import { getDigitalProjects, getDigitalClients } from '../../lib/api/digital';
 import { useDigitalPermissions } from '../../hooks/usePermissions';
 import { supabase } from '../../lib/supabase';
 import { BlockCap } from '../../components/CapLoader';
+import { openDocument } from '../../lib/digitalDocument';
 
 type View = 'billing' | 'invoices' | 'payments' | 'emails';
 
@@ -177,13 +178,7 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
   };
 
   // The window is opened before the database call by callers, so the browser still treats it as a click and does not block it.
-  const print = (doc: any, opened?: Window | null) => {
-    const w = opened ?? window.open('', '_blank');
-    if (!w) { say('Allow pop-ups to print the document'); return; }
-    const b = doc.body, fmt = (n: number) => escapeHtml(money(Number(n || 0), b.currency));
-    w.document.write(`<!doctype html><html><head><title>${escapeHtml(doc.number)}</title><style>body{font:14px system-ui;padding:40px;max-width:900px;margin:auto}table{width:100%;border-collapse:collapse}td,th{padding:12px;border-bottom:1px solid #ddd;text-align:left}h1{color:#58051e}@media print{button{display:none}}</style></head><body><h1>${escapeHtml(b.agency_name || settings.agency_name)}</h1><p>${escapeHtml(b.agency_address || '')}<br>${escapeHtml(b.agency_tax_number || '')}</p><h2>${escapeHtml(doc.kind)} ${escapeHtml(doc.number)}</h2><p>${escapeHtml(b.client_name)} · ${escapeHtml(b.client_email)} · ${escapeHtml(b.country)}<br>${escapeHtml(b.project_title)}</p><table><tr><th>Service</th><th>Net</th><th>Tax</th></tr>${(b.document_lines || b.lines).map((l: any) => `<tr><td>${escapeHtml(l.title)}</td><td>${fmt(l.amount)}</td><td>${escapeHtml(l.tax_label)} ${l.tax_rate}% · ${fmt(l.tax_amount)}</td></tr>`).join('')}</table><p>Contract reference total (tax included): <strong>${fmt(b.total)}</strong></p><h3>${escapeHtml(b.part?.label || 'Payment schedule')}</h3><p>${escapeHtml(b.part?.due_date || '')}</p><p>${doc.kind === 'Receipt' ? 'Amount received' : doc.kind === 'Credit Note' ? 'Credit' : 'Amount due'}: <strong>${fmt(b.amount)}</strong></p>${b.balance !== undefined ? `<p>Term balance: ${fmt(b.balance)}</p>` : ''}<p>${escapeHtml(b.notes)}</p><p>${escapeHtml(b.payment_instructions)}</p><button onclick="window.print()">Print / Save PDF</button></body></html>`);
-    w.document.close();
-  };
+  const print = (doc: any, opened?: Window | null) => { if (!openDocument(doc, opened)) say('Allow pop-ups to print the document'); };
 
   if (!isAdmin) return <p role="alert" className="p-6 text-sm font-semibold text-slate-600">Digital billing is restricted to Digital administrators.</p>;
 
