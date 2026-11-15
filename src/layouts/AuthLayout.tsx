@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen } from 'lucide-react';
 import { FerexVectorMark } from '../components/Logo';
 
 interface AuthLayoutProps {
@@ -43,19 +42,75 @@ const Artwork: React.FC = () => (
     <motion.div className="absolute top-8 left-8 w-28 h-28 hidden sm:block" style={{ backgroundImage: 'radial-gradient(#C2305E 1.4px, transparent 1.6px)', backgroundSize: '16px 16px' }} animate={{ opacity: [0.3, 0.65, 0.3] }} transition={{ duration: 6, repeat: Infinity }} />
     <motion.div className="absolute bottom-10 right-10 w-32 h-28 hidden lg:block" style={{ backgroundImage: 'radial-gradient(#C2305E 1.4px, transparent 1.6px)', backgroundSize: '16px 16px' }} animate={{ opacity: [0.6, 0.25, 0.6] }} transition={{ duration: 7, repeat: Infinity }} />
 
-    {/* globe with an orbiting dot */}
-    <svg viewBox="0 0 300 300" className="absolute top-[6%] right-[1%] w-[19rem] h-[19rem] opacity-60 hidden lg:block">
-      <g fill="none" stroke="#D88AA6" strokeWidth="0.9">
-        <circle cx="150" cy="150" r="110" />
-        {[30, 60, 90].map(r => <ellipse key={r} cx="150" cy="150" rx={r * 1.22} ry="110" />)}
-        {[-60, -30, 0, 30, 60].map(y => <ellipse key={y} cx="150" cy={150 + y * 1.6} rx={Math.sqrt(110 * 110 - (y * 1.6) ** 2)} ry="9" />)}
-      </g>
-      <motion.g style={{ transformOrigin: '150px 150px' }} animate={{ rotate: 360 }} transition={{ duration: 22, repeat: Infinity, ease: 'linear' }}>
-        <ellipse cx="150" cy="150" rx="140" ry="58" fill="none" stroke="#C2305E" strokeWidth="1.2" transform="rotate(-24 150 150)" />
-        <circle cx="290" cy="150" r="5" fill="#B0194F" transform="rotate(-24 150 150)" />
-      </motion.g>
-    </svg>
   </div>
+);
+
+
+// An open book resting between two laurel branches, drawn with gradients and shading so it reads as an object, not an icon.
+const Branch: React.FC<{ side: 1 | -1 }> = ({ side }) => {
+  // a cubic stem hugging the outside of the book; leaves sit alternately either side of it, following its tangent
+  const P = [[100 + side * 72, 114], [100 + side * 112, 104], [100 + side * 116, 44], [100 + side * 74, 8]];
+  const pt = (t: number) => {
+    const u = 1 - t;
+    const x = u * u * u * P[0][0] + 3 * u * u * t * P[1][0] + 3 * u * t * t * P[2][0] + t * t * t * P[3][0];
+    const y = u * u * u * P[0][1] + 3 * u * u * t * P[1][1] + 3 * u * t * t * P[2][1] + t * t * t * P[3][1];
+    const dx = 3 * u * u * (P[1][0] - P[0][0]) + 6 * u * t * (P[2][0] - P[1][0]) + 3 * t * t * (P[3][0] - P[2][0]);
+    const dy = 3 * u * u * (P[1][1] - P[0][1]) + 6 * u * t * (P[2][1] - P[1][1]) + 3 * t * t * (P[3][1] - P[2][1]);
+    return { x, y, a: (Math.atan2(dy, dx) * 180) / Math.PI };
+  };
+  const n = 8;
+  const leaves = Array.from({ length: n }, (_, i) => {
+    const t = 0.1 + (i / (n - 1)) * 0.86;
+    const q = pt(t);
+    const out = i % 2 === 0 ? 38 : -38;
+    return { ...q, rot: q.a + out, sc: 0.95 - 0.35 * t };
+  });
+  const tip = pt(1);
+  return (
+    <g>
+      <path d={`M${P[0][0]} ${P[0][1]} C ${P[1][0]} ${P[1][1]}, ${P[2][0]} ${P[2][1]}, ${P[3][0]} ${P[3][1]}`} fill="none" stroke="url(#bkLeaf)" strokeWidth="1.6" strokeLinecap="round" />
+      {leaves.map((l, i) => (
+        <g key={i} transform={`translate(${l.x} ${l.y}) rotate(${l.rot}) scale(${l.sc})`}>
+          <path d="M0 0 C 5 -6, 15 -6, 22 0 C 15 6, 5 6, 0 0 Z" fill="url(#bkLeaf)" />
+          <path d="M1 0 H20" stroke="#fff" strokeOpacity="0.5" strokeWidth="0.7" />
+        </g>
+      ))}
+      <g transform={`translate(${tip.x} ${tip.y}) rotate(${tip.a}) scale(0.7)`}><path d="M0 0 C 5 -6, 15 -6, 22 0 C 15 6, 5 6, 0 0 Z" fill="url(#bkLeaf)" /></g>
+    </g>
+  );
+};
+const BookEmblem: React.FC = () => (
+  <motion.svg viewBox="-40 0 280 130" className="w-72 h-auto mx-auto overflow-visible" aria-hidden animate={{ y: [0, -4, 0] }} transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}>
+    <defs>
+      <linearGradient id="bkLeaf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#F0CB8A" /><stop offset="0.55" stopColor="#D49B52" /><stop offset="1" stopColor="#A9702F" /></linearGradient>
+      <linearGradient id="bkPageL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#F4ECE2" /><stop offset="0.7" stopColor="#FFFFFF" /><stop offset="1" stopColor="#E6DACB" /></linearGradient>
+      <linearGradient id="bkPageR" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stopColor="#F4ECE2" /><stop offset="0.7" stopColor="#FFFFFF" /><stop offset="1" stopColor="#E6DACB" /></linearGradient>
+      <linearGradient id="bkCover" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#8E1C52" /><stop offset="1" stopColor="#4A0220" /></linearGradient>
+      <filter id="bkBlur" x="-30%" y="-100%" width="160%" height="300%"><feGaussianBlur stdDeviation="4" /></filter>
+    </defs>
+    <ellipse cx="100" cy="118" rx="62" ry="6" fill="#58051E" opacity="0.28" filter="url(#bkBlur)" />
+    <Branch side={-1} /><Branch side={1} />
+    {/* cover, seen as a thin edge under the pages */}
+    <path d="M100 100 C 78 88, 46 86, 22 92 L 22 98 C 48 92, 78 94, 100 107 C 122 94, 152 92, 178 98 L 178 92 C 154 86, 122 88, 100 100 Z" fill="url(#bkCover)" />
+    {/* stacked page edges */}
+    <path d="M24 90 C 48 84, 78 86, 100 99 L 100 104 C 78 91, 48 89, 24 95 Z" fill="#E9DFD2" />
+    <path d="M176 90 C 152 84, 122 86, 100 99 L 100 104 C 122 91, 152 89, 176 95 Z" fill="#E9DFD2" />
+    {/* the open pages */}
+    <path d="M100 98 C 78 84, 46 82, 22 88 L 22 36 C 46 30, 78 32, 100 46 Z" fill="url(#bkPageL)" stroke="#B9A892" strokeWidth="0.8" />
+    <path d="M100 98 C 122 84, 154 82, 178 88 L 178 36 C 154 30, 122 32, 100 46 Z" fill="url(#bkPageR)" stroke="#B9A892" strokeWidth="0.8" />
+    {/* printed lines */}
+    <g stroke="#9C8F80" strokeOpacity="0.55" strokeWidth="0.9" strokeLinecap="round" fill="none">
+      {[0, 1, 2, 3, 4, 5].map(i => <path key={`l${i}`} d={`M32 ${46 + i * 6.2} C 52 ${41 + i * 6.2}, 76 ${43 + i * 6.2}, 92 ${54 + i * 6.2}`} />)}
+      {[0, 1, 2, 3, 4, 5].map(i => <path key={`r${i}`} d={`M168 ${46 + i * 6.2} C 148 ${41 + i * 6.2}, 124 ${43 + i * 6.2}, 108 ${54 + i * 6.2}`} />)}
+    </g>
+    {/* gutter shading and soft light on the pages */}
+    <path d="M100 46 V98" stroke="#7A6A58" strokeOpacity="0.5" strokeWidth="1.4" />
+    <path d="M94 50 C 96 62, 96 80, 94 94 L 100 98 L 100 46 Z" fill="#000" opacity="0.07" />
+    <path d="M106 50 C 104 62, 104 80, 106 94 L 100 98 L 100 46 Z" fill="#000" opacity="0.07" />
+    <path d="M28 40 C 50 35, 74 37, 94 49" fill="none" stroke="#fff" strokeOpacity="0.9" strokeWidth="1.2" />
+    {/* ribbon bookmark */}
+    <path d="M114 52 L 114 108 L 118 103 L 122 108 L 122 56 Z" fill="#9B1F57" opacity="0.92" />
+  </motion.svg>
 );
 
 export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
@@ -84,11 +139,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
           </div>
           <motion.span initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 0.6, duration: 0.7 }} className="hidden lg:block mt-8 h-[3px] w-16 rounded-full bg-[#8C1D4F]" />
           <p className="hidden lg:block mt-8 text-sm font-bold tracking-[0.28em] text-[#3a2430]">EDUCATION <span className="text-[#8C1D4F]">·</span> TRADE <span className="text-[#8C1D4F]">·</span> FROZEN FOODS <span className="text-[#8C1D4F]">·</span> DIGITAL</p>
-          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.9, duration: 0.6 }} className="hidden lg:flex mt-8 items-center gap-2 text-[#8C1D4F]">
-            <svg viewBox="0 0 40 60" className="w-8 h-12" fill="#D9A27A" aria-hidden>{[8, 20, 32, 44].map((y, i) => <ellipse key={y} cx={i % 2 ? 24 : 14} cy={y} rx="6" ry="3" transform={`rotate(${i % 2 ? 30 : -30} ${i % 2 ? 24 : 14} ${y})`} />)}</svg>
-            <BookOpen className="w-14 h-14" strokeWidth={1.3} />
-            <svg viewBox="0 0 40 60" className="w-8 h-12 -scale-x-100" fill="#D9A27A" aria-hidden>{[8, 20, 32, 44].map((y, i) => <ellipse key={y} cx={i % 2 ? 24 : 14} cy={y} rx="6" ry="3" transform={`rotate(${i % 2 ? 30 : -30} ${i % 2 ? 24 : 14} ${y})`} />)}</svg>
-          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9, duration: 0.8 }} className="hidden lg:block mt-6"><BookEmblem /></motion.div>
         </motion.div>
       </div>
 
