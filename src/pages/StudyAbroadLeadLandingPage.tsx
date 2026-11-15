@@ -7,21 +7,16 @@ import { FerexVectorMark } from '../components/Logo';
 import { getLeadFormConfig, createEducationLead, type LeadFormConfig, DEFAULT_LEAD_FORM_CONFIG } from '../lib/api/educationLeads';
 import { useDestinations } from '../hooks/useDestinations';
 import { sortByFeatured } from '../lib/api/destinations';
+import { CountryFlag } from '../components/CountryFlag';
 import { useRealtimeTable } from '../hooks/useRealtimeTable';
 
-const FLAGS: Record<string, string> = {
-  poland: '🇵🇱', germany: '🇩🇪', italy: '🇮🇹', france: '🇫🇷', spain: '🇪🇸', 'united kingdom': '🇬🇧', uk: '🇬🇧', ireland: '🇮🇪', moldova: '🇲🇩', hungary: '🇭🇺',
-  lithuania: '🇱🇹', latvia: '🇱🇻', albania: '🇦🇱', australia: '🇦🇺', austria: '🇦🇹', bulgaria: '🇧🇬', finland: '🇫🇮', georgia: '🇬🇪', greece: '🇬🇷', malaysia: '🇲🇾',
-  malta: '🇲🇹', mauritius: '🇲🇺', montenegro: '🇲🇪', 'new zealand': '🇳🇿', sweden: '🇸🇪', 'czech republic': '🇨🇿', czechia: '🇨🇿', canada: '🇨🇦', usa: '🇺🇸',
-};
-const flagOf = (name: string) => FLAGS[name.trim().toLowerCase()] || '🌍';
 const FALLBACK_COUNTRIES = ['Poland', 'United Kingdom', 'Germany', 'Italy', 'Spain', 'France'];
 const MAX_BUBBLES = 12;
 const COURSES = ['Medicine (MBBS / MD)', 'Engineering', 'Computer Science / IT', 'Business / MBA', 'Nursing & Health', 'Other'];
 const INTAKES = ['February / March 2027', 'September / October 2027', 'Not sure yet'];
 const CODES = [
-  { code: '+91', label: '🇮🇳 +91' }, { code: '+971', label: '🇦🇪 +971' }, { code: '+966', label: '🇸🇦 +966' }, { code: '+44', label: '🇬🇧 +44' },
-  { code: '+49', label: '🇩🇪 +49' }, { code: '+48', label: '🇵🇱 +48' }, { code: '+1', label: '🇺🇸 +1' }, { code: '+373', label: '🇲🇩 +373' }, { code: '+39', label: '🇮🇹 +39' },
+  { code: '+91', label: '+91' }, { code: '+971', label: '+971' }, { code: '+966', label: '+966' }, { code: '+44', label: '+44' },
+  { code: '+49', label: '+49' }, { code: '+48', label: '+48' }, { code: '+1', label: '+1' }, { code: '+373', label: '+373' }, { code: '+39', label: '+39' },
 ];
 
 const rise: Variants = { hidden: { opacity: 0, y: 22 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } } };
@@ -58,7 +53,7 @@ const FlagBubble: React.FC<{ name: string; active: boolean; size?: 'md' | 'lg'; 
       <span className={`relative ${dim} rounded-full overflow-hidden shadow-[0_10px_26px_-12px_rgba(87,2,41,0.55)] transition-transform duration-300 group-hover:scale-105 group-focus-visible:ring-4 ring-[#8C1D4F]/30`}>
         {/* animated border: a coloured ring that keeps circling the flag */}
         <span aria-hidden className="absolute -inset-[60%] lead-ring" style={{ background: active ? 'conic-gradient(from 0deg,#6B0F36,#E6B566,#8C1D4F,#F3DCE5,#6B0F36)' : 'conic-gradient(from 0deg,#F3DCE5,#C9A0B3,#E6B566,#F3DCE5)' }} />
-        <span className={`absolute inset-[3px] rounded-full bg-white flex items-center justify-center ${compact ? 'text-xl' : 'text-[1.9rem]'} leading-none`}>{flagOf(name)}</span>
+        <span className="absolute inset-[3px] rounded-full bg-white overflow-hidden"><CountryFlag name={name} className="w-full h-full rounded-full" /></span>
         {active && <motion.span layoutId="flag-check" className="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full bg-[#6B0F36] text-white flex items-center justify-center ring-2 ring-white"><Check className="w-3 h-3" strokeWidth={3} /></motion.span>}
       </span>
       <span className={`font-semibold leading-tight text-center ${compact ? 'text-[10px] max-w-[3.6rem]' : 'text-[13px] max-w-[5.5rem]'} transition-colors ${active ? 'text-[#6B0F36]' : 'text-slate-700'}`}>{name}</span>
@@ -68,11 +63,11 @@ const FlagBubble: React.FC<{ name: string; active: boolean; size?: 'md' | 'lg'; 
 
 const Field: React.FC<{ icon: React.ReactNode; label: string; required?: boolean; filled: boolean; select?: boolean; children: React.ReactNode; leading?: React.ReactNode }> = ({ icon, label, required, filled, select, children, leading }) => (
   <motion.div variants={rise} className="group relative flex items-center h-12 sm:h-[3.4rem] rounded-full bg-white border border-slate-200/90 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-300 focus-within:border-[#8C1D4F] focus-within:shadow-[0_0_0_4px_rgba(140,29,79,0.10),0_8px_24px_-12px_rgba(87,2,41,0.35)] hover:border-slate-300">
-    <span className="pl-5 pr-3 text-[#4a0b24] shrink-0 transition-transform duration-300 group-focus-within:scale-110 group-focus-within:text-[#8C1D4F]">{icon}</span>
+    <span className="pl-4 sm:pl-5 pr-2.5 sm:pr-3 text-[#4a0b24] shrink-0 transition-transform duration-300 group-focus-within:scale-110 group-focus-within:text-[#8C1D4F]">{icon}</span>
     {leading}
     <span className="relative flex-1 h-full min-w-0">
       {children}
-      <span aria-hidden className={`pointer-events-none absolute inset-y-0 left-0 right-8 flex items-center text-[15px] sm:text-base text-slate-600 transition-opacity duration-200 ${filled ? 'opacity-0' : 'opacity-100'}`}>
+      <span aria-hidden className={`pointer-events-none absolute inset-y-0 left-0 right-8 flex items-center text-[13.5px] sm:text-base text-slate-600 transition-opacity duration-200 ${filled ? 'opacity-0' : 'opacity-100'}`}>
         <span className="truncate">{label}{required && <span className="text-[#C01048] font-bold"> *</span>}</span>
       </span>
     </span>
@@ -80,16 +75,27 @@ const Field: React.FC<{ icon: React.ReactNode; label: string; required?: boolean
   </motion.div>
 );
 
-const control = 'appearance-none absolute inset-0 w-full h-full bg-transparent outline-none text-[15px] sm:text-base text-slate-900 !border-0 !shadow-none !bg-transparent !px-0 pr-8';
+const control = 'appearance-none absolute inset-0 w-full h-full bg-transparent outline-none text-[14px] sm:text-base text-slate-900 !border-0 !shadow-none !bg-transparent !px-0 pr-8';
 
 export const StudyAbroadLeadLandingPage: React.FC = () => {
   useForceLight();
   const stageRef = React.useRef<HTMLDivElement>(null);
+  const fitRef = React.useRef(1);
   const [fit, setFit] = useState(1);
   const [topPx, setTopPx] = useState(0);
+  const [short, setShort] = useState(false);
   useEffect(() => {
-    // The page never scrolls: if the content is taller than the screen, it is scaled down to fit.
-    const measure = () => { const el = stageRef.current; if (!el) return; const h = el.offsetHeight; const f = Math.max(0.5, Math.min(1, window.innerHeight / h)); setFit(f); setTopPx(window.innerWidth >= 1024 ? Math.max(0, (window.innerHeight - h * f) / 2.2) : 0); };
+    // The page never scrolls: if the content is taller than the screen it is scaled down to fit, and widened by the same
+    // amount so the form still fills the screen width instead of shrinking into the middle.
+    const measure = () => {
+      const el = stageRef.current; if (!el) return;
+      const vh = window.innerHeight;
+      setShort(vh < 700 && window.innerWidth < 1024);
+      const h = el.offsetHeight || vh;   // layout height at the current width
+      const f = Math.max(0.6, Math.min(1, vh / h));
+      if (Math.abs(f - fitRef.current) > 0.015) { fitRef.current = f; setFit(f); }
+      setTopPx(window.innerWidth >= 1024 ? Math.max(0, (vh - h * fitRef.current) / 2.2) : 0);
+    };
     measure();
     const ro = new ResizeObserver(measure); if (stageRef.current) ro.observe(stageRef.current);
     window.addEventListener('resize', measure);
@@ -172,18 +178,19 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
         <div className="absolute -bottom-40 left-1/4 w-[32rem] h-[32rem] rounded-full bg-[#EBC9D6]/50 blur-3xl" style={{ animation: 'lead-float 13s ease-in-out infinite 2s' }} />
       </div>
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        <Swoosh className="absolute top-0 right-0 w-[16rem] sm:w-[22rem] lg:w-[34rem] h-28 sm:h-40 lg:h-56" />
+        <Swoosh className="absolute top-0 right-0 w-36 sm:w-[22rem] lg:w-[34rem] h-14 sm:h-40 lg:h-56" />
         <Swoosh flip className="absolute bottom-0 right-0 w-40 sm:w-[26rem] lg:w-[38rem] h-10 sm:h-36 lg:h-52 opacity-95" />
       </div>
 
-      <div ref={stageRef} style={{ transform: `translateX(-50%) scale(${fit})`, transformOrigin: 'top center', top: topPx }} className="absolute left-1/2 z-10 w-full max-w-6xl px-4 sm:px-8 pt-3 sm:pt-5 pb-4">
-        <header className="flex items-center justify-center lg:justify-start">
-          <div className="w-full lg:w-auto flex justify-center lg:justify-start">
+      <div ref={stageRef} style={{ transform: `scale(${fit})`, transformOrigin: 'top left', top: topPx, width: `${100 / fit}%` }} className="absolute left-0 z-10 px-3 sm:px-8 pt-3 sm:pt-5 pb-3">
+        <div className="mx-auto max-w-6xl">
+        <header className="flex items-center justify-start">
+          <div className="w-full lg:w-auto flex justify-start">
             <motion.div initial={{ opacity: 0, y: -14, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.7 }} className="inline-flex items-center gap-3">
-              <motion.span animate={{ rotate: [0, -6, 6, 0] }} transition={{ duration: 4, repeat: Infinity, repeatDelay: 4 }}><FerexVectorMark color="#570229" size="lg" /></motion.span>
+              <motion.span animate={{ rotate: [0, -6, 6, 0] }} transition={{ duration: 4, repeat: Infinity, repeatDelay: 4 }}><FerexVectorMark color="#570229" size="md" /></motion.span>
               <span className="flex flex-col leading-none">
-                <span className="font-serif font-black tracking-wider text-[#570229] text-3xl sm:text-4xl">FEREX</span>
-                <span className="mt-1 text-[11px] sm:text-xs font-extrabold tracking-[0.42em] text-[#570229]">EDUCATION</span>
+                <span className="font-serif font-black tracking-wider text-[#570229] text-2xl sm:text-4xl">FEREX</span>
+                <span className="mt-0.5 text-[9px] sm:text-xs font-extrabold tracking-[0.4em] text-[#570229]">EDUCATION</span>
               </span>
             </motion.div>
           </div>
@@ -192,7 +199,7 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
         <div className="mt-3 lg:mt-8 grid lg:grid-cols-[1.05fr_minmax(0,30rem)] gap-4 lg:gap-14 items-center">
           {/* Headline */}
           <motion.div variants={stagger(0.1, 0.15)} initial="hidden" animate="show" className="text-center lg:text-left">
-            <motion.span variants={rise} className="inline-flex items-center gap-2 rounded-full bg-[#F3DCE5] px-4 py-1.5 text-sm font-semibold text-[#570229]">
+            <motion.span variants={rise} className={`${short ? "hidden" : "inline-flex"} items-center gap-2 rounded-full bg-[#F3DCE5] px-4 py-1.5 text-sm font-semibold text-[#570229]`}>
               <GraduationCap className="w-4 h-4" /> Study Abroad
             </motion.span>
             <motion.h1 variants={rise} className="mt-2 lg:mt-4 font-extrabold tracking-tight leading-[1.08] text-[1.65rem] sm:text-4xl lg:text-[3.4rem] text-[#1F2937]">
@@ -280,7 +287,7 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
                   </motion.button>
 
 
-                  <motion.ul variants={rise} className="lg:hidden grid grid-cols-3 pt-3 divide-x divide-slate-200">
+                  <motion.ul variants={rise} className={`${short ? "hidden" : "grid"} lg:hidden grid-cols-3 pt-2 divide-x divide-slate-200`}>
                     {features.map(f => (
                       <li key={f.label} className="px-2 flex flex-col items-center gap-1.5 text-center">
                         <f.icon className="w-8 h-8 text-[#8C1D4F]" strokeWidth={1.5} />
@@ -303,6 +310,7 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

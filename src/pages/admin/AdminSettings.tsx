@@ -9,6 +9,7 @@ import { Button } from '../../components/Button';
 import { supabase } from '../../lib/supabase';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { useDestinations } from '../../hooks/useDestinations';
+import { CountryFlag } from '../../components/CountryFlag';
 import { ArrowUp, ArrowDown, X as XIcon, Plus } from 'lucide-react';
 import {
   getLeadFormConfig,
@@ -21,9 +22,6 @@ import {
   DEFAULT_LEAD_FORM_CONFIG,
   DEFAULT_WHATSAPP_CONFIG
 } from '../../lib/api/educationLeads';
-
-const FLAGS: Record<string, string> = { poland: '🇵🇱', germany: '🇩🇪', italy: '🇮🇹', france: '🇫🇷', spain: '🇪🇸', 'united kingdom': '🇬🇧', ireland: '🇮🇪', moldova: '🇲🇩', hungary: '🇭🇺', lithuania: '🇱🇹', latvia: '🇱🇻', albania: '🇦🇱', australia: '🇦🇺', austria: '🇦🇹', bulgaria: '🇧🇬', finland: '🇫🇮', georgia: '🇬🇪', greece: '🇬🇷', malaysia: '🇲🇾', malta: '🇲🇹', mauritius: '🇲🇺', montenegro: '🇲🇪', 'new zealand': '🇳🇿', sweden: '🇸🇪', 'czech republic': '🇨🇿', canada: '🇨🇦', usa: '🇺🇸' };
-const flagFor = (n: string) => FLAGS[n.trim().toLowerCase()] || '🌍';
 
 const TABS = ['Organization', 'Lead Form Configuration', 'WhatsApp API & Automation', 'Security & Password'];
 
@@ -429,7 +427,7 @@ export const AdminSettings: React.FC = () => {
                     {(formConfig.highlighted_countries || []).map((c, i, list) => (
                       <li key={c} className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2">
                         <span className="w-6 h-6 rounded-full bg-[#58051E] text-white text-[11px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
-                        <span className="w-7 h-7 rounded-full bg-white ring-2 ring-[#58051E]/20 flex items-center justify-center text-base shrink-0">{flagFor(c)}</span><span className="text-xs font-bold text-slate-900 flex-1 truncate">{c}</span>
+                        <span className="w-7 h-7 rounded-full overflow-hidden ring-2 ring-[#58051E]/20 shrink-0"><CountryFlag name={c} code={allDestinations.find(d => d.name.trim() === c)?.code} className="w-full h-full" /></span><span className="text-xs font-bold text-slate-900 flex-1 truncate">{c}</span>
                         <button type="button" aria-label={`Move ${c} up`} disabled={i === 0} onClick={() => { const n = [...list]; [n[i - 1], n[i]] = [n[i], n[i - 1]]; setFormConfig({ ...formConfig, highlighted_countries: n }); }} className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 cursor-pointer"><ArrowUp className="w-3.5 h-3.5" /></button>
                         <button type="button" aria-label={`Move ${c} down`} disabled={i === list.length - 1} onClick={() => { const n = [...list]; [n[i + 1], n[i]] = [n[i], n[i + 1]]; setFormConfig({ ...formConfig, highlighted_countries: n }); }} className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 cursor-pointer"><ArrowDown className="w-3.5 h-3.5" /></button>
                         <button type="button" aria-label={`Remove ${c}`} onClick={() => setFormConfig({ ...formConfig, highlighted_countries: list.filter(x => x !== c) })} className="p-1.5 rounded-lg hover:bg-rose-50 text-rose-600 cursor-pointer"><XIcon className="w-3.5 h-3.5" /></button>
@@ -440,7 +438,7 @@ export const AdminSettings: React.FC = () => {
                     <Plus className="w-4 h-4 text-slate-400" />
                     <select aria-label="Add a highlighted country" value="" onChange={(e) => { if (e.target.value) setFormConfig({ ...formConfig, highlighted_countries: [...(formConfig.highlighted_countries || []), e.target.value] }); }} className="h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 cursor-pointer">
                       <option value="">Add a country…</option>
-                      {allDestinations.filter(d => d.is_active !== false && !(formConfig.highlighted_countries || []).includes(d.name.trim())).map(d => <option key={d.id} value={d.name.trim()}>{flagFor(d.name)} {d.name}</option>)}
+                      {allDestinations.filter(d => d.is_active !== false && !(formConfig.highlighted_countries || []).includes(d.name.trim())).map(d => <option key={d.id} value={d.name.trim()}>{d.name}</option>)}
                     </select>
                     <span className="text-[11px] text-slate-500">{(formConfig.highlighted_countries || []).length} highlighted</span>
                   </div>
