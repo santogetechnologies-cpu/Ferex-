@@ -45,6 +45,10 @@ export interface LeadFormConfig {
   email_enabled: boolean;
   country_enabled: boolean;
   degree_level_enabled: boolean;
+  /** Shows the intake choice. */
+  intake_enabled: boolean;
+  /** Countries shown first on the enquiry page, in this order. Empty = the featured countries. */
+  highlighted_countries: string[];
   headline: string;
   subheadline: string;
   submit_button_text: string;
@@ -83,9 +87,11 @@ export const DEFAULT_LEAD_FORM_CONFIG: LeadFormConfig = {
   email_enabled: true,
   country_enabled: true,
   degree_level_enabled: true,
-  headline: 'Apply for European University Admissions',
-  subheadline: 'Direct Admissions, Guaranteed Document Legalization, and Fast-Track Schengen Visa Support across Poland, Germany, Italy, Moldova, France, and Spain.',
-  submit_button_text: 'Submit Admission Enquiry',
+  intake_enabled: true,
+  highlighted_countries: [],
+  headline: 'Get Expert Admission & Visa Support',
+  subheadline: '',
+  submit_button_text: 'Get Free Counselling',
 };
 
 export const DEFAULT_WHATSAPP_CONFIG: WhatsAppConfig = {

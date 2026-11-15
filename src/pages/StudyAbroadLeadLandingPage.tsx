@@ -17,6 +17,7 @@ const FLAGS: Record<string, string> = {
 };
 const flagOf = (name: string) => FLAGS[name.trim().toLowerCase()] || '🌍';
 const FALLBACK_COUNTRIES = ['Poland', 'United Kingdom', 'Germany', 'Italy', 'Spain', 'France'];
+const MAX_BUBBLES = 12;
 const COURSES = ['Medicine (MBBS / MD)', 'Engineering', 'Computer Science / IT', 'Business / MBA', 'Nursing & Health', 'Other'];
 const INTAKES = ['February / March 2027', 'September / October 2027', 'Not sure yet'];
 const CODES = [
@@ -48,6 +49,23 @@ const Swoosh: React.FC<{ className?: string; flip?: boolean }> = ({ className = 
     <motion.path d="M60 0 C100 14 160 36 190 74 C240 130 320 170 400 168" fill="none" stroke="#8C1D4F" strokeOpacity="0.25" strokeWidth="1.5" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.8, delay: 0.5, ease: 'easeInOut' }} />
   </svg>
 );
+
+const FlagBubble: React.FC<{ name: string; active: boolean; size?: 'md' | 'lg'; onClick: () => void; index: number }> = ({ name, active, size = 'md', onClick, index }) => {
+  const dim = size === 'lg' ? 'w-[4.75rem] h-[4.75rem]' : 'w-16 h-16';
+  return (
+    <motion.button type="button" onClick={onClick} aria-pressed={active} aria-label={name}
+      initial={{ opacity: 0, y: 18, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: 0.5 + index * 0.06, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ y: -5 }} whileTap={{ scale: 0.94 }} className="group flex flex-col items-center gap-2 cursor-pointer outline-none">
+      <span className={`relative ${dim} rounded-full overflow-hidden shadow-[0_10px_26px_-12px_rgba(87,2,41,0.55)] transition-transform duration-300 group-hover:scale-105 group-focus-visible:ring-4 ring-[#8C1D4F]/30`}>
+        {/* animated border: a coloured ring that keeps circling the flag */}
+        <span aria-hidden className="absolute -inset-[60%] lead-ring" style={{ background: active ? 'conic-gradient(from 0deg,#6B0F36,#E6B566,#8C1D4F,#F3DCE5,#6B0F36)' : 'conic-gradient(from 0deg,#F3DCE5,#C9A0B3,#E6B566,#F3DCE5)' }} />
+        <span className="absolute inset-[3px] rounded-full bg-white flex items-center justify-center text-[1.9rem] sm:text-[2.1rem] leading-none">{flagOf(name)}</span>
+        {active && <motion.span layoutId="flag-check" className="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full bg-[#6B0F36] text-white flex items-center justify-center ring-2 ring-white"><Check className="w-3 h-3" strokeWidth={3} /></motion.span>}
+      </span>
+      <span className={`text-[13px] sm:text-sm font-semibold leading-tight text-center max-w-[5.5rem] transition-colors ${active ? 'text-[#6B0F36]' : 'text-slate-700'}`}>{name}</span>
+    </motion.button>
+  );
+};
 
 const Field: React.FC<{ icon: React.ReactNode; label: string; required?: boolean; filled: boolean; select?: boolean; children: React.ReactNode; leading?: React.ReactNode }> = ({ icon, label, required, filled, select, children, leading }) => (
   <motion.div variants={rise} className="group relative flex items-center h-14 sm:h-[3.75rem] rounded-full bg-white border border-slate-200/90 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-300 focus-within:border-[#8C1D4F] focus-within:shadow-[0_0_0_4px_rgba(140,29,79,0.10),0_8px_24px_-12px_rgba(87,2,41,0.35)] hover:border-slate-300">
@@ -84,28 +102,32 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
   useEffect(loadCfg, [loadCfg]);
   useRealtimeTable('system_config', loadCfg);
 
-  const countries = useMemo(() => {
+  const { countries, chips } = useMemo(() => {
     const live = sortByFeatured(destinations.filter(d => d.is_active !== false && d.name.trim().toLowerCase() !== 'india'), destinations, d => d.name).map(d => d.name.trim());
-    return live.length ? live : FALLBACK_COUNTRIES;
-  }, [destinations]);
-  const chips = countries.slice(0, 6);
+    const all = live.length ? live : FALLBACK_COUNTRIES;
+    const picked = (cfg.highlighted_countries || []).map(n => all.find(a => a.toLowerCase() === n.trim().toLowerCase())).filter(Boolean) as string[];
+    const first = picked.length ? picked : all.slice(0, 6);
+    return { countries: [...first, ...all.filter(c => !first.includes(c))], chips: first.slice(0, MAX_BUBBLES) };
+  }, [destinations, cfg.highlighted_countries]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (cfg.name_enabled && !name.trim()) return setError('Please enter your name.');
     if (phone.replace(/\D/g, '').length < 8) return setError('Please enter a valid WhatsApp number.');
-    if (!course || !country || !intake) return setError('Please choose a course, destination and intake.');
+    if (cfg.degree_level_enabled && !course) return setError('Please choose a course.');
+    if (cfg.country_enabled && !country) return setError('Please choose a destination.');
+    if (cfg.intake_enabled && !intake) return setError('Please choose an intake.');
     setBusy(true);
     try {
       const lead = await createEducationLead({
         name: cfg.name_enabled ? name.trim() : 'Prospective Student',
         phone: `${code} ${phone.trim()}`,
         email: cfg.email_enabled ? email.trim() || undefined : undefined,
-        preferred_country: country,
-        degree_level: course,
+        preferred_country: cfg.country_enabled ? country : 'Europe',
+        degree_level: cfg.degree_level_enabled ? course : undefined,
         source: 'Admissions Lead Landing Page',
-        notes: `Course: ${course} · Intake: ${intake}`,
+        notes: [cfg.degree_level_enabled && `Course: ${course}`, cfg.intake_enabled && `Intake: ${intake}`].filter(Boolean).join(' · '),
       });
       setDone((lead.name || name).split(' ')[0] || 'there');
     } catch (err) {
@@ -113,6 +135,8 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
     } finally { setBusy(false); }
   };
 
+  const headWords = (cfg.headline || 'Get Expert Admission & Visa Support').trim().split(/\s+/);
+  const headSplit = Math.max(1, Math.ceil(headWords.length / 3));
   const features = [
     { icon: FileCheck2, label: 'Admission Support' },
     { icon: BookOpenCheck, label: 'Visa Assistance' },
@@ -120,21 +144,27 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
   ];
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#FBF7F8] text-slate-900 font-sans antialiased selection:bg-[#8C1D4F] selection:text-white">
+    <div style={{ overflowX: 'clip' }} className="relative min-h-screen bg-[#FBF7F8] text-slate-900 font-sans antialiased selection:bg-[#8C1D4F] selection:text-white">
       <style>{`
         @keyframes lead-float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-14px) } }
         @keyframes lead-shimmer { 0% { transform: translateX(-120%) } 60%,100% { transform: translateX(220%) } }
+        @keyframes lead-spin { to { transform: rotate(360deg) } }
+        .lead-ring { animation: lead-spin 5s linear infinite; }
+        html, body { overflow-x: clip; overscroll-behavior-x: none; }
+        @media (prefers-reduced-motion: reduce) { .lead-ring { animation: none } }
         .lead-cta::after { content:''; position:absolute; inset:0; width:40%; background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent); animation: lead-shimmer 3.2s ease-in-out infinite; }
       `}</style>
 
-      {/* soft background */}
-      <div className="pointer-events-none absolute inset-0" aria-hidden>
+      {/* soft background: clipped so it can never widen the page */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
         <div className="absolute -top-32 -left-24 w-[28rem] h-[28rem] rounded-full bg-[#F3D9E2]/70 blur-3xl" style={{ animation: 'lead-float 9s ease-in-out infinite' }} />
         <div className="absolute top-1/3 -right-32 w-[30rem] h-[30rem] rounded-full bg-[#F7E7C8]/50 blur-3xl" style={{ animation: 'lead-float 11s ease-in-out infinite 1s' }} />
         <div className="absolute -bottom-40 left-1/4 w-[32rem] h-[32rem] rounded-full bg-[#EBC9D6]/50 blur-3xl" style={{ animation: 'lead-float 13s ease-in-out infinite 2s' }} />
       </div>
-      <Swoosh className="pointer-events-none absolute top-0 right-0 w-[16rem] sm:w-[22rem] lg:w-[34rem] h-28 sm:h-40 lg:h-56" />
-      <Swoosh flip className="pointer-events-none absolute bottom-0 right-0 w-[18rem] sm:w-[26rem] lg:w-[38rem] h-24 sm:h-36 lg:h-52 opacity-95" />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+        <Swoosh className="absolute top-0 right-0 w-[16rem] sm:w-[22rem] lg:w-[34rem] h-28 sm:h-40 lg:h-56" />
+        <Swoosh flip className="absolute bottom-0 right-0 w-[18rem] sm:w-[26rem] lg:w-[38rem] h-24 sm:h-36 lg:h-52 opacity-95" />
+      </div>
 
       <div className="relative z-10 mx-auto max-w-6xl px-5 sm:px-8 pt-6 pb-24 lg:pb-28">
         <header className="flex items-center justify-between lg:justify-start lg:gap-8">
@@ -157,29 +187,26 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
               <GraduationCap className="w-4 h-4" /> Study Abroad
             </motion.span>
             <motion.h1 variants={rise} className="mt-4 font-extrabold tracking-tight leading-[1.08] text-[2.1rem] sm:text-5xl lg:text-[3.6rem] text-[#1F2937]">
-              Get Expert <span className="text-[#6B0F36]">Admission &amp; Visa Support</span>
+              {headWords.slice(0, headSplit).join(' ')} <span className="text-[#6B0F36]">{headWords.slice(headSplit).join(' ')}</span>
             </motion.h1>
+            {cfg.subheadline?.trim() && <motion.p variants={rise} className="mt-3 text-base text-slate-600 max-w-xl mx-auto lg:mx-0">{cfg.subheadline}</motion.p>}
 
             {/* desktop-only extras */}
-            <motion.ul variants={stagger(0.1)} className="hidden lg:flex mt-10 gap-4">
+            <motion.ul variants={stagger(0.1)} className="hidden lg:flex mt-8 gap-7">
               {features.map(f => (
-                <motion.li key={f.label} variants={rise} whileHover={{ y: -4 }} className="flex items-center gap-3 rounded-2xl bg-white/80 backdrop-blur border border-white shadow-[0_10px_30px_-18px_rgba(87,2,41,0.5)] px-4 py-3">
-                  <span className="w-10 h-10 rounded-xl bg-[#F3DCE5] text-[#6B0F36] flex items-center justify-center"><f.icon className="w-5 h-5" /></span>
-                  <span className="text-sm font-bold text-slate-800 leading-tight">{f.label}</span>
+                <motion.li key={f.label} variants={rise} className="flex items-center gap-2.5 text-sm font-semibold text-slate-700">
+                  <f.icon className="w-5 h-5 text-[#8C1D4F]" strokeWidth={1.6} />{f.label}
                 </motion.li>
               ))}
             </motion.ul>
-            <motion.div variants={rise} className="hidden lg:block mt-10">
-              <p className="text-sm font-bold text-slate-700 mb-3">Top Study Destinations</p>
-              <div className="flex flex-wrap gap-2.5">
-                {chips.map((c, i) => (
-                  <motion.button key={c} type="button" onClick={() => setCountry(c)} whileHover={{ y: -3, scale: 1.04 }} whileTap={{ scale: 0.97 }} animate={{ y: [0, -3, 0] }} transition={{ y: { duration: 3 + (i % 3), repeat: Infinity, delay: i * 0.3 } }}
-                    className={`inline-flex items-center gap-2 rounded-full px-4 h-11 text-sm font-semibold shadow-[0_6px_18px_-10px_rgba(15,23,42,0.4)] cursor-pointer transition-colors ${country === c ? 'bg-[#6B0F36] text-white' : 'bg-white text-slate-800'}`}>
-                    <span className="text-lg">{flagOf(c)}</span>{c}
-                  </motion.button>
-                ))}
+            {chips.length > 0 && (
+              <div className="hidden lg:block mt-12">
+                <p className="text-xs font-bold tracking-[0.3em] uppercase text-slate-500 mb-5">Top Study Destinations</p>
+                <div className="flex flex-wrap gap-x-5 gap-y-5 max-w-2xl">
+                  {chips.map((c, i) => <FlagBubble key={c} name={c} size="lg" index={i} active={country === c} onClick={() => setCountry(c)} />)}
+                </div>
               </div>
-            </motion.div>
+            )}
           </motion.div>
 
           {/* Form card */}
@@ -220,21 +247,27 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
                     </Field>
                   )}
 
-                  <Field icon={<GraduationCap className="w-6 h-6" />} label="Preferred Course / Program" required select filled={!!course}>
-                    <select aria-label="Preferred course" value={course} onChange={e => setCourse(e.target.value)} className={`${control} cursor-pointer`}><option value="" /> {COURSES.map(c => <option key={c}>{c}</option>)}</select>
-                  </Field>
-                  <Field icon={<MapPin className="w-6 h-6" />} label="Preferred Study Destination" required select filled={!!country}>
-                    <select aria-label="Preferred destination" value={country} onChange={e => setCountry(e.target.value)} className={`${control} cursor-pointer`}><option value="" /> {countries.map(c => <option key={c}>{c}</option>)}</select>
-                  </Field>
-                  <Field icon={<CalendarDays className="w-6 h-6" />} label="Preferred Intake" required select filled={!!intake}>
-                    <select aria-label="Preferred intake" value={intake} onChange={e => setIntake(e.target.value)} className={`${control} cursor-pointer`}><option value="" /> {INTAKES.map(c => <option key={c}>{c}</option>)}</select>
-                  </Field>
+                  {cfg.degree_level_enabled && (
+                    <Field icon={<GraduationCap className="w-6 h-6" />} label="Preferred Course / Program" required select filled={!!course}>
+                      <select aria-label="Preferred course" value={course} onChange={e => setCourse(e.target.value)} className={`${control} cursor-pointer`}><option value="" /> {COURSES.map(c => <option key={c}>{c}</option>)}</select>
+                    </Field>
+                  )}
+                  {cfg.country_enabled && (
+                    <Field icon={<MapPin className="w-6 h-6" />} label="Preferred Study Destination" required select filled={!!country}>
+                      <select aria-label="Preferred destination" value={country} onChange={e => setCountry(e.target.value)} className={`${control} cursor-pointer`}><option value="" /> {countries.map(c => <option key={c}>{c}</option>)}</select>
+                    </Field>
+                  )}
+                  {cfg.intake_enabled && (
+                    <Field icon={<CalendarDays className="w-6 h-6" />} label="Preferred Intake" required select filled={!!intake}>
+                      <select aria-label="Preferred intake" value={intake} onChange={e => setIntake(e.target.value)} className={`${control} cursor-pointer`}><option value="" /> {INTAKES.map(c => <option key={c}>{c}</option>)}</select>
+                    </Field>
+                  )}
 
                   {error && <motion.p initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: [0, -5, 5, -3, 0] }} role="alert" className="text-sm font-semibold text-rose-700 text-center">{error}</motion.p>}
 
                   <motion.button variants={rise} whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.98 }} type="submit" disabled={busy}
                     className="lead-cta relative overflow-hidden w-full h-14 sm:h-16 rounded-full bg-gradient-to-r from-[#8C1D4F] via-[#6B0F36] to-[#4a0220] text-white text-lg sm:text-xl font-bold shadow-[0_16px_34px_-14px_rgba(87,2,41,0.8)] inline-flex items-center justify-center gap-3 disabled:opacity-70 cursor-pointer">
-                    {busy ? <><Loader2 className="w-5 h-5 animate-spin" />Sending…</> : <>Get Free Counselling <motion.span animate={{ x: [0, 6, 0] }} transition={{ duration: 1.6, repeat: Infinity }}><ArrowRight className="w-6 h-6" /></motion.span></>}
+                    {busy ? <><Loader2 className="w-5 h-5 animate-spin" />Sending…</> : <>{cfg.submit_button_text?.trim() || 'Get Free Counselling'} <motion.span animate={{ x: [0, 6, 0] }} transition={{ duration: 1.6, repeat: Infinity }}><ArrowRight className="w-6 h-6" /></motion.span></>}
                   </motion.button>
 
                   <motion.p variants={rise} className="flex items-center justify-center gap-2 text-sm text-slate-600"><ShieldCheck className="w-5 h-5 text-emerald-600 fill-emerald-100" />Your details are 100% confidential.</motion.p>
@@ -254,19 +287,16 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
         </div>
 
         {/* Mobile destinations */}
-        <motion.div variants={stagger(0.06, 0.9)} initial="hidden" animate="show" className="lg:hidden mt-10 text-center">
-          <motion.div variants={rise} className="flex items-center justify-center gap-4 mb-4">
-            <span className="h-px w-10 bg-[#8C1D4F]/50" /><h3 className="text-xl font-bold text-slate-800">Top Study Destinations</h3><span className="h-px w-10 bg-[#8C1D4F]/50" />
-          </motion.div>
-          <div className="flex flex-wrap justify-center gap-2.5">
-            {chips.map(c => (
-              <motion.button key={c} type="button" variants={rise} whileTap={{ scale: 0.95 }} onClick={() => setCountry(c)}
-                className={`inline-flex items-center gap-2 rounded-full px-4 h-12 text-base font-semibold shadow-[0_6px_18px_-10px_rgba(15,23,42,0.45)] cursor-pointer ${country === c ? 'bg-[#6B0F36] text-white' : 'bg-white text-slate-800'}`}>
-                <span className="text-xl">{flagOf(c)}</span>{c}
-              </motion.button>
-            ))}
+        {chips.length > 0 && (
+          <div className="lg:hidden mt-10 text-center">
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <span className="h-px w-10 bg-[#8C1D4F]/40" /><h3 className="text-lg font-bold text-slate-800">Top Study Destinations</h3><span className="h-px w-10 bg-[#8C1D4F]/40" />
+            </div>
+            <div className="grid grid-cols-3 gap-x-3 gap-y-6 justify-items-center">
+              {chips.map((c, i) => <FlagBubble key={c} name={c} index={i} active={country === c} onClick={() => setCountry(c)} />)}
+            </div>
           </div>
-        </motion.div>
+        )}
       </div>
     </div>
   );
