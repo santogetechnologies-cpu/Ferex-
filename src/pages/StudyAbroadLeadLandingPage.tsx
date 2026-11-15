@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
-import { Link } from 'react-router-dom';
 import {
   User, Mail, GraduationCap, MapPin, CalendarDays, ChevronDown, ArrowRight, ShieldCheck, FileCheck2, BookOpenCheck, Headphones, Loader2, Check,
 } from 'lucide-react';
@@ -50,8 +49,8 @@ const Swoosh: React.FC<{ className?: string; flip?: boolean }> = ({ className = 
   </svg>
 );
 
-const FlagBubble: React.FC<{ name: string; active: boolean; size?: 'md' | 'lg'; onClick: () => void; index: number }> = ({ name, active, size = 'md', onClick, index }) => {
-  const dim = size === 'lg' ? 'w-[4.75rem] h-[4.75rem]' : 'w-16 h-16';
+const FlagBubble: React.FC<{ name: string; active: boolean; size?: 'md' | 'lg'; compact?: boolean; onClick: () => void; index: number }> = ({ name, active, size = 'md', compact, onClick, index }) => {
+  const dim = compact ? 'w-11 h-11' : size === 'lg' ? 'w-[4.25rem] h-[4.25rem]' : 'w-16 h-16';
   return (
     <motion.button type="button" onClick={onClick} aria-pressed={active} aria-label={name}
       initial={{ opacity: 0, y: 18, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: 0.5 + index * 0.06, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
@@ -59,16 +58,16 @@ const FlagBubble: React.FC<{ name: string; active: boolean; size?: 'md' | 'lg'; 
       <span className={`relative ${dim} rounded-full overflow-hidden shadow-[0_10px_26px_-12px_rgba(87,2,41,0.55)] transition-transform duration-300 group-hover:scale-105 group-focus-visible:ring-4 ring-[#8C1D4F]/30`}>
         {/* animated border: a coloured ring that keeps circling the flag */}
         <span aria-hidden className="absolute -inset-[60%] lead-ring" style={{ background: active ? 'conic-gradient(from 0deg,#6B0F36,#E6B566,#8C1D4F,#F3DCE5,#6B0F36)' : 'conic-gradient(from 0deg,#F3DCE5,#C9A0B3,#E6B566,#F3DCE5)' }} />
-        <span className="absolute inset-[3px] rounded-full bg-white flex items-center justify-center text-[1.9rem] sm:text-[2.1rem] leading-none">{flagOf(name)}</span>
+        <span className={`absolute inset-[3px] rounded-full bg-white flex items-center justify-center ${compact ? 'text-xl' : 'text-[1.9rem]'} leading-none`}>{flagOf(name)}</span>
         {active && <motion.span layoutId="flag-check" className="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full bg-[#6B0F36] text-white flex items-center justify-center ring-2 ring-white"><Check className="w-3 h-3" strokeWidth={3} /></motion.span>}
       </span>
-      <span className={`text-[13px] sm:text-sm font-semibold leading-tight text-center max-w-[5.5rem] transition-colors ${active ? 'text-[#6B0F36]' : 'text-slate-700'}`}>{name}</span>
+      <span className={`font-semibold leading-tight text-center ${compact ? 'text-[10px] max-w-[3.6rem]' : 'text-[13px] max-w-[5.5rem]'} transition-colors ${active ? 'text-[#6B0F36]' : 'text-slate-700'}`}>{name}</span>
     </motion.button>
   );
 };
 
 const Field: React.FC<{ icon: React.ReactNode; label: string; required?: boolean; filled: boolean; select?: boolean; children: React.ReactNode; leading?: React.ReactNode }> = ({ icon, label, required, filled, select, children, leading }) => (
-  <motion.div variants={rise} className="group relative flex items-center h-14 sm:h-[3.75rem] rounded-full bg-white border border-slate-200/90 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-300 focus-within:border-[#8C1D4F] focus-within:shadow-[0_0_0_4px_rgba(140,29,79,0.10),0_8px_24px_-12px_rgba(87,2,41,0.35)] hover:border-slate-300">
+  <motion.div variants={rise} className="group relative flex items-center h-12 sm:h-[3.4rem] rounded-full bg-white border border-slate-200/90 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-300 focus-within:border-[#8C1D4F] focus-within:shadow-[0_0_0_4px_rgba(140,29,79,0.10),0_8px_24px_-12px_rgba(87,2,41,0.35)] hover:border-slate-300">
     <span className="pl-5 pr-3 text-[#4a0b24] shrink-0 transition-transform duration-300 group-focus-within:scale-110 group-focus-within:text-[#8C1D4F]">{icon}</span>
     {leading}
     <span className="relative flex-1 h-full min-w-0">
@@ -85,6 +84,17 @@ const control = 'appearance-none absolute inset-0 w-full h-full bg-transparent o
 
 export const StudyAbroadLeadLandingPage: React.FC = () => {
   useForceLight();
+  const stageRef = React.useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState(1);
+  const [topPx, setTopPx] = useState(0);
+  useEffect(() => {
+    // The page never scrolls: if the content is taller than the screen, it is scaled down to fit.
+    const measure = () => { const el = stageRef.current; if (!el) return; const h = el.offsetHeight; const f = Math.max(0.5, Math.min(1, window.innerHeight / h)); setFit(f); setTopPx(window.innerWidth >= 1024 ? Math.max(0, (window.innerHeight - h * f) / 2.2) : 0); };
+    measure();
+    const ro = new ResizeObserver(measure); if (stageRef.current) ro.observe(stageRef.current);
+    window.addEventListener('resize', measure);
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
+  }, []);
   const { destinations } = useDestinations();
   const [cfg, setCfg] = useState<LeadFormConfig>(DEFAULT_LEAD_FORM_CONFIG);
   const [name, setName] = useState('');
@@ -144,13 +154,13 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
   ];
 
   return (
-    <div style={{ overflowX: 'clip' }} className="relative min-h-screen bg-[#FBF7F8] text-slate-900 font-sans antialiased selection:bg-[#8C1D4F] selection:text-white">
+    <div className="fixed inset-0 overflow-hidden bg-[#FBF7F8] text-slate-900 font-sans antialiased selection:bg-[#8C1D4F] selection:text-white">
       <style>{`
         @keyframes lead-float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-14px) } }
         @keyframes lead-shimmer { 0% { transform: translateX(-120%) } 60%,100% { transform: translateX(220%) } }
         @keyframes lead-spin { to { transform: rotate(360deg) } }
         .lead-ring { animation: lead-spin 5s linear infinite; }
-        html, body { overflow-x: clip; overscroll-behavior-x: none; }
+        html, body { overflow: hidden; height: 100%; overscroll-behavior: none; }
         @media (prefers-reduced-motion: reduce) { .lead-ring { animation: none } }
         .lead-cta::after { content:''; position:absolute; inset:0; width:40%; background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent); animation: lead-shimmer 3.2s ease-in-out infinite; }
       `}</style>
@@ -163,11 +173,11 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
       </div>
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
         <Swoosh className="absolute top-0 right-0 w-[16rem] sm:w-[22rem] lg:w-[34rem] h-28 sm:h-40 lg:h-56" />
-        <Swoosh flip className="absolute bottom-0 right-0 w-[18rem] sm:w-[26rem] lg:w-[38rem] h-24 sm:h-36 lg:h-52 opacity-95" />
+        <Swoosh flip className="absolute bottom-0 right-0 w-40 sm:w-[26rem] lg:w-[38rem] h-10 sm:h-36 lg:h-52 opacity-95" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-6xl px-5 sm:px-8 pt-6 pb-24 lg:pb-28">
-        <header className="flex items-center justify-between lg:justify-start lg:gap-8">
+      <div ref={stageRef} style={{ transform: `translateX(-50%) scale(${fit})`, transformOrigin: 'top center', top: topPx }} className="absolute left-1/2 z-10 w-full max-w-6xl px-4 sm:px-8 pt-3 sm:pt-5 pb-4">
+        <header className="flex items-center justify-center lg:justify-start">
           <div className="w-full lg:w-auto flex justify-center lg:justify-start">
             <motion.div initial={{ opacity: 0, y: -14, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.7 }} className="inline-flex items-center gap-3">
               <motion.span animate={{ rotate: [0, -6, 6, 0] }} transition={{ duration: 4, repeat: Infinity, repeatDelay: 4 }}><FerexVectorMark color="#570229" size="lg" /></motion.span>
@@ -177,16 +187,15 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
               </span>
             </motion.div>
           </div>
-          <Link to="/login" className="hidden lg:inline-flex h-10 px-5 items-center rounded-full border border-[#570229]/20 bg-white/70 text-sm font-semibold text-[#570229] hover:bg-white transition-colors">Student login</Link>
         </header>
 
-        <div className="mt-8 lg:mt-14 grid lg:grid-cols-[1.05fr_minmax(0,30rem)] gap-10 lg:gap-16 items-center">
+        <div className="mt-3 lg:mt-8 grid lg:grid-cols-[1.05fr_minmax(0,30rem)] gap-4 lg:gap-14 items-center">
           {/* Headline */}
           <motion.div variants={stagger(0.1, 0.15)} initial="hidden" animate="show" className="text-center lg:text-left">
             <motion.span variants={rise} className="inline-flex items-center gap-2 rounded-full bg-[#F3DCE5] px-4 py-1.5 text-sm font-semibold text-[#570229]">
               <GraduationCap className="w-4 h-4" /> Study Abroad
             </motion.span>
-            <motion.h1 variants={rise} className="mt-4 font-extrabold tracking-tight leading-[1.08] text-[2.1rem] sm:text-5xl lg:text-[3.6rem] text-[#1F2937]">
+            <motion.h1 variants={rise} className="mt-2 lg:mt-4 font-extrabold tracking-tight leading-[1.08] text-[1.65rem] sm:text-4xl lg:text-[3.4rem] text-[#1F2937]">
               {headWords.slice(0, headSplit).join(' ')} <span className="text-[#6B0F36]">{headWords.slice(headSplit).join(' ')}</span>
             </motion.h1>
             {cfg.subheadline?.trim() && <motion.p variants={rise} className="mt-3 text-base text-slate-600 max-w-xl mx-auto lg:mx-0">{cfg.subheadline}</motion.p>}
@@ -211,7 +220,7 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
 
           {/* Form card */}
           <motion.div initial={{ opacity: 0, y: 40, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.8, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="relative rounded-[2rem] sm:rounded-[2.25rem] bg-white/95 backdrop-blur border border-white shadow-[0_30px_80px_-30px_rgba(87,2,41,0.45)] p-5 sm:p-8">
+            className="relative rounded-[1.75rem] sm:rounded-[2rem] bg-white/95 backdrop-blur border border-white shadow-[0_30px_80px_-30px_rgba(87,2,41,0.45)] p-4 sm:p-6">
             <AnimatePresence mode="wait">
               {done ? (
                 <motion.div key="done" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="py-10 text-center space-y-4" role="status">
@@ -223,10 +232,10 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
                   <p className="text-slate-600">We’ll call you on WhatsApp shortly.</p>
                 </motion.div>
               ) : (
-                <motion.form key="form" onSubmit={submit} variants={stagger(0.07, 0.4)} initial="hidden" animate="show" exit={{ opacity: 0, y: -10 }} className="space-y-3.5" noValidate>
+                <motion.form key="form" onSubmit={submit} variants={stagger(0.07, 0.4)} initial="hidden" animate="show" exit={{ opacity: 0, y: -10 }} className="space-y-2.5 sm:space-y-3" noValidate>
                   <motion.div variants={rise} className="text-center pb-2">
-                    <p className="text-sm sm:text-base font-semibold tracking-[0.32em] text-slate-600">REQUEST FREE</p>
-                    <h2 className="mt-1 text-[1.7rem] sm:text-4xl font-extrabold tracking-tight text-[#1F2937]">Study Abroad <span className="text-[#6B0F36]">Counselling</span></h2>
+                    <p className="text-xs sm:text-sm font-semibold tracking-[0.32em] text-slate-600">REQUEST FREE</p>
+                    <h2 className="mt-1 text-[1.4rem] sm:text-[2rem] font-extrabold tracking-tight text-[#1F2937]">Study Abroad <span className="text-[#6B0F36]">Counselling</span></h2>
                     <motion.span initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 0.9, duration: 0.7 }} className="block mx-auto mt-3 h-[3px] w-20 rounded-full bg-gradient-to-r from-transparent via-[#8C1D4F] to-transparent" />
                   </motion.div>
 
@@ -266,11 +275,10 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
                   {error && <motion.p initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: [0, -5, 5, -3, 0] }} role="alert" className="text-sm font-semibold text-rose-700 text-center">{error}</motion.p>}
 
                   <motion.button variants={rise} whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.98 }} type="submit" disabled={busy}
-                    className="lead-cta relative overflow-hidden w-full h-14 sm:h-16 rounded-full bg-gradient-to-r from-[#8C1D4F] via-[#6B0F36] to-[#4a0220] text-white text-lg sm:text-xl font-bold shadow-[0_16px_34px_-14px_rgba(87,2,41,0.8)] inline-flex items-center justify-center gap-3 disabled:opacity-70 cursor-pointer">
+                    className="lead-cta relative overflow-hidden w-full h-12 sm:h-14 rounded-full bg-gradient-to-r from-[#8C1D4F] via-[#6B0F36] to-[#4a0220] text-white text-lg sm:text-xl font-bold shadow-[0_16px_34px_-14px_rgba(87,2,41,0.8)] inline-flex items-center justify-center gap-3 disabled:opacity-70 cursor-pointer">
                     {busy ? <><Loader2 className="w-5 h-5 animate-spin" />Sending…</> : <>{cfg.submit_button_text?.trim() || 'Get Free Counselling'} <motion.span animate={{ x: [0, 6, 0] }} transition={{ duration: 1.6, repeat: Infinity }}><ArrowRight className="w-6 h-6" /></motion.span></>}
                   </motion.button>
 
-                  <motion.p variants={rise} className="flex items-center justify-center gap-2 text-sm text-slate-600"><ShieldCheck className="w-5 h-5 text-emerald-600 fill-emerald-100" />Your details are 100% confidential.</motion.p>
 
                   <motion.ul variants={rise} className="lg:hidden grid grid-cols-3 pt-3 divide-x divide-slate-200">
                     {features.map(f => (
@@ -288,12 +296,10 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
 
         {/* Mobile destinations */}
         {chips.length > 0 && (
-          <div className="lg:hidden mt-10 text-center">
-            <div className="flex items-center justify-center gap-4 mb-6">
-              <span className="h-px w-10 bg-[#8C1D4F]/40" /><h3 className="text-lg font-bold text-slate-800">Top Study Destinations</h3><span className="h-px w-10 bg-[#8C1D4F]/40" />
-            </div>
-            <div className="grid grid-cols-3 gap-x-3 gap-y-6 justify-items-center">
-              {chips.map((c, i) => <FlagBubble key={c} name={c} index={i} active={country === c} onClick={() => setCountry(c)} />)}
+          <div className="lg:hidden mt-3 text-center">
+            <h3 className="text-sm font-bold text-slate-800 mb-2">Top Study Destinations</h3>
+            <div className="grid grid-cols-6 gap-x-1.5 gap-y-2 justify-items-center">
+              {chips.slice(0, 12).map((c, i) => <FlagBubble key={c} name={c} index={i} compact active={country === c} onClick={() => setCountry(c)} />)}
             </div>
           </div>
         )}
