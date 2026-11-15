@@ -89,7 +89,7 @@ export const PaymentPlanPicker: React.FC<Props> = ({ studentId, country, actorNa
             <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs space-y-2">
               <p className="text-slate-600">{selectedPkg.description}</p>
               <ul className="divide-y divide-slate-200">
-                {selectedPkg.installments.map(i => <li key={i.id} className="py-1.5 flex justify-between gap-3"><span className="font-medium text-slate-700">{i.title}</span><span className="font-semibold text-slate-900">{money(i.amount, selectedPkg.currency)}</span></li>)}
+                {selectedPkg.installments.filter(i => i.amount > 0).map(i => <li key={i.id} className="py-1.5 flex justify-between gap-3"><span className="font-medium text-slate-700">{i.title}</span><span className="font-semibold text-slate-900">{money(i.amount, selectedPkg.currency)}</span></li>)}
               </ul>
               {selectedPkg.country.trim().toLowerCase() !== (country || '').trim().toLowerCase() && country && <p className="text-amber-700 font-medium">This package is for {selectedPkg.country}; the student's country is {country}.</p>}
             </div>
