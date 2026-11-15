@@ -860,33 +860,11 @@ export function isRequirementSatisfied(req: DocumentRequirement, studentDocs: an
     if (dReqId && dReqId === req.id) return true;
     if (dReqName && reqNameNorm && (dReqName === reqNameNorm || dReqName.includes(reqNameNorm) || reqNameNorm.includes(dReqName))) return true;
     if (dName && reqNameNorm && (dName === reqNameNorm || dName.includes(reqNameNorm) || reqNameNorm.includes(dName))) return true;
-    if (dType && reqTypeNorm && dType === reqTypeNorm && dName && reqNameNorm && (dName.slice(0, 3) === reqNameNorm.slice(0, 3))) return true;
     return false;
   });
 
+  // Only a document linked to this requirement (or named for it) counts. Guessing by file type marked wrong items as done.
   if (matchingDocs.length === 0) {
-    const looseMatch = (studentDocs || []).find(d => {
-      const rawName = (d.name || d.file_name || d.docType || '').toLowerCase().trim();
-      const dName = rawName.replace(/\.[^/.]+$/, '').trim();
-      const dType = (d.type || d.doc_type || d.category || '').toLowerCase().trim();
-      return (dName && reqNameNorm && reqNameNorm.length >= 3 && (dName.includes(reqNameNorm.slice(0, 4)) || reqNameNorm.includes(dName.slice(0, 4)))) ||
-             (dType && reqTypeNorm && dType === reqTypeNorm && studentDocs.length === 1);
-    });
-
-    if (looseMatch) {
-      const rawStatus = (looseMatch.status || '').toLowerCase();
-      if (rawStatus.includes('reject') || rawStatus.includes('re-upload')) {
-        return { isSatisfied: false, status: 'Rejected', doc: looseMatch };
-      }
-      if (rawStatus.includes('approved') || rawStatus.includes('verified') || rawStatus.includes('passed')) {
-        return { isSatisfied: true, status: 'Approved', doc: looseMatch };
-      }
-      if (rawStatus.includes('under review')) {
-        return { isSatisfied: true, status: 'Under Review', doc: looseMatch };
-      }
-      return { isSatisfied: true, status: 'Submitted', doc: looseMatch };
-    }
-
     return { isSatisfied: false, status: 'Missing' };
   }
 

@@ -1,10 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Search, Eye, CheckCircle2, XCircle, X, RefreshCw, Sparkles,
-  FileText, MessageSquare, AlertCircle, Clock, Folder, FolderOpen,
-  FileCheck2, UserCheck, GraduationCap, Scroll, Languages, Landmark,
-  ShieldCheck, Table, Users
+  Search, Eye, CheckCircle2, X, RefreshCw, FileText, AlertCircle, Clock, UploadCloud, ChevronLeft, Users, FilePlus2, Globe,
 } from 'lucide-react';
 import { useDocuments } from '../../hooks/useDocuments';
 import { useApplications } from '../../hooks/useApplications';
@@ -12,927 +8,286 @@ import { createNawaRecord } from '../../lib/api/nawa';
 import { getStudents } from '../../lib/api/students';
 import { getAllDocumentRequirements, calculateDossierStatus, type DocumentRequirement } from '../../lib/api/documentRequirements';
 import { ToastNotification } from '../../components/ToastNotification';
+import { DocumentViewer, type ViewerDoc } from '../../components/DocumentViewer';
+import { DocumentUploadDialog, type UploadDone } from '../../components/DocumentUploadDialog';
+import { PageHeader, EmptyState } from '../../components/Kit';
 import { useAuth } from '../../contexts/AuthContext';
+import type { StudentDocument } from '../../lib/types';
 
-type DocStatus = 'Submitted' | 'Under Review' | 'Approved' | 'Rejected';
-
-interface DocItem {
-  id: string;
-  studentId: string;
-  studentName: string;
-  docType: string;
-  category: string;
-  status: DocStatus;
-  uploaded: string;
-  size: string;
-  comment?: string;
-  fileUrl?: string;
-}
-
-const STATUS_COLORS: Record<DocStatus, string> = {
-  'Submitted': 'bg-blue-50 text-blue-700 border-blue-200 font-bold',
-  'Under Review': 'bg-amber-50 text-amber-700 border-amber-200 font-extrabold animate-pulse',
-  'Approved': 'bg-emerald-50 text-emerald-700 border-emerald-200 font-bold',
-  'Rejected': 'bg-red-50 text-red-700 border-red-200 font-bold',
-};
-
-const normalizeDocStatus = (rawStatus: string, rawNotes?: string): DocStatus => {
-  const s = (rawStatus || '').toLowerCase();
-  const n = (rawNotes || '').toLowerCase();
+type Norm = 'Approved' | 'Under Review' | 'Needs action' | 'Submitted';
+const norm = (status: string, notes?: string): Norm => {
+  const s = (status || '').toLowerCase();
   if (s.includes('verified') || s.includes('approved')) return 'Approved';
-  if (s.includes('under review') || s.includes('underreview')) return 'Under Review';
-  if (s.includes('reject') || s.includes('re-upload') || s.includes('reupload') || s.includes('request') || n.includes('re-upload') || n.includes('reupload')) {
-    return 'Rejected';
-  }
+  if (s.includes('reject') || s.includes('re-upload') || s.includes('reupload')) return 'Needs action';
+  if (s.includes('under review')) return 'Under Review';
+  void notes;
   return 'Submitted';
 };
+const TONE: Record<Norm | 'Missing', string> = {
+  Approved: 'bg-emerald-50 text-emerald-700 ring-emerald-600/15',
+  'Under Review': 'bg-amber-50 text-amber-800 ring-amber-600/20',
+  'Needs action': 'bg-rose-50 text-rose-700 ring-rose-600/15',
+  Submitted: 'bg-sky-50 text-sky-700 ring-sky-600/15',
+  Missing: 'bg-slate-100 text-slate-600 ring-slate-500/15',
+};
+const LABEL: Record<Norm | 'Missing', string> = { Approved: 'Approved', 'Under Review': 'Under review', 'Needs action': 'Re-upload asked', Submitted: 'To review', Missing: 'Not uploaded' };
+const Pill: React.FC<{ s: Norm | 'Missing' }> = ({ s }) => <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-semibold ring-1 ring-inset whitespace-nowrap ${TONE[s]}`}>{LABEL[s]}</span>;
+const dateOf = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '');
+const btnPrimary = 'h-8 px-3 rounded-lg bg-[#58051E] text-white text-xs font-bold hover:bg-[#430316] inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50';
+const btnGhost = 'h-8 px-3 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 inline-flex items-center gap-1.5 cursor-pointer';
 
-export interface AdminDocumentReviewProps {
-  isStaff?: boolean;
-}
+interface StudentInfo { full_name: string; email: string; assigned_counselor?: string; target_country?: string }
+
+export interface AdminDocumentReviewProps { isStaff?: boolean }
 
 export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaff = false }) => {
   const { profile, user } = useAuth();
-  const counselorEmail = (profile?.email || user?.email || '').toLowerCase().trim();
-  const counselorName = (profile?.full_name || '').toLowerCase().trim();
-  const { documents: dbDocs, changeStatus } = useDocuments();
-  const [docs, setDocs] = useState<DocItem[]>([]);
-  const { applications: allApps } = useApplications();
-  const [allRequirements, setAllRequirements] = useState<DocumentRequirement[]>([]);
+  const myEmail = (profile?.email || user?.email || '').toLowerCase().trim();
+  const myName = (profile?.full_name || '').toLowerCase().trim();
+  const { documents: dbDocs, loading, changeStatus, addDoc, replaceDoc } = useDocuments();
+  const { applications } = useApplications();
 
-  useEffect(() => {
-    getAllDocumentRequirements().then(setAllRequirements).catch(() => {});
-    const handleReqChange = () => {
-      getAllDocumentRequirements().then(setAllRequirements).catch(() => {});
-    };
-    window.addEventListener('ferex_doc_requirements_change', handleReqChange);
-    return () => {
-      window.removeEventListener('ferex_doc_requirements_change', handleReqChange);
-    };
-  }, []);
-
-  const [studentsMap, setStudentsMap] = useState<Record<string, { full_name: string; email: string; assigned_counselor?: string; target_country?: string }>>({});
-
-  const refreshStudentsMap = React.useCallback(() => {
-    getStudents().then(list => {
-      if (list && Array.isArray(list)) {
-        const map: Record<string, { full_name: string; email: string; assigned_counselor?: string; target_country?: string }> = {};
-        list.forEach((s: any) => {
-          if (s.id) {
-            map[s.id] = {
-              full_name: s.full_name || s.name || s.email?.split('@')[0] || 'Student',
-              email: s.email || '',
-              assigned_counselor: s.assigned_counselor || '',
-              target_country: s.target_country || ''
-            };
-          }
-        });
-        setStudentsMap(map);
-      }
-    }).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    refreshStudentsMap();
-    window.addEventListener('ferex_students_change', refreshStudentsMap);
-    return () => {
-      window.removeEventListener('ferex_students_change', refreshStudentsMap);
-    };
-  }, [refreshStudentsMap]);
-
-  const getStudentCountry = React.useCallback((studentId?: string) => {
-    if (!studentId) return 'General';
-    const saved = studentsMap[studentId]?.target_country;
-    if (saved && saved.toLowerCase().trim() !== 'not set') return saved.trim();
-    const app = allApps.find(a => a.student_id === studentId);
-    const country = app?.universities?.country || (app as any)?.country;
-    if (country && country.toLowerCase().trim() !== 'not set') return country.trim();
-    return 'General';
-  }, [allApps, studentsMap]);
-
-  const getDossierForStudent = React.useCallback((studentId: string, studentDocs: DocItem[]) => {
-    const country = getStudentCountry(studentId);
-    const countryNorm = country.toLowerCase().trim();
-    const countryReqs = allRequirements.filter(r => {
-      const c = r.country.toLowerCase().trim();
-      return c === countryNorm ||
-        ((countryNorm === 'ind' || countryNorm === 'india') && (c === 'ind' || c === 'india')) ||
-        (countryNorm.includes('poland') && c === 'poland') ||
-        (countryNorm.includes('germany') && c === 'germany') ||
-        (countryNorm.includes('canada') && c === 'canada');
-    });
-
-    return {
-      country,
-      dossier: calculateDossierStatus(countryReqs, studentDocs)
-    };
-  }, [allRequirements, getStudentCountry]);
-
-  useEffect(() => {
-    if (dbDocs.length > 0) {
-      const mapped = dbDocs.map(d => {
-        const dbStudent = studentsMap[d.student_id] || (d as any).users;
-        const resolvedName = dbStudent?.full_name || (d as any).student_name || dbStudent?.email?.split('@')[0] || (d.student_id ? `Student (${d.student_id.slice(0, 8)})` : 'Student');
-
-        return {
-          id: d.id,
-          studentId: d.student_id || 'STU-1001',
-          studentName: resolvedName,
-          docType: d.file_name || d.doc_type || 'Document File',
-          category: d.doc_type || 'Academic File',
-          status: normalizeDocStatus(d.status, d.reviewer_notes),
-          uploaded: new Date(d.uploaded_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-          size: d.file_size || '1.2 MB',
-          comment: d.reviewer_notes || '',
-          fileUrl: d.file_url,
-        };
-      }).filter(d => Boolean(d.studentId && d.studentName));
-      setDocs(mapped);
-    } else {
-      setDocs([]);
-    }
-  }, [dbDocs, studentsMap]);
-
+  const [requirements, setRequirements] = useState<DocumentRequirement[]>([]);
+  const [students, setStudents] = useState<Record<string, StudentInfo>>({});
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [viewDoc, setViewDoc] = useState<DocItem | null>(null);
+  const [queueOnly, setQueueOnly] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<(ViewerDoc & { doc?: StudentDocument }) | null>(null);
+  const [upload, setUpload] = useState<{ req?: DocumentRequirement; replaceId?: string } | null>(null);
+  const [asking, setAsking] = useState<StudentDocument | null>(null);
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState('');
   const [toast, setToast] = useState('');
 
-  // Re-upload Request Modal state
-  const [reuploadModalDoc, setReuploadModalDoc] = useState<DocItem | null>(null);
-  const [reuploadNotesInput, setReuploadNotesInput] = useState('');
-  const [isSubmittingReupload, setIsSubmittingReupload] = useState(false);
+  useEffect(() => {
+    const load = () => { getAllDocumentRequirements().then(setRequirements).catch(() => {}); };
+    load();
+    window.addEventListener('ferex_doc_requirements_change', load);
+    return () => window.removeEventListener('ferex_doc_requirements_change', load);
+  }, []);
 
-  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+  useEffect(() => {
+    const load = () => {
+      getStudents().then((list: any[]) => {
+        const map: Record<string, StudentInfo> = {};
+        (list || []).forEach(s => { if (s.id) map[s.id] = { full_name: s.full_name || s.name || s.email?.split('@')[0] || 'Student', email: s.email || '', assigned_counselor: s.assigned_counselor || '', target_country: s.target_country || '' }; });
+        setStudents(map);
+      }).catch(() => {});
+    };
+    load();
+    window.addEventListener('ferex_students_change', load);
+    return () => window.removeEventListener('ferex_students_change', load);
+  }, []);
 
-  const triggerReuploadModal = (docItem: DocItem) => {
-    setReuploadNotesInput(docItem.comment || '');
-    setReuploadModalDoc(docItem);
+  const countryOf = (studentId: string) => {
+    const saved = students[studentId]?.target_country;
+    if (saved && saved.toLowerCase().trim() !== 'not set') return saved.trim();
+    const app: any = applications.find(a => a.student_id === studentId);
+    return (app?.universities?.country || app?.country || '').trim();
   };
 
-  const updateStatus = async (id: string, newStatus: DocStatus, notes?: string) => {
-    // If rejecting, ensure modal note popup is triggered
-    if (newStatus === 'Rejected' && !notes) {
-      const targetDoc = docs.find(d => d.id === id);
-      if (targetDoc) {
-        triggerReuploadModal(targetDoc);
-        return;
-      }
-    }
+  const mine = (id: string) => {
+    if (!isStaff || (!myEmail && !myName)) return true;
+    const ac = (students[id]?.assigned_counselor || '').toLowerCase().trim();
+    return Boolean(ac && ((myEmail && ac.includes(myEmail)) || (myName && ac.includes(myName))));
+  };
 
+  // One row per student: everyone in scope, even those with no files yet.
+  const rows = useMemo(() => {
+    const byStudent = new Map<string, StudentDocument[]>();
+    dbDocs.forEach(d => { if (d.student_id) byStudent.set(d.student_id, [...(byStudent.get(d.student_id) || []), d]); });
+    Object.keys(students).forEach(id => { if (!byStudent.has(id)) byStudent.set(id, []); });
+    return Array.from(byStudent.entries()).filter(([id]) => mine(id) && students[id]).map(([id, list]) => {
+      const country = countryOf(id);
+      const reqs = requirements.filter(r => r.country.toLowerCase().trim() === (country || 'general').toLowerCase());
+      const dossier = calculateDossierStatus(reqs, list);
+      const required = dossier.results.filter(r => r.requirement.is_required);
+      const pct = required.length ? Math.round((required.filter(r => r.isSatisfied).length / required.length) * 100) : null;
+      return { id, name: students[id]?.full_name || 'Student', email: students[id]?.email || '', country, docs: list, dossier, pct, toReview: list.filter(d => norm(d.status) === 'Submitted' || norm(d.status) === 'Under Review').length };
+    }).sort((a, b) => b.toReview - a.toReview || a.name.localeCompare(b.name));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dbDocs, students, requirements, applications, isStaff, myEmail, myName]);
+
+  useEffect(() => { if (!selected && rows.length && typeof window !== 'undefined' && window.innerWidth >= 1024) setSelected(rows[0].id); }, [rows, selected]);
+
+  const visible = rows.filter(r => (!queueOnly || r.toReview > 0) && (!search.trim() || `${r.name} ${r.email} ${r.country}`.toLowerCase().includes(search.trim().toLowerCase())));
+  const current = rows.find(r => r.id === selected) || null;
+  const totalToReview = rows.reduce((n, r) => n + r.toReview, 0);
+  const flash = (m: string) => { setToast(m); };
+
+  const approve = async (d: StudentDocument) => {
+    setBusy(d.id);
     try {
-      await changeStatus(id, newStatus as any, notes);
-      setDocs(prev => prev.map(d => d.id === id ? { ...d, status: newStatus, comment: notes ?? d.comment } : d));
-      if (viewDoc?.id === id) {
-        setViewDoc(prev => prev ? { ...prev, status: newStatus, comment: notes ?? prev.comment } : null);
-      }
-
-      // If document is approved, automatically initiate Legalization process & student application in Supabase
-      if (newStatus === 'Approved') {
-        const targetDoc = docs.find(d => d.id === id);
-        if (targetDoc && targetDoc.studentId) {
-          try {
-            await createNawaRecord({
-              student_id: targetDoc.studentId,
-              student_name: targetDoc.studentName,
-              document_type: targetDoc.category || targetDoc.docType,
-              notes: 'Mandatory documents verified. Legalization & admission initiation started.'
-            });
-            const { setStudentStageStatus } = await import('../../lib/api/journey');
-            await setStudentStageStatus(targetDoc.studentId, 4, 'Completed');
-            await setStudentStageStatus(targetDoc.studentId, 5, 'In Progress');
-            const { createNotification } = await import('../../lib/api/notifications');
-            await createNotification({
-              user_id: targetDoc.studentId,
-              title: 'Document Verified & Approved',
-              body: `Your document "${targetDoc.docType}" has been verified and approved by the admissions team. Legalization dossier initialized.`,
-              category: 'Document',
-              link: '/student/documents'
-            });
-            showToast(`Document approved, student notified & legalization initialized.`);
-            return;
-          } catch (e) {}
-        }
-      }
-
-      showToast(`Document status updated to "${newStatus}".`);
-    } catch (err: any) {
-      showToast(`Error: ${err.message || 'Failed to update status'}`);
-    }
+      await changeStatus(d.id, 'Approved', '', user?.id);
+      const sid = d.student_id;
+      try {
+        await createNawaRecord({ student_id: sid, student_name: students[sid]?.full_name || 'Student', document_type: d.doc_type || d.file_name, notes: 'Document verified. Legalization and admission can start.' });
+        const { setStudentStageStatus } = await import('../../lib/api/journey');
+        await setStudentStageStatus(sid, 4, 'Completed');
+        await setStudentStageStatus(sid, 5, 'In Progress');
+      } catch { /* the approval itself is saved; follow-up steps can be retried */ }
+      flash(`Approved. ${students[sid]?.full_name || 'The student'} has been notified.`);
+    } catch (e) { flash((e as Error).message); } finally { setBusy(''); }
   };
 
-  const handleConfirmReuploadNotes = async (e: React.FormEvent) => {
+  const sendAsk = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reuploadModalDoc) return;
-    if (!reuploadNotesInput.trim()) {
-      showToast('Re-upload reason notes are required for student instructions.');
-      return;
-    }
-
-    try {
-      setIsSubmittingReupload(true);
-      const notes = reuploadNotesInput.trim();
-      await changeStatus(reuploadModalDoc.id, 'Rejected' as any, notes);
-      setDocs(prev => prev.map(d => d.id === reuploadModalDoc.id ? { ...d, status: 'Rejected', comment: notes } : d));
-      if (viewDoc?.id === reuploadModalDoc.id) {
-        setViewDoc(prev => prev ? { ...prev, status: 'Rejected', comment: notes } : null);
-      }
-      setReuploadModalDoc(null);
-      showToast(`Re-upload request with notes sent to student.`);
-    } catch (err: any) {
-      showToast(`Error: ${err.message || 'Failed to send rejection'}`);
-    } finally {
-      setIsSubmittingReupload(false);
-    }
+    if (!asking) return;
+    if (!note.trim()) { flash('Tell the student what to fix.'); return; }
+    setBusy(asking.id);
+    try { await changeStatus(asking.id, 'Rejected' as any, note.trim(), user?.id); flash('Sent. The student can upload a new copy.'); setAsking(null); setNote(''); }
+    catch (err) { flash((err as Error).message); } finally { setBusy(''); }
   };
 
-  const scopedDocs = React.useMemo(() => {
-    if (!isStaff || (!counselorEmail && !counselorName)) return docs;
-    return docs.filter(d => {
-      const student = studentsMap[d.studentId];
-      const ac = (student?.assigned_counselor || '').toLowerCase().trim();
-      const isAssignedToMe = Boolean(ac && ((counselorEmail && ac.includes(counselorEmail)) || (counselorName && ac.includes(counselorName))));
-      return isAssignedToMe;
-    });
-  }, [docs, isStaff, counselorEmail, counselorName, studentsMap]);
+  const saveUpload = async (r: UploadDone) => {
+    if (!current) return;
+    const base = { file_name: r.fileName, file_url: r.path, file_size: r.size, doc_type: (upload?.req?.document_type || 'Other') as any, requirement_id: upload?.req?.id, requirement_name: upload?.req?.document_name };
+    if (upload?.replaceId) await replaceDoc(upload.replaceId, base); else await addDoc({ student_id: current.id, ...base });
+    flash(`${r.title} uploaded for ${current.name}.`);
+  };
 
-  const filtered = scopedDocs.filter(d =>
-    (statusFilter === 'All' || d.status === statusFilter) &&
-    (d.studentName.toLowerCase().includes(search.toLowerCase()) || d.docType.toLowerCase().includes(search.toLowerCase()) || d.category.toLowerCase().includes(search.toLowerCase()))
+  const viewerFooter = viewing?.doc && (
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex items-center gap-2"><Pill s={norm(viewing.doc.status)} />{viewing.doc.reviewer_notes && <span className="text-xs text-slate-600 truncate max-w-[40ch]">“{viewing.doc.reviewer_notes}”</span>}</div>
+      <div className="flex gap-2">
+        <button type="button" className={btnGhost} onClick={() => { setAsking(viewing.doc!); setNote(viewing.doc!.reviewer_notes || ''); setViewing(null); }}><RefreshCw className="w-3.5 h-3.5" />Ask for re-upload</button>
+        {norm(viewing.doc.status) !== 'Approved' && <button type="button" className={btnPrimary} disabled={busy === viewing.doc.id} onClick={async () => { await approve(viewing.doc!); setViewing(null); }}><CheckCircle2 className="w-3.5 h-3.5" />Approve</button>}
+      </div>
+    </div>
   );
 
-  const statusCounts = ['All', 'Submitted', 'Under Review', 'Approved', 'Rejected'].map(s => ({
-    label: s, count: s === 'All' ? scopedDocs.length : scopedDocs.filter(d => d.status === s).length
-  }));
+  const open = (d: StudentDocument) => setViewing({ name: d.file_name, url: d.file_url, subtitle: `${current?.name || ''} · uploaded ${dateOf(d.uploaded_at)}`, doc: d });
 
-  const [viewMode, setViewMode] = useState<'folders' | 'table'>('folders');
-  const [selectedStudentFolder, setSelectedStudentFolder] = useState<string | null>(null);
+  const fileActions = (d: StudentDocument, req?: DocumentRequirement) => {
+    const n = norm(d.status);
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <Pill s={n} />
+        <button type="button" className={btnGhost} onClick={() => open(d)}><Eye className="w-3.5 h-3.5" />View</button>
+        {n !== 'Approved' && <button type="button" className={btnPrimary} disabled={busy === d.id} onClick={() => approve(d)}><CheckCircle2 className="w-3.5 h-3.5" />Approve</button>}
+        {n !== 'Needs action' && <button type="button" className={btnGhost} onClick={() => { setAsking(d); setNote(d.reviewer_notes || ''); }}>Ask re-upload</button>}
+        <button type="button" className={btnGhost} onClick={() => setUpload({ req, replaceId: d.id })}>Replace</button>
+      </div>
+    );
+  };
 
-  const studentFolders = React.useMemo(() => {
-    const map = new Map<string, { studentId: string; studentName: string; docs: DocItem[] }>();
-    scopedDocs.forEach(d => {
-      const sKey = d.studentId || d.studentName;
-      if (!map.has(sKey)) {
-        map.set(sKey, { studentId: d.studentId, studentName: d.studentName, docs: [] });
-      }
-      map.get(sKey)!.docs.push(d);
-    });
-    return Array.from(map.values());
-  }, [scopedDocs]);
+  const detail = current && (() => {
+    const linked = new Set(current.dossier.results.map(r => r.doc?.id).filter(Boolean));
+    const extra = current.docs.filter(d => !linked.has(d.id));
+    return (
+      <div className="space-y-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <button type="button" onClick={() => setSelected(null)} className="lg:hidden text-xs font-bold text-slate-500 inline-flex items-center gap-1 mb-2 cursor-pointer"><ChevronLeft className="w-3.5 h-3.5" />All students</button>
+            <h2 className="text-lg font-extrabold text-slate-900 truncate">{current.name}</h2>
+            <p className="text-xs text-slate-500 flex items-center gap-2 flex-wrap">{current.email}{current.country && <span className="inline-flex items-center gap-1"><Globe className="w-3 h-3" />{current.country}</span>}</p>
+          </div>
+          <button type="button" className={btnPrimary} onClick={() => setUpload({})}><UploadCloud className="w-3.5 h-3.5" />Upload for student</button>
+        </div>
+
+        {current.pct !== null && (
+          <div className="rounded-xl bg-slate-50 border border-slate-200/70 p-3.5 space-y-1.5">
+            <div className="flex justify-between text-xs font-bold text-slate-700"><span>Required documents uploaded</span><span className="tabular-nums">{current.pct}%</span></div>
+            <div className="h-2 rounded-full bg-slate-200 overflow-hidden"><div className="h-full bg-[#58051E] rounded-full transition-all" style={{ width: `${current.pct}%` }} /></div>
+          </div>
+        )}
+
+        <section className="space-y-2">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Required documents{current.country ? ` for ${current.country}` : ''}</h3>
+          {current.dossier.results.length === 0 ? <p className="text-xs text-slate-500 rounded-xl border border-dashed border-slate-300 p-4">No checklist is set for {current.country || 'this student yet'}. Set it under Settings → Document requirements. Their files are listed below.</p> : (
+            <ul className="rounded-2xl border border-slate-200/80 bg-white divide-y divide-slate-100">
+              {current.dossier.results.map(({ requirement: r, status, doc }) => (
+                <li key={r.id} className="p-3.5 flex flex-col md:flex-row md:items-center gap-2.5 justify-between">
+                  <div className="min-w-0"><p className="text-sm font-semibold text-slate-900">{r.document_name}{!r.is_required && <span className="ml-2 text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">Optional</span>}</p>
+                    {doc ? <p className="text-[11px] text-slate-500 truncate">{[doc.file_name, doc.file_size, dateOf(doc.uploaded_at)].filter(Boolean).join(' · ')}</p> : <p className="text-[11px] text-slate-400">Nothing uploaded yet</p>}
+                    {doc?.reviewer_notes && norm(doc.status) === 'Needs action' && <p className="text-[11px] text-rose-700 mt-0.5">Asked: {doc.reviewer_notes}</p>}
+                  </div>
+                  {doc ? fileActions(doc, r) : <div className="flex items-center gap-2"><Pill s="Missing" /><button type="button" className={btnPrimary} onClick={() => setUpload({ req: r })}><FilePlus2 className="w-3.5 h-3.5" />Upload</button></div>}
+                  {status === 'Missing' ? null : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {extra.length > 0 && (
+          <section className="space-y-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Other files</h3>
+            <ul className="rounded-2xl border border-slate-200/80 bg-white divide-y divide-slate-100">
+              {extra.map(d => (
+                <li key={d.id} className="p-3.5 flex flex-col md:flex-row md:items-center gap-2.5 justify-between">
+                  <div className="min-w-0"><p className="text-sm font-semibold text-slate-900 truncate">{d.file_name}</p><p className="text-[11px] text-slate-500">{[d.doc_type, d.file_size, dateOf(d.uploaded_at)].filter(Boolean).join(' · ')}</p></div>
+                  {fileActions(d)}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+    );
+  })();
 
   return (
-    <div className="space-y-5 relative text-left">
-      {/* Toast */}
+    <div className="space-y-5 text-left">
       <ToastNotification message={toast} onClose={() => setToast('')} />
+      <PageHeader
+        eyebrow="Ferex Education"
+        title="Documents"
+        subtitle={isStaff ? 'Review your students’ documents, approve them or ask for a new upload.' : 'Review student documents, approve them, ask for a new upload, or upload on a student’s behalf.'}
+        actions={<span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 ring-1 ring-inset ring-amber-600/20 rounded-full px-3 py-1.5"><Clock className="w-3.5 h-3.5" />{totalToReview} to review</span>}
+      />
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-900">Documents</h1>
-          <p className="text-xs font-semibold text-slate-400 mt-0.5">Review documents, approve them or ask for a new upload.</p>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {isStaff && (
-            <div className="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-200 bg-slate-50 text-slate-700">
-              <Users className="w-3.5 h-3.5 text-[#58051E]" />
-              <span>Assigned Students Only</span>
-            </div>
-          )}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
-          <button
-            type="button"
-            onClick={() => setViewMode('folders')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              viewMode === 'folders' ? 'bg-[#58051E] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Folder className="w-3.5 h-3.5" />
-            <span>Student Folders ({studentFolders.length})</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('table')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-              viewMode === 'table' ? 'bg-[#58051E] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Table className="w-3.5 h-3.5" />
-            <span>All Documents Table ({scopedDocs.length})</span>
-          </button>
-        </div>
-      </div>
-      </div>
-
-      {/* Filter Pills */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {statusCounts.map(({ label, count }) => (
-          <button
-            key={label}
-            onClick={() => setStatusFilter(label)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${statusFilter === label ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200/60'
-              }`}
-          >
-            <span>{label}</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${statusFilter === label ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
-              {count}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {/* FOLDER WORKSPACE VIEW */}
-      {viewMode === 'folders' && (
-        <div className="space-y-4">
-          {selectedStudentFolder ? (
-            /* Inside a specific student's folder */
-            (() => {
-              const currentFolder = studentFolders.find(f => (f.studentId || f.studentName) === selectedStudentFolder);
-              if (!currentFolder) {
-                return (
-                  <div className="p-8 text-center bg-white rounded-2xl border border-slate-200">
-                    <p className="text-xs text-slate-500 font-bold">Student folder not found.</p>
-                    <button onClick={() => setSelectedStudentFolder(null)} className="mt-2 text-xs font-bold text-[#58051E]">← Back to Student Folders</button>
-                  </div>
-                );
-              }
-
-              // Categorize documents
-              const categories = [
-                { name: 'Identification', label: 'Passport & Identity Proof', icon: UserCheck },
-                { name: 'Academic', label: 'Degrees & Graduation Certificates', icon: GraduationCap },
-                { name: 'Transcripts', label: 'Academic Marksheets & Transcripts', icon: Scroll },
-                { name: 'Language', label: 'Medium of Instruction (MOI) / English', icon: Languages },
-                { name: 'Financial', label: 'Bank Statement & Solvency Proof', icon: Landmark },
-                { name: 'Insurance', label: 'Health Insurance & Medical', icon: ShieldCheck },
-                { name: 'Other', label: 'Other Supporting Documents', icon: Folder },
-              ];
-
-              const { country: currentFolderCountry, dossier: studentDossier } = getDossierForStudent(currentFolder.studentId, currentFolder.docs);
-
-              return (
-                <div className="space-y-4">
-                  {/* Breadcrumb Navigation */}
-                  <div className="flex items-center justify-between bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
-                    <div className="flex items-center gap-2 text-xs font-bold">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedStudentFolder(null)}
-                        className="text-[#58051E] hover:underline flex items-center gap-1.5"
-                      >
-                        <Folder className="w-3.5 h-3.5" /> All Students
-                      </button>
-                      <span className="text-slate-300">/</span>
-                      <span className="text-slate-900 font-black">{currentFolder.studentName}</span>
-                      <span className="text-slate-300">/</span>
-                      <span className="text-slate-500 font-semibold">Documents ({currentFolder.docs.length})</span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setSelectedStudentFolder(null)}
-                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
-                    >
-                      ← Back to Folders
-                    </button>
-                  </div>
-
-                  {/* Dossier Completeness Overview */}
-                  <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                    studentDossier.isComplete
-                      ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
-                      : 'bg-amber-50/80 border-amber-200 text-amber-950'
-                  }`}>
-                    <div className="flex items-center gap-2.5">
-                      {studentDossier.isComplete ? (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                      ) : (
-                        <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
-                      )}
-                      <div>
-                        <h3 className="text-xs font-black uppercase tracking-wider">
-                          {studentDossier.isComplete ? 'Dossier Status: Complete' : 'Dossier Status: Incomplete'}
-                        </h3>
-                        <p className="text-[11px] text-slate-600 mt-0.5">
-                          {studentDossier.isComplete
-                            ? `All ${studentDossier.mandatoryCount} mandatory document requirements for ${currentFolderCountry} are uploaded and ready for staff review.`
-                            : `Student has uploaded ${studentDossier.uploadedMandatoryCount} of ${studentDossier.mandatoryCount} mandatory documents for ${currentFolderCountry}. Missing documents required.`}
-                        </p>
-                      </div>
-                    </div>
-                    <span className={`px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider border shrink-0 self-start sm:self-auto ${
-                      studentDossier.isComplete
-                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                        : 'bg-amber-100 text-amber-800 border-amber-300'
-                    }`}>
-                      {studentDossier.isComplete ? 'Ready to Verify' : `${studentDossier.missingMandatoryCount} Missing Mandatory Docs`}
-                    </span>
-                  </div>
-
-                  {/* Configured Requirements Checklist for this country */}
-                  {studentDossier.results.length > 0 && (
-                    <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3">
-                      <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                        <div className="flex items-center gap-2">
-                          <FileCheck2 className="w-4 h-4 text-[#58051E]" />
-                          <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
-                            {currentFolderCountry} Configured Requirements Checklist ({studentDossier.results.length})
-                          </h3>
-                        </div>
-                        <span className="text-[10px] font-extrabold text-slate-500">
-                          {studentDossier.uploadedCount} / {studentDossier.totalCount} Uploaded
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {studentDossier.results.map(item => (
-                          <div key={item.requirement.id} className={`p-3 rounded-xl border text-xs flex flex-col justify-between ${
-                            item.isSatisfied ? 'bg-emerald-50/50 border-emerald-200' : 'bg-amber-50/40 border-amber-200'
-                          }`}>
-                            <div>
-                              <div className="flex items-start justify-between gap-1 mb-1">
-                                <span className="font-extrabold text-xs text-slate-900">{item.requirement.document_name}</span>
-                                <span className={`text-[9px] px-1.5 py-0.2 rounded font-black uppercase ${
-                                  item.requirement.is_required ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
-                                }`}>
-                                  {item.requirement.is_required ? 'MANDATORY' : 'OPTIONAL'}
-                                </span>
-                              </div>
-                              <p className="text-[10px] text-slate-500 line-clamp-2">{item.requirement.description}</p>
-                            </div>
-
-                            <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between">
-                              <span className={`text-[10px] font-bold inline-flex items-center gap-1 ${item.isSatisfied ? 'text-emerald-700' : 'text-amber-700'}`}>
-                                {item.isSatisfied ? (
-                                  <>
-                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" /> {item.status}
-                                  </>
-                                ) : (
-                                  <>
-                                    <AlertCircle className="w-3 h-3 text-amber-600" /> Missing
-                                  </>
-                                )}
-                              </span>
-                              {item.doc && (
-                                <button
-                                  type="button"
-                                  onClick={() => setViewDoc({
-                                    id: item.doc.id,
-                                    studentId: currentFolder.studentId,
-                                    studentName: currentFolder.studentName,
-                                    docType: item.doc.name || item.doc.file_name,
-                                    category: item.doc.type || item.doc.doc_type,
-                                    status: normalizeDocStatus(item.doc.status, item.doc.reviewer_notes),
-                                    uploaded: item.doc.date || 'Recent',
-                                    size: item.doc.size || '1 MB',
-                                    comment: item.doc.reviewer_notes,
-                                    fileUrl: item.doc.url || item.doc.file_url,
-                                  })}
-                                  className="text-[10px] font-bold text-[#58051E] hover:underline cursor-pointer"
-                                >
-                                  Inspect Doc →
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Folder Categories Grid */}
-                  <div className="space-y-4">
-                    {categories.map(cat => {
-                      const IconComponent = cat.icon;
-                      const catDocs = currentFolder.docs.filter(d =>
-                        d.category.toLowerCase().includes(cat.name.toLowerCase()) ||
-                        (cat.name === 'Other' && !categories.slice(0, 6).some(c => d.category.toLowerCase().includes(c.name.toLowerCase())))
-                      );
-
-                      if (catDocs.length === 0) return null;
-
-                      return (
-                        <div key={cat.name} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3">
-                          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                            <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-lg bg-[#58051E]/10 flex items-center justify-center text-[#58051E]">
-                                <IconComponent className="w-4 h-4" />
-                              </div>
-                              <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">{cat.label}</h3>
-                            </div>
-                            <span className="text-[10.5px] font-extrabold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
-                              {catDocs.length} {catDocs.length === 1 ? 'file' : 'files'}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {catDocs.map(doc => (
-                              <div
-                                key={doc.id}
-                                className="p-3.5 bg-slate-50 hover:bg-slate-50/80 rounded-xl border border-slate-200/80 flex flex-col justify-between space-y-3 text-left"
-                              >
-                                <div className="space-y-1.5">
-                                  <div className="flex items-start justify-between gap-2">
-                                    <h4 className="text-xs font-black text-slate-900 truncate" title={doc.docType}>
-                                      {doc.docType}
-                                    </h4>
-                                    <span className={`text-[9.5px] px-2 py-0.5 rounded-md border shrink-0 ${STATUS_COLORS[doc.status]}`}>
-                                      {doc.status}
-                                    </span>
-                                  </div>
-                                  <p className="text-[10px] text-slate-400 font-semibold">
-                                    Uploaded: {doc.uploaded} • {doc.size}
-                                  </p>
-                                  {doc.comment && (
-                                    <p className="text-[10px] text-amber-700 bg-amber-50 p-1.5 rounded-lg border border-amber-200/60 font-medium">
-                                      <strong>Notes:</strong> {doc.comment}
-                                    </p>
-                                  )}
-                                </div>
-
-                                <div className="flex items-center justify-between pt-2 border-t border-slate-200/60">
-                                  <button
-                                    type="button"
-                                    onClick={() => setViewDoc(doc)}
-                                    className="text-xs font-extrabold text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer"
-                                  >
-                                    <Eye className="w-3.5 h-3.5" /> View File
-                                  </button>
-
-                                  <div className="flex items-center gap-1">
-                                    <button
-                                      type="button"
-                                      onClick={() => updateStatus(doc.id, 'Approved')}
-                                      className="p-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors"
-                                      title="Verify & Approve"
-                                    >
-                                      <CheckCircle2 className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => triggerReuploadModal(doc)}
-                                      className="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-colors"
-                                      title="Reject with Notes"
-                                    >
-                                      <XCircle className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()
+      <div className="grid lg:grid-cols-[320px_minmax(0,1fr)] gap-5 items-start">
+        <aside className={`${selected ? 'hidden lg:block' : ''} space-y-3`}>
+          <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search students" className="w-full h-10 pl-9 pr-3" /></div>
+          <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer"><input type="checkbox" checked={queueOnly} onChange={e => setQueueOnly(e.target.checked)} className="w-4 h-4 accent-[#58051E]" />Only students with files to review</label>
+          {loading ? <div className="space-y-2">{[0, 1, 2, 3].map(i => <div key={i} className="h-16 rounded-xl bg-slate-100 animate-pulse" />)}</div> : visible.length === 0 ? (
+            <EmptyState icon={Users} title={rows.length ? 'No students match' : isStaff ? 'No students assigned to you' : 'No students yet'} hint={rows.length ? 'Clear the search or the review filter.' : 'Students appear here once they register.'} />
           ) : (
-            /* Overview Grid of all Student Folders */
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {studentFolders.length === 0 ? (
-                <div className="col-span-full py-12 text-center bg-white rounded-2xl border border-slate-200 p-8">
-                  <FileText className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                  <h3 className="text-sm font-bold text-slate-700">No Student Documents Found</h3>
-                  <p className="text-xs text-slate-400 mt-1">Students will appear here once they upload verification documents.</p>
-                </div>
-              ) : (
-                studentFolders.map(sf => {
-                  const approvedCount = sf.docs.filter(d => d.status === 'Approved').length;
-                  const underReviewCount = sf.docs.filter(d => d.status === 'Under Review' || d.status === 'Submitted').length;
-                  const rejectedCount = sf.docs.filter(d => d.status === 'Rejected').length;
-
-                  const { country: folderCountry, dossier: folderDossier } = getDossierForStudent(sf.studentId, sf.docs);
-
-                  return (
-                    <div
-                      key={sf.studentId || sf.studentName}
-                      onClick={() => setSelectedStudentFolder(sf.studentId || sf.studentName)}
-                      className="bg-white rounded-2xl border border-slate-200 hover:border-[#58051E]/40 hover:shadow-md transition-all p-5 flex flex-col justify-between cursor-pointer group text-left"
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-2xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black text-sm group-hover:bg-[#58051E] group-hover:text-white transition-colors shrink-0">
-                              {sf.studentName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                            </div>
-                            <div>
-                              <h3 className="text-sm font-black text-slate-900 group-hover:text-[#58051E] transition-colors">
-                                {sf.studentName}
-                              </h3>
-                              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                                <span className="text-[10px] font-bold text-slate-400 font-mono">
-                                  ID: {sf.studentId}
-                                </span>
-                                <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded uppercase">
-                                  {folderCountry}
-                                </span>
-                              </div>
-                              <div className="mt-1">
-                                <span className={`px-2 py-0.5 rounded text-[9.5px] font-bold border inline-flex items-center gap-1 ${
-                                  folderDossier.isComplete
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                    : 'bg-amber-50 text-amber-700 border-amber-200'
-                                }`}>
-                                  {folderDossier.isComplete ? (
-                                    <>
-                                      <CheckCircle2 className="w-2.5 h-2.5" /> File Complete
-                                    </>
-                                  ) : (
-                                    <>
-                                      <AlertCircle className="w-2.5 h-2.5" /> Incomplete ({folderDossier.uploadedMandatoryCount}/${folderDossier.mandatoryCount || 2} Req Docs)
-                                    </>
-                                  )}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <span className="text-xs font-bold text-slate-400">
-                            {sf.docs.length} docs
-                          </span>
-                        </div>
-
-                        {/* Progress Stats */}
-                        <div className="grid grid-cols-3 gap-1.5 p-2 bg-slate-50 rounded-xl border border-slate-100 text-center text-xs">
-                          <div>
-                            <span className="text-[9.5px] font-black uppercase text-emerald-600 block">Approved</span>
-                            <span className="font-extrabold text-emerald-700">{approvedCount}</span>
-                          </div>
-                          <div>
-                            <span className="text-[9.5px] font-black uppercase text-amber-600 block">Pending</span>
-                            <span className="font-extrabold text-amber-700">{underReviewCount}</span>
-                          </div>
-                          <div>
-                            <span className="text-[9.5px] font-black uppercase text-rose-600 block">Action Req</span>
-                            <span className="font-extrabold text-rose-700">{rejectedCount}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="pt-3 border-t border-slate-100 mt-4 flex items-center justify-between text-xs">
-                        <span className="font-bold text-slate-500">Student Folder</span>
-                        <span className="font-extrabold text-[#58051E] group-hover:translate-x-0.5 transition-transform">
-                          Open Folder →
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+            <ul className="space-y-2 max-h-[70vh] overflow-y-auto pr-1">
+              {visible.map(r => (
+                <li key={r.id}>
+                  <button type="button" onClick={() => setSelected(r.id)} className={`w-full text-left rounded-xl border p-3 transition cursor-pointer ${selected === r.id ? 'border-[#58051E] bg-[#58051E]/[0.04] ring-1 ring-[#58051E]/20' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                    <div className="flex items-center justify-between gap-2"><p className="text-sm font-bold text-slate-900 truncate">{r.name}</p>{r.toReview > 0 && <span className="text-[10px] font-bold bg-amber-100 text-amber-800 rounded-full px-2 py-0.5 shrink-0">{r.toReview} to review</span>}</div>
+                    <p className="text-[11px] text-slate-500 truncate">{r.country || 'No country yet'} · {r.docs.length} {r.docs.length === 1 ? 'file' : 'files'}</p>
+                    {r.pct !== null && <div className="mt-2 h-1.5 rounded-full bg-slate-100 overflow-hidden"><div className="h-full bg-[#58051E]/80" style={{ width: `${r.pct}%` }} /></div>}
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
+        </aside>
+
+        <main className={`${selected ? '' : 'hidden lg:block'} rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 min-h-[320px]`}>
+          {detail || <EmptyState icon={FileText} title="Pick a student" hint="Choose a student on the left to see their checklist and files." />}
+        </main>
+      </div>
+
+      {asking && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true" aria-label="Ask for a new upload">
+          <div className="absolute inset-0 bg-slate-900/50" onClick={() => setAsking(null)} />
+          <form onSubmit={sendAsk} className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-3 shadow-2xl">
+            <div className="flex items-start justify-between gap-3"><div><h3 className="text-base font-bold text-slate-900">Ask for a new upload</h3><p className="text-xs text-slate-500 mt-0.5 truncate">{asking.file_name}</p></div><button type="button" aria-label="Close" onClick={() => setAsking(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 cursor-pointer"><X className="w-4 h-4" /></button></div>
+            <label className="block"><span className="block text-xs font-semibold text-slate-600 mb-1">What should the student fix?</span>
+              <textarea autoFocus rows={3} value={note} onChange={e => setNote(e.target.value)} className="w-full px-3 py-2" placeholder="e.g. The scan is blurry. Please upload a clear colour copy of pages 1 and 2." /></label>
+            <p className="text-[11px] text-slate-500 flex items-start gap-1.5"><AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />The student is notified and sees this message next to the document.</p>
+            <div className="flex justify-end gap-2"><button type="button" className={btnGhost} onClick={() => setAsking(null)}>Cancel</button><button type="submit" className={btnPrimary} disabled={busy === asking.id}>{busy === asking.id ? 'Sending…' : 'Send request'}</button></div>
+          </form>
         </div>
       )}
 
-      {/* TABLE VIEW */}
-      {viewMode === 'table' && (
-        <div className="space-y-4">
-          {/* Search */}
-          <div className="bg-white p-3 rounded-2xl border border-slate-200/70 shadow-xs">
-            <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by student name, document title, or category..."
-                className="w-full h-10 pl-9.5 pr-4 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/40"
-              />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-slate-200/70 shadow-xs overflow-hidden">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-slate-50 bg-slate-50/50">
-                  {['Student', 'Document', 'Category', 'Status', 'Uploaded', 'Actions'].map(h => (
-                    <th key={h} className="text-left px-5 py-3 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((d) => (
-                  <tr key={d.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/40 transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-[#58051E] flex items-center justify-center text-white text-[9px] font-extrabold shrink-0">
-                          {d.studentName.split(' ').map(n => n[0]).join('')}
-                        </div>
-                        <span className="font-extrabold text-slate-900">{d.studentName}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 font-bold text-slate-800 max-w-[180px] truncate">{d.docType}</td>
-                    <td className="px-5 py-4 text-slate-500 font-semibold">{d.category}</td>
-
-                    <td className="px-5 py-4">
-                      <select
-                        value={d.status}
-                        onChange={(e) => {
-                          const newStatus = e.target.value as DocStatus;
-                          if (newStatus === 'Rejected') {
-                            triggerReuploadModal(d);
-                          } else {
-                            updateStatus(d.id, newStatus);
-                          }
-                        }}
-                        className={`h-8 px-2.5 rounded-lg text-[11px] font-bold border focus:outline-none cursor-pointer ${STATUS_COLORS[d.status]}`}
-                      >
-                        <option value="Submitted">Submitted</option>
-                        <option value="Under Review">Under Review</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Rejected">Rejected (Request Re-upload)</option>
-                      </select>
-                    </td>
-
-                    <td className="px-5 py-4 text-slate-500 font-semibold">{d.uploaded}</td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => setViewDoc(d)}
-                          title="Preview Document & Notes"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-blue-650 hover:bg-blue-50 transition-all cursor-pointer"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => updateStatus(d.id, 'Under Review')}
-                          title="Mark Under Review"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all cursor-pointer"
-                        >
-                          <Clock className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => updateStatus(d.id, 'Approved')}
-                          title="Approve Document"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all cursor-pointer"
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => updateStatus(d.id, 'Rejected')}
-                          title="Reject & Request Re-upload"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer"
-                        >
-                          <XCircle className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {filtered.length === 0 && (
-                  <tr><td colSpan={6} className="py-12 text-center text-sm font-semibold text-slate-400">No documents match your search.</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* MANDATORY RE-UPLOAD FEEDBACK NOTES MODAL */}
-      <AnimatePresence>
-        {reuploadModalDoc && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setReuploadModalDoc(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 z-10 text-left">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-black">
-                    <MessageSquare className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-black text-slate-900">Request Document Re-upload</h3>
-                    <p className="text-xs font-bold text-slate-400">{reuploadModalDoc.studentName} · {reuploadModalDoc.docType}</p>
-                  </div>
-                </div>
-                <button onClick={() => setReuploadModalDoc(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
-              </div>
-
-              <form onSubmit={handleConfirmReuploadNotes} className="space-y-4">
-                <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-xl text-xs font-semibold text-blue-900 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
-                  <span>Please provide detailed instructions for the student regarding why a re-upload is required.</span>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1.5">
-                    Admin Feedback & Re-upload Instructions *
-                  </label>
-                  <textarea
-                    required
-                    rows={4}
-                    value={reuploadNotesInput}
-                    onChange={(e) => setReuploadNotesInput(e.target.value)}
-                    placeholder="e.g. Passport scan is blurry. Please re-upload a clear high-resolution color scan of pages 1 and 2."
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                  <button type="button" onClick={() => setReuploadModalDoc(null)} className="h-9 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">Cancel</button>
-                  <button type="submit" disabled={isSubmittingReupload} className="h-9 px-5 bg-blue-600 text-white rounded-xl text-xs font-black hover:bg-blue-700 shadow-xs flex items-center gap-1.5">
-                    {isSubmittingReupload ? 'Sending...' : 'Send Re-upload Request & Notes'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* View Drawer */}
-      <AnimatePresence>
-        {viewDoc && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-50" onClick={() => setViewDoc(null)} />
-            <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed right-0 top-0 bottom-0 w-full md:w-[440px] bg-white shadow-2xl z-50 flex flex-col border-l border-slate-100">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-                <h3 className="text-sm font-extrabold text-slate-900">Document Review</h3>
-                <button onClick={() => setViewDoc(null)} className="p-2 rounded-full hover:bg-slate-50 text-slate-400"><X className="w-4 h-4" /></button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-6 space-y-5">
-                <div className="w-full min-h-[220px] max-h-[360px] bg-slate-50 border border-slate-200 rounded-2xl flex flex-col items-center justify-center p-2 relative overflow-hidden">
-                  {viewDoc.fileUrl ? (
-                    viewDoc.fileUrl.match(/\.(jpg|jpeg|png|webp|gif)($|\?)/i) || viewDoc.fileUrl.startsWith('data:image') ? (
-                      <img src={viewDoc.fileUrl} alt={viewDoc.docType} className="max-w-full max-h-[260px] object-contain rounded-lg shadow-xs" />
-                    ) : (
-                      <iframe
-                        src={viewDoc.fileUrl}
-                        title={viewDoc.docType}
-                        className="w-full h-64 border-0 rounded-xl bg-white"
-                      />
-                    )
-                  ) : (
-                    <div className="text-center p-4">
-                      <FileText className="w-12 h-12 text-[#58051E]/40 mx-auto mb-2" />
-                      <p className="text-xs font-bold text-slate-600">Compliance Document File Registered</p>
-                      <p className="text-[10px] text-slate-400 mt-1">{viewDoc.docType}</p>
-                    </div>
-                  )}
-                  {viewDoc.fileUrl && (
-                    <div className="pt-2">
-                      <button
-                        onClick={async () => {
-                          const { getSignedFileUrl } = await import('../../lib/storage');
-                          const signed = await getSignedFileUrl('student-documents', viewDoc.fileUrl || '');
-                          if (signed) window.open(signed, '_blank');
-                        }}
-                        className="px-3.5 py-1.5 bg-[#58051E] text-white text-xs font-bold rounded-lg hover:bg-[#430316] transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5" /> Open Full Screen / Download
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  {[
-                    { label: 'Student', value: viewDoc.studentName },
-                    { label: 'Document', value: viewDoc.docType },
-                    { label: 'Category', value: viewDoc.category },
-                    { label: 'Uploaded', value: viewDoc.uploaded },
-                    { label: 'Current Status', value: viewDoc.status },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="flex justify-between items-center py-1.5 border-b border-slate-50">
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase">{label}</span>
-                      <span className="text-xs font-bold text-slate-800">{value}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {viewDoc.comment && (
-                  <div className="p-3 bg-[#58051E]/5 border border-[#58051E]/20 rounded-xl">
-                    <p className="text-[10px] font-extrabold text-[#58051E] uppercase tracking-wider mb-1 flex items-center gap-1">
-                      <MessageSquare className="w-3.5 h-3.5" /> Admin Feedback Notes
-                    </p>
-                    <p className="text-xs font-semibold text-slate-800">{viewDoc.comment}</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="p-4 border-t border-slate-100 space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => { updateStatus(viewDoc.id, 'Approved'); }}
-                    className="h-9 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 flex items-center justify-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Approve
-                  </button>
-                  <button onClick={() => { updateStatus(viewDoc.id, 'Rejected'); }}
-                    className="h-9 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 flex items-center justify-center gap-1.5">
-                    <XCircle className="w-3.5 h-3.5" /> Reject
-                  </button>
-                </div>
-                <button onClick={() => { triggerReuploadModal(viewDoc); }}
-                  className="w-full h-9 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 flex items-center justify-center gap-1.5">
-                  <RefreshCw className="w-3.5 h-3.5" /> Request Re-upload (Add Notes)
-                </button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <DocumentUploadDialog
+        open={!!upload && !!current}
+        studentId={current?.id || ''}
+        forStudentName={current?.name}
+        fixedTitle={upload?.req?.document_name}
+        hint={upload?.req?.description}
+        onClose={() => setUpload(null)}
+        onUploaded={saveUpload}
+      />
+      <DocumentViewer doc={viewing} onClose={() => setViewing(null)} footer={viewerFooter} />
     </div>
   );
 };
+
+export default AdminDocumentReview;

@@ -11,6 +11,10 @@ import { generateUUID } from '../../utils/uuid';
 const LOCAL_STORAGE_KEY = 'ferex_universities_cache';
 const MASTER_STORAGE_KEY = 'ferex_custom_universities';
 
+// A write that matched no rows (removed already, or blocked by access rules) must not look like success.
+const rowsError = (r: { data: any; error: any }) =>
+  r.error || (Array.isArray(r.data) && r.data.length === 0 ? { message: 'Nothing was changed. The record no longer exists or you do not have permission.' } : null);
+
 export async function getUniversities(): Promise<University[]> {
   // ── Primary: Supabase DB (always authoritative) ──────────────────────────
   try {
@@ -248,7 +252,7 @@ export async function updateUniversity(id: string, payload: Partial<University>)
   // Try admin client
   try {
     const admin = await getAdminSupabaseClient();
-    const { error } = await admin.from('universities').update(dbPayload).eq('id', id);
+    const error = rowsError(await admin.from('universities').update(dbPayload).eq('id', id).select('id'));
     if (!error) {
       lastError = null;
     } else {
@@ -263,7 +267,7 @@ export async function updateUniversity(id: string, payload: Partial<University>)
   // Try anon client
   if (lastError) {
     try {
-      const { error: anonErr } = await supabase.from('universities').update(dbPayload).eq('id', id);
+      const anonErr = rowsError(await supabase.from('universities').update(dbPayload).eq('id', id).select('id'));
       if (!anonErr) {
         lastError = null;
       } else {
@@ -309,7 +313,7 @@ export async function deleteUniversity(id: string, name?: string): Promise<void>
   // Try admin client
   try {
     const admin = await getAdminSupabaseClient();
-    const { error } = await admin.from('universities').delete().eq('id', id);
+    const error = rowsError(await admin.from('universities').delete().eq('id', id).select('id'));
     if (!error) {
       lastError = null;
     } else {
@@ -324,7 +328,7 @@ export async function deleteUniversity(id: string, name?: string): Promise<void>
   // Try anon client
   if (lastError) {
     try {
-      const { error: anonErr } = await supabase.from('universities').delete().eq('id', id);
+      const anonErr = rowsError(await supabase.from('universities').delete().eq('id', id).select('id'));
       if (!anonErr) {
         lastError = null;
       } else {

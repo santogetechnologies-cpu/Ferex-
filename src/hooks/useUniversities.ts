@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getUniversities, createUniversity, updateUniversityRecord, deleteUniversity, clearAllUniversities } from '../lib/api/universities';
+import { useRealtimeTable } from './useRealtimeTable';
 import type { University, PaymentInstallment, CourseSemester, CourseProgram } from '../lib/types';
 
 export function useUniversities() {
@@ -44,6 +45,8 @@ export function useUniversities() {
     };
   }, [fetchUniversities]);
 
+  useRealtimeTable('universities', () => { void fetchUniversities(true); });
+
   const addUniversity = async (payload: Parameters<typeof createUniversity>[0]) => {
     const created = await createUniversity(payload);
     setUniversities(prev => [created, ...prev.filter(u => u.id !== created.id)]);
@@ -63,9 +66,12 @@ export function useUniversities() {
       if (name && u.name.trim().toLowerCase() === name.trim().toLowerCase()) return false;
       return true;
     }));
-    await deleteUniversity(id, name);
-    // Re-fetch to sync with actual DB state
-    setTimeout(() => fetchUniversities(true), 300);
+    try {
+      await deleteUniversity(id, name);
+    } finally {
+      // Always re-sync: a failed delete must bring the row back.
+      void fetchUniversities(true);
+    }
   };
 
   const clearAll = async () => {

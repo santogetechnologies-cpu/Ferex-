@@ -1,23 +1,41 @@
-import { getActiveStudentFeeProfile } from '../lib/educationBilling';
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Folder, Search, Upload, Eye, FileText, X, AlertCircle,
-  ShieldCheck, Globe, CheckCircle2, Download, ExternalLink, Clock,
-  FilePlus, PlusCircle, Pencil
+  Folder, Search, Eye, FileText, AlertCircle, CheckCircle2, Clock, UploadCloud, RefreshCw, Globe, ShieldCheck, FilePlus2,
 } from 'lucide-react';
-import { Card } from '../components/Card';
-import { Button } from '../components/Button';
-import { Badge } from '../components/Badge';
 import { useAuth } from '../contexts/AuthContext';
 import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useDocuments } from '../hooks/useDocuments';
 import { useApplications } from '../hooks/useApplications';
 import { useCountryWorkflows } from '../hooks/useCountryWorkflows';
+import { getActiveStudentFeeProfile } from '../lib/educationBilling';
 import { getDocumentRequirements, calculateDossierStatus, type DocumentRequirement } from '../lib/api/documentRequirements';
 import { sendStudentDocumentUploadedEmail } from '../lib/api/email';
-import { supabase } from '../lib/supabase';
+import { DocumentViewer, type ViewerDoc } from '../components/DocumentViewer';
+import { DocumentUploadDialog, type UploadDone } from '../components/DocumentUploadDialog';
+import { PageHeader, EmptyState } from '../components/Kit';
+
+type Norm = 'Approved' | 'Under Review' | 'Needs action' | 'Submitted';
+const norm = (s: string): Norm => {
+  const v = (s || '').toLowerCase();
+  if (v.includes('verified') || v.includes('approved')) return 'Approved';
+  if (v.includes('reject') || v.includes('re-upload')) return 'Needs action';
+  if (v.includes('under review')) return 'Under Review';
+  return 'Submitted';
+};
+const TONE: Record<Norm | 'Missing', string> = {
+  Approved: 'bg-emerald-50 text-emerald-700 ring-emerald-600/15',
+  'Under Review': 'bg-amber-50 text-amber-800 ring-amber-600/20',
+  'Needs action': 'bg-rose-50 text-rose-700 ring-rose-600/15',
+  Submitted: 'bg-sky-50 text-sky-700 ring-sky-600/15',
+  Missing: 'bg-slate-100 text-slate-600 ring-slate-500/15',
+};
+const LABEL: Record<Norm | 'Missing', string> = { Approved: 'Approved', 'Under Review': 'Being reviewed', 'Needs action': 'Upload again', Submitted: 'Waiting for review', Missing: 'Not uploaded' };
+const Pill: React.FC<{ s: Norm | 'Missing' }> = ({ s }) => <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold ring-1 ring-inset whitespace-nowrap ${TONE[s]}`}>{LABEL[s]}</span>;
+const dateOf = (iso?: string) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '');
+
+const btnPrimary = 'h-9 px-4 rounded-xl bg-[#58051E] text-white text-xs font-bold hover:bg-[#430316] inline-flex items-center gap-1.5 cursor-pointer';
+const btnGhost = 'h-9 px-3.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 inline-flex items-center gap-1.5 cursor-pointer';
 
 export const Documents: React.FC = () => {
   const { user, profile } = useAuth();
@@ -25,1304 +43,185 @@ export const Documents: React.FC = () => {
   const { applications } = useApplications(activeStudentId);
   const { getWorkflowForCountry } = useCountryWorkflows();
 
-  const userRole = profile?.role || 'student';
-  const isAdminOrStaff = ['admin', 'super_admin', 'staff', 'counselor'].includes(userRole.toLowerCase());
+  const isStaffRole = ['admin', 'super_admin', 'superadmin', 'staff', 'counselor', 'education_admin', 'central'].includes((profile?.role || 'student').toLowerCase());
+  const studentId = activeStudentId || (!isStaffRole ? user?.id : undefined);
+  const { documents: docs, loading, addDoc, replaceDoc } = useDocuments(studentId, !!studentId);
 
-  // If not impersonating and is admin/staff visiting /student/documents, fallback to first student or undefined
-  const effectiveStudentId = activeStudentId || (isAdminOrStaff ? undefined : 'STUDENT_PENDING_AUTH');
+  const [requirements, setRequirements] = useState<DocumentRequirement[]>([]);
+  const [tab, setTab] = useState<'checklist' | 'files'>('checklist');
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'All' | Norm>('All');
+  const [viewing, setViewing] = useState<ViewerDoc | null>(null);
+  const [upload, setUpload] = useState<{ req?: DocumentRequirement; replaceId?: string } | null>(null);
+  const [toast, setToast] = useState('');
 
-  const { documents: dbDocs, loading, addDoc, replaceDoc } = useDocuments(effectiveStudentId);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [configuredReqs, setConfiguredReqs] = useState<DocumentRequirement[]>([]);
-  // Destination comes from the database (student's saved destination); never a hard-coded default country.
-  const [selectedCountryOverride, setSelectedCountryOverride] = useState<string>(() => ((getActiveStudentFeeProfile() as any)?.country || ''));
-
-  // Target country resolution - dynamically bound to selected destination university & country
-  const targetCountry = useMemo(() => {
-    const isInvalid = (c?: string | null) => !c || c.toLowerCase().trim() === 'not set' || c.trim() === '';
-
-    if (selectedCountryOverride && !isInvalid(selectedCountryOverride)) {
-      return selectedCountryOverride.trim();
-    }
-
-    const appCountry = applications[0]?.universities?.country || (applications[0] as any)?.country;
-    if (appCountry && !isInvalid(appCountry)) return appCountry.trim();
-
-    const profileTarget = (profile as any)?.target_country;
-    if (profileTarget && !isInvalid(profileTarget)) return profileTarget.trim();
-
-    const localTarget = ((getActiveStudentFeeProfile() as any)?.country || null) || null;
-    if (localTarget && !isInvalid(localTarget)) return localTarget.trim();
-
-    // No destination yet: show the general checklist rather than another country's requirements.
-    return '';
-  }, [selectedCountryOverride, profile, applications, activeStudentId]);
-
-  const loadRequirements = React.useCallback(() => {
-    const c = targetCountry || 'General';
-    getDocumentRequirements(c).then(setConfiguredReqs);
-  }, [targetCountry]);
+  const country = useMemo(() => {
+    const bad = (c?: string | null) => !c || !c.trim() || c.toLowerCase().trim() === 'not set';
+    const fromProfile = (getActiveStudentFeeProfile() as any)?.country;
+    const fromApp = (applications[0] as any)?.universities?.country || (applications[0] as any)?.country;
+    return [fromProfile, fromApp, (profile as any)?.target_country].find(c => !bad(c))?.trim() || '';
+  }, [applications, profile, activeStudentId]);
 
   useEffect(() => {
-    loadRequirements();
-    const handleCountryUpdate = () => {
-      const stored = ((getActiveStudentFeeProfile() as any)?.country || null) || null;
-      if (stored) setSelectedCountryOverride(stored);
-      loadRequirements();
-    };
-    window.addEventListener('ferex_doc_requirements_change', loadRequirements);
-    window.addEventListener('ferex_country_change', handleCountryUpdate);
-    return () => {
-      window.removeEventListener('ferex_doc_requirements_change', loadRequirements);
-      window.removeEventListener('ferex_country_change', handleCountryUpdate);
-    };
-  }, [loadRequirements, activeStudentId]);
+    const load = () => { getDocumentRequirements(country || 'General').then(setRequirements).catch(() => setRequirements([])); };
+    load();
+    window.addEventListener('ferex_doc_requirements_change', load);
+    window.addEventListener('ferex_country_change', load);
+    return () => { window.removeEventListener('ferex_doc_requirements_change', load); window.removeEventListener('ferex_country_change', load); };
+  }, [country]);
 
-  const targetWf = useMemo(() => {
-    if (!targetCountry) return null;
-    const wf = getWorkflowForCountry(targetCountry);
-    if (wf) return wf;
-    return {
-      country: targetCountry,
-      authority_name: `${targetCountry} Legalization Guidelines`,
-      authority_acronym: `${targetCountry.toUpperCase()} Legalization`,
-      authority_badge: `${targetCountry} Academic Legalization`,
-      authority_description: `Official state academic equivalency audit and visa processing procedure for ${targetCountry}.`,
-      estimated_processing_days: '14 - 28 Days',
-      authority_fee: '€200',
-      checklist_documents: []
-    } as any;
-  }, [targetCountry, getWorkflowForCountry]);
+  const workflow = country ? getWorkflowForCountry(country) : null;
+  const dossier = useMemo(() => calculateDossierStatus(requirements, docs), [requirements, docs]);
+  const required = dossier.results.filter(r => r.requirement.is_required);
+  const uploadedPct = required.length ? Math.round((required.filter(r => r.isSatisfied).length / required.length) * 100) : 0;
+  const approvedPct = required.length ? Math.round((required.filter(r => r.status === 'Approved').length / required.length) * 100) : 0;
+  const linkedIds = new Set(dossier.results.map(r => r.doc?.id).filter(Boolean));
+  const extraDocs = docs.filter(d => !linkedIds.has(d.id));
+  const needAction = docs.filter(d => norm(d.status) === 'Needs action');
 
-  // Map DB docs or fall back to empty list if none
-  const documents = dbDocs.map(d => {
-    // Extract student name from joined users data or fall back to profile
-    const studentName = d.users?.full_name || 
-                        d.users?.email?.split('@')[0] || 
-                        profile?.full_name || 
-                        user?.email?.split('@')[0] || 
-                        'Unknown Student';
-    
-    return {
-      id: d.id,
-      name: d.file_name,
-      type: d.doc_type,
-      size: d.file_size || '1.2 MB',
-      date: new Date(d.uploaded_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-      uploadedAt: d.uploaded_at || Date.now(),
-      status: d.status,
-      reviewerNotes: d.reviewer_notes || '',
-      url: d.file_url || '',
-      studentName,
-      studentId: d.student_id,
-    };
-  });
+  const flash = (m: string) => { setToast(m); setTimeout(() => setToast(''), 3500); };
+  const view = (d: { file_name: string; file_url: string; uploaded_at?: string }) => setViewing({ name: d.file_name, url: d.file_url, subtitle: `Uploaded ${dateOf(d.uploaded_at)}` });
 
-  // Group documents by student name (for folder view)
-  const documentsByStudent = useMemo(() => {
-    const grouped = new Map<string, typeof documents>();
-    documents.forEach(doc => {
-      const name = doc.studentName;
-      if (!grouped.has(name)) {
-        grouped.set(name, []);
-      }
-      grouped.get(name)!.push(doc);
-    });
-    return grouped;
-  }, [documents]);
-
-  // Date filtering helper
-  const filterByDate = (doc: typeof documents[0]) => {
-    if (dateFilter === 'All') return true;
-    const docDate = new Date(doc.uploadedAt);
-    const now = new Date();
-    
-    if (dateFilter === 'Today') {
-      return docDate.toDateString() === now.toDateString();
-    } else if (dateFilter === 'Last 7 Days') {
-      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      return docDate >= sevenDaysAgo;
-    } else if (dateFilter === 'Last 30 Days') {
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      return docDate >= thirtyDaysAgo;
-    } else if (dateFilter === 'This Year') {
-      return docDate.getFullYear() === now.getFullYear();
-    }
-    return true;
+  const save = async (r: UploadDone) => {
+    const sid = studentId!;
+    const base = { file_name: r.fileName, file_url: r.path, file_size: r.size, doc_type: (upload?.req?.document_type || 'Other') as any, requirement_id: upload?.req?.id, requirement_name: upload?.req?.document_name };
+    if (upload?.replaceId) await replaceDoc(upload.replaceId, base); else await addDoc({ student_id: sid, ...base });
+    const email = activeStudentEmail || user?.email;
+    if (email) sendStudentDocumentUploadedEmail({ studentEmail: email, studentName: activeStudentName || profile?.full_name || 'Student', documentName: r.fileName, documentType: String(base.doc_type), fileSize: r.size }).catch(() => {});
+    flash(`${r.title} uploaded. It is now waiting for review.`);
   };
 
-  // Input states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [dateFilter, setDateFilter] = useState('All');
-  const [selectedFolder, setSelectedFolder] = useState<string>('all'); // 'all' or student name
-  const [previewDoc, setPreviewDoc] = useState<any | null>(null);
-  const [resolvedPreviewUrl, setResolvedPreviewUrl] = useState<string>('');
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [reuploadTargetDocId, setReuploadTargetDocId] = useState<string | null>(null);
-  const [uploadName, setUploadName] = useState('');
-  const [uploadType, setUploadType] = useState<any>('Transcripts');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [toastMessage, setToastMessage] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedReq, setSelectedReq] = useState<DocumentRequirement | null>(null);
+  const filtered = docs.filter(d => {
+    const q = query.trim().toLowerCase();
+    return (!q || `${d.file_name} ${d.doc_type} ${d.requirement_name || ''}`.toLowerCase().includes(q)) && (statusFilter === 'All' || norm(d.status) === statusFilter);
+  });
 
-  // Add Other Certificate State
-  const [showAddCertModal, setShowAddCertModal] = useState(false);
-  const [certName, setCertName] = useState('');
-  const [certDesc, setCertDesc] = useState('');
-  const [certFile, setCertFile] = useState<File | null>(null);
-  const [certError, setCertError] = useState('');
-  const [isSubmittingCert, setIsSubmittingCert] = useState(false);
-  const certFileInputRef = useRef<HTMLInputElement>(null);
-
-  // Dynamic Dossier Completeness calculation
-  const dossierStatus = useMemo(() => {
-    return calculateDossierStatus(configuredReqs, documents);
-  }, [configuredReqs, documents]);
-
-  const additionalDocs = useMemo(() => {
-    const matchedDocIds = new Set(
-      dossierStatus.results
-        .map(r => r.doc?.id)
-        .filter(Boolean)
+  if (!studentId) {
+    return (
+      <div className="space-y-6">
+        <PageHeader eyebrow="Ferex Education" title="Student documents" subtitle="Documents belong to a student." />
+        <EmptyState icon={Folder} title="Open a student first" hint="Choose a student under Documents in the admin menu to see and manage their files." />
+      </div>
     );
-    return documents.filter(d => !matchedDocIds.has(d.id));
-  }, [documents, dossierStatus.results]);
+  }
 
-  const handleOpenUploadForReq = (req: DocumentRequirement) => {
-    setReuploadTargetDocId(null);
-    setSelectedReq(req);
-    setUploadName(req.document_name);
-    setUploadType(req.document_type || 'Transcripts');
-    setSelectedFile(null);
-    setShowUploadModal(true);
-  };
-
-  const handleCloseUploadModal = () => {
-    setShowUploadModal(false);
-    setSelectedReq(null);
-    setReuploadTargetDocId(null);
-    setUploadName('');
-    setSelectedFile(null);
-  };
-
-  // Prevent background scrolling while the Upload Compliance Document modal is open
-  useEffect(() => {
-    if (!showUploadModal) return;
-
-    const originalBodyOverflow = document.body.style.overflow;
-    const originalHtmlOverflow = document.documentElement.style.overflow;
-
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !isSubmitting) {
-        handleCloseUploadModal();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = originalBodyOverflow;
-      document.documentElement.style.overflow = originalHtmlOverflow;
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [showUploadModal, isSubmitting]);
-
-  // Search & Filter
-  const filteredDocs = documents.filter((doc) => {
-    const docAny = doc as any;
-    const docName = (docAny.name || docAny.file_name || '').toLowerCase();
-    const docType = (docAny.type || docAny.doc_type || '').toLowerCase();
-    const docStatus = (docAny.status || '').toLowerCase();
-
-    const matchesSearch =
-      docName.includes(searchQuery.toLowerCase()) ||
-      docType.includes(searchQuery.toLowerCase()) ||
-      docStatus.includes(searchQuery.toLowerCase());
-
-    const normStatus = 
-      (doc.status as string) === 'Pending Verification' || (doc.status as string) === 'Pending' ? 'Submitted' :
-      (doc.status as string) === 'Re-upload Requested' ? 'Rejected' :
-      (doc.status as string) === 'Verified' ? 'Approved' :
-      doc.status;
-
-    const matchesStatus =
-      statusFilter === 'All' ||
-      statusFilter === normStatus;
-
-    const matchesDate = filterByDate(doc);
-
-    const matchesFolder = 
-      selectedFolder === 'all' ||
-      doc.studentName === selectedFolder;
-
-    return matchesSearch && matchesStatus && matchesDate && matchesFolder;
-  });
-
-  const handleOpenPreview = async (doc: any) => {
-    setPreviewDoc(doc);
-    setResolvedPreviewUrl('');
-    if (doc.url) {
-      setPreviewLoading(true);
-      try {
-        if (doc.url.startsWith('blob:') || doc.url.startsWith('data:') || doc.url.startsWith('http')) {
-          setResolvedPreviewUrl(doc.url);
-        } else {
-          const { getSignedFileUrl } = await import('../lib/storage');
-          const signed = await getSignedFileUrl('student-documents', doc.url);
-          setResolvedPreviewUrl(signed || doc.url);
-        }
-      } catch (err) {
-        setResolvedPreviewUrl(doc.url);
-      } finally {
-        setPreviewLoading(false);
-      }
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setSelectedFile(file);
-      if (!uploadName) {
-        setUploadName(file.name.replace(/\.[^/.]+$/, ''));
-      }
-    }
-  };
-
-  const handleUploadSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    if (!selectedFile && !reuploadTargetDocId) {
-      showToast('Please click "Choose File" and select a document to upload.');
-      return;
-    }
-
-    const nameToUse = uploadName.trim() || selectedFile?.name || 'Document.pdf';
-    const baseName = nameToUse.includes('.') ? nameToUse : `${nameToUse}.pdf`;
-    const fileSizeStr = selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB` : '1.4 MB';
-
-    let fileUrlStr = '';
-    if (selectedFile) {
-      const { uploadFileToBucket } = await import('../lib/storage');
-      const uploadRes = await uploadFileToBucket('student-documents', selectedFile, nameToUse.replace(/\.[^/.]+$/, ''));
-      fileUrlStr = uploadRes.url;
-    }
-
-    if (!fileUrlStr && !reuploadTargetDocId) {
-      showToast('Upload failed: could not upload file to storage.');
-      return;
-    }
-
-    const targetStudentId = activeStudentId || user?.id;
-    const targetStudentEmail = activeStudentEmail || user?.email;
-    const targetStudentName = activeStudentName || profile?.full_name || targetStudentEmail?.split('@')[0] || 'Student';
-
-    try {
-      setIsSubmitting(true);
-      if (reuploadTargetDocId) {
-        await replaceDoc(reuploadTargetDocId, {
-          file_name: baseName,
-          file_url: fileUrlStr,
-          file_size: fileSizeStr,
-          doc_type: uploadType,
-          requirement_id: selectedReq?.id,
-          requirement_name: selectedReq?.document_name,
-        });
-        showToast(`Document "${baseName}" re-uploaded successfully and submitted for review.`);
-      } else {
-        await addDoc({
-          student_id: targetStudentId,
-          file_name: baseName,
-          file_url: fileUrlStr,
-          file_size: fileSizeStr,
-          doc_type: uploadType,
-          requirement_id: selectedReq?.id,
-          requirement_name: selectedReq?.document_name,
-        });
-        showToast(`Document "${baseName}" submitted successfully for verification.`);
-      }
-
-      // Dispatch automated Resend Document Receipt Email to student
-      if (targetStudentEmail) {
-        sendStudentDocumentUploadedEmail({
-          studentEmail: targetStudentEmail,
-          studentName: targetStudentName,
-          documentName: baseName,
-          documentType: uploadType,
-          fileSize: fileSizeStr,
-        }).catch((docEmailErr) => {
-          console.warn('[Document upload email dispatch notice]:', docEmailErr);
-        });
-      }
-
-      setShowUploadModal(false);
-      setSelectedReq(null);
-      setReuploadTargetDocId(null);
-      setUploadName('');
-      setSelectedFile(null);
-    } catch (err: any) {
-      showToast(`Error: ${err.message || 'Failed to upload'}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleCertFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const ext = (file.name.split('.').pop() || '').toLowerCase();
-      const validExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'doc', 'docx'];
-      if (!validExtensions.includes(ext)) {
-        setCertError(`Unsupported file format (.${ext}). Please select a PDF, JPG, PNG, WEBP, or DOCX document.`);
-        return;
-      }
-      if (file.size > 15 * 1024 * 1024) {
-        setCertError('File size exceeds the 15MB limit. Please choose a smaller file.');
-        return;
-      }
-      setCertFile(file);
-      setCertError('');
-      if (!certName) {
-        setCertName(file.name.replace(/\.[^/.]+$/, ''));
-      }
-    }
-  };
-
-  const handleCertSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    if (!certName.trim()) {
-      setCertError('Please enter the certificate name.');
-      return;
-    }
-    if (!certFile) {
-      setCertError('Please select a certificate file to upload.');
-      return;
-    }
-
-    const ext = (certFile.name.split('.').pop() || '').toLowerCase();
-    const validExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'doc', 'docx'];
-    if (!validExtensions.includes(ext)) {
-      setCertError(`Unsupported file format (.${ext}).`);
-      return;
-    }
-    if (certFile.size > 15 * 1024 * 1024) {
-      setCertError('File size exceeds 15MB.');
-      return;
-    }
-
-    try {
-      setIsSubmittingCert(true);
-      setCertError('');
-
-      const cleanTitle = certName.trim();
-      const baseName = cleanTitle.toLowerCase().endsWith(`.${ext}`) ? cleanTitle : `${cleanTitle}.${ext}`;
-      const fileSizeStr = `${(certFile.size / (1024 * 1024)).toFixed(1)} MB`;
-
-      const { uploadFileToBucket } = await import('../lib/storage');
-      const uploadRes = await uploadFileToBucket('student-documents', certFile, cleanTitle.replace(/\.[^/.]+$/, ''));
-
-      if (!uploadRes?.url) {
-        throw new Error('Failed to upload file to storage.');
-      }
-
-      const targetStudentId = activeStudentId || user?.id;
-      const targetStudentEmail = activeStudentEmail || user?.email;
-      const targetStudentName = activeStudentName || profile?.full_name || targetStudentEmail?.split('@')[0] || 'Student';
-
-      const created = await addDoc({
-        student_id: targetStudentId,
-        file_name: baseName,
-        file_url: uploadRes.url,
-        file_size: fileSizeStr,
-        doc_type: 'Other',
-      });
-
-      if (certDesc.trim() && created?.id) {
-        try {
-          const { getAdminSupabaseClient } = await import('../lib/adminAuthClient');
-          const admin = await getAdminSupabaseClient();
-          const client = admin || supabase;
-          await client.from('student_documents').update({
-            reviewer_notes: certDesc.trim()
-          }).eq('id', created.id);
-        } catch {}
-      }
-
-      if (targetStudentEmail) {
-        sendStudentDocumentUploadedEmail({
-          studentEmail: targetStudentEmail,
-          studentName: targetStudentName,
-          documentName: baseName,
-          documentType: 'Other Certificate',
-          fileSize: fileSizeStr,
-        }).catch(() => {});
-      }
-
-      showToast(`Certificate "${baseName}" added successfully.`);
-      setShowAddCertModal(false);
-      setCertName('');
-      setCertDesc('');
-      setCertFile(null);
-    } catch (err: any) {
-      setCertError(err.message || 'Failed to add certificate.');
-    } finally {
-      setIsSubmittingCert(false);
-    }
-  };
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(''), 3000);
-  };
-
-  const getStatusBadge = (status: string) => {
-    const norm =
-      status === 'Pending Verification' || status === 'Pending' ? 'Submitted' :
-      status === 'Re-upload Requested' ? 'Rejected' :
-      status === 'Verified' ? 'Approved' :
-      status;
-
-    if (norm === 'Approved') return <Badge variant="success" dot>Approved</Badge>;
-    if (norm === 'Rejected') return <Badge variant="error" dot>Action Required</Badge>;
-    if (norm === 'Under Review') return <Badge variant="brand" dot>Under Review</Badge>;
-    return <Badge variant="neutral" dot>Submitted</Badge>;
-  };
-
+  const ringR = 34, ring = 2 * Math.PI * ringR;
   return (
-    <div className="space-y-6 text-left relative min-h-[600px] pb-10">
-      {/* Toast Notification */}
-      <AnimatePresence>
-        {toastMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-lg shadow-card text-xs font-semibold flex items-center gap-2 border border-slate-700"
-          >
-            <Folder className="w-4 h-4 text-[#58051E]" />
-            {toastMessage}
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className="space-y-6 text-left pb-10">
+      <PageHeader
+        eyebrow="Ferex Education"
+        title={isImpersonating && activeStudentName ? `${activeStudentName}'s documents` : 'My documents'}
+        subtitle="Upload each required document once. We review it and tell you if anything needs to change."
+        actions={<button type="button" className={btnPrimary} onClick={() => setUpload({})}><UploadCloud className="w-4 h-4" />Upload a document</button>}
+      />
+      {toast && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{toast}</p>}
 
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-8 h-8 rounded-xl bg-[#58051E]/8 text-[#58051E] flex items-center justify-center">
-              <Folder className="w-4 h-4" />
-            </div>
-            <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
-              Documents
-            </h1>
-          </div>
-          <p className="text-xs text-slate-500 font-semibold">
-            Upload, verify, and track your required academic, identity, and visa documents.
-          </p>
+      {/* Progress */}
+      <section className="rounded-2xl border border-slate-200/80 bg-white p-5 flex flex-col sm:flex-row sm:items-center gap-5">
+        <div className="relative w-[84px] h-[84px] shrink-0" aria-label={`${uploadedPct}% of required documents uploaded`}>
+          <svg viewBox="0 0 84 84" className="-rotate-90 w-full h-full">
+            <circle cx="42" cy="42" r={ringR} fill="none" stroke="#e2e8f0" strokeWidth="8" />
+            <circle cx="42" cy="42" r={ringR} fill="none" stroke="#58051E" strokeWidth="8" strokeLinecap="round" strokeDasharray={ring} strokeDashoffset={ring * (1 - uploadedPct / 100)} style={{ transition: 'stroke-dashoffset .5s' }} />
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center text-lg font-extrabold text-slate-900 tabular-nums">{uploadedPct}%</span>
         </div>
+        <div className="flex-1 min-w-0 space-y-1.5">
+          <h2 className="text-sm font-bold text-slate-900">{required.length ? `${required.filter(r => r.isSatisfied).length} of ${required.length} required documents uploaded` : 'No required documents set for your destination yet'}</h2>
+          <p className="text-xs text-slate-500">{required.length ? `${approvedPct}% already approved by your counselor.` : country ? `Your counselor will add the checklist for ${country}. You can still upload documents.` : 'Choose a university so we can show the checklist for your country.'}</p>
+          {required.length > 0 && <div className="h-2 rounded-full bg-slate-100 overflow-hidden flex"><div className="h-full bg-emerald-500" style={{ width: `${approvedPct}%` }} /><div className="h-full bg-[#58051E]/70" style={{ width: `${Math.max(0, uploadedPct - approvedPct)}%` }} /></div>}
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-medium text-slate-500">
+            <span className="inline-flex items-center gap-1"><i className="w-2 h-2 rounded-full bg-emerald-500" />Approved</span>
+            <span className="inline-flex items-center gap-1"><i className="w-2 h-2 rounded-full bg-[#58051E]/70" />Uploaded, waiting</span>
+            {country && <span className="inline-flex items-center gap-1"><Globe className="w-3 h-3" />{country}{workflow?.estimated_processing_days ? ` · legalization about ${workflow.estimated_processing_days}` : ''}</span>}
+          </div>
+        </div>
+        {!country && <Link to="/student/select-university" className={btnGhost}>Choose university</Link>}
+      </section>
+
+      {needAction.length > 0 && (
+        <section className="rounded-2xl border border-rose-200 bg-rose-50/70 p-4 space-y-2">
+          <h2 className="text-sm font-bold text-rose-800 flex items-center gap-2"><AlertCircle className="w-4 h-4" />{needAction.length} {needAction.length === 1 ? 'document needs' : 'documents need'} a new upload</h2>
+          <ul className="space-y-2">
+            {needAction.map(d => (
+              <li key={d.id} className="bg-white rounded-xl border border-rose-100 p-3 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
+                <div className="min-w-0"><p className="text-sm font-semibold text-slate-900 truncate">{d.requirement_name || d.file_name}</p><p className="text-xs text-rose-700 mt-0.5">{d.reviewer_notes || 'Please upload a clearer copy.'}</p></div>
+                <button type="button" className={btnPrimary} onClick={() => setUpload({ replaceId: d.id, req: requirements.find(r => r.id === d.requirement_id || r.document_name === d.requirement_name) })}><RefreshCw className="w-3.5 h-3.5" />Upload again</button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Tabs */}
+      <div className="flex items-center gap-1 border-b border-slate-200">
+        {([['checklist', `Required documents${required.length ? ` (${required.length})` : ''}`], ['files', `All my files (${docs.length})`]] as const).map(([k, l]) => (
+          <button key={k} type="button" onClick={() => setTab(k)} className={`px-4 py-2.5 text-xs font-bold border-b-2 -mb-px cursor-pointer ${tab === k ? 'border-[#58051E] text-[#58051E]' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{l}</button>
+        ))}
       </div>
 
-      {/* Country Compliance Guidelines Banner */}
-      {targetWf ? (
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-bold">
-                <Globe className="w-3 h-3 text-slate-500" />
-                {targetCountry} Documentation Guidelines
-              </span>
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                Authority: {targetWf.authority_acronym || targetWf.authority_name}
-              </span>
-            </div>
-            <h2 className="text-sm font-bold text-slate-900">{targetWf.authority_badge}</h2>
-            <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
-              {targetWf.authority_description}
-            </p>
-          </div>
-          <div className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 self-start md:self-auto shrink-0">
-            <div className="text-left md:text-right">
-              <p className="text-[10px] uppercase font-bold text-slate-400">Processing Time</p>
-              <p className="text-xs font-bold text-slate-900">{targetWf.estimated_processing_days}</p>
-            </div>
-            <div className="w-px h-6 bg-slate-200" />
-            <div className="text-left md:text-right">
-              <p className="text-[10px] uppercase font-bold text-slate-400">Authority Fee</p>
-              <p className="text-xs font-bold text-slate-900">{targetWf.authority_fee}</p>
-            </div>
-          </div>
+      {loading ? (
+        <div className="space-y-3">{[0, 1, 2].map(i => <div key={i} className="h-20 rounded-2xl bg-slate-100 animate-pulse" />)}</div>
+      ) : tab === 'checklist' ? (
+        <div className="space-y-3">
+          {dossier.results.length === 0 && <EmptyState icon={ShieldCheck} title="No checklist yet" hint="When your counselor sets the document list for your country it will appear here. You can still upload any document under All my files." />}
+          {dossier.results.map(({ requirement: r, status, doc }) => {
+            const s: Norm | 'Missing' = status === 'Missing' ? 'Missing' : status === 'Rejected' ? 'Needs action' : (status as Norm);
+            return (
+              <article key={r.id} className="rounded-2xl border border-slate-200/80 bg-white p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${s === 'Approved' ? 'bg-emerald-50 text-emerald-600' : s === 'Missing' ? 'bg-slate-100 text-slate-500' : 'bg-[#58051E]/8 text-[#58051E]'}`}>
+                  {s === 'Approved' ? <CheckCircle2 className="w-5 h-5" /> : s === 'Missing' ? <FilePlus2 className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-bold text-slate-900">{r.document_name}</h3>{!r.is_required && <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">Optional</span>}</div>
+                  {r.description && <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{r.description}</p>}
+                  {doc && <p className="text-[11px] text-slate-400 mt-1 truncate">{[doc.file_name, doc.file_size, dateOf(doc.uploaded_at)].filter(Boolean).join(' · ')}</p>}
+                  {s === 'Needs action' && doc?.reviewer_notes && <p className="text-xs text-rose-700 font-medium mt-1">{doc.reviewer_notes}</p>}
+                </div>
+                <div className="flex items-center gap-2 sm:justify-end flex-wrap"><Pill s={s} />
+                  {doc && <button type="button" className={btnGhost} onClick={() => view(doc)}><Eye className="w-3.5 h-3.5" />View</button>}
+                  {s === 'Missing' && <button type="button" className={btnPrimary} onClick={() => setUpload({ req: r })}><UploadCloud className="w-3.5 h-3.5" />Upload</button>}
+                  {s === 'Needs action' && doc && <button type="button" className={btnPrimary} onClick={() => setUpload({ req: r, replaceId: doc.id })}><RefreshCw className="w-3.5 h-3.5" />Upload again</button>}
+                  {s !== 'Missing' && s !== 'Needs action' && s !== 'Approved' && doc && <button type="button" className={btnGhost} onClick={() => setUpload({ req: r, replaceId: doc.id })}>Replace</button>}
+                </div>
+              </article>
+            );
+          })}
+          {extraDocs.length > 0 && <p className="text-xs text-slate-500 pt-1">{extraDocs.length} more {extraDocs.length === 1 ? 'file is' : 'files are'} under <button type="button" className="font-bold text-[#58051E] underline cursor-pointer" onClick={() => setTab('files')}>All my files</button>.</p>}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[11px] font-bold border border-amber-200">
-                <Globe className="w-3 h-3 text-amber-600" />
-                Select Destination University
-              </span>
-            </div>
-            <h2 className="text-sm font-bold text-slate-900">Destination Compliance & Legalization Guidelines</h2>
-            <p className="text-xs text-slate-500 max-w-xl leading-relaxed">
-              Your required document checklist and embassy requirements will configure once you choose your destination institution.
-            </p>
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search by name or type" className="w-full h-10 pl-9 pr-3" /></div>
+            <select aria-label="Filter by status" value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="h-10 px-3 sm:w-48">
+              <option value="All">All statuses</option><option value="Submitted">Waiting for review</option><option value="Under Review">Being reviewed</option><option value="Approved">Approved</option><option value="Needs action">Upload again</option>
+            </select>
           </div>
-          <Link to="/student/select-university">
-            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white font-bold shrink-0">
-              Browse Universities
-            </Button>
-          </Link>
+          {filtered.length === 0 ? <EmptyState icon={FileText} title={docs.length ? 'No files match' : 'No files yet'} hint={docs.length ? 'Try a different search or status.' : 'Upload your first document to get started.'} /> : (
+            <ul className="rounded-2xl border border-slate-200/80 bg-white divide-y divide-slate-100 overflow-hidden">
+              {filtered.map(d => (
+                <li key={d.id} className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#58051E]/8 text-[#58051E] flex items-center justify-center shrink-0"><FileText className="w-5 h-5" /></div>
+                  <div className="min-w-0 flex-1"><p className="text-sm font-semibold text-slate-900 truncate">{d.file_name}</p><p className="text-[11px] text-slate-500">{[d.requirement_name || d.doc_type, d.file_size, dateOf(d.uploaded_at)].filter(Boolean).join(' · ')}</p>{norm(d.status) === 'Needs action' && d.reviewer_notes && <p className="text-xs text-rose-700 font-medium mt-0.5">{d.reviewer_notes}</p>}</div>
+                  <div className="flex items-center gap-2 flex-wrap"><Pill s={norm(d.status)} /><button type="button" className={btnGhost} onClick={() => view(d)}><Eye className="w-3.5 h-3.5" />View</button></div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 
-      {/* ── 1. DOCUMENT SUMMARY SECTION (STATS) ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="p-3.5 border border-slate-200/80 shadow-xs bg-white">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Total Documents</p>
-            <Folder className="w-3.5 h-3.5 text-slate-400" />
-          </div>
-          <p className="text-2xl font-black text-slate-900 mt-1">{documents.length}</p>
-          <span className="text-[10px] font-medium text-slate-400">In student file</span>
-        </Card>
-        <Card className="p-3.5 border border-slate-200/80 shadow-xs bg-white">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Approved</p>
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-          </div>
-          <p className="text-2xl font-black text-emerald-600 mt-1">
-            {documents.filter(d => d.status === 'Approved' || (d.status as string) === 'Verified').length}
-          </p>
-          <span className="text-[10px] font-medium text-emerald-600/80">Compliance verified</span>
-        </Card>
-        <Card className="p-3.5 border border-slate-200/80 shadow-xs bg-white">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Under Review</p>
-            <Clock className="w-3.5 h-3.5 text-amber-600" />
-          </div>
-          <p className="text-2xl font-black text-amber-600 mt-1">
-            {documents.filter(d => d.status === 'Pending Verification' || d.status === 'Submitted' || d.status === 'Under Review').length}
-          </p>
-          <span className="text-[10px] font-medium text-amber-600/80">Awaiting counselor</span>
-        </Card>
-        <Card className="p-3.5 border border-slate-200/80 shadow-xs bg-white">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Action Needed</p>
-            <AlertCircle className="w-3.5 h-3.5 text-red-600" />
-          </div>
-          <p className="text-2xl font-black text-red-600 mt-1">
-            {documents.filter(d => d.status === 'Rejected' || d.status === 'Re-upload Requested').length}
-          </p>
-          <span className="text-[10px] font-medium text-red-600/80">Re-upload required</span>
-        </Card>
-      </div>
-
-      {/* ── 2. SEARCH & FILTER TOOLBAR ── */}
-      <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-center gap-3">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search documents by file name, category, or requirement..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#58051E] focus:bg-white"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto shrink-0">
-          <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg">
-            {['All', 'Submitted', 'Approved', 'Rejected'].map(s => {
-              const isSelected = statusFilter === s;
-              return (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setStatusFilter(s)}
-                  className={`px-3 py-1 rounded-md text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
-                    isSelected
-                      ? 'bg-[#58051E] text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {s}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Date Filter */}
-          <select
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20 focus:border-[#58051E]/40 cursor-pointer"
-          >
-            <option value="All">All Time</option>
-            <option value="Today">Today</option>
-            <option value="Last 7 Days">Last 7 Days</option>
-            <option value="Last 30 Days">Last 30 Days</option>
-            <option value="This Year">This Year</option>
-          </select>
-        </div>
-      </div>
-
-      {/* ── 3. REQUIRED DOCUMENTS CHECKLIST SECTION (POSITIONED BELOW SUMMARY AND FILTERS) ── */}
-      {targetWf && (
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
-          {/* Compliance Status Alert Pill */}
-          {configuredReqs.length > 0 && (
-            <div className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${
-              dossierStatus.isComplete
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                : 'bg-amber-50 border-amber-200 text-amber-800'
-            }`}>
-              <div className="flex items-center gap-2.5">
-                {dossierStatus.isComplete ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                ) : (
-                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                )}
-                <div>
-                  <span className="font-extrabold uppercase tracking-wide text-[10px] block">
-                    {dossierStatus.isComplete ? 'Document Verification: Complete' : 'Document Verification: Pending Files'}
-                  </span>
-                  <span className="text-[11px] text-slate-600 font-medium">
-                    {dossierStatus.isComplete
-                      ? `All ${dossierStatus.mandatoryCount} mandatory compliance files have been uploaded for ${targetCountry} verification.`
-                      : `${dossierStatus.uploadedMandatoryCount} of ${dossierStatus.mandatoryCount} mandatory documents uploaded.`}
-                  </span>
-                </div>
-              </div>
-              <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider shrink-0 self-start sm:self-auto border ${
-                dossierStatus.isComplete
-                  ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                  : 'bg-amber-100 text-amber-800 border-amber-200'
-              }`}>
-                {dossierStatus.isComplete ? 'Ready for Review' : `${dossierStatus.missingMandatoryCount} Missing Mandatory`}
-              </span>
-            </div>
-          )}
-
-          {/* Configured Document Requirements Checklist */}
-          {configuredReqs.length > 0 ? (
-            <div className="pt-2">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  Required Documents Checklist ({dossierStatus.results.length} Items)
-                </p>
-                <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-                  {dossierStatus.uploadedCount} / {dossierStatus.totalCount} Uploaded
-                </span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {dossierStatus.results.map((item) => {
-                  const reqDoc = item.requirement;
-                  const isUploaded = item.isSatisfied;
-                  const statusLabel = 
-                    item.status === 'Approved' ? 'Approved' :
-                    item.status === 'Under Review' ? 'In Review' :
-                    item.status === 'Submitted' ? 'Submitted' :
-                    item.status === 'Rejected' ? 'Rejected' : 'Missing';
-
-                  const badgeColor =
-                    item.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                    item.status === 'Under Review' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                    item.status === 'Submitted' ? 'bg-slate-100 text-slate-700 border-slate-200' :
-                    item.status === 'Rejected' ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                    'bg-amber-50 text-amber-700 border-amber-200';
-
-                  return (
-                    <div 
-                      key={reqDoc.id}
-                      className={`p-3.5 rounded-xl border text-xs flex flex-col justify-between transition-all ${
-                        isUploaded 
-                          ? 'bg-emerald-50/40 border-emerald-200 text-slate-800' 
-                          : 'bg-slate-50 border-slate-200 text-slate-800 hover:bg-slate-100/60'
-                      }`}
-                    >
-                      <div>
-                        <div className="flex items-start justify-between gap-2 mb-1.5">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                              <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-slate-200 text-slate-700 font-bold uppercase">
-                                {reqDoc.document_type || 'General'}
-                              </span>
-                              {reqDoc.is_required ? (
-                                <span className="text-[9.5px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
-                                  MANDATORY
-                                </span>
-                              ) : (
-                                <span className="text-[9.5px] font-medium px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 border border-slate-200 shrink-0">
-                                  OPTIONAL
-                                </span>
-                              )}
-                            </div>
-                            <span className="font-bold text-xs leading-tight text-slate-900 block">
-                              {reqDoc.document_name}
-                            </span>
-                          </div>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${badgeColor}`}>
-                            {statusLabel}
-                          </span>
-                        </div>
-
-                        {reqDoc.description && (
-                          <p className="text-[10px] text-slate-500 leading-snug line-clamp-2 mt-1">
-                            {reqDoc.description}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="pt-2.5 mt-2 border-t border-slate-200/60 flex items-center justify-between gap-2">
-                        <div className="text-[9.5px] text-slate-400">
-                          <span>{reqDoc.processing_time || '3-7 Days'}</span> • <span>{reqDoc.authority_fee || 'Free'}</span>
-                        </div>
-
-                        {!isUploaded ? (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenUploadForReq(reqDoc)}
-                            className="px-2.5 py-1 bg-[#58051E] hover:bg-[#430316] text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
-                          >
-                            <Upload className="w-3 h-3" /> Upload
-                          </button>
-                        ) : (
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <button
-                              type="button"
-                              title="Edit uploaded file"
-                              onClick={() => {
-                                if (item.doc) {
-                                  setReuploadTargetDocId(item.doc.id);
-                                  setSelectedReq(reqDoc);
-                                  setUploadName(item.doc.name);
-                                  setUploadType(item.doc.type);
-                                  setSelectedFile(null);
-                                  setShowUploadModal(true);
-                                } else {
-                                  handleOpenUploadForReq(reqDoc);
-                                }
-                              }}
-                              className="p-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 hover:border-slate-300 text-slate-600 hover:text-[#58051E] flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                              aria-label="Edit uploaded file"
-                            >
-                              <Pencil className="w-3 h-3" />
-                            </button>
-
-                            {item.doc && (
-                              <button
-                                type="button"
-                                onClick={() => handleOpenPreview(item.doc)}
-                                className="px-2.5 py-1 bg-[#58051E] hover:bg-[#430316] text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
-                              >
-                                <Eye className="w-3 h-3" /> Preview
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {additionalDocs.map((doc) => {
-                  const displayStatus = 
-                    (doc.status as string) === 'Pending Verification' || (doc.status as string) === 'Pending' ? 'Submitted' :
-                    (doc.status as string) === 'Re-upload Requested' ? 'Rejected' :
-                    (doc.status as string) === 'Verified' ? 'Approved' :
-                    (doc.status as string) === 'Under Review' ? 'In Review' :
-                    doc.status || 'Submitted';
-
-                  const badgeColor =
-                    displayStatus === 'Approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                    displayStatus === 'In Review' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                    displayStatus === 'Submitted' ? 'bg-slate-100 text-slate-700 border-slate-200' :
-                    displayStatus === 'Rejected' ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                    'bg-slate-100 text-slate-700 border-slate-200';
-
-                  return (
-                    <div 
-                      key={doc.id}
-                      className="p-3.5 rounded-xl border text-xs flex flex-col justify-between transition-all bg-emerald-50/40 border-emerald-200 text-slate-800"
-                    >
-                      <div>
-                        <div className="flex items-start justify-between gap-2 mb-1.5">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-                              <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-slate-200 text-slate-700 font-bold uppercase">
-                                {doc.type || 'Other'}
-                              </span>
-                              <span className="text-[9.5px] font-medium px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 border border-slate-200 shrink-0">
-                                ADDITIONAL
-                              </span>
-                            </div>
-                            <span className="font-bold text-xs leading-tight text-slate-900 block truncate" title={doc.name}>
-                              {doc.name}
-                            </span>
-                          </div>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${badgeColor}`}>
-                            {displayStatus}
-                          </span>
-                        </div>
-
-                        {doc.reviewerNotes || (doc as any).notes || (doc as any).comment ? (
-                          <p className="text-[10px] text-slate-500 leading-snug line-clamp-2 mt-1">
-                            {doc.reviewerNotes || (doc as any).notes || (doc as any).comment}
-                          </p>
-                        ) : (
-                          <p className="text-[10px] text-slate-400 leading-snug line-clamp-2 mt-1">
-                            Additional supporting certificate.
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="pt-2.5 mt-2 border-t border-slate-200/60 flex items-center justify-between gap-2">
-                        <div className="text-[9.5px] text-slate-400">
-                          <span>{doc.size || '1.0 MB'}</span> • <span>{doc.date || 'Uploaded'}</span>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            type="button"
-                            title="Edit uploaded file"
-                            onClick={() => {
-                              setReuploadTargetDocId(doc.id);
-                              setSelectedReq(null);
-                              setUploadName(doc.name);
-                              setUploadType(doc.type || 'Other');
-                              setSelectedFile(null);
-                              setShowUploadModal(true);
-                            }}
-                            className="p-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 hover:border-slate-300 text-slate-600 hover:text-[#58051E] flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                            aria-label="Edit uploaded file"
-                          >
-                            <Pencil className="w-3 h-3" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleOpenPreview(doc)}
-                            className="px-2.5 py-1 bg-[#58051E] hover:bg-[#430316] text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
-                          >
-                            <Eye className="w-3 h-3" /> Preview
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            targetWf.checklist_documents && targetWf.checklist_documents.length > 0 && (
-              <div className="pt-2">
-                <p className="text-xs font-bold text-slate-800 mb-2.5 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  Required Documents Checklist ({targetWf.checklist_documents.length} Items)
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                  {targetWf.checklist_documents.map((reqDoc: any) => {
-                    const isUploaded = documents.some(d => 
-                      d.name.toLowerCase().includes(reqDoc.name.toLowerCase().slice(0, 8)) ||
-                      d.type.toLowerCase().includes(reqDoc.category.toLowerCase())
-                    );
-                    return (
-                      <div 
-                        key={reqDoc.id}
-                        className={`p-2.5 rounded-lg border text-xs flex flex-col justify-between transition-all ${
-                          isUploaded 
-                            ? 'bg-emerald-50/50 border-emerald-200 text-slate-800' 
-                            : 'bg-slate-50 border-slate-200 text-slate-800 hover:bg-slate-100/60'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <span className="font-semibold text-[11px] leading-tight text-slate-900">{reqDoc.name}</span>
-                          {reqDoc.is_mandatory && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
-                              Required
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[10px] text-slate-500 leading-snug line-clamp-2">
-                          {reqDoc.instructions}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )
-          )}
-
-          {/* ── Add Other Certificate Section ── */}
-          <div className="p-4 rounded-2xl bg-[#FCF8F9] border border-dashed border-[#58051E]/25 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-full bg-[#58051E]/8 text-[#58051E] flex items-center justify-center shrink-0">
-                <FilePlus className="w-5 h-5 stroke-[2.2]" />
-              </div>
-              <div>
-                <h3 className="text-sm font-black text-[#58051E] tracking-tight">
-                  Add Other Certificate
-                </h3>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">
-                  Upload any additional certificate or supporting document
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setCertName('');
-                setCertDesc('');
-                setCertFile(null);
-                setCertError('');
-                setShowAddCertModal(true);
-              }}
-              className="h-9 px-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer self-start sm:self-auto shrink-0 active:scale-98"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>Add Certificate</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-
-
-      {/* Upload File Modal */}
-      <AnimatePresence>
-        {showUploadModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overscroll-contain">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs touch-none overscroll-contain"
-              onClick={handleCloseUploadModal}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              className="relative bg-white rounded-xl p-6 w-full max-w-md shadow-card border border-slate-200 z-10 text-left space-y-4 max-h-[90vh] overflow-y-auto overscroll-contain"
-            >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="text-base font-semibold text-slate-900">
-                  {reuploadTargetDocId ? 'Re-upload Document' : 'Upload Compliance Document'}
-                </h3>
-                <button
-                  type="button"
-                  onClick={handleCloseUploadModal}
-                  className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Rejection notice in modal */}
-              {(() => {
-                const reuploadTargetDoc = documents.find(d => d.id === reuploadTargetDocId);
-                const targetNotes = reuploadTargetDoc?.reviewerNotes || (reuploadTargetDoc as any)?.rejection_reason || (reuploadTargetDoc as any)?.notes || (reuploadTargetDoc as any)?.comment;
-                if (!targetNotes) return null;
-                return (
-                  <div className="p-3 bg-red-50/80 border border-red-200 rounded-lg text-left space-y-1">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-red-800 flex items-center gap-1.5">
-                      <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0" /> Previous Feedback
-                    </span>
-                    <p className="text-xs text-red-950 leading-relaxed">
-                      "{targetNotes}"
-                    </p>
-                  </div>
-                );
-              })()}
-
-              <form onSubmit={handleUploadSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Document File Name</label>
-                  <input
-                    type="text"
-                    value={uploadName}
-                    onChange={(e) => setUploadName(e.target.value)}
-                    placeholder="e.g. Academic_Marksheet"
-                    required
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E] focus:bg-white"
-                  />
-                </div>
-
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                  className="hidden"
-                />
-
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="p-6 border border-dashed border-slate-200 hover:border-[#58051E]/50 rounded-xl bg-slate-50/50 hover:bg-slate-50 text-center cursor-pointer transition-all"
-                >
-                  <Upload className="w-6 h-6 text-slate-400 mx-auto mb-2" />
-                  <p className="text-xs font-semibold text-slate-800 truncate">
-                    {selectedFile ? selectedFile.name : 'Click to select local document file'}
-                  </p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Supports PDF, DOCX, JPG, PNG (Max 10MB)</p>
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-2">
-                  <Button type="button" variant="outline" size="sm" onClick={handleCloseUploadModal}>Cancel</Button>
-                  <Button type="submit" size="sm" disabled={isSubmitting || !uploadName}>
-                    {isSubmitting ? 'Uploading...' : 'Submit Document'}
-                  </Button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Document Preview Modal */}
-      <AnimatePresence>
-        {previewDoc && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"
-              onClick={() => setPreviewDoc(null)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              className="relative bg-white rounded-xl p-5 sm:p-6 w-full max-w-3xl shadow-card border border-slate-200 z-10 text-left space-y-4 max-h-[90vh] flex flex-col"
-            >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="min-w-0 flex-1 pr-3">
-                  <h3 className="text-base font-semibold text-slate-900 truncate">{previewDoc.name}</h3>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs font-medium text-[#58051E]">{previewDoc.type}</span>
-                    <span className="text-slate-300">•</span>
-                    <span className="text-xs text-slate-500">{previewDoc.size}</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPreviewDoc(null)}
-                  className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 shrink-0 cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Document Preview Content Frame */}
-              <div className="flex-1 min-h-[320px] max-h-[550px] overflow-hidden rounded-lg border border-slate-200 bg-slate-50 relative flex flex-col items-center justify-center">
-                {previewLoading ? (
-                  <div className="py-12 text-center text-xs font-semibold text-slate-400">Loading document preview...</div>
-                ) : resolvedPreviewUrl ? (
-                  resolvedPreviewUrl.match(/\.(jpg|jpeg|png|webp|gif)($|\?)/i) || resolvedPreviewUrl.startsWith('data:image') ? (
-                    <div className="w-full h-full overflow-auto flex items-center justify-center p-2 bg-slate-900/5">
-                      <img src={resolvedPreviewUrl} alt={previewDoc.name} className="max-w-full max-h-[500px] object-contain rounded-md shadow-xs" />
-                    </div>
-                  ) : (
-                    <iframe
-                      src={resolvedPreviewUrl}
-                      title={previewDoc.name}
-                      className="w-full h-full min-h-[420px] border-0 rounded-lg bg-white"
-                    />
-                  )
-                ) : (
-                  <div className="p-8 text-center space-y-3">
-                    <FileText className="w-12 h-12 text-[#58051E]/40 mx-auto" />
-                    <p className="text-sm font-semibold text-slate-800">Compliance Document File Registered</p>
-                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                      This document is securely logged under your FEREX compliance record.
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Footer Actions */}
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100 flex-wrap gap-2">
-                <div className="text-xs text-slate-500">
-                  Uploaded on: <span className="font-semibold text-slate-800">{previewDoc.date}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {resolvedPreviewUrl && (
-                    <a
-                      href={resolvedPreviewUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-3.5 py-1.5 bg-[#58051E] text-white text-xs font-semibold rounded-lg hover:bg-[#430417] transition-colors inline-flex items-center gap-1.5 shadow-subtle"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" /> Open in New Tab
-                    </a>
-                  )}
-                  <Button size="sm" variant="outline" onClick={() => setPreviewDoc(null)}>Close</Button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* ── Add Other Certificate Modal ── */}
-      <AnimatePresence>
-        {showAddCertModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs"
-              onClick={() => {
-                if (!isSubmittingCert) setShowAddCertModal(false);
-              }}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative bg-white rounded-2xl p-5 sm:p-6 w-full max-w-lg shadow-2xl border border-slate-100 z-10 text-left space-y-4 max-h-[90vh] overflow-y-auto"
-            >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center">
-                    <FilePlus className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-black text-slate-900">
-                      Add Other Certificate
-                    </h3>
-                    <p className="text-xs text-slate-400 font-semibold">
-                      Upload an additional certificate or supporting file
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  disabled={isSubmittingCert}
-                  onClick={() => setShowAddCertModal(false)}
-                  className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 cursor-pointer disabled:opacity-50"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {certError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-                  <span>{certError}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleCertSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Certificate / Document Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={certName}
-                    onChange={(e) => {
-                      setCertName(e.target.value);
-                      if (certError) setCertError('');
-                    }}
-                    placeholder="e.g. German B2 Language Certificate, Internship Experience"
-                    required
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E] focus:bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Description / Purpose <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={certDesc}
-                    onChange={(e) => setCertDesc(e.target.value)}
-                    placeholder="e.g. Issued by Goethe-Institut in July 2025 as supporting qualification"
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E] focus:bg-white resize-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Certificate File <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="file"
-                    ref={certFileInputRef}
-                    onChange={handleCertFileChange}
-                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
-                    className="hidden"
-                  />
-
-                  <div
-                    onClick={() => certFileInputRef.current?.click()}
-                    className={`p-5 border-2 border-dashed rounded-xl text-center cursor-pointer transition-all ${
-                      certFile
-                        ? 'bg-rose-50/30 border-[#58051E]/40'
-                        : 'bg-slate-50 border-slate-200 hover:border-[#58051E]/40 hover:bg-slate-50/80'
-                    }`}
-                  >
-                    <Upload className="w-6 h-6 text-slate-400 mx-auto mb-1.5" />
-                    {certFile ? (
-                      <div>
-                        <p className="text-xs font-bold text-[#58051E] truncate max-w-sm mx-auto">
-                          {certFile.name}
-                        </p>
-                        <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-                          {(certFile.size / (1024 * 1024)).toFixed(2)} MB • Click to replace file
-                        </p>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="text-xs font-bold text-slate-800">
-                          Click to select certificate file
-                        </p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          Supports PDF, DOCX, JPG, PNG, WEBP (Max 15MB)
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={isSubmittingCert}
-                    onClick={() => setShowAddCertModal(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    size="sm"
-                    disabled={isSubmittingCert || !certName.trim()}
-                    className="bg-[#58051E] hover:bg-[#430316] text-white flex items-center gap-1.5"
-                  >
-                    <PlusCircle className="w-3.5 h-3.5" />
-                    <span>{isSubmittingCert ? 'Adding...' : 'Add Certificate'}</span>
-                  </Button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <DocumentUploadDialog
+        open={!!upload}
+        studentId={studentId}
+        forStudentName={isImpersonating ? activeStudentName : undefined}
+        fixedTitle={upload?.req?.document_name}
+        hint={upload?.req?.description}
+        onClose={() => setUpload(null)}
+        onUploaded={save}
+      />
+      <DocumentViewer doc={viewing} onClose={() => setViewing(null)} />
     </div>
   );
 };
+
+export default Documents;

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useUniversityFallback } from '../hooks/useUniversityFallback';
 
 // Shows a university's picture, and a designed campus illustration when no picture was set or the link is broken.
 // The illustration's colours are picked from the university's name so each card looks distinct but stays the same every time.
@@ -38,8 +39,13 @@ export const UniversityFallback: React.FC<{ name: string; country?: string; clas
   );
 };
 
+// Order: the university's own picture, then the picture the admin set as the default, then the drawn illustration.
 export const UniversityImage: React.FC<{ src?: string | null; name: string; country?: string; className?: string }> = ({ src, name, country, className = '' }) => {
-  const [broken, setBroken] = useState(false);
-  if (!src || broken) return <UniversityFallback name={name} country={country} />;
-  return <img src={src} alt={name} loading="lazy" className={`w-full h-full object-cover ${className}`} onError={() => setBroken(true)} />;
+  const defaultUrl = useUniversityFallback();
+  const [brokenOwn, setBrokenOwn] = useState<string | null>(null);
+  const [brokenDefault, setBrokenDefault] = useState(false);
+  const own = src && brokenOwn !== src ? src : '';
+  if (own) return <img src={own} alt={name} loading="lazy" className={`w-full h-full object-cover ${className}`} onError={() => setBrokenOwn(src!)} />;
+  if (defaultUrl && !brokenDefault) return <img src={defaultUrl} alt="" loading="lazy" className={`w-full h-full object-cover ${className}`} onError={() => setBrokenDefault(true)} />;
+  return <UniversityFallback name={name} country={country} />;
 };

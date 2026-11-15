@@ -7,6 +7,7 @@ import {
   clearAllDestinations,
   type DestinationItem
 } from '../lib/api/destinations';
+import { useRealtimeTable } from './useRealtimeTable';
 
 export function useDestinations() {
   const [destinations, setDestinations] = useState<DestinationItem[]>([]);
@@ -48,6 +49,8 @@ export function useDestinations() {
     };
   }, [fetchDestinations]);
 
+  useRealtimeTable('destinations', () => { void fetchDestinations(true); });
+
   const addDestination = async (payload: Omit<DestinationItem, 'id' | 'created_at' | 'updated_at'>) => {
     const created = await createDestination(payload);
     setDestinations(prev => [created, ...prev.filter(d => d.id !== created.id)]);
@@ -64,7 +67,11 @@ export function useDestinations() {
 
   const removeDestination = async (id: string, name?: string) => {
     setDestinations(prev => prev.filter(d => d.id !== id && (!name || d.name.toLowerCase() !== name.toLowerCase())));
-    await deleteDestination(id, name);
+    try {
+      await deleteDestination(id, name);
+    } finally {
+      void fetchDestinations(true);
+    }
   };
 
   const clearAll = async () => {

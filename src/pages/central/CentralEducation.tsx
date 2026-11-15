@@ -1,5 +1,6 @@
 import { UniversityBulkUpload } from '../../components/UniversityBulkUpload';
 import { UniversityImage } from '../../components/UniversityImage';
+import { UniversityFallbackPanel } from '../../components/UniversityFallbackPanel';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GraduationCap, Search, Plus, MapPin, Trash2, X, CheckCircle2, Star, Edit2, Image as ImageIcon, Globe, Coins } from 'lucide-react';
@@ -133,6 +134,8 @@ export const CentralEducation: React.FC = () => {
     <div className="space-y-6 text-left">
       {/* Toast Notification */}
       <ToastNotification message={toast} onClose={() => setToast('')} />
+
+      <UniversityFallbackPanel onMessage={setToast} />
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

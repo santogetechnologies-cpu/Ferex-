@@ -15,6 +15,7 @@ import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useDocuments } from '../hooks/useDocuments';
+import { DocumentViewer, type ViewerDoc } from '../components/DocumentViewer';
 import { useApplications } from '../hooks/useApplications';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
@@ -44,6 +45,7 @@ interface EmergencyInfo {
 export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const [profileViewDoc, setProfileViewDoc] = useState<ViewerDoc | null>(null);
   const { activeStudentId, activeStudentEmail, activeStudentName, isImpersonating, impersonatedStudent } = useActiveStudentScope();
   const photoInputRef = useRef<HTMLInputElement>(null);
   const { documents: dbDocs } = useDocuments(activeStudentId);
@@ -943,15 +945,15 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
                         {doc.status || 'Under Review'}
                       </span>
                       {doc.file_url && (
-                        <a
-                          href={doc.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-600 transition-colors"
+                        <button
+                          type="button"
+                          onClick={() => setProfileViewDoc({ name: doc.file_name, url: doc.file_url })}
+                          className="p-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-600 transition-colors cursor-pointer"
                           title="View Document"
+                          aria-label={`View ${doc.file_name}`}
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -1134,6 +1136,7 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
           </div>
         )}
       </AnimatePresence>
+      <DocumentViewer doc={profileViewDoc} onClose={() => setProfileViewDoc(null)} />
     </div>
   );
 };

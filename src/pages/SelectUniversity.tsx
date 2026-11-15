@@ -212,7 +212,7 @@ export const SelectUniversity: React.FC = () => {
   const [applyUni, setApplyUni] = useState<any>(null);
   const [selectedCourse, setSelectedCourse] = useState('');
   const [degreeLevel, setDegreeLevel] = useState("Bachelor's Degree");
-  const [intake, setIntake] = useState('October 2026');
+  const [intake, setIntake] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Calculate Advance Fee directly from Fee & Financial Governance
@@ -264,6 +264,7 @@ export const SelectUniversity: React.FC = () => {
       return;
     }
     setApplyUni(uni);
+    setIntake(Array.isArray(uni.intakes) && uni.intakes.length > 0 ? uni.intakes[0] : '');
     const initialLevel = degreeLevel || "Bachelor's Degree";
     const available = getFilteredCourses(uni, initialLevel);
     const firstCourse = available[0];
@@ -298,16 +299,16 @@ export const SelectUniversity: React.FC = () => {
       const studentName = activeStudentName;
 
       const matchedProg = applyUni.course_programs?.find((p: any) => p.name === selectedCourse);
-      const rawTuition = matchedProg?.tuition_fee || applyUni.university_fee || applyUni.tuition_range || '€3,500 / yr';
+      const rawTuition = matchedProg?.tuition_fee || applyUni.university_fee || applyUni.tuition_range || '';
 
       await addApp({
         student_id: activeStudentId,
         student_name: studentName,
         university_id: applyUni.id,
         university_name: applyUni.name,
-        program_name: `${degreeLevel} - ${selectedCourse || 'Higher Studies'}`,
-        course: `${degreeLevel} - ${selectedCourse || 'Higher Studies'}`,
-        intake: intake || 'October 2026',
+        program_name: `${degreeLevel} - ${selectedCourse || 'Program to be confirmed'}`,
+        course: `${degreeLevel} - ${selectedCourse || 'Program to be confirmed'}`,
+        intake: intake || 'To be confirmed',
         tuition_fee: rawTuition,
         course_fee: rawTuition,
       });
@@ -334,8 +335,8 @@ export const SelectUniversity: React.FC = () => {
           studentEmail: activeStudentEmail,
           studentName,
           universityName: applyUni.name,
-          programName: `${degreeLevel} - ${selectedCourse || 'Higher Studies'}`,
-          intake: intake || 'October 2026',
+          programName: `${degreeLevel} - ${selectedCourse || 'Program to be confirmed'}`,
+          intake: intake || 'To be confirmed',
           tuitionFee: String(rawTuition),
           country: applyUni.country || 'Europe',
           counselorName: assignedCounselorName,
@@ -549,9 +550,11 @@ export const SelectUniversity: React.FC = () => {
                   <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
                     <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                     <span>{uni.city ? `${uni.city}, ` : ''}{uni.country}</span>
-                    <span className="text-slate-300">•</span>
-                    <Award className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                    <span>Rank #{uni.ranking || 100}</span>
+                    {uni.ranking && uni.ranking !== 100 ? (<>
+                      <span className="text-slate-300">•</span>
+                      <Award className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                      <span>Rank #{uni.ranking}</span>
+                    </>) : null}
                   </div>
 
                   <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1 text-xs font-semibold">
@@ -635,10 +638,12 @@ export const SelectUniversity: React.FC = () => {
                   </div>
 
                   <div className="space-y-4 text-xs font-semibold text-slate-600">
-                    <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
-                      <span className="text-slate-400 font-extrabold uppercase text-[10px]">World Ranking</span>
-                      <span className="text-sm font-black text-slate-900">Rank #{drawerUni.ranking || 100}</span>
-                    </div>
+                    {drawerUni.ranking && drawerUni.ranking !== 100 ? (
+                      <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                        <span className="text-slate-400 font-extrabold uppercase text-[10px]">Ranking</span>
+                        <span className="text-sm font-black text-slate-900">Rank #{drawerUni.ranking}</span>
+                      </div>
+                    ) : null}
 
                     {/* Dynamic Fees Summary */}
                     <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
@@ -690,13 +695,14 @@ export const SelectUniversity: React.FC = () => {
                               )}
                             </div>
                           ))
-                        ) : (
-                          drawerUni.programs?.map((p: string) => (
+                        ) : (drawerUni.programs && drawerUni.programs.length > 0) ? (
+                          drawerUni.programs.map((p: string) => (
                             <div key={p} className="p-2.5 bg-slate-50 border border-slate-100 rounded-lg text-xs font-bold text-slate-800 flex items-center justify-between">
                               <span>{p}</span>
-                              <span className="text-[10px] font-black text-[#6A1B2E] bg-[#6A1B2E]/5 px-2 py-0.5 rounded-md border border-[#6A1B2E]/20">Master / Bachelor</span>
                             </div>
                           ))
+                        ) : (
+                          <p className="text-xs text-slate-500 font-medium p-3 bg-slate-50 border border-slate-100 rounded-xl">Programs are not published for this university yet. Your counselor will confirm available courses.</p>
                         )}
                       </div>
                     </div>
@@ -711,7 +717,7 @@ export const SelectUniversity: React.FC = () => {
                             </span>
                           ))
                         ) : (
-                          <span className="text-xs text-slate-400 italic font-medium">October 2026 / February 2027</span>
+                          <span className="text-xs text-slate-500 font-medium">Intake dates are not published yet. Your counselor will confirm.</span>
                         )}
                       </div>
                     </div>
@@ -786,10 +792,7 @@ export const SelectUniversity: React.FC = () => {
                         {(applyUni.intakes && applyUni.intakes.length > 0) ? (
                           applyUni.intakes.map((i: string) => <option key={i} value={i}>{i}</option>)
                         ) : (
-                          <>
-                            <option value="October 2026">October 2026 (Fall Semester)</option>
-                            <option value="February 2027">February 2027 (Spring Semester)</option>
-                          </>
+                          <option value="">To be confirmed by your counselor</option>
                         )}
                       </select>
                     </div>

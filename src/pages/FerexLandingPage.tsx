@@ -108,6 +108,7 @@ export const FerexLandingPage: React.FC = () => {
   // State
   const [selectedCountryFilter, setSelectedCountryFilter] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showAllCountries, setShowAllCountries] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
   const [isMissionModalOpen, setIsMissionModalOpen] = useState<boolean>(false);
@@ -191,8 +192,9 @@ export const FerexLandingPage: React.FC = () => {
       const matchSearch = !q || u.name?.toLowerCase().includes(q) || u.city?.toLowerCase().includes(q) || u.country?.toLowerCase().includes(q);
       return matchCountry && matchCat && matchSearch;
     });
-    return list;
-  }, [universities, selectedCountryFilter, activeCategory, searchQuery]);
+    // Featured countries lead the directory; inside a country the universities keep the admin's ranking order.
+    return sortByFeatured(list, destinations, u => u.country || '');
+  }, [universities, destinations, selectedCountryFilter, activeCategory, searchQuery]);
 
   // Destination country statistics
   const destinationStats = useMemo(() => {
@@ -201,7 +203,7 @@ export const FerexLandingPage: React.FC = () => {
     // Seed registered destinations
     destinations.forEach(d => {
       if (d.name && d.name.toLowerCase().trim() !== 'india') {
-        map.set(d.name.trim(), { count: 0, unis: [], minFee: 3000 });
+        map.set(d.name.trim(), { count: 0, unis: [], minFee: 99999 });
       }
     });
 
@@ -210,7 +212,7 @@ export const FerexLandingPage: React.FC = () => {
       const existing = map.get(u.country) || { count: 0, unis: [], minFee: 99999 };
       existing.count += 1;
       existing.unis.push(u);
-      const match = (u.tuition_range || u.university_fee || '3000').match(/\d+/);
+      const match = (u.tuition_range || u.university_fee || '').match(/\d+/);
       if (match) {
         const val = parseInt(match[0], 10);
         if (val < existing.minFee) existing.minFee = val;
@@ -224,7 +226,7 @@ export const FerexLandingPage: React.FC = () => {
       return {
         country,
         count: data.count,
-        minFee: data.minFee === 99999 ? 3000 : data.minFee,
+        minFee: data.minFee === 99999 ? 0 : data.minFee,
         meta: COUNTRY_DETAILS[country] || {
           flag: fallbackFlag,
           schengen: destObj?.badge || 'Schengen Member',
@@ -662,7 +664,7 @@ export const FerexLandingPage: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {destinationStats.slice(0, 6).map((dest) => (
+            {(showAllCountries ? destinationStats : destinationStats.slice(0, 6)).map((dest) => (
               <div
                 key={dest.country}
                 className="bg-white rounded-2xl p-6 border border-[#ECE7EA] hover:border-[#570229]/40 hover:shadow-lg transition-all flex flex-col justify-between space-y-6 group text-left"
@@ -692,7 +694,7 @@ export const FerexLandingPage: React.FC = () => {
                   <div className="space-y-2 pt-2 border-t border-[#ECE7EA] text-xs">
                     <div className="flex justify-between items-center py-1">
                       <span className="text-[#6B7280] font-semibold">Tuition Starting From:</span>
-                      <span className="font-bold text-[#1F2937]">€{dest.minFee.toLocaleString()} / yr</span>
+                      <span className="font-bold text-[#1F2937]">{dest.minFee > 0 ? `€${dest.minFee.toLocaleString()} / yr` : 'On request'}</span>
                     </div>
                     <div className="flex justify-between items-center py-1">
                       <span className="text-[#6B7280] font-semibold">Monthly Living Cost:</span>
@@ -717,6 +719,13 @@ export const FerexLandingPage: React.FC = () => {
               </div>
             ))}
           </div>
+          {destinationStats.length > 6 && (
+            <div className="text-center">
+              <button onClick={() => setShowAllCountries(v => !v)} className="h-10 px-6 rounded-xl border border-[#ECE7EA] text-xs font-black text-[#570229] hover:bg-[#F7F4F2] cursor-pointer">
+                {showAllCountries ? 'Show fewer countries' : `Show all ${destinationStats.length} countries`}
+              </button>
+            </div>
+          )}
 
         </div>
       </section>
@@ -938,7 +947,8 @@ export const FerexLandingPage: React.FC = () => {
                       : 'text-[#6B7280] hover:text-[#1F2937] hover:bg-white'
                   }`}
                 >
-                  {c}
+                  {c !== 'All' && isFeaturedCountry(destinations, c) && <span className="text-amber-400 mr-1">★</span>}{c}
+                  <span className="ml-1.5 opacity-60 font-bold">{c === 'All' ? universities.filter(u => (u.country || '').toLowerCase().trim() !== 'india').length : universities.filter(u => u.country?.trim().toLowerCase() === c.toLowerCase()).length}</span>
                 </button>
               ))}
             </div>
@@ -1003,7 +1013,7 @@ export const FerexLandingPage: React.FC = () => {
                         <div className="flex justify-between items-center">
                           <span className="text-[#6B7280] font-semibold">Flagship Intakes:</span>
                           <span className="font-bold text-[#1F2937]">
-                            {Array.isArray(uni.intakes) ? uni.intakes.join(' • ') : (uni.intakes || (uni as any).intake || 'October 2026 • February 2027')}
+                            {Array.isArray(uni.intakes) ? uni.intakes.join(' • ') : (uni.intakes || (uni as any).intake || 'Ask admissions')}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">

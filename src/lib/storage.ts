@@ -72,6 +72,12 @@ export async function uploadFileToBucket(
       return { url: '', path: filePath, error: uploadError.message };
     }
 
+    // Public asset buckets (university pictures, branding) need a permanent link; a signed link would die after a day.
+    if (bucket === 'digital-assets' || (bucket as string) === 'digital_assets') {
+      const { data: pub } = supabase.storage.from(bucket).getPublicUrl(filePath);
+      return { url: pub.publicUrl, path: filePath };
+    }
+
     // For private buckets, generate a secure signed URL (valid 24 hours)
     const { data: signedData, error: signError } = await supabase.storage
       .from(bucket)

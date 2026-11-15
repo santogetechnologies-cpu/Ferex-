@@ -2,6 +2,10 @@ import { supabase } from '../supabase';
 import { getAdminSupabaseClient } from '../adminAuthClient';
 import { generateUUID } from '../../utils/uuid';
 
+// A write that matched no rows (removed already, or blocked by access rules) must not look like success.
+const rowsError = (r: { data: any; error: any }) =>
+  r.error || (Array.isArray(r.data) && r.data.length === 0 ? { message: 'Nothing was changed. The record no longer exists or you do not have permission.' } : null);
+
 export interface DestinationItem {
   id: string;
   name: string;
@@ -120,13 +124,13 @@ export async function updateDestination(id: string, payload: Partial<Destination
 
   try {
     const admin = await getAdminSupabaseClient();
-    const { error } = await admin.from('destinations').update(updatedPayload).eq('id', id);
+    const error = rowsError(await admin.from('destinations').update(updatedPayload).eq('id', id).select('id'));
     if (!error) { lastError = null; } else { lastError = error; console.warn('[updateDestination] Admin update failed:', error.message); }
   } catch (e) { lastError = e; console.warn('[updateDestination] Admin client threw:', e); }
 
   if (lastError) {
     try {
-      const { error: anonErr } = await supabase.from('destinations').update(updatedPayload).eq('id', id);
+      const anonErr = rowsError(await supabase.from('destinations').update(updatedPayload).eq('id', id).select('id'));
       if (!anonErr) { lastError = null; } else { lastError = anonErr; console.error('[updateDestination] Anon update failed:', anonErr.message); }
     } catch (e) { lastError = e; console.error('[updateDestination] Anon client threw:', e); }
   }
@@ -156,15 +160,21 @@ export async function updateDestination(id: string, payload: Partial<Destination
 export async function deleteDestination(id: string, name?: string): Promise<void> {
   let lastError: any = null;
 
+  // A country that still has universities would simply reappear everywhere, so ask the admin to clear them first.
+  if (name) {
+    const { count } = await supabase.from('universities').select('id', { count: 'exact', head: true }).ilike('country', name.trim());
+    if (count && count > 0) throw new Error(`${name} still has ${count} ${count === 1 ? 'university' : 'universities'}. Remove or move them first, then remove the country.`);
+  }
+
   try {
     const admin = await getAdminSupabaseClient();
-    const { error } = await admin.from('destinations').delete().eq('id', id);
+    const error = rowsError(await admin.from('destinations').delete().eq('id', id).select('id'));
     if (!error) { lastError = null; } else { lastError = error; console.warn('[deleteDestination] Admin delete failed:', error.message); }
   } catch (e) { lastError = e; console.warn('[deleteDestination] Admin client threw:', e); }
 
   if (lastError) {
     try {
-      const { error: anonErr } = await supabase.from('destinations').delete().eq('id', id);
+      const anonErr = rowsError(await supabase.from('destinations').delete().eq('id', id).select('id'));
       if (!anonErr) { lastError = null; } else { lastError = anonErr; console.error('[deleteDestination] Anon delete failed:', anonErr.message); }
     } catch (e) { lastError = e; console.error('[deleteDestination] Anon client threw:', e); }
   }

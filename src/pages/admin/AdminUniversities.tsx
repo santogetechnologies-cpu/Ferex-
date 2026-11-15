@@ -9,6 +9,7 @@ import {
 import { useUniversities } from '../../hooks/useUniversities';
 import { useDestinations } from '../../hooks/useDestinations';
 import { FeaturedCountriesPanel } from '../../components/FeaturedCountriesPanel';
+import { UniversityFallbackPanel } from '../../components/UniversityFallbackPanel';
 import { useCountryWorkflows } from '../../hooks/useCountryWorkflows';
 import { useFeeConfig } from '../../hooks/useFeeConfig';
 import { uploadFileToBucket } from '../../lib/storage';
@@ -736,6 +737,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
       {/* TAB 1: UNIVERSITIES MANAGEMENT */}
       {activeMainTab === 'universities' && (
         <div className="space-y-4">
+          {!isStaff && <UniversityFallbackPanel onMessage={showToast} />}
           {/* Filters & Search */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/70 shadow-xs">
             <div className="relative flex-1">
@@ -1291,6 +1293,8 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                         onChange={handleImageFileUpload}
                         className="hidden"
                       />
+
+                      <p className="text-[11px] font-medium text-slate-500">Leave this empty to use the default university picture set at the top of the Universities tab.</p>
 
                       {/* Live Preview & Upload Dropzone */}
                       {imageUrl ? (

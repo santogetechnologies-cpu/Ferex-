@@ -3,12 +3,13 @@ import { getDocumentsForStudent, getDocumentsForAdmin, updateDocumentStatus, upl
 import { supabase } from '../lib/supabase';
 import type { StudentDocument } from '../lib/types';
 
-export function useDocuments(studentId?: string) {
+export function useDocuments(studentId?: string, enabled = true) {
   const [documents, setDocuments] = useState<StudentDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchDocs = useCallback(async (isInitial: boolean = false) => {
+    if (!enabled) { setDocuments([]); setLoading(false); return; }
     try {
       if (isInitial) {
         setLoading(true);
@@ -29,10 +30,11 @@ export function useDocuments(studentId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [studentId]);
+  }, [studentId, enabled]);
 
   useEffect(() => {
     fetchDocs(true);
+    if (!enabled) return;
 
     // Setup Supabase Realtime Subscription on student_documents
     const channelName = studentId ? `realtime_docs_student_${studentId}` : 'realtime_docs_admin';
@@ -66,7 +68,7 @@ export function useDocuments(studentId?: string) {
       window.removeEventListener('ferex_document_change', handleLocalEvent);
       window.removeEventListener('ferex_documents_change', handleLocalEvent);
     };
-  }, [fetchDocs, studentId]);
+  }, [fetchDocs, studentId, enabled]);
 
   const changeStatus = async (
     id: string,
