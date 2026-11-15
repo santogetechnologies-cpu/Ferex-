@@ -465,7 +465,8 @@ export async function convertLeadToStudentAccount(
   leadId: string,
   tempPassword?: string,
   performerName = 'Counselor',
-  counselor?: { id?: string; name: string; email?: string }
+  counselor?: { id?: string; name: string; email?: string },
+  studentEmail?: string
 ): Promise<{ success: boolean; studentId?: string; email?: string; tempPassword?: string; error?: string; warnings?: string[] }> {
   const local = getLocalLeads();
   let lead = local.find((l) => l.id === leadId);
@@ -502,7 +503,9 @@ export async function convertLeadToStudentAccount(
     ? tempPassword.trim()
     : `Ferex@${Math.floor(100000 + Math.random() * 900000)}`;
 
-  const targetEmail = lead.email && lead.email.includes('@')
+  const targetEmail = studentEmail && studentEmail.includes('@')
+    ? studentEmail.trim().toLowerCase()
+    : lead.email && lead.email.includes('@')
     ? lead.email.trim().toLowerCase()
     : `student.${lead.phone.replace(/[^\d]/g, '').slice(-6)}_${lead.id.slice(0, 4)}@ferexstudent.org`;
 

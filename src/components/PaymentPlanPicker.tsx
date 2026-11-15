@@ -22,6 +22,7 @@ export const PaymentPlanPicker: React.FC<Props> = ({ studentId, country, actorNa
   const [pkgId, setPkgId] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -50,11 +51,28 @@ export const PaymentPlanPicker: React.FC<Props> = ({ studentId, country, actorNa
       await setStudentBillingFlow(studentId, choice, choice === 'package' ? pkgId : null, actorName);
       setAssignment({ student_id: studentId, flow_mode: choice, package_id: choice === 'package' ? pkgId : undefined, assigned_by: actorName, assigned_at: new Date().toISOString() });
       onChanged?.(choice === 'package' ? `Payment plan confirmed: ${selectedPkg?.name}` : 'Payment plan confirmed: normal flow');
+      setEditing(false);
       onSaved?.();
     } catch (e: any) { setError(e.message); } finally { setBusy(false); }
   };
 
   const tile = (active: boolean) => `text-left rounded-xl border p-3.5 transition cursor-pointer ${active ? 'border-[#58051E] bg-[#58051E]/[0.04] ring-1 ring-[#58051E]/20' : 'border-slate-200 bg-white hover:border-slate-300'}`;
+
+  // Once a plan is confirmed it shows as one line. The choices open only when the admin wants to change it.
+  if (assignment && current !== 'pending' && !editing) {
+    return (
+      <section className="rounded-2xl border border-emerald-200/80 bg-emerald-50/50 px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-slate-900 truncate">{current === 'normal' ? 'Normal flow' : currentPkg?.name || 'Country package'}</p>
+            <p className="text-[11px] text-slate-500 truncate">Plan confirmed{assignment.assigned_by ? ` by ${assignment.assigned_by}` : ''}{assignment.assigned_at ? ` on ${new Date(assignment.assigned_at).toLocaleDateString('en-GB')}` : ''}</p>
+          </div>
+        </div>
+        <button type="button" onClick={() => setEditing(true)} className="h-9 px-4 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer">Change plan</button>
+      </section>
+    );
+  }
 
   return (
     <section className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-4">

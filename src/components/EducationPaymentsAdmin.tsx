@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, Check, Plus, X, Building2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useFeeConfig } from '../hooks/useFeeConfig';
@@ -32,7 +33,8 @@ export function EducationPaymentsAdmin() {
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
-  const [selected, setSelected] = useState('');
+  const [params] = useSearchParams();
+  const [selected, setSelected] = useState(params.get('student') || '');
   const [toast, setToast] = useState('');
 
   const load = useCallback(async () => {
@@ -148,6 +150,7 @@ function StudentPanel({ student, country, flow, pkg, payments, application, conf
   const [destination, setDestination] = useState(country);
   const [recording, setRecording] = useState<EducationFee | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [showDiscount, setShowDiscount] = useState(false);
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
 
@@ -255,7 +258,9 @@ function StudentPanel({ student, country, flow, pkg, payments, application, conf
         </section>
       )}
 
-      {flow !== 'pending' && <StudentDiscountEditor studentId={student.id} country={destination} onChanged={onChanged} />}
+      {flow !== 'pending' && (showDiscount
+        ? <StudentDiscountEditor studentId={student.id} country={destination} onChanged={onChanged} />
+        : <button type="button" onClick={() => setShowDiscount(true)} className="h-10 px-4 rounded-xl border border-dashed border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer">+ Give this student a discount</button>)}
 
       <section className="rounded-2xl border border-slate-200/80 bg-white">
         <button type="button" onClick={() => setShowHistory(v => !v)} aria-expanded={showHistory} className="w-full flex items-center justify-between px-5 py-4 text-left cursor-pointer">

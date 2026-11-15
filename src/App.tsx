@@ -43,6 +43,7 @@ const AdminDocumentReview = lazy(() => import('./pages/admin/AdminDocumentReview
 const AdminPayments = lazy(() => import('./pages/admin/AdminPayments').then(m => ({ default: m.AdminPayments })));
 const AdminSupportTickets = lazy(() => import('./pages/admin/AdminSupportTickets').then(m => ({ default: m.AdminSupportTickets })));
 const AdminChatSupport = lazy(() => import('./pages/admin/AdminChatSupport').then(m => ({ default: m.AdminChatSupport })));
+const AdminFinance = lazy(() => import('./pages/admin/AdminFinance').then(m => ({ default: m.AdminFinance })));
 const AdminReports = lazy(() => import('./pages/admin/AdminReports').then(m => ({ default: m.AdminReports })));
 const AdminNotifications = lazy(() => import('./pages/admin/AdminNotifications').then(m => ({ default: m.AdminNotifications })));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
@@ -345,6 +346,8 @@ function App() {
           <Route path="/admin/payments" element={<Navigate to="/admin/payment-control" replace />} />
           <Route path="/admin/support" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminSupportTickets /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/chat" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminChatSupport /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/finance" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminFinance /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/finance/:tab" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminFinance /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminReports /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/staff" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/admin/meetings" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminMeetings /></AdminLayout></ProtectedRoute>} />

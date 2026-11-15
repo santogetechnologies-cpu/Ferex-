@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PaymentPlanPicker } from '../../components/PaymentPlanPicker';
-import { StudentDiscountEditor } from '../../components/StudentDiscountEditor';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, ShieldCheck, AlertCircle, Clock, FileText, Receipt, ExternalLink, Package, Layers , MapPin } from 'lucide-react';
 import {
@@ -988,11 +987,10 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                 )}
 
                 {!isStaff && viewStudent?.id && (
-                  <StudentDiscountEditor studentId={viewStudent.id} country={viewStudent.targetCountry} onChanged={showToast} />
-                )}
-
-                {!isStaff && viewStudent?.id && (
-                  <PaymentPlanPicker studentId={viewStudent.id} country={viewStudent.targetCountry} actorName={profile?.full_name || user?.email || 'Admin'} onChanged={showToast} />
+                  <Link to={`/admin/payment-control?student=${viewStudent.id}`} className="flex items-center justify-between gap-3 p-4 rounded-xl border border-[#58051E]/20 bg-[#58051E]/[0.04] hover:bg-[#58051E]/[0.08] transition-colors">
+                    <span><span className="block text-xs font-black text-slate-900">Payment plan, fees and discounts</span><span className="block text-[11px] text-slate-500 mt-0.5">Confirm how this student pays, record payments and add a discount, all in one place.</span></span>
+                    <span className="text-xs font-bold text-[#58051E] shrink-0">Open Payments →</span>
+                  </Link>
                 )}
 
                 {/* Stepper with Confirm buttons */}

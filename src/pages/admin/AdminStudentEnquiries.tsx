@@ -54,6 +54,15 @@ const STATUS_COLORS: Record<EducationLead['status'], { bg: string; text: string;
   'Lost': { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
 };
 
+// What the visitor typed on the enquiry page: course and intake travel in the notes; anything else is shown as-is.
+const leadDetails = (lead: EducationLead) => {
+  const notes = (lead.notes || '').trim();
+  const intake = notes.match(/Intake:\s*([^·\n]+)/i)?.[1]?.trim() || '';
+  const courseNote = notes.match(/Course:\s*([^·\n]+)/i)?.[1]?.trim() || '';
+  const extra = notes.replace(/Course:\s*[^·\n]+/i, '').replace(/Intake:\s*[^·\n]+/i, '').replace(/^[\s·]+|[\s·]+$/g, '').replace(/\s*·\s*·\s*/g, ' · ');
+  return { course: (lead.degree_level || courseNote || '').trim(), intake, extra };
+};
+
 export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ isStaff = false }) => {
   const { profile } = useAuth();
   const currentCounselorName = (profile?.full_name || '').trim();
@@ -92,6 +101,8 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
   // Convert Deal & Create Student Login Modal
   const [convertModalLead, setConvertModalLead] = useState<EducationLead | null>(null);
   const [tempPassword, setTempPassword] = useState('');
+  const [convertEmail, setConvertEmail] = useState('');
+  const [showClosures, setShowClosures] = useState(false);
   const [convertCounselorId, setConvertCounselorId] = useState('');
   const [converting, setConverting] = useState(false);
   const [createdCredentials, setCreatedCredentials] = useState<{ email: string; pass: string } | null>(null);
@@ -240,6 +251,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
 
   useEffect(() => {
     if (convertModalLead) {
+      setConvertEmail(convertModalLead.email || '');
       setTempPassword(generateTempPassword());
       setConvertCounselorId('');
     }
@@ -253,6 +265,10 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
       showToastMsg('Choose the counselor who will guide this student before closing the deal.');
       return;
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(convertEmail.trim())) {
+      showToastMsg('Enter the student\'s real email address. It becomes their login.');
+      return;
+    }
     if (tempPassword.trim().length < 8) {
       showToastMsg('The temporary password must be at least 8 characters.');
       return;
@@ -263,7 +279,8 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
         convertModalLead.id,
         tempPassword.trim(),
         profile?.full_name || 'Admissions Counselor',
-        chosen ? { id: chosen.id, name: chosen.name, email: chosen.email } : undefined
+        chosen ? { id: chosen.id, name: chosen.name, email: chosen.email } : undefined,
+        convertEmail.trim()
       );
 
       if (res.success) {
@@ -282,6 +299,24 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
       setConverting(false);
     }
   };
+
+  // Who is closing the most: every counselor, ranked by deals closed.
+  const leaderboard = useMemo(() => {
+    const month = closureMonth;
+    const map = new Map<string, { name: string; assigned: number; closed: number; closedMonth: number; active: number }>();
+    const row = (name: string) => { if (!map.has(name)) map.set(name, { name, assigned: 0, closed: 0, closedMonth: 0, active: 0 }); return map.get(name)!; };
+    counselors.forEach(c => row(c.name));
+    leads.forEach(l => {
+      const name = (l.assigned_counselor_name || l.converted_by || '').trim();
+      if (!name) return;
+      const r = row(name);
+      r.assigned += 1;
+      const closed = l.status === 'Enrolled' || Boolean(l.converted_student_id);
+      if (closed) { r.closed += 1; if (monthKey(l.converted_at || l.updated_at || l.created_at) === month) r.closedMonth += 1; }
+      else if (!['Lost', 'Not Interested'].includes(l.status)) r.active += 1;
+    });
+    return Array.from(map.values()).sort((a, b) => b.closed - a.closed || b.closedMonth - a.closedMonth || a.name.localeCompare(b.name));
+  }, [leads, counselors, closureMonth]);
 
   // Filtered Leads
   const filteredLeads = useMemo(() => {
@@ -339,7 +374,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
     return closuresForMonth(visible, closureMonth);
   }, [leads, closureMonth, isStaff, currentCounselorName]);
 
-  const topCounselor = metrics.find((m) => m.counselor_id !== 'unassigned' && m.enrolled > 0);
+  const topCounselor = (() => { const t = leaderboard.find(c => c.closed > 0); return t ? { counselor_name: t.name, enrolled: t.closed, conversion_rate: t.assigned ? Math.round((t.closed / t.assigned) * 100) : 0 } : undefined; })();
 
   return (
     <div className="space-y-6 text-left antialiased">
@@ -440,6 +475,31 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
         </Card>
       </div>
 
+      {/* ── Counselor leaderboard (admin) ── */}
+      {!isStaff && leaderboard.length > 0 && (
+        <Card className="p-4 border border-slate-200/80 shadow-xs space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-[#58051E]" /><h3 className="text-xs font-black uppercase tracking-wider text-slate-800">Who is closing the most</h3></div>
+            <span className="text-[11px] font-semibold text-slate-500">Deals closed, all time and in {closureMonth}</span>
+          </div>
+          <ol className="space-y-2">
+            {leaderboard.map((c, i) => {
+              const max = Math.max(1, leaderboard[0].closed);
+              const rate = c.assigned ? Math.round((c.closed / c.assigned) * 100) : 0;
+              return (
+                <li key={c.name} className="flex items-center gap-3">
+                  <span className={`w-6 h-6 rounded-full text-[11px] font-black flex items-center justify-center shrink-0 ${i === 0 && c.closed > 0 ? 'bg-amber-400 text-slate-900' : 'bg-slate-100 text-slate-600'}`}>{i + 1}</span>
+                  <span className="w-36 sm:w-48 text-sm font-bold text-slate-900 truncate">{c.name}</span>
+                  <div className="flex-1 h-2.5 rounded-full bg-slate-100 overflow-hidden min-w-[3rem]"><div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${(c.closed / max) * 100}%` }} /></div>
+                  <span className="w-44 text-right text-xs text-slate-600 tabular-nums whitespace-nowrap"><b className="text-slate-900">{c.closed}</b> closed · {c.closedMonth} this month</span>
+                  <span className="hidden md:block w-32 text-right text-[11px] text-slate-500 tabular-nums">{c.assigned} assigned · {rate}%</span>
+                </li>
+              );
+            })}
+          </ol>
+        </Card>
+      )}
+
       {/* ── Monthly Closures: which counselor closed which student ── */}
       <Card className="p-4 border border-slate-200/80 shadow-xs space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -449,6 +509,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
               Closed Deals by Counselor — {closures.total} student{closures.total === 1 ? '' : 's'}
             </h3>
           </div>
+          <button type="button" onClick={() => setShowClosures(v => !v)} aria-expanded={showClosures} className="ml-auto h-8 px-3 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer">{showClosures ? 'Hide students' : 'Show students'}</button>
           <input
             type="month"
             aria-label="Closure month"
@@ -458,6 +519,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
             className="h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800"
           />
         </div>
+        {showClosures && (<>
         {closures.byCounselor.length === 0 ? (
           <p className="text-xs font-semibold text-slate-500 py-2">No deals were closed in this month.</p>
         ) : (
@@ -484,63 +546,9 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
             ))}
           </div>
         )}
+        </>)}
       </Card>
 
-      {/* ── Counselor Performance Matrix Table (Admin View Only) ── */}
-      {!isStaff && metrics.length > 0 && (
-        <Card className="p-4 border border-slate-200/80 shadow-xs space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-[#58051E]" />
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">Counselor Performance Overview</h3>
-            </div>
-            <span className="text-[10px] font-bold text-slate-400">Live Conversion Analytics</span>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-y border-slate-200/70 text-[10px] font-extrabold uppercase text-slate-500">
-                <tr>
-                  <th className="p-2.5">Rank</th>
-                  <th className="p-2.5">Counselor Name</th>
-                  <th className="p-2.5 text-center">Assigned Leads</th>
-                  <th className="p-2.5 text-center">Contacted</th>
-                  <th className="p-2.5 text-center">Interested / Follow-up</th>
-                  <th className="p-2.5 text-center">Closed Deals (Enrolled)</th>
-                  <th className="p-2.5 text-right">Conversion Rate</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-                {metrics.map((m) => (
-                  <tr key={m.counselor_id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="p-2.5 font-mono font-bold text-slate-500">
-                      {m.rank === 1 && m.enrolled > 0 ? (
-                        <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-300">
-                          🏆 #1
-                        </span>
-                      ) : (
-                        `#${m.rank}`
-                      )}
-                    </td>
-                    <td className="p-2.5 font-bold text-slate-900">{m.counselor_name}</td>
-                    <td className="p-2.5 text-center font-bold">{m.total_assigned}</td>
-                    <td className="p-2.5 text-center text-indigo-700 font-bold">{m.contacted}</td>
-                    <td className="p-2.5 text-center text-amber-700 font-bold">{m.interested + m.in_follow_up}</td>
-                    <td className="p-2.5 text-center font-black text-emerald-700">{m.enrolled}</td>
-                    <td className="p-2.5 text-right font-black text-slate-900">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-                        m.conversion_rate >= 30 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'
-                      }`}>
-                        {m.conversion_rate}%
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
 
       {/* ── Status Tabs & Search Bar ── */}
       <Card className="p-4 border border-slate-200/80 shadow-xs space-y-3">
@@ -656,196 +664,92 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
         )}
       </Card>
 
-      {/* ── LEADS TABLE ── */}
+      {/* ── LEADS TABLE: two lines per enquiry so every action fits without sideways scrolling ── */}
       <Card className="overflow-hidden border border-slate-200/80 shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-extrabold uppercase text-slate-500 tracking-wider">
-              <tr>
-                <th className="p-3.5 w-10 text-center">
-                  <input
-                    type="checkbox"
-                    checked={filteredLeads.length > 0 && selectedLeadIds.size === filteredLeads.length}
-                    onChange={handleToggleSelectAll}
-                    className="w-4 h-4 rounded text-[#58051E] focus:ring-[#58051E] cursor-pointer"
-                  />
-                </th>
-                <th className="p-3.5">Student Lead & Phone</th>
-                <th className="p-3.5">Target Destination</th>
-                <th className="p-3.5">Status & Tag</th>
-                <th className="p-3.5">Assigned Counselor</th>
-                <th className="p-3.5">Enquiry Date</th>
-                <th className="p-3.5">WhatsApp</th>
-                <th className="p-3.5 text-right">Actions & Close Deal</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-              {loading ? (
-                <tr>
-                  <td colSpan={8} className="p-8"><BlockCap /></td>
-                </tr>
-              ) : filteredLeads.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400 font-semibold">
-                    No student enquiries found matching the selected filters.
-                  </td>
-                </tr>
-              ) : (
-                filteredLeads.map((lead) => {
-                  const isSelected = selectedLeadIds.has(lead.id);
-                  const st = STATUS_COLORS[lead.status] || STATUS_COLORS['New Lead'];
+        <table className="w-full table-fixed text-left text-xs">
+          <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-extrabold uppercase text-slate-500 tracking-wider">
+            <tr>
+              <th className="p-3 w-10 text-center">
+                <input type="checkbox" aria-label="Select all" checked={filteredLeads.length > 0 && selectedLeadIds.size === filteredLeads.length} onChange={handleToggleSelectAll} className="w-4 h-4 rounded text-[#58051E] focus:ring-[#58051E] cursor-pointer" />
+              </th>
+              <th className="p-3 w-[24%]">Student</th>
+              <th className="p-3 w-[27%]">Interest</th>
+              <th className="p-3 w-[18%]">Status · Counselor</th>
+              <th className="p-3 w-[12%] hidden xl:table-cell">Enquired</th>
+              <th className="p-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+            {loading ? (
+              <tr><td colSpan={6} className="p-8"><BlockCap /></td></tr>
+            ) : filteredLeads.length === 0 ? (
+              <tr><td colSpan={6} className="p-8 text-center text-slate-400 font-semibold">No student enquiries found matching the selected filters.</td></tr>
+            ) : (
+              filteredLeads.map((lead) => {
+                const isSelected = selectedLeadIds.has(lead.id);
+                const st = STATUS_COLORS[lead.status] || STATUS_COLORS['New Lead'];
+                const d = leadDetails(lead);
+                return (
+                  <tr key={lead.id} className={`align-top hover:bg-slate-50/80 transition-colors ${isSelected ? 'bg-rose-50/40' : ''}`}>
+                    <td className="p-3 text-center">
+                      <input type="checkbox" aria-label={`Select ${lead.name || lead.phone}`} checked={isSelected} onChange={() => handleToggleSelectOne(lead.id)} className="w-4 h-4 rounded text-[#58051E] focus:ring-[#58051E] cursor-pointer" />
+                    </td>
 
-                  return (
-                    <tr
-                      key={lead.id}
-                      className={`hover:bg-slate-50/80 transition-colors ${isSelected ? 'bg-rose-50/40' : ''}`}
-                    >
-                      {/* Checkbox */}
-                      <td className="p-3.5 text-center">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => handleToggleSelectOne(lead.id)}
-                          className="w-4 h-4 rounded text-[#58051E] focus:ring-[#58051E] cursor-pointer"
-                        />
-                      </td>
+                    <td className="p-3 min-w-0">
+                      <div className="text-sm font-black text-slate-900 truncate">{lead.name || 'Admissions Enquiry'}</div>
+                      <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-500 min-w-0">
+                        <a href={`tel:${lead.phone}`} className="font-mono font-bold text-slate-700 hover:text-[#58051E] shrink-0">{lead.phone}</a>
+                        {lead.email && <span className="truncate">· {lead.email}</span>}
+                      </div>
+                    </td>
 
-                      {/* Lead Name & Phone */}
-                      <td className="p-3.5 font-bold text-slate-900">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-black text-slate-900">{lead.name || 'Admissions Enquiry'}</span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <a
-                            href={`tel:${lead.phone}`}
-                            className="text-xs font-mono font-bold text-slate-700 hover:text-[#58051E] flex items-center gap-1"
-                          >
-                            <Phone className="w-3 h-3 text-[#58051E]" /> {lead.phone}
-                          </a>
-                          {lead.email && (
-                            <span className="text-[11px] text-slate-400 font-normal">({lead.email})</span>
-                          )}
-                        </div>
-                      </td>
+                    <td className="p-3 min-w-0">
+                      <div className="flex items-center gap-1.5 text-slate-900 font-bold min-w-0"><Globe className="w-3.5 h-3.5 text-cyan-600 shrink-0" /><span className="truncate">{lead.preferred_country || 'Europe'}</span>{d.course && <span className="truncate font-semibold text-slate-600">· {d.course}</span>}</div>
+                      <div className="mt-0.5 text-[11px] text-slate-500 font-normal truncate" title={[d.intake && `Intake: ${d.intake}`, d.extra].filter(Boolean).join(' · ')}>
+                        {[d.intake && `Intake: ${d.intake}`, d.extra].filter(Boolean).join(' · ') || 'No other details given'}
+                      </div>
+                    </td>
 
-                      {/* Target Destination & Degree */}
-                      <td className="p-3.5">
-                        <span className="font-bold text-slate-900 flex items-center gap-1">
-                          <Globe className="w-3.5 h-3.5 text-cyan-600" />
-                          <span>{lead.preferred_country || 'Europe'}</span>
-                        </span>
-                        <span className="text-[10px] text-slate-400 block font-normal">
-                          {lead.degree_level || "Bachelor's Degree"}
-                        </span>
-                      </td>
+                    <td className="p-3 min-w-0">
+                      <select value={lead.status} onChange={(e) => handleQuickStatusChange(lead, e.target.value as any)} aria-label="Status" className={`max-w-full text-[10px] font-extrabold px-2 py-1 rounded-lg border ${st.bg} ${st.text} ${st.border} focus:outline-none cursor-pointer`}>
+                        {STATUS_OPTIONS.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                      <div className="mt-1 text-[11px] truncate">
+                        {lead.assigned_counselor_name
+                          ? <span className="font-bold text-slate-700">{lead.assigned_counselor_name}</span>
+                          : <span className="font-extrabold text-amber-700">Unassigned</span>}
+                      </div>
+                    </td>
 
-                      {/* Status Tag Dropdown */}
-                      <td className="p-3.5">
-                        <select
-                          value={lead.status}
-                          onChange={(e) => handleQuickStatusChange(lead, e.target.value as any)}
-                          className={`text-[10px] font-extrabold px-2 py-1 rounded-lg border ${st.bg} ${st.text} ${st.border} focus:outline-none cursor-pointer`}
-                        >
-                          {STATUS_OPTIONS.map((opt) => (
-                            <option key={opt} value={opt}>
-                              {opt}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
+                    <td className="p-3 hidden xl:table-cell text-[11px] text-slate-500 font-normal">
+                      <div>{new Date(lead.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                      <div className="mt-0.5">
+                        {lead.whatsapp_sent
+                          ? <span className="inline-flex items-center gap-1 font-bold text-emerald-700"><Check className="w-3 h-3" /> WhatsApp sent</span>
+                          : <button type="button" onClick={() => handleResendWhatsApp(lead)} className="inline-flex items-center gap-1 font-bold text-slate-600 hover:text-emerald-700 cursor-pointer"><MessageSquare className="w-3 h-3" /> Send WhatsApp</button>}
+                      </div>
+                    </td>
 
-                      {/* Assigned Counselor */}
-                      <td className="p-3.5">
-                        {lead.assigned_counselor_name ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-5 h-5 rounded-full bg-[#58051E]/10 text-[#58051E] text-[10px] font-bold flex items-center justify-center">
-                              {lead.assigned_counselor_name.charAt(0)}
-                            </span>
-                            <span className="font-bold text-slate-800">{lead.assigned_counselor_name}</span>
-                          </div>
-                        ) : (
-                          <span className="text-[10px] font-extrabold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                            Unassigned
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Created At */}
-                      <td className="p-3.5 text-slate-500 font-normal text-[11px]">
-                        {new Date(lead.created_at).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
-                      </td>
-
-                      {/* WhatsApp Sent Status */}
-                      <td className="p-3.5">
-                        {lead.whatsapp_sent ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                            <Check className="w-3 h-3 text-emerald-600" /> Sent
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleResendWhatsApp(lead)}
-                            className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded cursor-pointer"
-                            title="Send WhatsApp Welcome message"
-                          >
-                            <MessageSquare className="w-3 h-3 text-emerald-600" /> Send
-                          </button>
-                        )}
-                      </td>
-
-                      {/* Action Buttons */}
-                      <td className="p-3.5 text-right space-x-1.5">
-                        {/* Convert to Student Account Button (Close Deal) */}
+                    <td className="p-3 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
                         {lead.status !== 'Enrolled' ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setConvertModalLead(lead);
-                              setCreatedCredentials(null);
-                            }}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 transition-all shadow-xs cursor-pointer"
-                            title="Close deal and create student login credentials"
-                          >
-                            <Key className="w-3 h-3" />
-                            <span>Close Deal & Create Login</span>
+                          <button type="button" onClick={() => { setConvertModalLead(lead); setCreatedCredentials(null); }} className="inline-flex items-center gap-1 px-2.5 h-8 rounded-lg text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs cursor-pointer whitespace-nowrap" title="Close the deal and create the student's login">
+                            <Key className="w-3 h-3" /> Close deal
                           </button>
                         ) : (
-                          <div className="inline-flex items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-black text-emerald-800 bg-emerald-100 border border-emerald-300">
-                              <CheckCircle2 className="w-3 h-3 text-emerald-700" /> Enrolled
-                            </span>
-                            <Link
-                              to={`/admin/students?search=${encodeURIComponent(lead.email || lead.phone || lead.name || '')}`}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold text-[#58051E] bg-[#58051E]/10 hover:bg-[#58051E]/20 border border-[#58051E]/20 transition-all cursor-pointer"
-                              title="View in Student Directory & Enrollments"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                              <span>Directory</span>
-                            </Link>
-                          </div>
+                          <Link to={`/admin/students?search=${encodeURIComponent(lead.email || lead.phone || lead.name || '')}`} className="inline-flex items-center gap-1 px-2.5 h-8 rounded-lg text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 whitespace-nowrap" title="Open in Students">
+                            <CheckCircle2 className="w-3 h-3" /> Enrolled
+                          </Link>
                         )}
-
-                        {/* View Interaction Timeline */}
-                        <button
-                          type="button"
-                          onClick={() => setActiveLead(lead)}
-                          className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-                          title="View Lead Activity Timeline"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                        <button type="button" onClick={() => setActiveLead(lead)} aria-label="Open timeline" className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 cursor-pointer" title="Timeline and notes"><Eye className="w-4 h-4" /></button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </Card>
 
       {/* ── MODAL 1: CONVERT LEAD TO STUDENT & CREATE LOGIN CREDENTIALS ── */}
@@ -925,16 +829,15 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
 
                   <div>
                     <label className="block text-[11px] font-extrabold text-slate-500 uppercase tracking-wider mb-1">
-                      Student Login Email (Username)
+                      Student login email (username) *
                     </label>
                     <input
-                      type="text"
-                      readOnly
-                      value={
-                        convertModalLead.email ||
-                        `student.${convertModalLead.phone.replace(/[^\d]/g, '').slice(-6)}@ferexstudent.org`
-                      }
-                      className="w-full h-10 px-3 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700"
+                      type="email"
+                      required
+                      value={convertEmail}
+                      onChange={(e) => setConvertEmail(e.target.value)}
+                      placeholder="student@example.com"
+                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
                     />
                   </div>
 
