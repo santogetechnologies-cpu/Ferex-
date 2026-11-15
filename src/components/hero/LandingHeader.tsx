@@ -76,7 +76,7 @@ export const LandingHeader: React.FC<Props> = ({ signedIn, countries, onGoto, on
   return (
     <motion.header className="fx fx-header" data-scrolled={scrolled} initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}>
       <div className="fx-header-bar" style={{ height: scrolled ? '4rem' : '5rem' }}>
-        <div className="mx-auto max-w-[88rem] h-full px-3 sm:px-8 flex items-center justify-between gap-2 sm:gap-4">
+        <div className="mx-auto max-w-[120rem] h-full px-3 sm:px-8 lg:px-[4vw] flex items-center justify-between gap-2 sm:gap-4">
           <button type="button" onClick={onHome} aria-label="FEREX Education home" className="cursor-pointer shrink-0 flex items-center gap-5">
             <Logo size={scrolled || narrow ? 'sm' : 'md'} variant="full" />
             <span aria-hidden className="hidden xl:block h-8 w-px bg-[var(--fx-border)]" />

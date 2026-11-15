@@ -43,7 +43,7 @@
 }
 
 /* Typography */
-.fx-title { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; letter-spacing: -0.035em; line-height: 1.04; font-weight: 800; color: var(--fx-text); }
+.fx-title { font-family: 'Playfair Display', 'Source Serif 4', Georgia, 'Times New Roman', serif; letter-spacing: -0.02em; line-height: 1.02; font-weight: 600; color: var(--fx-text); }
 .fx-em { background: var(--fx-em); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .fx-muted { color: var(--fx-muted); }
 
@@ -86,35 +86,38 @@
 .fx-pop { background: var(--fx-glass); border: 1px solid var(--fx-glass-border); backdrop-filter: blur(22px) saturate(1.4); -webkit-backdrop-filter: blur(22px) saturate(1.4); box-shadow: var(--fx-shadow); }
 .fx-pop button { color: var(--fx-text); }
 
-/* Art layers */
-.fx-art { position: relative; width: 100%; max-width: 780px; aspect-ratio: 760 / 700; margin-inline: auto; }
-.fx-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; will-change: transform; transform: translate3d(calc(var(--mx, 0) * var(--d, 0px)), calc(var(--my, 0) * var(--d, 0px)), 0); }
-.fx-float-a { animation: fx-float-a 11s ease-in-out infinite; }
-.fx-float-b { animation: fx-float-b 14s ease-in-out infinite; }
-.fx-float-c { animation: fx-float-c 17s ease-in-out infinite; }
-.fx-wave { transform-box: fill-box; transform-origin: 20% 50%; animation: fx-wave 9s ease-in-out infinite; }
-.fx-ribbon-drift { transform-box: fill-box; transform-origin: 50% 50%; animation: fx-ribbon 13s ease-in-out infinite; }
-.fx-glow-pulse { animation: fx-glow 8s ease-in-out infinite; }
-.fx-particle { animation: fx-particle 9s ease-in-out infinite; }
-@keyframes fx-float-a { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-9px) rotate(0.4deg); } }
-@keyframes fx-float-b { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(8px) rotate(-0.5deg); } }
-@keyframes fx-float-c { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-6px, -7px); } }
-@keyframes fx-wave { 0%, 100% { transform: skewY(0deg) scaleY(1); } 50% { transform: skewY(-2.2deg) scaleY(1.03); } }
-@keyframes fx-ribbon { 0%, 100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(-5px) scaleY(1.025); } }
-@keyframes fx-glow { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
-@keyframes fx-particle { 0%, 100% { transform: translateY(0); opacity: 0.25; } 50% { transform: translateY(-14px); opacity: 0.85; } }
-
-.fx-student { filter: drop-shadow(0 24px 30px rgba(23, 32, 51, 0.28)); user-select: none; -webkit-user-drag: none; }
+/* Art scene: the city photo fills the right of the hero and fades into the page */
+.fx-scene { position: relative; width: 100%; aspect-ratio: 1 / 1.05; overflow: hidden; }
+.fx-layer { position: absolute; inset: 0; will-change: transform; transform: translate3d(calc(var(--mx, 0) * var(--d, 0px)), calc(var(--my, 0) * var(--d, 0px)), 0); }
+.fx-bgimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 60% 40%; user-select: none;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 34%), linear-gradient(to bottom, transparent 0, #000 14%); -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent 0, #000 34%), linear-gradient(to bottom, transparent 0, #000 14%); mask-composite: intersect; }
+.dark .fx-bgimg { filter: brightness(0.55) saturate(0.9) contrast(1.05); }
+.fx-flag { position: absolute; left: 70%; top: 9%; width: 30%; user-select: none; filter: drop-shadow(0 10px 14px rgba(23, 32, 51, 0.25)); }
+/* the flag pole carries on down behind the student, so it never ends in mid air */
+.fx-pole { position: absolute; left: 1.2%; width: 3.3%; top: 96%; height: 100%; background: linear-gradient(90deg, #686667, #bababc 30%, #f4f2f3 55%, #77777c 80%, #6d6f74); }
+.fx-student { position: absolute; left: 36%; bottom: 12%; width: 56%; height: auto; user-select: none; -webkit-user-drag: none; filter: drop-shadow(0 22px 28px rgba(23, 32, 51, 0.28)); }
 .dark .fx-student { filter: drop-shadow(0 24px 34px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 40px rgba(242, 177, 208, 0.12)); }
+.fx-particle { animation: fx-particle 9s ease-in-out infinite; }
+@keyframes fx-particle { 0%, 100% { transform: translateY(0); opacity: 0.25; } 50% { transform: translateY(-14px); opacity: 0.85; } }
+@media (min-width: 1024px) {
+  .fx-scene { position: absolute; inset: 0 0 0 auto; width: 64%; aspect-ratio: auto; }
+  .fx-flag { left: 74%; top: 8%; width: 25%; }
+  .fx-pole { height: 52%; }
+  .fx-student { left: 39%; bottom: 11%; width: 50%; }
+}
+/* the pale wave that sweeps across the bottom-left of the hero */
+.fx-leftwave { position: absolute; left: 0; bottom: 0; width: 62%; height: 26%; pointer-events: none; }
+@media (max-width: 1023px) { .fx-leftwave { display: none; } }
 
 /* AI launcher */
 .fx-ai { position: fixed; right: 1.25rem; bottom: 1.25rem; z-index: 45; display: flex; align-items: center; gap: 0.75rem; }
 
 @media (prefers-reduced-motion: reduce) {
-  .fx-float-a, .fx-float-b, .fx-float-c, .fx-wave, .fx-ribbon-drift, .fx-glow-pulse, .fx-particle { animation: none !important; }
+  .fx-particle { animation: none !important; }
   .fx-layer { transform: none !important; }
 }
 
 .fx-h1 { font-size: clamp(1.7rem, 7.7vw, 2.7rem); }
 @media (min-width: 640px) { .fx-h1 { font-size: clamp(2.6rem, 5.3vw, 4rem); } }
-@media (min-width: 1280px) { .fx-h1 { font-size: clamp(3.4rem, 4.1vw, 4.3rem); } }
+@media (min-width: 1280px) { .fx-h1 { font-size: clamp(3.4rem, 4.2vw, 5.4rem); } }

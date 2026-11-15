@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Calculator, ChevronRight, Landmark, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Calculator, ChevronRight, GraduationCap, ShieldCheck, Users } from 'lucide-react';
 import { HeroArt } from './HeroArt';
 import './hero.css';
 
@@ -23,9 +23,14 @@ const Stat: React.FC<{ icon: React.ReactNode; value: string; label: string; dela
 
 export const LandingHero: React.FC<{ onApply: () => void; onCalculate: () => void; onBadge: () => void }> = ({ onApply, onCalculate, onBadge }) => (
   <section className="fx fx-hero" aria-labelledby="fx-hero-title">
-    <div className="relative mx-auto max-w-[88rem] px-4 sm:px-8 pt-8 pb-16 lg:pt-10 lg:pb-20 grid lg:grid-cols-[minmax(0,1.02fr)_minmax(0,1fr)] gap-8 lg:gap-6 items-center">
+    <svg aria-hidden viewBox="0 0 600 200" preserveAspectRatio="none" className="fx-leftwave">
+      <defs><linearGradient id="fxlw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="var(--fx-rb-3)" stopOpacity="0.55" /><stop offset="1" stopColor="var(--fx-rb-3)" stopOpacity="0" /></linearGradient></defs>
+      <path d="M0 70 C 120 80, 200 130, 330 150 C 430 164, 520 190, 600 200 H0 Z" fill="url(#fxlw)" />
+      <path d="M0 120 C 120 110, 220 150, 340 176 C 440 196, 520 198, 600 200 H0 Z" fill="var(--fx-rb-3)" opacity="0.28" />
+    </svg>
+    <div className="relative mx-auto max-w-[120rem] px-4 sm:px-8 lg:px-[4vw] pt-8 pb-8 lg:pt-14 lg:pb-24 lg:min-h-[max(42rem,calc(100svh-6rem))] flex flex-col lg:flex-row lg:items-center gap-6">
       {/* Words */}
-      <div className="relative z-10 max-w-[48rem] mx-auto lg:mx-0 text-center lg:text-left">
+      <div className="relative z-10 max-w-[46rem] mx-auto lg:mx-0 text-center lg:text-left">
         <motion.button type="button" onClick={onBadge} className="fx-badge" {...rise(0.25)}>
           <EuMark /> Europe Study Pathway <ChevronRight className="w-4 h-4 text-[var(--fx-accent)]" />
         </motion.button>
@@ -47,7 +52,7 @@ export const LandingHero: React.FC<{ onApply: () => void; onCalculate: () => voi
         </h1>
 
         <motion.p className="mt-6 text-base sm:text-lg leading-[1.65] fx-muted max-w-[38rem] mx-auto lg:mx-0" {...rise(0.95)}>
-          Direct university applications across <strong className="font-bold" style={{ color: 'var(--fx-text)' }}>Poland, Germany, Czechia, Italy, Spain &amp; France</strong>. End-to-end government academic apostille, university wire verification, and 1-on-1 consular visa mock interviews.
+          Direct university applications across <strong className="font-bold" style={{ color: 'var(--fx-text)' }}>Poland, Germany, Czechia, Italy, Spain &amp; France</strong>. End-to-end academic guidance, document verification, and 1-on-1 consular visa mock interviews.
         </motion.p>
 
         <motion.div className="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-3.5" {...rise(1.1)}>
@@ -56,18 +61,16 @@ export const LandingHero: React.FC<{ onApply: () => void; onCalculate: () => voi
         </motion.div>
 
         <div className="mt-10 flex items-stretch justify-center lg:justify-start gap-4 sm:gap-7">
-          <Stat delay={1.35} icon={<Landmark className="w-8 h-8" strokeWidth={1.4} />} value="45+" label="Partner EU Universities" />
+          <Stat delay={1.35} icon={<Users className="w-8 h-8" strokeWidth={1.4} />} value="15+" label="European Destinations" />
           <span className="fx-sep" aria-hidden />
-          <Stat delay={1.45} icon={<ShieldCheck className="w-8 h-8" strokeWidth={1.4} />} value="100%" label="Govt & MEA Legalized" />
+          <Stat delay={1.45} icon={<GraduationCap className="w-8 h-8" strokeWidth={1.4} />} value="100%" label="Admission Support" />
           <span className="fx-sep hidden min-[420px]:block" aria-hidden />
-          <Stat delay={1.55} icon={<EuMark size={30} />} value="27" label="Schengen Nations" />
+          <Stat delay={1.55} icon={<ShieldCheck className="w-8 h-8" strokeWidth={1.4} />} value="25+" label="Partner Universities" />
         </div>
       </div>
 
-      {/* Artwork */}
-      <div className="relative">
-        <HeroArt />
-      </div>
     </div>
+    {/* Artwork: a full-bleed scene under the words on phones, the right side of the hero on desktop */}
+    <HeroArt />
   </section>
 );
