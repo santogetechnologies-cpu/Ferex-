@@ -1,492 +1,272 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  GraduationCap, Phone, Mail, User, Globe, Award, ShieldCheck,
-  CheckCircle2, ArrowRight, Sparkles, Building2, BookOpen, Clock,
-  MessageSquare, Star, ChevronDown, Check, Send, AlertCircle
-} from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Button } from '../components/Button';
-import { Logo } from '../components/Logo';
 import {
-  getLeadFormConfig,
-  createEducationLead,
-  type LeadFormConfig,
-  DEFAULT_LEAD_FORM_CONFIG
-} from '../lib/api/educationLeads';
+  User, Mail, GraduationCap, MapPin, CalendarDays, ChevronDown, ArrowRight, ShieldCheck, FileCheck2, BookOpenCheck, Headphones, Loader2, Check,
+} from 'lucide-react';
+import { FerexVectorMark } from '../components/Logo';
+import { getLeadFormConfig, createEducationLead, type LeadFormConfig, DEFAULT_LEAD_FORM_CONFIG } from '../lib/api/educationLeads';
+import { useDestinations } from '../hooks/useDestinations';
+import { sortByFeatured } from '../lib/api/destinations';
 
-const POPULAR_DESTINATIONS = [
-  { name: 'Poland', flag: 'PL', desc: 'Affordable tuition, English programs & NAWA legalization', popular: true },
-  { name: 'Germany', flag: 'DE', desc: 'No-tuition public universities & high tech job market', popular: true },
-  { name: 'Italy', flag: 'IT', desc: 'Historic institutions, DSU scholarships & CIMEA verification', popular: true },
-  { name: 'Moldova', flag: 'MD', desc: 'Low-cost European degrees (USMF, USM, UTM)', popular: true },
-  { name: 'France', flag: 'FR', desc: 'Prestigious Grandes Écoles & Campus France EEF pathways', popular: false },
-  { name: 'Spain', flag: 'ES', desc: 'Top business schools, vibrant culture & UNEDasiss conversion', popular: false },
-  { name: 'Czech Republic', flag: 'CZ', desc: 'Central European innovation & Nostrification recognition', popular: false },
-  { name: 'Hungary', flag: 'HU', desc: 'Stipendium Hungaricum grants & medical excellence', popular: false },
+const FLAGS: Record<string, string> = {
+  poland: '🇵🇱', germany: '🇩🇪', italy: '🇮🇹', france: '🇫🇷', spain: '🇪🇸', 'united kingdom': '🇬🇧', uk: '🇬🇧', ireland: '🇮🇪', moldova: '🇲🇩', hungary: '🇭🇺',
+  lithuania: '🇱🇹', latvia: '🇱🇻', albania: '🇦🇱', australia: '🇦🇺', austria: '🇦🇹', bulgaria: '🇧🇬', finland: '🇫🇮', georgia: '🇬🇪', greece: '🇬🇷', malaysia: '🇲🇾',
+  malta: '🇲🇹', mauritius: '🇲🇺', montenegro: '🇲🇪', 'new zealand': '🇳🇿', sweden: '🇸🇪', 'czech republic': '🇨🇿', czechia: '🇨🇿', canada: '🇨🇦', usa: '🇺🇸',
+};
+const flagOf = (name: string) => FLAGS[name.trim().toLowerCase()] || '🌍';
+const FALLBACK_COUNTRIES = ['Poland', 'United Kingdom', 'Germany', 'Italy', 'Spain', 'France'];
+const COURSES = ['Medicine (MBBS / MD)', 'Engineering', 'Computer Science / IT', 'Business / MBA', 'Nursing & Health', 'Other'];
+const INTAKES = ['February / March 2027', 'September / October 2027', 'Not sure yet'];
+const CODES = [
+  { code: '+91', label: '🇮🇳 +91' }, { code: '+971', label: '🇦🇪 +971' }, { code: '+966', label: '🇸🇦 +966' }, { code: '+44', label: '🇬🇧 +44' },
+  { code: '+49', label: '🇩🇪 +49' }, { code: '+48', label: '🇵🇱 +48' }, { code: '+1', label: '🇺🇸 +1' }, { code: '+373', label: '🇲🇩 +373' }, { code: '+39', label: '🇮🇹 +39' },
 ];
 
-const COUNTRY_CODES = [
-  { code: '+91', country: 'IN', label: 'India (+91)' },
-  { code: '+971', country: 'AE', label: 'UAE (+971)' },
-  { code: '+966', country: 'SA', label: 'Saudi Arabia (+966)' },
-  { code: '+44', country: 'GB', label: 'United Kingdom (+44)' },
-  { code: '+49', country: 'DE', label: 'Germany (+49)' },
-  { code: '+48', country: 'PL', label: 'Poland (+48)' },
-  { code: '+1', country: 'US', label: 'USA / Canada (+1)' },
-  { code: '+373', country: 'MD', label: 'Moldova (+373)' },
-  { code: '+39', country: 'IT', label: 'Italy (+39)' },
-];
+const rise: Variants = { hidden: { opacity: 0, y: 22 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } } };
+const stagger = (gap = 0.08, delay = 0): Variants => ({ hidden: {}, show: { transition: { staggerChildren: gap, delayChildren: delay } } });
+
+// The page is always light, like the brand artwork, whatever theme the portal uses.
+function useForceLight() {
+  useEffect(() => {
+    const root = document.documentElement;
+    const wasDark = root.classList.contains('dark');
+    root.classList.remove('dark');
+    root.style.colorScheme = 'light';
+    return () => { if (wasDark) { root.classList.add('dark'); root.style.colorScheme = 'dark'; } };
+  }, []);
+}
+
+const Swoosh: React.FC<{ className?: string; flip?: boolean }> = ({ className = '', flip }) => (
+  <svg viewBox="0 0 400 200" preserveAspectRatio="none" className={className} style={flip ? { transform: 'scaleY(-1)' } : undefined} aria-hidden>
+    <defs>
+      <linearGradient id={`sw${flip ? 'b' : 't'}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#8C1D4F" /><stop offset="1" stopColor="#4a0220" /></linearGradient>
+    </defs>
+    <motion.path d="M400 0 L400 150 C330 150 250 110 200 60 C170 30 120 10 90 0 Z" fill={`url(#sw${flip ? 'b' : 't'})`} initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 1.1, ease: 'easeOut' }} />
+    <motion.path d="M90 0 C120 10 170 30 200 60 C250 110 330 150 400 150" fill="none" stroke="#E6B566" strokeWidth="2" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.6, delay: 0.3, ease: 'easeInOut' }} />
+    <motion.path d="M60 0 C100 14 160 36 190 74 C240 130 320 170 400 168" fill="none" stroke="#8C1D4F" strokeOpacity="0.25" strokeWidth="1.5" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.8, delay: 0.5, ease: 'easeInOut' }} />
+  </svg>
+);
+
+const Field: React.FC<{ icon: React.ReactNode; label: string; required?: boolean; filled: boolean; select?: boolean; children: React.ReactNode; leading?: React.ReactNode }> = ({ icon, label, required, filled, select, children, leading }) => (
+  <motion.div variants={rise} className="group relative flex items-center h-14 sm:h-[3.75rem] rounded-full bg-white border border-slate-200/90 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all duration-300 focus-within:border-[#8C1D4F] focus-within:shadow-[0_0_0_4px_rgba(140,29,79,0.10),0_8px_24px_-12px_rgba(87,2,41,0.35)] hover:border-slate-300">
+    <span className="pl-5 pr-3 text-[#4a0b24] shrink-0 transition-transform duration-300 group-focus-within:scale-110 group-focus-within:text-[#8C1D4F]">{icon}</span>
+    {leading}
+    <span className="relative flex-1 h-full min-w-0">
+      {children}
+      <span aria-hidden className={`pointer-events-none absolute inset-y-0 left-0 right-8 flex items-center text-[15px] sm:text-base text-slate-600 transition-opacity duration-200 ${filled ? 'opacity-0' : 'opacity-100'}`}>
+        <span className="truncate">{label}{required && <span className="text-[#C01048] font-bold"> *</span>}</span>
+      </span>
+    </span>
+    {select && <ChevronDown className="absolute right-5 w-5 h-5 text-slate-700 pointer-events-none transition-transform duration-300 group-focus-within:rotate-180" />}
+  </motion.div>
+);
+
+const control = 'appearance-none absolute inset-0 w-full h-full bg-transparent outline-none text-[15px] sm:text-base text-slate-900 !border-0 !shadow-none !bg-transparent !px-0 pr-8';
 
 export const StudyAbroadLeadLandingPage: React.FC = () => {
-  const [formConfig, setFormConfig] = useState<LeadFormConfig>(DEFAULT_LEAD_FORM_CONFIG);
-  const [loadingConfig, setLoadingConfig] = useState(true);
-
-  // Form State
+  useForceLight();
+  const { destinations } = useDestinations();
+  const [cfg, setCfg] = useState<LeadFormConfig>(DEFAULT_LEAD_FORM_CONFIG);
   const [name, setName] = useState('');
-  const [countryCode, setCountryCode] = useState('+91');
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [code, setCode] = useState('+91');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [preferredCountry, setPreferredCountry] = useState('Poland');
-  const [degreeLevel, setDegreeLevel] = useState("Bachelor's Degree");
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [submittedLeadName, setSubmittedLeadName] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
+  const [course, setCourse] = useState('');
+  const [country, setCountry] = useState('');
+  const [intake, setIntake] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    getLeadFormConfig()
-      .then((cfg) => setFormConfig(cfg))
-      .finally(() => setLoadingConfig(false));
-  }, []);
+  useEffect(() => { getLeadFormConfig().then(setCfg).catch(() => {}); }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const countries = useMemo(() => {
+    const live = sortByFeatured(destinations.filter(d => d.is_active !== false && d.name.trim().toLowerCase() !== 'india'), destinations, d => d.name).map(d => d.name.trim());
+    return live.length ? live : FALLBACK_COUNTRIES;
+  }, [destinations]);
+  const chips = countries.slice(0, 6);
+
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg('');
-
-    // Strict Phone Number Validation (Phone is always compulsory)
-    const rawDigits = phoneNumber.replace(/[^\d]/g, '');
-    if (!rawDigits || rawDigits.length < 8) {
-      setErrorMsg('Please enter a valid mobile / WhatsApp number (at least 8-10 digits).');
-      return;
-    }
-
-    const fullPhone = `${countryCode} ${phoneNumber.trim()}`;
-
-    setSubmitting(true);
+    setError('');
+    if (cfg.name_enabled && !name.trim()) return setError('Please enter your name.');
+    if (phone.replace(/\D/g, '').length < 8) return setError('Please enter a valid WhatsApp number.');
+    if (!course || !country || !intake) return setError('Please choose a course, destination and intake.');
+    setBusy(true);
     try {
-      const created = await createEducationLead({
-        name: formConfig.name_enabled ? name.trim() : 'Prospective Student',
-        phone: fullPhone,
-        email: formConfig.email_enabled ? email.trim() : undefined,
-        preferred_country: formConfig.country_enabled ? preferredCountry : 'Europe',
-        degree_level: formConfig.degree_level_enabled ? degreeLevel : "Bachelor's Degree",
+      const lead = await createEducationLead({
+        name: cfg.name_enabled ? name.trim() : 'Prospective Student',
+        phone: `${code} ${phone.trim()}`,
+        email: cfg.email_enabled ? email.trim() || undefined : undefined,
+        preferred_country: country,
+        degree_level: course,
         source: 'Admissions Lead Landing Page',
-        notes: `Prospective applicant interested in ${preferredCountry} (${degreeLevel})`,
+        notes: `Course: ${course} · Intake: ${intake}`,
       });
-
-      setSubmittedLeadName(created.name || 'Student');
-      setSubmitted(true);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Submission failed. Please check your phone number and try again.');
-    } finally {
-      setSubmitting(false);
-    }
+      setDone((lead.name || name).split(' ')[0] || 'there');
+    } catch (err) {
+      setError((err as Error).message || 'Something went wrong. Please try again.');
+    } finally { setBusy(false); }
   };
 
+  const features = [
+    { icon: FileCheck2, label: 'Admission Support' },
+    { icon: BookOpenCheck, label: 'Visa Assistance' },
+    { icon: Headphones, label: 'Personal Guidance' },
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-[#58051E] selection:text-white antialiased">
-      {/* ── Top Header Bar ── */}
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#58051E] flex items-center justify-center text-white font-black shadow-lg shadow-[#58051E]/30">
-              <GraduationCap className="w-6 h-6 text-amber-300" />
-            </div>
-            <div>
-              <span className="text-base font-black tracking-tight text-white block">FEREX EDUCATION</span>
-              <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">European Admissions & Visas</span>
-            </div>
-          </Link>
+    <div className="relative min-h-screen overflow-x-hidden bg-[#FBF7F8] text-slate-900 font-sans antialiased selection:bg-[#8C1D4F] selection:text-white">
+      <style>{`
+        @keyframes lead-float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-14px) } }
+        @keyframes lead-shimmer { 0% { transform: translateX(-120%) } 60%,100% { transform: translateX(220%) } }
+        .lead-cta::after { content:''; position:absolute; inset:0; width:40%; background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent); animation: lead-shimmer 3.2s ease-in-out infinite; }
+      `}</style>
 
-          <div className="flex items-center gap-3">
-            <Link
-              to="/login"
-              className="text-xs font-bold text-slate-300 hover:text-white px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors"
-            >
-              Student Portal Login
-            </Link>
-            <a
-              href="#apply-form"
-              className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 bg-[#58051E] hover:bg-[#720a28] text-white text-xs font-black rounded-xl transition-all shadow-md shadow-[#58051E]/20"
-            >
-              <span>Apply Free</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </a>
-          </div>
-        </div>
-      </header>
+      {/* soft background */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden>
+        <div className="absolute -top-32 -left-24 w-[28rem] h-[28rem] rounded-full bg-[#F3D9E2]/70 blur-3xl" style={{ animation: 'lead-float 9s ease-in-out infinite' }} />
+        <div className="absolute top-1/3 -right-32 w-[30rem] h-[30rem] rounded-full bg-[#F7E7C8]/50 blur-3xl" style={{ animation: 'lead-float 11s ease-in-out infinite 1s' }} />
+        <div className="absolute -bottom-40 left-1/4 w-[32rem] h-[32rem] rounded-full bg-[#EBC9D6]/50 blur-3xl" style={{ animation: 'lead-float 13s ease-in-out infinite 2s' }} />
+      </div>
+      <Swoosh className="pointer-events-none absolute top-0 right-0 w-[16rem] sm:w-[22rem] lg:w-[34rem] h-28 sm:h-40 lg:h-56" />
+      <Swoosh flip className="pointer-events-none absolute bottom-0 right-0 w-[18rem] sm:w-[26rem] lg:w-[38rem] h-24 sm:h-36 lg:h-52 opacity-95" />
 
-      {/* ── Hero Section with Side-by-Side Lead Form ── */}
-      <section className="relative overflow-hidden py-12 md:py-20 lg:py-24 border-b border-slate-800">
-        {/* Ambient glows */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#58051E]/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            
-            {/* Left Column: Value Proposition & Destination Highlights */}
-            <div className="lg:col-span-7 space-y-6 text-left">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#58051E]/30 border border-[#58051E]/50 text-amber-300 text-xs font-extrabold tracking-wide uppercase">
-                <Sparkles className="w-3.5 h-3.5" /> 2026 European Intake Applications Open
-              </div>
-
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
-                Study in Europe with <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-rose-300 to-cyan-300">Expert Admissions</span> & Visa Support
-              </h1>
-
-              <p className="text-sm sm:text-base text-slate-300 font-medium leading-relaxed max-w-2xl">
-                Direct partnerships with state and private European universities across Poland, Germany, Italy, Moldova, France, and Spain. Complete document legalization (NAWA, APS, CIMEA) and consular coaching.
-              </p>
-
-              {/* Trust Badges */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
-                <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/80">
-                  <ShieldCheck className="w-5 h-5 text-emerald-400 mb-1" />
-                  <div className="text-xs font-black text-white">100% Legalization</div>
-                  <div className="text-[11px] text-slate-400">NAWA, APS, Sworn Apostille</div>
-                </div>
-                <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/80">
-                  <Award className="w-5 h-5 text-amber-400 mb-1" />
-                  <div className="text-xs font-black text-white">Direct University Offers</div>
-                  <div className="text-[11px] text-slate-400">Fast-track admission letters</div>
-                </div>
-                <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/80 col-span-2 sm:col-span-1">
-                  <MessageSquare className="w-5 h-5 text-cyan-400 mb-1" />
-                  <div className="text-xs font-black text-white">Instant WhatsApp Advisory</div>
-                  <div className="text-[11px] text-slate-400">Direct counselor guidance</div>
-                </div>
-              </div>
-
-              {/* Destinations Pills */}
-              <div className="pt-2">
-                <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider block mb-2">Featured Higher Education Destinations:</span>
-                <div className="flex flex-wrap gap-2">
-                  {POPULAR_DESTINATIONS.map((d) => (
-                    <div
-                      key={d.name}
-                      onClick={() => setPreferredCountry(d.name)}
-                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                        preferredCountry === d.name
-                          ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm'
-                          : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800 hover:border-slate-600'
-                      }`}
-                    >
-                      <span className="text-[10px] font-mono px-1 rounded bg-black/30 font-black">{d.flag}</span>
-                      <span>{d.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column: Dynamic Lead Capture Form */}
-            <div id="apply-form" className="lg:col-span-5">
-              <div className="bg-slate-800/95 border border-slate-700/80 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative">
-                
-                <div className="mb-6 text-left">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-full border border-amber-400/20 inline-block mb-2">
-                    Free University Screening
-                  </span>
-                  <h3 className="text-xl font-black text-white">
-                    {formConfig.headline || 'Apply for European Admissions'}
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Fill out your details below. Our Admissions Counselor will connect with you with personalized university options and WhatsApp updates.
-                  </p>
-                </div>
-
-                {errorMsg && (
-                  <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-                    <span>{errorMsg}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-4 text-left">
-                  {/* Full Name Field (Toggleable in Settings) */}
-                  {formConfig.name_enabled && (
-                    <div>
-                      <label className="block text-[11px] font-extrabold text-slate-300 uppercase tracking-wider mb-1">
-                        Full Name
-                      </label>
-                      <div className="relative">
-                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input
-                          type="text"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          placeholder="e.g. Rahul Sharma"
-                          className="w-full h-11 pl-10 pr-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-[#58051E] focus:ring-2 focus:ring-[#58051E]/30"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Phone Number Field (ALWAYS COMPULSORY) */}
-                  <div>
-                    <label className="block text-[11px] font-extrabold text-slate-300 uppercase tracking-wider mb-1 flex items-center justify-between">
-                      <span className="flex items-center gap-1">
-                        <span>Mobile / WhatsApp Number</span>
-                        <span className="text-rose-400">*</span>
-                      </span>
-                      <span className="text-[10px] font-black text-amber-400 bg-amber-400/10 px-1.5 py-0.2 rounded border border-amber-400/20">
-                        COMPULSORY
-                      </span>
-                    </label>
-                    <div className="flex gap-2">
-                      <select
-                        value={countryCode}
-                        onChange={(e) => setCountryCode(e.target.value)}
-                        className="h-11 px-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-[#58051E]"
-                      >
-                        {COUNTRY_CODES.map((c) => (
-                          <option key={c.code} value={c.code}>
-                            {c.country} ({c.code})
-                          </option>
-                        ))}
-                      </select>
-                      <div className="relative flex-1">
-                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input
-                          type="tel"
-                          required
-                          value={phoneNumber}
-                          onChange={(e) => setPhoneNumber(e.target.value)}
-                          placeholder="98200 12345"
-                          className="w-full h-11 pl-10 pr-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:border-[#58051E] focus:ring-2 focus:ring-[#58051E]/30"
-                        />
-                      </div>
-                    </div>
-                    <span className="text-[10px] text-slate-400 mt-1 block">
-                      We will send verified university brochures and eligibility confirmation directly to your WhatsApp.
-                    </span>
-                  </div>
-
-                  {/* Email Field (Toggleable in Settings, Optional) */}
-                  {formConfig.email_enabled && (
-                    <div>
-                      <label className="block text-[11px] font-extrabold text-slate-300 uppercase tracking-wider mb-1 flex items-center justify-between">
-                        <span>Email Address</span>
-                        <span className="text-[10px] font-semibold text-slate-400">Optional</span>
-                      </label>
-                      <div className="relative">
-                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder="e.g. rahul@example.com"
-                          className="w-full h-11 pl-10 pr-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-semibold text-white placeholder-slate-500 focus:outline-none focus:border-[#58051E] focus:ring-2 focus:ring-[#58051E]/30"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Preferred Destination Country (Toggleable in Settings) */}
-                  {formConfig.country_enabled && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-extrabold text-slate-300 uppercase tracking-wider mb-1">
-                          Preferred Country
-                        </label>
-                        <select
-                          value={preferredCountry}
-                          onChange={(e) => setPreferredCountry(e.target.value)}
-                          className="w-full h-11 px-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-[#58051E]"
-                        >
-                          {POPULAR_DESTINATIONS.map((d) => (
-                            <option key={d.name} value={d.name}>
-                              {d.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Degree Level (Toggleable in Settings) */}
-                      {formConfig.degree_level_enabled && (
-                        <div>
-                          <label className="block text-[11px] font-extrabold text-slate-300 uppercase tracking-wider mb-1">
-                            Degree Level
-                          </label>
-                          <select
-                            value={degreeLevel}
-                            onChange={(e) => setDegreeLevel(e.target.value)}
-                            className="w-full h-11 px-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-[#58051E]"
-                          >
-                            <option value="Bachelor's Degree">Bachelor's (3-4 Yrs)</option>
-                            <option value="Master's Degree">Master's (1-2 Yrs)</option>
-                            <option value="Integrated Degree">Integrated (MBBS/MD)</option>
-                            <option value="Doctorate (PhD)">Doctorate (PhD)</option>
-                          </select>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full h-12 bg-[#58051E] hover:bg-[#720a28] text-white font-black text-sm rounded-xl transition-all shadow-lg shadow-[#58051E]/30 flex items-center justify-center gap-2 cursor-pointer mt-2"
-                  >
-                    {submitting ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        <span>Submitting Your Enquiry...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>{formConfig.submit_button_text || 'Submit Admission Enquiry'}</span>
-                        <Send className="w-4 h-4" />
-                      </>
-                    )}
-                  </Button>
-
-                  <div className="text-[10px] text-slate-400 text-center flex items-center justify-center gap-1.5 pt-1">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Your data is confidential. No spam guaranteed. Instant WhatsApp advisory sent.</span>
-                  </div>
-                </form>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* ── Destination Details Cards ── */}
-      <section className="py-16 bg-slate-900/60 border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider">European Universities Network</span>
-            <h2 className="text-2xl sm:text-3xl font-black text-white mt-1">Study Programs & Schengen Pathways</h2>
-            <p className="text-xs text-slate-400 mt-2">
-              Select your preferred European study destination. We facilitate complete end-to-end guidance from preliminary university eligibility to arrival in Europe.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
-            {POPULAR_DESTINATIONS.slice(0, 4).map((dest) => (
-              <div key={dest.name} className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700/80 hover:border-[#58051E]/60 transition-all flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-mono font-black px-2 py-0.5 rounded bg-slate-700 text-amber-300">{dest.flag}</span>
-                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">Fast-Track</span>
-                  </div>
-                  <h4 className="text-base font-black text-white">{dest.name}</h4>
-                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">{dest.desc}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPreferredCountry(dest.name);
-                    document.getElementById('apply-form')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="mt-4 text-xs font-bold text-amber-300 hover:text-white flex items-center gap-1 cursor-pointer"
-                >
-                  <span>Select {dest.name}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── SUCCESS MODAL WITH WHATSAPP CONFIRMATION ── */}
-      <AnimatePresence>
-        {submitted && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-950/80 backdrop-blur-md"
-              onClick={() => setSubmitted(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-lg bg-slate-900 border border-slate-700 rounded-3xl p-6 sm:p-8 shadow-2xl text-center space-y-4 z-10"
-            >
-              <div className="w-16 h-16 rounded-3xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-8 h-8" />
-              </div>
-
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 inline-block mb-2">
-                  Enquiry Registered Successfully
-                </span>
-                <h3 className="text-2xl font-black text-white">
-                  Thank You, {submittedLeadName}!
-                </h3>
-                <p className="text-xs text-slate-300 mt-2 leading-relaxed">
-                  Your admission enquiry for <span className="font-bold text-amber-300">{preferredCountry}</span> has been assigned to our Senior European Admissions Desk.
-                </p>
-              </div>
-
-              {/* WhatsApp Automation Confirmation Box */}
-              <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-left space-y-2">
-                <div className="flex items-center gap-2 text-emerald-300 font-black text-xs">
-                  <MessageSquare className="w-4 h-4" />
-                  <span>Automated WhatsApp Advisory Dispatched</span>
-                </div>
-                <p className="text-[11px] text-slate-300 leading-relaxed">
-                  We have automatically dispatched a welcome message and European universities guide to <span className="font-bold text-white">{countryCode} {phoneNumber}</span>. Please check your WhatsApp to review the brochure and connect directly with your assigned counselor.
-                </p>
-              </div>
-
-              <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
-                <Button
-                  onClick={() => {
-                    setSubmitted(false);
-                    setName('');
-                    setPhoneNumber('');
-                    setEmail('');
-                  }}
-                  variant="outline"
-                  className="flex-1 text-xs font-bold border-slate-700 text-slate-300 hover:text-white"
-                >
-                  Submit Another Enquiry
-                </Button>
-                <Link
-                  to="/login"
-                  className="flex-1 h-10 px-4 bg-[#58051E] hover:bg-[#720a28] text-white text-xs font-black rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-[#58051E]/20"
-                >
-                  <span>Student Portal</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
+      <div className="relative z-10 mx-auto max-w-6xl px-5 sm:px-8 pt-6 pb-24 lg:pb-28">
+        <header className="flex items-center justify-between lg:justify-start lg:gap-8">
+          <div className="w-full lg:w-auto flex justify-center lg:justify-start">
+            <motion.div initial={{ opacity: 0, y: -14, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.7 }} className="inline-flex items-center gap-3">
+              <motion.span animate={{ rotate: [0, -6, 6, 0] }} transition={{ duration: 4, repeat: Infinity, repeatDelay: 4 }}><FerexVectorMark color="#570229" size="lg" /></motion.span>
+              <span className="flex flex-col leading-none">
+                <span className="font-serif font-black tracking-wider text-[#570229] text-3xl sm:text-4xl">FEREX</span>
+                <span className="mt-1 text-[11px] sm:text-xs font-extrabold tracking-[0.42em] text-[#570229]">EDUCATION</span>
+              </span>
             </motion.div>
           </div>
-        )}
-      </AnimatePresence>
+          <Link to="/login" className="hidden lg:inline-flex h-10 px-5 items-center rounded-full border border-[#570229]/20 bg-white/70 text-sm font-semibold text-[#570229] hover:bg-white transition-colors">Student login</Link>
+        </header>
 
-      {/* ── Footer ── */}
-      <footer className="mt-auto border-t border-slate-800 py-6 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-400">FEREX Global Higher Education</span>
-            <span>• European University Admissions Advisory</span>
-          </div>
-          <div className="text-[11px] text-slate-500">
-            © {new Date().getFullYear()} FEREX Group. All rights reserved.
-          </div>
+        <div className="mt-8 lg:mt-14 grid lg:grid-cols-[1.05fr_minmax(0,30rem)] gap-10 lg:gap-16 items-center">
+          {/* Headline */}
+          <motion.div variants={stagger(0.1, 0.15)} initial="hidden" animate="show" className="text-center lg:text-left">
+            <motion.span variants={rise} className="inline-flex items-center gap-2 rounded-full bg-[#F3DCE5] px-4 py-1.5 text-sm font-semibold text-[#570229]">
+              <GraduationCap className="w-4 h-4" /> Study Abroad
+            </motion.span>
+            <motion.h1 variants={rise} className="mt-4 font-extrabold tracking-tight leading-[1.08] text-[2.1rem] sm:text-5xl lg:text-[3.6rem] text-[#1F2937]">
+              Get Expert <span className="text-[#6B0F36]">Admission &amp; Visa Support</span>
+            </motion.h1>
+
+            {/* desktop-only extras */}
+            <motion.ul variants={stagger(0.1)} className="hidden lg:flex mt-10 gap-4">
+              {features.map(f => (
+                <motion.li key={f.label} variants={rise} whileHover={{ y: -4 }} className="flex items-center gap-3 rounded-2xl bg-white/80 backdrop-blur border border-white shadow-[0_10px_30px_-18px_rgba(87,2,41,0.5)] px-4 py-3">
+                  <span className="w-10 h-10 rounded-xl bg-[#F3DCE5] text-[#6B0F36] flex items-center justify-center"><f.icon className="w-5 h-5" /></span>
+                  <span className="text-sm font-bold text-slate-800 leading-tight">{f.label}</span>
+                </motion.li>
+              ))}
+            </motion.ul>
+            <motion.div variants={rise} className="hidden lg:block mt-10">
+              <p className="text-sm font-bold text-slate-700 mb-3">Top Study Destinations</p>
+              <div className="flex flex-wrap gap-2.5">
+                {chips.map((c, i) => (
+                  <motion.button key={c} type="button" onClick={() => setCountry(c)} whileHover={{ y: -3, scale: 1.04 }} whileTap={{ scale: 0.97 }} animate={{ y: [0, -3, 0] }} transition={{ y: { duration: 3 + (i % 3), repeat: Infinity, delay: i * 0.3 } }}
+                    className={`inline-flex items-center gap-2 rounded-full px-4 h-11 text-sm font-semibold shadow-[0_6px_18px_-10px_rgba(15,23,42,0.4)] cursor-pointer transition-colors ${country === c ? 'bg-[#6B0F36] text-white' : 'bg-white text-slate-800'}`}>
+                    <span className="text-lg">{flagOf(c)}</span>{c}
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+
+          {/* Form card */}
+          <motion.div initial={{ opacity: 0, y: 40, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.8, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="relative rounded-[2rem] sm:rounded-[2.25rem] bg-white/95 backdrop-blur border border-white shadow-[0_30px_80px_-30px_rgba(87,2,41,0.45)] p-5 sm:p-8">
+            <AnimatePresence mode="wait">
+              {done ? (
+                <motion.div key="done" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="py-10 text-center space-y-4" role="status">
+                  <div className="relative mx-auto w-20 h-20">
+                    {[0, 1].map(i => <motion.span key={i} className="absolute inset-0 rounded-full bg-emerald-400/30" animate={{ scale: [1, 1.9], opacity: [0.6, 0] }} transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.9 }} />)}
+                    <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 14 }} className="absolute inset-0 rounded-full bg-emerald-500 flex items-center justify-center text-white"><Check className="w-10 h-10" strokeWidth={3} /></motion.span>
+                  </div>
+                  <h2 className="text-2xl font-extrabold text-slate-900">Thank you, {done}!</h2>
+                  <p className="text-slate-600">We’ll call you on WhatsApp shortly.</p>
+                </motion.div>
+              ) : (
+                <motion.form key="form" onSubmit={submit} variants={stagger(0.07, 0.4)} initial="hidden" animate="show" exit={{ opacity: 0, y: -10 }} className="space-y-3.5" noValidate>
+                  <motion.div variants={rise} className="text-center pb-2">
+                    <p className="text-sm sm:text-base font-semibold tracking-[0.32em] text-slate-600">REQUEST FREE</p>
+                    <h2 className="mt-1 text-[1.7rem] sm:text-4xl font-extrabold tracking-tight text-[#1F2937]">Study Abroad <span className="text-[#6B0F36]">Counselling</span></h2>
+                    <motion.span initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 0.9, duration: 0.7 }} className="block mx-auto mt-3 h-[3px] w-20 rounded-full bg-gradient-to-r from-transparent via-[#8C1D4F] to-transparent" />
+                  </motion.div>
+
+                  {cfg.name_enabled && (
+                    <Field icon={<User className="w-6 h-6" />} label="Full Name" required filled={!!name}>
+                      <input aria-label="Full name" autoComplete="name" value={name} onChange={e => setName(e.target.value)} className={control} />
+                    </Field>
+                  )}
+
+                  <Field icon={<svg viewBox="0 0 24 24" className="w-6 h-6" fill="#22A559" aria-hidden><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.2 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-3.9-4.7-4.1-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.4.6c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.4.1.6-.1l.8-1c.2-.2.4-.2.6-.1l2 1c.3.1.5.2.5.3.1.2.1.8-.1 1.4Z" /></svg>} label="WhatsApp Number" required filled={!!phone}
+                    leading={<select aria-label="Country code" value={code} onChange={e => setCode(e.target.value)} className="appearance-none !w-[4.2rem] h-9 !px-1 text-sm font-semibold text-slate-800 !border-0 !bg-transparent !shadow-none outline-none cursor-pointer shrink-0">{CODES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}</select>}>
+                    <input aria-label="WhatsApp number" type="tel" inputMode="tel" autoComplete="tel-national" value={phone} onChange={e => setPhone(e.target.value)} className={control} />
+                  </Field>
+
+                  {cfg.email_enabled && (
+                    <Field icon={<Mail className="w-6 h-6" />} label="Email Address" filled={!!email}>
+                      <input aria-label="Email address" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className={control} />
+                    </Field>
+                  )}
+
+                  <Field icon={<GraduationCap className="w-6 h-6" />} label="Preferred Course / Program" required select filled={!!course}>
+                    <select aria-label="Preferred course" value={course} onChange={e => setCourse(e.target.value)} className={`${control} cursor-pointer`}><option value="" /> {COURSES.map(c => <option key={c}>{c}</option>)}</select>
+                  </Field>
+                  <Field icon={<MapPin className="w-6 h-6" />} label="Preferred Study Destination" required select filled={!!country}>
+                    <select aria-label="Preferred destination" value={country} onChange={e => setCountry(e.target.value)} className={`${control} cursor-pointer`}><option value="" /> {countries.map(c => <option key={c}>{c}</option>)}</select>
+                  </Field>
+                  <Field icon={<CalendarDays className="w-6 h-6" />} label="Preferred Intake" required select filled={!!intake}>
+                    <select aria-label="Preferred intake" value={intake} onChange={e => setIntake(e.target.value)} className={`${control} cursor-pointer`}><option value="" /> {INTAKES.map(c => <option key={c}>{c}</option>)}</select>
+                  </Field>
+
+                  {error && <motion.p initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: [0, -5, 5, -3, 0] }} role="alert" className="text-sm font-semibold text-rose-700 text-center">{error}</motion.p>}
+
+                  <motion.button variants={rise} whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.98 }} type="submit" disabled={busy}
+                    className="lead-cta relative overflow-hidden w-full h-14 sm:h-16 rounded-full bg-gradient-to-r from-[#8C1D4F] via-[#6B0F36] to-[#4a0220] text-white text-lg sm:text-xl font-bold shadow-[0_16px_34px_-14px_rgba(87,2,41,0.8)] inline-flex items-center justify-center gap-3 disabled:opacity-70 cursor-pointer">
+                    {busy ? <><Loader2 className="w-5 h-5 animate-spin" />Sending…</> : <>Get Free Counselling <motion.span animate={{ x: [0, 6, 0] }} transition={{ duration: 1.6, repeat: Infinity }}><ArrowRight className="w-6 h-6" /></motion.span></>}
+                  </motion.button>
+
+                  <motion.p variants={rise} className="flex items-center justify-center gap-2 text-sm text-slate-600"><ShieldCheck className="w-5 h-5 text-emerald-600 fill-emerald-100" />Your details are 100% confidential.</motion.p>
+
+                  <motion.ul variants={rise} className="lg:hidden grid grid-cols-3 pt-3 divide-x divide-slate-200">
+                    {features.map(f => (
+                      <li key={f.label} className="px-2 flex flex-col items-center gap-1.5 text-center">
+                        <f.icon className="w-8 h-8 text-[#8C1D4F]" strokeWidth={1.5} />
+                        <span className="text-sm font-bold text-slate-800 leading-tight">{f.label.split(' ')[0]}<br />{f.label.split(' ')[1]}</span>
+                      </li>
+                    ))}
+                  </motion.ul>
+                </motion.form>
+              )}
+            </AnimatePresence>
+          </motion.div>
         </div>
-      </footer>
+
+        {/* Mobile destinations */}
+        <motion.div variants={stagger(0.06, 0.9)} initial="hidden" animate="show" className="lg:hidden mt-10 text-center">
+          <motion.div variants={rise} className="flex items-center justify-center gap-4 mb-4">
+            <span className="h-px w-10 bg-[#8C1D4F]/50" /><h3 className="text-xl font-bold text-slate-800">Top Study Destinations</h3><span className="h-px w-10 bg-[#8C1D4F]/50" />
+          </motion.div>
+          <div className="flex flex-wrap justify-center gap-2.5">
+            {chips.map(c => (
+              <motion.button key={c} type="button" variants={rise} whileTap={{ scale: 0.95 }} onClick={() => setCountry(c)}
+                className={`inline-flex items-center gap-2 rounded-full px-4 h-12 text-base font-semibold shadow-[0_6px_18px_-10px_rgba(15,23,42,0.45)] cursor-pointer ${country === c ? 'bg-[#6B0F36] text-white' : 'bg-white text-slate-800'}`}>
+                <span className="text-xl">{flagOf(c)}</span>{c}
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 };
 
+export default StudyAbroadLeadLandingPage;
