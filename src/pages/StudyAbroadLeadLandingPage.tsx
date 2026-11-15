@@ -8,6 +8,7 @@ import { FerexVectorMark } from '../components/Logo';
 import { getLeadFormConfig, createEducationLead, type LeadFormConfig, DEFAULT_LEAD_FORM_CONFIG } from '../lib/api/educationLeads';
 import { useDestinations } from '../hooks/useDestinations';
 import { sortByFeatured } from '../lib/api/destinations';
+import { useRealtimeTable } from '../hooks/useRealtimeTable';
 
 const FLAGS: Record<string, string> = {
   poland: '🇵🇱', germany: '🇩🇪', italy: '🇮🇹', france: '🇫🇷', spain: '🇪🇸', 'united kingdom': '🇬🇧', uk: '🇬🇧', ireland: '🇮🇪', moldova: '🇲🇩', hungary: '🇭🇺',
@@ -79,7 +80,9 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
   const [done, setDone] = useState<string | null>(null);
   const [error, setError] = useState('');
 
-  useEffect(() => { getLeadFormConfig().then(setCfg).catch(() => {}); }, []);
+  const loadCfg = React.useCallback(() => { getLeadFormConfig().then(setCfg).catch(() => {}); }, []);
+  useEffect(loadCfg, [loadCfg]);
+  useRealtimeTable('system_config', loadCfg);
 
   const countries = useMemo(() => {
     const live = sortByFeatured(destinations.filter(d => d.is_active !== false && d.name.trim().toLowerCase() !== 'india'), destinations, d => d.name).map(d => d.name.trim());

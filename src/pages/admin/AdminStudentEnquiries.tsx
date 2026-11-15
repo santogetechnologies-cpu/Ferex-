@@ -203,7 +203,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
   // Resend WhatsApp Handler
   const handleResendWhatsApp = async (lead: EducationLead) => {
     try {
-      const res = await sendLeadWhatsAppWelcome(lead);
+      const res = await sendLeadWhatsAppWelcome(lead, undefined, true);
       if (res.success) {
         showToastMsg(`📱 Automated WhatsApp Welcome message sent to ${lead.phone}!`);
       } else {

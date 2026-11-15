@@ -1,245 +1,145 @@
 // Supabase Edge Function: send-whatsapp-lead
-// Real WhatsApp API dispatcher — Meta Cloud API, UltraMsg, Twilio, and Webhook
-// Config is loaded from system_config DB table or passed as customConfig from client
+// Sends WhatsApp messages through the gateway saved in Settings (Meta, UltraMsg, Twilio or webhook).
+// Credentials are read here from the database and never come from the browser, except an admin test of unsaved values.
+//   action "lead":   anyone (the public enquiry form). Sends the saved welcome template to that lead's own number, once.
+//   action "custom": staff only. Sends a message to a phone.
+//   action "test":   staff only. Like custom, optionally with unsaved gateway values.
+// Every real attempt is written to the lead's activity log, so the admin screen can show live delivery results.
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const corsHeaders = {
+const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+const STAFF = ["central", "superadmin", "super_admin", "admin", "education_admin", "counselor", "staff"];
+const CONFIG_KEY = "ferex_education_whatsapp_config";
+
+const digits = (phone: string) => {
+  let p = String(phone || "").trim().replace(/[\s\-()]/g, "");
+  if (p.startsWith("+")) p = p.slice(1);
+  else if (p.startsWith("00")) p = p.slice(2);
+  else if (p.length === 10) p = "91" + p;
+  return p.replace(/\D/g, "");
+};
+
+async function dispatch(cfg: any, to: string, text: string): Promise<{ ok: boolean; provider: string; error?: string; id?: string }> {
+  const provider: string = cfg?.provider || "meta";
+  const apiKey: string = cfg?.apiKey || Deno.env.get("WHATSAPP_API_KEY") || "";
+  const phoneNumberId: string = cfg?.phoneNumberId || Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") || "";
+  const instanceId: string = cfg?.instanceId || phoneNumberId || Deno.env.get("WHATSAPP_INSTANCE_ID") || "";
 
   try {
+    if (provider === "meta") {
+      if (!apiKey || !phoneNumberId) return { ok: false, provider, error: "Meta needs an access token and a phone number ID." };
+      const r = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", to, type: "text", text: { preview_url: false, body: text } }),
+      });
+      const d = await r.json().catch(() => ({}));
+      return r.ok && !d.error ? { ok: true, provider, id: d.messages?.[0]?.id } : { ok: false, provider, error: d.error?.message || `Meta returned ${r.status}` };
+    }
+    if (provider === "ultramsg") {
+      if (!apiKey || !instanceId) return { ok: false, provider, error: "UltraMsg needs a token and an instance ID." };
+      const r = await fetch(`https://api.ultramsg.com/${instanceId}/messages/chat`, {
+        method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ token: apiKey, to, body: text }).toString(),
+      });
+      const d = await r.json().catch(() => ({}));
+      return r.ok && !d.error && !d.error_code ? { ok: true, provider, id: d.id ? String(d.id) : undefined } : { ok: false, provider, error: d.error || d.message || `UltraMsg returned ${r.status}` };
+    }
+    if (provider === "twilio") {
+      const sid = Deno.env.get("TWILIO_ACCOUNT_SID") || "";
+      const auth = apiKey || Deno.env.get("TWILIO_AUTH_TOKEN") || "";
+      const from = cfg?.senderNumber || Deno.env.get("TWILIO_WHATSAPP_FROM") || "";
+      const account = phoneNumberId || sid;
+      if (!account || !auth || !from) return { ok: false, provider, error: "Twilio needs an account SID, an auth token and a sender number." };
+      const fromN = from.startsWith("whatsapp:") ? from : `whatsapp:+${from.replace(/\D/g, "")}`;
+      const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${account}/Messages.json`, {
+        method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: "Basic " + btoa(`${account}:${auth}`) },
+        body: new URLSearchParams({ From: fromN, To: `whatsapp:+${to}`, Body: text }).toString(),
+      });
+      const d = await r.json().catch(() => ({}));
+      return r.ok && d.sid ? { ok: true, provider, id: d.sid } : { ok: false, provider, error: d.message || `Twilio returned ${r.status}` };
+    }
+    if (provider === "webhook") {
+      if (!cfg?.webhookUrl) return { ok: false, provider, error: "Add the webhook URL." };
+      const r = await fetch(cfg.webhookUrl, {
+        method: "POST", headers: { "Content-Type": "application/json", ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}) },
+        body: JSON.stringify({ phone: to, recipient: to, message: text, timestamp: new Date().toISOString() }),
+      });
+      return r.ok ? { ok: true, provider } : { ok: false, provider, error: `Webhook returned ${r.status}` };
+    }
+    return { ok: false, provider, error: `Unknown provider "${provider}".` };
+  } catch (e) {
+    return { ok: false, provider, error: e instanceof Error ? e.message : "The gateway could not be reached." };
+  }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  try {
     const body = await req.json();
-    const { phone, name, country, message, customConfig } = body;
+    const action: string = body.action || (body.leadId ? "lead" : "custom");
+    const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    if (!phone) {
-      return new Response(JSON.stringify({ success: false, error: "Phone number is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Clean phone number — strip all non-digits except leading +
-    let cleanPhone = String(phone).trim();
-    // Remove spaces, dashes, parens
-    cleanPhone = cleanPhone.replace(/[\s\-\(\)]/g, "");
-    // If no country code, prepend 91 for India (default)
-    if (cleanPhone.startsWith("+")) {
-      cleanPhone = cleanPhone.substring(1);
-    } else if (cleanPhone.length === 10 && !cleanPhone.startsWith("91")) {
-      cleanPhone = "91" + cleanPhone;
-    } else if (cleanPhone.startsWith("0")) {
-      cleanPhone = "91" + cleanPhone.substring(1);
-    }
-    // Remove any remaining non-digits
-    cleanPhone = cleanPhone.replace(/[^\d]/g, "");
-
-    // Load WhatsApp config — prefer customConfig passed from client (already loaded from DB+localStorage),
-    // then fall back to loading directly from DB, then env vars
-    let config = customConfig;
-
-    if (!config || (!config.apiKey && !config.instanceId)) {
-      try {
-        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        const { data } = await supabase
-          .from("system_config")
-          .select("value")
-          .eq("key", "ferex_education_whatsapp_config")
-          .maybeSingle();
-        if (data?.value) {
-          const parsed = typeof data.value === "string" ? JSON.parse(data.value) : data.value;
-          config = parsed;
-        }
-      } catch (err) {
-        console.warn("Could not load WhatsApp config from DB:", err);
+    // Who is calling?
+    let staffName = "";
+    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
+    if (token) {
+      const { data: u } = await db.auth.getUser(token);
+      if (u?.user) {
+        const { data: row } = await db.from("users").select("role, full_name").eq("id", u.user.id).maybeSingle();
+        if (row && STAFF.includes(String(row.role))) staffName = row.full_name || "Staff";
       }
     }
 
-    // Env var fallback for credentials
-    const provider: string = config?.provider || "meta";
-    const apiKey: string = config?.apiKey || Deno.env.get("WHATSAPP_API_KEY") || "";
-    const phoneNumberId: string = config?.phoneNumberId || Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") || "";
-    const instanceId: string = config?.instanceId || Deno.env.get("WHATSAPP_INSTANCE_ID") || "";
-    const twilioSid: string = Deno.env.get("TWILIO_ACCOUNT_SID") || "";
-    const twilioAuth: string = Deno.env.get("TWILIO_AUTH_TOKEN") || "";
-    const twilioFrom: string = config?.senderNumber || Deno.env.get("TWILIO_WHATSAPP_FROM") || "";
+    const { data: stored } = await db.from("system_config").select("value").eq("key", CONFIG_KEY).maybeSingle();
+    const saved: any = stored?.value ? (typeof stored.value === "string" ? JSON.parse(stored.value) : stored.value) : {};
 
-    const studentName = name || "Student";
-    const targetCountry = country || "Europe";
-    const textMessage = message || `Hello ${studentName}! 🎓 Welcome to FEREX Global Higher Education. We received your admission enquiry for ${targetCountry}.\n\nOur Senior Admissions Counselor will connect with you shortly with verified universities, tuition fee structures, and Schengen visa checklists.\n\nReply 'YES' to receive our European Partner Universities catalog!`;
+    // ── Public: welcome message for a fresh enquiry ──
+    if (action === "lead") {
+      const { data: lead } = await db.from("education_leads").select("*").eq("id", body.leadId).maybeSingle();
+      if (!lead) return json({ success: false, error: "Enquiry not found." }, 404);
+      if (lead.whatsapp_sent) return json({ success: true, provider: saved.provider, already: true });
+      const isFresh = Date.now() - new Date(lead.created_at).getTime() < 15 * 60 * 1000;
+      if (!isFresh && !staffName) return json({ success: false, error: "This enquiry is too old for an automatic message." }, 403);
+      if (saved.enabled === false) return json({ success: false, skipped: true, error: "Automatic WhatsApp greetings are switched off." });
 
-    console.log(`[WhatsApp] Provider: ${provider}, To: ${cleanPhone}, HasKey: ${Boolean(apiKey)}`);
-
-    // ── 1. Meta WhatsApp Cloud API ───────────────────────────────────────────
-    if (provider === "meta" && apiKey && phoneNumberId) {
-      const metaRes = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to: cleanPhone,
-          type: "text",
-          text: { preview_url: false, body: textMessage },
-        }),
+      const text = String(saved.welcome_message_template || "Hello {student_name}! Thank you for your enquiry about {country}. Our counselor will contact you shortly.")
+        .replaceAll("{student_name}", lead.name || "Student").replaceAll("{country}", lead.preferred_country || "Europe").replaceAll("{degree}", lead.degree_level || "")
+        .replaceAll("{counselor_name}", lead.assigned_counselor_name || "our admissions counselor").replaceAll("{counselor_phone}", saved.senderNumber || "").replaceAll("{portal_url}", body.portalUrl || "");
+      const res = await dispatch(saved, digits(lead.phone), text);
+      const now = new Date().toISOString();
+      if (res.ok) await db.from("education_leads").update({ whatsapp_sent: true, whatsapp_sent_at: now, updated_at: now }).eq("id", lead.id);
+      await db.from("education_lead_activities").insert({
+        id: crypto.randomUUID(), lead_id: lead.id, activity_type: "WhatsApp Message",
+        title: res.ok ? "WhatsApp welcome sent" : "WhatsApp welcome failed",
+        description: res.ok ? `Sent to ${lead.phone} via ${res.provider}.` : `Could not send to ${lead.phone} via ${res.provider}: ${res.error}`,
+        performed_by: "WhatsApp automation", created_at: now,
       });
-
-      const metaData = await metaRes.json();
-      const isOk = metaRes.ok && !metaData.error;
-
-      return new Response(JSON.stringify({
-        success: isOk,
-        provider: "meta",
-        data: isOk ? { message_id: metaData.messages?.[0]?.id } : undefined,
-        error: isOk ? undefined : (metaData.error?.message || `Meta API error ${metaRes.status}`),
-      }), {
-        status: isOk ? 200 : 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ success: res.ok, provider: res.provider, error: res.error });
     }
 
-    // ── 2. UltraMsg API ──────────────────────────────────────────────────────
-    if (provider === "ultramsg" && instanceId && apiKey) {
-      const params = new URLSearchParams({
-        token: apiKey,
-        to: cleanPhone,
-        body: textMessage,
-      });
-
-      const ultraRes = await fetch(`https://api.ultramsg.com/${instanceId}/messages/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: params.toString(),
-      });
-
-      let ultraData: any = {};
-      try { ultraData = await ultraRes.json(); } catch {}
-
-      const isUltraOk = ultraRes.ok && !ultraData.error && !ultraData.error_code;
-
-      return new Response(JSON.stringify({
-        success: isUltraOk,
-        provider: "ultramsg",
-        data: isUltraOk ? ultraData : undefined,
-        error: isUltraOk ? undefined : (ultraData.error || ultraData.message || `UltraMsg error ${ultraRes.status}`),
-      }), {
-        status: isUltraOk ? 200 : 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // ── Staff only from here ──
+    if (!staffName) return json({ success: false, error: "Sign in as staff to send WhatsApp messages." }, 403);
+    if (!body.phone || !body.message) return json({ success: false, error: "A phone number and a message are required." }, 400);
+    const cfg = action === "test" && body.config ? { ...saved, ...body.config } : saved;
+    const res = await dispatch(cfg, digits(body.phone), String(body.message));
+    if (body.leadId) {
+      const now = new Date().toISOString();
+      if (res.ok) await db.from("education_leads").update({ whatsapp_sent: true, whatsapp_sent_at: now, updated_at: now }).eq("id", body.leadId);
+      await db.from("education_lead_activities").insert({
+        id: crypto.randomUUID(), lead_id: body.leadId, activity_type: "WhatsApp Message",
+        title: res.ok ? "WhatsApp message sent" : "WhatsApp message failed",
+        description: res.ok ? `Sent to ${body.phone} via ${res.provider}.` : `Could not send via ${res.provider}: ${res.error}`,
+        performed_by: staffName, created_at: now,
       });
     }
-
-    // ── 3. Twilio WhatsApp ───────────────────────────────────────────────────
-    if (provider === "twilio" && twilioSid && twilioAuth) {
-      const fromNumber = twilioFrom.startsWith("whatsapp:") ? twilioFrom : `whatsapp:+${twilioFrom.replace(/[^\d]/g, "")}`;
-      const toNumber = `whatsapp:+${cleanPhone}`;
-
-      const twilioRes = await fetch(
-        `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            Authorization: "Basic " + btoa(`${twilioSid}:${twilioAuth}`),
-          },
-          body: new URLSearchParams({
-            From: fromNumber,
-            To: toNumber,
-            Body: textMessage,
-          }).toString(),
-        }
-      );
-
-      let twilioData: any = {};
-      try { twilioData = await twilioRes.json(); } catch {}
-
-      const isTwilioOk = twilioRes.ok && twilioData.sid;
-
-      return new Response(JSON.stringify({
-        success: isTwilioOk,
-        provider: "twilio",
-        data: isTwilioOk ? { message_sid: twilioData.sid } : undefined,
-        error: isTwilioOk ? undefined : (twilioData.message || `Twilio error ${twilioRes.status}`),
-      }), {
-        status: isTwilioOk ? 200 : 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // ── 4. Generic Webhook ───────────────────────────────────────────────────
-    if (provider === "webhook" && config?.webhookUrl) {
-      const hookRes = await fetch(config.webhookUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-        },
-        body: JSON.stringify({
-          phone: cleanPhone,
-          recipient: cleanPhone,
-          name: studentName,
-          country: targetCountry,
-          message: textMessage,
-          timestamp: new Date().toISOString(),
-        }),
-      });
-
-      const isHookOk = hookRes.ok;
-      let hookData: any = {};
-      try { hookData = await hookRes.json(); } catch {}
-
-      return new Response(JSON.stringify({
-        success: isHookOk,
-        provider: "webhook",
-        data: hookData,
-        error: isHookOk ? undefined : `Webhook returned ${hookRes.status}`,
-      }), {
-        status: isHookOk ? 200 : hookRes.status,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // ── 5. No credentials configured — log and report ────────────────────────
-    console.log(`[WhatsApp Not Configured] Provider: ${provider}, To: ${cleanPhone}`);
-    console.log(`[WhatsApp Message Preview]: ${textMessage.substring(0, 200)}`);
-
-    return new Response(
-      JSON.stringify({
-        success: false,
-        provider: provider,
-        error: `WhatsApp credentials not configured. Please go to Education Admin → Settings → WhatsApp API & Automation and enter your ${provider.toUpperCase()} API credentials.`,
-        debug: {
-          provider,
-          hasMeta: Boolean(apiKey && phoneNumberId && provider === "meta"),
-          hasUltraMsg: Boolean(instanceId && apiKey && provider === "ultramsg"),
-          hasTwilio: Boolean(twilioSid && twilioAuth && provider === "twilio"),
-          hasWebhook: Boolean(config?.webhookUrl && provider === "webhook"),
-        },
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
-  } catch (error) {
-    console.error("WhatsApp dispatch error:", error);
-    return new Response(
-      JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Unknown error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return json({ success: res.ok, provider: res.provider, error: res.error, id: res.id });
+  } catch (e) {
+    return json({ success: false, error: e instanceof Error ? e.message : "Unexpected error" }, 500);
   }
 });

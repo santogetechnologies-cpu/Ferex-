@@ -114,7 +114,6 @@ Your Senior Admissions Counselor, {counselor_name}, will contact you shortly to 
 const LOCAL_STORAGE_LEADS_KEY = 'ferex_education_leads_cache';
 const LOCAL_STORAGE_ACTIVITIES_KEY = 'ferex_education_lead_activities_cache';
 const LOCAL_STORAGE_FORM_CONFIG_KEY = 'ferex_lead_form_config';
-const LOCAL_STORAGE_WHATSAPP_CONFIG_KEY = 'ferex_education_whatsapp_config';
 
 function getLocalLeads(): EducationLead[] {
   if (typeof window === 'undefined') return [];
@@ -177,57 +176,35 @@ export async function getLeadFormConfig(): Promise<LeadFormConfig> {
 
 export async function saveLeadFormConfig(config: LeadFormConfig): Promise<LeadFormConfig> {
   const merged = { ...config, phone_compulsory: true as const };
-  try {
-    await supabase.from('system_config').upsert({
-      key: 'ferex_lead_form_config',
-      value: merged,
-      updated_at: new Date().toISOString(),
-    });
-  } catch {}
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(LOCAL_STORAGE_FORM_CONFIG_KEY, JSON.stringify(merged));
-    window.dispatchEvent(new Event('ferex_lead_form_config_change'));
-  }
+  const { error } = await supabase.from('system_config').upsert({
+    key: 'ferex_lead_form_config',
+    value: merged,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'key' });
+  if (error) throw new Error(error.message);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('ferex_lead_form_config_change'));
   return merged;
 }
 
+// Gateway keys live only in the database and are readable by education admins only; they are never cached in the browser.
 export async function getWhatsAppConfig(): Promise<WhatsAppConfig> {
-  try {
-    const { data } = await supabase
-      .from('system_config')
-      .select('value')
-      .eq('key', 'ferex_education_whatsapp_config')
-      .maybeSingle();
-
-    if (data?.value) {
-      const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
-      return { ...DEFAULT_WHATSAPP_CONFIG, ...parsed };
-    }
-  } catch {}
-
-  if (typeof window !== 'undefined') {
-    try {
-      const raw = localStorage.getItem(LOCAL_STORAGE_WHATSAPP_CONFIG_KEY);
-      if (raw) return { ...DEFAULT_WHATSAPP_CONFIG, ...JSON.parse(raw) };
-    } catch {}
+  const { data, error } = await supabase.from('system_config').select('value').eq('key', 'ferex_education_whatsapp_config').maybeSingle();
+  if (error) throw new Error(error.message);
+  if (data?.value) {
+    const parsed = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+    return { ...DEFAULT_WHATSAPP_CONFIG, ...parsed };
   }
   return DEFAULT_WHATSAPP_CONFIG;
 }
 
 export async function saveWhatsAppConfig(config: WhatsAppConfig): Promise<WhatsAppConfig> {
-  try {
-    await supabase.from('system_config').upsert({
-      key: 'ferex_education_whatsapp_config',
-      value: config,
-      updated_at: new Date().toISOString(),
-    });
-  } catch {}
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(LOCAL_STORAGE_WHATSAPP_CONFIG_KEY, JSON.stringify(config));
-    window.dispatchEvent(new Event('ferex_education_whatsapp_config_change'));
-  }
+  const { error } = await supabase.from('system_config').upsert({
+    key: 'ferex_education_whatsapp_config',
+    value: config,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'key' });
+  if (error) throw new Error(error.message);
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('ferex_education_whatsapp_config_change'));
   return config;
 }
 
@@ -736,109 +713,51 @@ export async function getCounselorPerformanceMetrics(): Promise<CounselorPerform
 }
 
 // ─── WhatsApp Dispatcher ─────────────────────────────────────────────────────
+// The server (edge function) holds the gateway keys, sends the message and records the result.
 
-export async function sendLeadWhatsAppWelcome(
-  lead: EducationLead,
-  customMessage?: string
-): Promise<{ success: boolean; provider?: string; error?: string }> {
-  const config = await getWhatsAppConfig();
-  if (!config.enabled && !customMessage) {
-    return { success: false, error: 'WhatsApp notifications disabled in settings' };
+export type WhatsAppResult = { success: boolean; provider?: string; error?: string; skipped?: boolean };
+
+async function callGateway(body: Record<string, unknown>): Promise<WhatsAppResult> {
+  const { data, error } = await supabase.functions.invoke('send-whatsapp-lead', { body });
+  if (error) {
+    // The function replies with a JSON body even on errors; surface its message when there is one.
+    let msg = error.message;
+    try { const j = await (error as any).context?.json?.(); if (j?.error) msg = j.error; } catch { /* keep message */ }
+    return { success: false, error: msg };
   }
-
-  const studentName = lead.name || 'Student';
-  const targetCountry = lead.preferred_country || 'Europe';
-  const targetDegree = lead.degree_level || "Bachelor's Degree";
-  const counselorName = lead.assigned_counselor_name || 'Senior Admissions Counselor';
-  const counselorPhone = config.senderNumber || '+91 98200 11223';
-  const portalUrl = typeof window !== 'undefined' ? `${window.location.origin}/login` : 'https://ferex.org/login';
-
-  let textMessage = customMessage;
-  if (!textMessage) {
-    textMessage = (config.welcome_message_template || DEFAULT_WHATSAPP_CONFIG.welcome_message_template)
-      .replace(/{student_name}/g, studentName)
-      .replace(/{country}/g, targetCountry)
-      .replace(/{degree}/g, targetDegree)
-      .replace(/{counselor_name}/g, counselorName)
-      .replace(/{counselor_phone}/g, counselorPhone)
-      .replace(/{portal_url}/g, portalUrl);
-  }
-
-  let success = false;
-  let providerUsed: string = config.provider;
-
-  // 1. Try Supabase Edge Function
-  try {
-    const { data, error } = await supabase.functions.invoke('send-whatsapp-lead', {
-      body: {
-        phone: lead.phone,
-        name: studentName,
-        country: targetCountry,
-        message: textMessage,
-        customConfig: config,
-      },
-    });
-
-    if (!error && data?.success) {
-      success = true;
-      providerUsed = data.provider || config.provider;
-    }
-  } catch (fnErr) {
-    console.warn('Edge function WhatsApp notice:', fnErr);
-  }
-
-  // 2. Client-side fallback if edge function was unavailable or simulation
-  if (!success) {
-    success = true;
-    providerUsed = 'direct_simulation';
-  }
-
-  // Mark lead as whatsapp_sent
-  if (success) {
-    const nowIso = new Date().toISOString();
-    updateEducationLead(lead.id, {
-      whatsapp_sent: true,
-      whatsapp_sent_at: nowIso,
-    }).catch(() => {});
-
-    addEducationLeadActivity({
-      lead_id: lead.id,
-      activity_type: 'WhatsApp Message',
-      title: 'WhatsApp Advisory Dispatched',
-      description: `Sent to ${lead.phone} via ${providerUsed}. Message preview: ${textMessage.substring(0, 120)}...`,
-      performed_by: 'WhatsApp Automation',
-    }).catch(() => {});
-  }
-
-  return { success, provider: providerUsed };
+  return { success: Boolean(data?.success), provider: data?.provider, error: data?.error, skipped: data?.skipped };
 }
 
+/** Welcome message for a lead (template from Settings), or your own text when customMessage is given (staff only). */
+export async function sendLeadWhatsAppWelcome(lead: EducationLead, customMessage?: string, resend = false): Promise<WhatsAppResult> {
+  const portalUrl = typeof window !== 'undefined' ? `${window.location.origin}/login` : '';
+  if (resend && !customMessage) {
+    // Staff resend: render the saved template here so a lead that was already greeted can be greeted again.
+    const cfg = await getWhatsAppConfig();
+    customMessage = (cfg.welcome_message_template || DEFAULT_WHATSAPP_CONFIG.welcome_message_template)
+      .replace(/{student_name}/g, lead.name || 'Student').replace(/{country}/g, lead.preferred_country || 'Europe').replace(/{degree}/g, lead.degree_level || '')
+      .replace(/{counselor_name}/g, lead.assigned_counselor_name || 'our admissions counselor').replace(/{counselor_phone}/g, cfg.senderNumber || '').replace(/{portal_url}/g, portalUrl);
+  }
+  const res = customMessage
+    ? await callGateway({ action: 'custom', leadId: lead.id, phone: lead.phone, message: customMessage })
+    : await callGateway({ action: 'lead', leadId: lead.id, portalUrl });
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('ferex_education_leads_change'));
+  return res;
+}
+
+/** Sends a real test message. Pass the form's current (even unsaved) values to try them before saving. */
 export async function testWhatsAppConnection(
   testPhone: string,
+  config?: Partial<WhatsAppConfig>,
   testMessage?: string
 ): Promise<{ success: boolean; message: string }> {
-  const dummyLead: EducationLead = {
-    id: 'test-lead-id',
-    name: 'Test Prospective Student',
+  const res = await callGateway({
+    action: 'test',
     phone: testPhone,
-    preferred_country: 'Germany',
-    degree_level: "Master's Degree",
-    status: 'New Lead',
-    tags: ['Test'],
-    source: 'Settings Test',
-    whatsapp_sent: false,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-
-  const res = await sendLeadWhatsAppWelcome(
-    dummyLead,
-    testMessage || `✅ [FEREX ADMISSIONS] WhatsApp API Test Connection Verified!\n\nThis is an automated test notification sent to ${testPhone}. Your WhatsApp gateway is configured and ready for automated student lead greetings.`
-  );
-
-  if (res.success) {
-    return { success: true, message: `WhatsApp message successfully dispatched via ${res.provider || 'Gateway'}` };
-  } else {
-    return { success: false, message: res.error || 'WhatsApp message dispatch failed' };
-  }
+    config,
+    message: testMessage || 'Test message from FEREX Education. Your WhatsApp gateway is connected.',
+  });
+  return res.success
+    ? { success: true, message: `Test message sent through ${res.provider || 'the gateway'}.` }
+    : { success: false, message: res.error || 'The test message could not be sent.' };
 }

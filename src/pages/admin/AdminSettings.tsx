@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Save, CheckCircle2, Building2, Shield, Lock, MessageSquare,
   Check, Sliders, Phone, Key, Globe, Send, AlertCircle
@@ -7,6 +7,7 @@ import { ChangePasswordForm } from '../../components/ChangePasswordForm';
 import { ToastNotification } from '../../components/ToastNotification';
 import { Button } from '../../components/Button';
 import { supabase } from '../../lib/supabase';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import {
   getLeadFormConfig,
   saveLeadFormConfig,
@@ -54,46 +55,61 @@ export const AdminSettings: React.FC = () => {
   const [testPhoneNumber, setTestPhoneNumber] = useState('+91');
   const [isTestingWhatsApp, setIsTestingWhatsApp] = useState(false);
 
-  useEffect(() => {
-    getLeadFormConfig().then((cfg) => setFormConfig(cfg));
-    getWhatsAppConfig().then((wcfg) => setWhatsappConfig(wcfg));
+  // Last values read from the database. A live change from another admin replaces the form only when this admin has no unsaved edits.
+  const saved = useRef<{ form: string; wa: string; org: string }>({ form: '', wa: '', org: '' });
+  const current = useRef({ form: '', wa: '', org: '' });
+  current.current = { form: JSON.stringify(formConfig), wa: JSON.stringify(whatsappConfig), org: JSON.stringify(org) };
+  const [waLoadError, setWaLoadError] = useState('');
+  const [liveAt, setLiveAt] = useState<Date | null>(null);
+  const [deliveries, setDeliveries] = useState<{ id: string; title: string; description: string; created_at: string }[]>([]);
 
-    (async () => {
-      try {
-        const { data } = await supabase
-          .from('system_config')
-          .select('value')
-          .eq('key', 'ferex_organization_settings')
-          .maybeSingle();
-
-        if (data?.value && typeof data.value === 'object') {
-          setOrg(prev => ({ ...prev, ...data.value }));
-        } else {
-          try {
-            const raw = localStorage.getItem('ferex_organization_settings');
-            if (raw) setOrg(prev => ({ ...prev, ...JSON.parse(raw) }));
-          } catch {}
-        }
-      } catch {}
-    })();
+  const loadAll = useCallback(async (fromLive = false) => {
+    let applied = false;
+    try {
+      const f = await getLeadFormConfig();
+      const fs = JSON.stringify(f);
+      if (current.current.form === saved.current.form && fs !== current.current.form) { setFormConfig(f); applied = true; }
+      saved.current.form = fs;
+    } catch {}
+    try {
+      const w = await getWhatsAppConfig();
+      const ws = JSON.stringify(w);
+      setWaLoadError('');
+      if (current.current.wa === saved.current.wa && ws !== current.current.wa) { setWhatsappConfig(w); applied = true; }
+      saved.current.wa = ws;
+    } catch (e: any) { setWaLoadError(e.message || 'Could not load the WhatsApp settings'); }
+    try {
+      const { data } = await supabase.from('system_config').select('value').eq('key', 'ferex_organization_settings').maybeSingle();
+      if (data?.value && typeof data.value === 'object') {
+        const merged = { ...INITIAL_ORG, ...(data.value as object) };
+        const os = JSON.stringify(merged);
+        if (current.current.org === saved.current.org && os !== current.current.org) { setOrg(merged); applied = true; }
+        saved.current.org = os;
+      } else if (!saved.current.org) saved.current.org = JSON.stringify(INITIAL_ORG);
+    } catch {}
+    setLiveAt(new Date());
+    if (fromLive && applied) showToast('Settings were updated by another admin. Showing the latest.');
   }, []);
+
+  const loadDeliveries = useCallback(async () => {
+    const { data } = await supabase.from('education_lead_activities').select('id,title,description,created_at').eq('activity_type', 'WhatsApp Message').order('created_at', { ascending: false }).limit(8);
+    setDeliveries((data || []) as any);
+  }, []);
+
+  useEffect(() => { void loadAll(); void loadDeliveries(); }, [loadAll, loadDeliveries]);
+  useRealtimeTable('system_config', () => { void loadAll(true); });
+  useRealtimeTable('education_lead_activities', () => { void loadDeliveries(); });
 
   const [isSavingOrg, setIsSavingOrg] = useState(false);
   const handleSaveOrg = async () => {
     setIsSavingOrg(true);
     try {
-      localStorage.setItem('ferex_organization_settings', JSON.stringify(org));
-      const { getAdminSupabaseClient } = await import('../../lib/adminAuthClient');
-      const admin = await getAdminSupabaseClient();
-      const client = admin || supabase;
-      await client.from('system_config').upsert({
-        key: 'ferex_organization_settings',
-        value: org,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'key' });
-      showToast('Organization settings saved and synced to database!');
+      const { error } = await supabase.from('system_config').upsert({ key: 'ferex_organization_settings', value: org, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+      if (error) throw new Error(error.message);
+      saved.current.org = JSON.stringify(org);
+      showToast('Organization settings saved.');
     } catch (err: any) {
-      showToast(`Saved locally: ${err.message || 'Offline mode'}`);
+      showToast(`Not saved: ${err.message || 'the database refused the change'}`);
     } finally {
       setIsSavingOrg(false);
     }
@@ -108,9 +124,10 @@ export const AdminSettings: React.FC = () => {
     setIsSavingForm(true);
     try {
       await saveLeadFormConfig(formConfig);
-      showToast('✅ Lead capture form settings updated & synchronized across landing page!');
+      saved.current.form = JSON.stringify(formConfig);
+      showToast('Lead form saved. The enquiry page updates instantly.');
     } catch (err: any) {
-      showToast(`Error saving lead form settings: ${err.message}`);
+      showToast(`Not saved: ${err.message}`);
     } finally {
       setIsSavingForm(false);
     }
@@ -120,13 +137,24 @@ export const AdminSettings: React.FC = () => {
     setIsSavingWhatsApp(true);
     try {
       await saveWhatsAppConfig(whatsappConfig);
-      showToast('✅ WhatsApp API gateway credentials & welcome message template saved!');
+      saved.current.wa = JSON.stringify(whatsappConfig);
+      showToast('WhatsApp settings saved. New enquiries use them immediately.');
     } catch (err: any) {
-      showToast(`Error saving WhatsApp config: ${err.message}`);
+      showToast(`Not saved: ${err.message}`);
     } finally {
       setIsSavingWhatsApp(false);
     }
   };
+
+  const missing = (() => {
+    const c = whatsappConfig;
+    const id = c.phoneNumberId || c.instanceId;
+    if (c.provider === 'meta') return [!c.apiKey && 'access token', !id && 'phone number ID'].filter(Boolean) as string[];
+    if (c.provider === 'ultramsg') return [!c.apiKey && 'token', !id && 'instance ID'].filter(Boolean) as string[];
+    if (c.provider === 'twilio') return [!id && 'account SID', !c.apiKey && 'auth token', !c.senderNumber && 'sender number'].filter(Boolean) as string[];
+    return [!c.webhookUrl && 'webhook URL'].filter(Boolean) as string[];
+  })();
+  const waDirty = current.current.wa !== saved.current.wa;
 
   const handleTestWhatsApp = async () => {
     if (!testPhoneNumber || testPhoneNumber.length < 8) {
@@ -135,8 +163,9 @@ export const AdminSettings: React.FC = () => {
     }
     setIsTestingWhatsApp(true);
     try {
-      const res = await testWhatsAppConnection(testPhoneNumber);
+      const res = await testWhatsAppConnection(testPhoneNumber, whatsappConfig);
       showToast(res.message);
+      void loadDeliveries();
     } catch (err: any) {
       showToast(`Test failed: ${err.message}`);
     } finally {
@@ -260,8 +289,8 @@ export const AdminSettings: React.FC = () => {
               <div>
                 <h2 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">
                   <span>Lead Generation Landing Page Form Controls</span>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                    Live Form Sync
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 inline-flex items-center gap-1.5">
+                    <i className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />Live{liveAt ? ` · ${liveAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : ''}
                   </span>
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
@@ -429,8 +458,8 @@ export const AdminSettings: React.FC = () => {
               <div>
                 <h2 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">
                   <span>WhatsApp Gateway API & Auto-Trigger Settings</span>
-                  <span className="text-[10px] font-bold text-cyan-700 bg-cyan-50 px-2.5 py-0.5 rounded-full border border-cyan-200">
-                    Auto-Responder Active
+                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${!whatsappConfig.enabled ? 'text-slate-600 bg-slate-100 border-slate-200' : missing.length ? 'text-amber-800 bg-amber-50 border-amber-200' : 'text-emerald-700 bg-emerald-50 border-emerald-200'}`}>
+                    {!whatsappConfig.enabled ? 'Automatic greeting off' : missing.length ? `Needs ${missing.join(' and ')}` : 'Ready to send'}
                   </span>
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
@@ -558,6 +587,24 @@ export const AdminSettings: React.FC = () => {
                   onChange={(e) => setWhatsappConfig({ ...whatsappConfig, welcome_message_template: e.target.value })}
                   className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E] leading-relaxed"
                 />
+              </div>
+
+              {waLoadError && <p role="alert" className="text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-3">{waLoadError}. Only education admins can see and change the gateway keys.</p>}
+              {waDirty && <p className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3">You have unsaved changes. The test below uses these values; new enquiries use them only after you save.</p>}
+
+              {/* Live delivery log */}
+              <div className="p-4 bg-white rounded-2xl border border-slate-200/80 space-y-2">
+                <span className="text-[10px] font-black uppercase text-slate-500 block tracking-wider flex items-center gap-1.5"><i className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />Recent messages (live)</span>
+                {deliveries.length === 0 ? <p className="text-xs text-slate-500">No WhatsApp messages yet. New enquiries and resends appear here the moment they are sent.</p> : (
+                  <ul className="divide-y divide-slate-100">
+                    {deliveries.map(d => { const failed = /failed/i.test(d.title); return (
+                      <li key={d.id} className="py-2 flex items-start gap-2.5">
+                        <span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${failed ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                        <div className="min-w-0 flex-1"><p className="text-xs font-bold text-slate-900">{d.title}</p><p className="text-[11px] text-slate-500 break-words">{d.description}</p></div>
+                        <span className="text-[10px] text-slate-400 shrink-0">{new Date(d.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+                      </li>); })}
+                  </ul>
+                )}
               </div>
 
               {/* Real-time Test WhatsApp Box */}
