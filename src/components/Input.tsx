@@ -7,10 +7,12 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   showPasswordToggle?: boolean;
   leftIcon?: React.ReactNode;
+  inputClassName?: string;
+  labelClassName?: string;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, showPasswordToggle = true, type = 'text', className, disabled, id, leftIcon, ...props }, ref) => {
+  ({ label, error, showPasswordToggle = true, type = 'text', className, disabled, id, leftIcon, inputClassName, labelClassName, ...props }, ref) => {
     const [showPassword, setShowPassword] = useState(false);
     const isPassword = type === 'password';
     const hasToggle = isPassword && showPasswordToggle;
@@ -22,7 +24,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label 
             htmlFor={id} 
-            className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5 select-none"
+            className={cn("block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5 select-none", labelClassName)}
           >
             {label}
           </label>
@@ -47,7 +49,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               hasToggle && 'pr-9',
               error
                 ? 'border-rose-300 dark:border-rose-700 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/15'
-                : 'border-slate-200/90 dark:border-slate-700 focus:border-[#58051E] dark:focus:border-rose-400 focus:ring-2 focus:ring-[#58051E]/10 dark:focus:ring-rose-500/20'
+                : 'border-slate-200/90 dark:border-slate-700 focus:border-[#58051E] dark:focus:border-rose-400 focus:ring-2 focus:ring-[#58051E]/10 dark:focus:ring-rose-500/20',
+              inputClassName
             )}
             {...props}
           />

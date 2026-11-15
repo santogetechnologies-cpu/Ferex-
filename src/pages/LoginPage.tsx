@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShieldCheck, AlertCircle, KeyRound, ArrowLeft, LogIn, UserPlus, Lock,
-  FileText, X, FileCheck, Check
+  FileText, X, FileCheck, Check, Mail, User, Phone
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Input } from '../components/Input';
@@ -12,6 +12,9 @@ import { getDashboardRoute, getPortalLabel, isSuperAdmin } from '../lib/roleRout
 import { supabase } from '../lib/supabase';
 import { getAdminSupabaseClient } from '../lib/adminAuthClient';
 import { sendStudentWelcomeEmail } from '../lib/api/email';
+
+const fieldCls = 'h-12 lg:h-14 rounded-2xl bg-white/80 border-slate-200 text-sm font-medium focus:bg-white';
+const labelCls = 'text-sm font-bold text-slate-800 mb-1.5';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -316,7 +319,7 @@ export const LoginPage: React.FC = () => {
       console.warn('[Welcome Email trigger notice]:', err);
     });
 
-    setSuccessMsg('Account created with Document Processing Consent verified. Preparing your Student Portal...');
+    setSuccessMsg('Account created with Document Processing Consent verified. Preparing your account...');
     setIsLoading(false);
 
     setTimeout(() => {
@@ -414,14 +417,15 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="relative overflow-hidden w-full text-left">
+      <style>{`@keyframes login-shimmer{0%{transform:translateX(-130%)}60%,100%{transform:translateX(260%)}} .login-cta::after{content:"";position:absolute;inset:0;width:35%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);animation:login-shimmer 3.4s ease-in-out infinite}`}</style>
 
       {/* Top Header Link */}
-      <div className="mb-3 sm:mb-4 flex items-center justify-between">
+      <div className="mb-4 sm:mb-5 flex items-center justify-between">
         <button
           onClick={() => navigate('/')}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-[#58051E] dark:hover:text-rose-400 transition-colors cursor-pointer"
+          className="group inline-flex items-center gap-2 text-sm font-bold text-[#6B0F36] hover:text-[#8C1D4F] transition-colors cursor-pointer"
         >
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to Home
+          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" /> Back to Home
         </button>
       </div>
 
@@ -457,6 +461,8 @@ export const LoginPage: React.FC = () => {
 
             <form onSubmit={handleFirstTimePassSubmit} className="space-y-4">
               <Input
+                inputClassName={fieldCls}
+                labelClassName={labelCls}
                 label="New Permanent Password"
                 type="password"
                 showPasswordToggle={true}
@@ -467,6 +473,8 @@ export const LoginPage: React.FC = () => {
               />
 
               <Input
+                inputClassName={fieldCls}
+                labelClassName={labelCls}
                 label="Confirm New Password"
                 type="password"
                 showPasswordToggle={true}
@@ -497,26 +505,26 @@ export const LoginPage: React.FC = () => {
             {/* Header with Tab Switcher */}
             <div className="text-center sm:text-left mb-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
-                <div className="p-1 bg-slate-100/90 dark:bg-slate-800 rounded-xl flex items-center gap-1 border border-slate-200/80 dark:border-slate-700 w-full sm:w-auto">
+                <div className="p-1.5 bg-white/70 rounded-full flex items-center gap-1 border border-white shadow-[inset_0_1px_3px_rgba(107,15,54,0.08)] w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={switchToSignIn}
-                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${authMode === 'signin'
-                        ? 'bg-[#58051E] dark:bg-rose-600 text-white shadow-sm'
-                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${authMode === 'signin'
+                        ? 'bg-gradient-to-r from-[#8C1D4F] to-[#570229] text-white shadow-[0_8px_18px_-8px_rgba(87,2,41,0.7)]'
+                        : 'text-slate-700 hover:text-[#6B0F36] hover:bg-white/80'
                       }`}
                   >
-                    <LogIn className="w-3.5 h-3.5" /> Sign In
+                    <LogIn className="w-4 h-4" /> Sign In
                   </button>
                   <button
                     type="button"
                     onClick={switchToSignUp}
-                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${authMode === 'signup'
-                        ? 'bg-[#58051E] dark:bg-rose-600 text-white shadow-sm'
-                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${authMode === 'signup'
+                        ? 'bg-gradient-to-r from-[#8C1D4F] to-[#570229] text-white shadow-[0_8px_18px_-8px_rgba(87,2,41,0.7)]'
+                        : 'text-slate-700 hover:text-[#6B0F36] hover:bg-white/80'
                       }`}
                   >
-                    <UserPlus className="w-3.5 h-3.5" /> Create Student Account
+                    <UserPlus className="w-4 h-4" /> <span className="sm:hidden">Create account</span><span className="hidden sm:inline">Create Student Account</span>
                   </button>
                 </div>
               </div>
@@ -528,10 +536,10 @@ export const LoginPage: React.FC = () => {
                 </div>
               )}
 
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight mb-1">
+              <h2 className="text-3xl sm:text-[2.1rem] font-black text-[#6B0F36] tracking-tight mb-1.5 leading-tight">
                 {authMode === 'signin' ? 'Sign in to your portal' : 'Create your student account'}
               </h2>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              <p className="text-sm font-medium text-slate-600">
                 {authMode === 'signin'
                   ? 'Access your applications, legalization, tuition payments, and visa status.'
                   : 'Start your European higher education journey with FEREX.'}
@@ -573,9 +581,12 @@ export const LoginPage: React.FC = () => {
               /* SIGN IN FORM */
               <form onSubmit={handleSignIn} className="space-y-3" autoComplete="on">
                 <Input
+                inputClassName={fieldCls}
+                labelClassName={labelCls}
                   label="Email address"
                   type="email"
-                  placeholder="student@example.com"
+                  leftIcon={<Mail className="w-[18px] h-[18px] text-[#8C1D4F]" />}
+                  placeholder="you@example.com"
                   value={signInEmail}
                   onChange={(e) => setSignInEmail(e.target.value)}
                   error={errors.signInEmail}
@@ -584,8 +595,11 @@ export const LoginPage: React.FC = () => {
                 />
 
                 <Input
+                inputClassName={fieldCls}
+                labelClassName={labelCls}
                   label="Password"
                   type="password"
+                  leftIcon={<Lock className="w-[18px] h-[18px] text-[#8C1D4F]" />}
                   placeholder="••••••••"
                   value={signInPassword}
                   onChange={(e) => setSignInPassword(e.target.value)}
@@ -606,7 +620,7 @@ export const LoginPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowForgotOverlay(true)}
-                    className="text-xs font-bold text-[#58051E] hover:underline focus:outline-none cursor-pointer"
+                    className="text-sm font-bold text-[#6B0F36] hover:text-[#8C1D4F] hover:underline focus:outline-none cursor-pointer"
                     tabIndex={0}
                   >
                     Forgot password?
@@ -617,16 +631,16 @@ export const LoginPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-11 bg-[#58051E] hover:bg-[#430417] text-white font-semibold text-xs rounded-lg shadow-subtle transition-colors flex items-center justify-center gap-2 disabled:opacity-50 mt-3 cursor-pointer"
+                  className="login-cta relative overflow-hidden w-full h-14 bg-gradient-to-r from-[#8C1D4F] via-[#6B0F36] to-[#4a0220] text-white font-bold text-base rounded-full shadow-[0_16px_34px_-14px_rgba(87,2,41,0.85)] transition-transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 disabled:opacity-60 mt-4 cursor-pointer"
                 >
                   {isLoading ? (
                     <span className="flex items-center gap-2">
                       <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Authenticating Credentials...
+                      Signing you in…
                     </span>
                   ) : (
                     <>
-                      <LogIn className="w-3.5 h-3.5" />
+                      <LogIn className="w-5 h-5" />
                       <span>Sign In to Portal</span>
                     </>
                   )}
@@ -636,6 +650,8 @@ export const LoginPage: React.FC = () => {
               /* SIGN UP FORM WITH MANDATORY DOCUMENT CONSENT */
               <form onSubmit={handleSignUp} className="space-y-4" autoComplete="off">
                 <Input
+                inputClassName={fieldCls}
+                labelClassName={labelCls}
                   label="Full Name"
                   type="text"
                   placeholder="e.g. Alexander Bennett"
@@ -647,6 +663,8 @@ export const LoginPage: React.FC = () => {
                 />
 
                 <Input
+                inputClassName={fieldCls}
+                labelClassName={labelCls}
                   label="Email Address"
                   type="email"
                   placeholder="you@example.com"
@@ -659,6 +677,8 @@ export const LoginPage: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input
+                inputClassName={fieldCls}
+                labelClassName={labelCls}
                     label="Password"
                     type="password"
                     placeholder="Create a password"
@@ -670,6 +690,8 @@ export const LoginPage: React.FC = () => {
                   />
 
                   <Input
+                inputClassName={fieldCls}
+                labelClassName={labelCls}
                     label="Confirm Password"
                     type="password"
                     placeholder="Repeat password"
@@ -731,7 +753,7 @@ export const LoginPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-11 bg-[#58051E] hover:bg-[#430417] text-white font-semibold text-xs rounded-lg shadow-subtle transition-colors flex items-center justify-center gap-2 disabled:opacity-50 mt-3 cursor-pointer"
+                  className="login-cta relative overflow-hidden w-full h-14 bg-gradient-to-r from-[#8C1D4F] via-[#6B0F36] to-[#4a0220] text-white font-bold text-base rounded-full shadow-[0_16px_34px_-14px_rgba(87,2,41,0.85)] transition-transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 disabled:opacity-60 mt-4 cursor-pointer"
                 >
                   {isLoading ? (
                     <span className="flex items-center gap-2">
@@ -748,17 +770,18 @@ export const LoginPage: React.FC = () => {
               </form>
             )}
 
-            {/* Portal Note */}
-            <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-semibold">
-              <span className="flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-emerald-600" /> Secure sign-in
+            {/* Footer */}
+            <div className="mt-6 pt-4 border-t border-slate-200/70 grid grid-cols-[1fr_auto_1fr] items-center text-sm text-slate-700 font-semibold">
+              <span className="flex items-center justify-center gap-2">
+                <Lock className="w-[18px] h-[18px] text-[#8C1D4F]" /> Secure sign-in
               </span>
+              <span className="w-px h-5 bg-slate-300" />
               <button
                 type="button"
                 onClick={() => navigate('/admin/login')}
-                className="text-slate-500 hover:text-[#58051E] font-bold transition-colors cursor-pointer flex items-center gap-1"
+                className="flex items-center justify-center gap-2 hover:text-[#6B0F36] transition-colors cursor-pointer"
               >
-                <ShieldCheck className="w-3.5 h-3.5 text-[#58051E]" /> Super Admin Portal
+                <ShieldCheck className="w-[18px] h-[18px] text-[#8C1D4F]" /> Admin sign-in
               </button>
             </div>
           </motion.div>
@@ -807,9 +830,12 @@ export const LoginPage: React.FC = () => {
                 )}
 
                 <Input
+                inputClassName={fieldCls}
+                labelClassName={labelCls}
                   label="Email address"
                   type="email"
-                  placeholder="student@example.com"
+                  leftIcon={<Mail className="w-[18px] h-[18px] text-[#8C1D4F]" />}
+                  placeholder="you@example.com"
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
                 />
