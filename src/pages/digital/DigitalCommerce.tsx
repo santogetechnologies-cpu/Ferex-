@@ -176,8 +176,9 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
     } catch (e: any) { say(e.message); }
   };
 
-  const print = (doc: any) => {
-    const w = window.open('', '_blank');
+  // The window is opened before the database call by callers, so the browser still treats it as a click and does not block it.
+  const print = (doc: any, opened?: Window | null) => {
+    const w = opened ?? window.open('', '_blank');
     if (!w) { say('Allow pop-ups to print the document'); return; }
     const b = doc.body, fmt = (n: number) => escapeHtml(money(Number(n || 0), b.currency));
     w.document.write(`<!doctype html><html><head><title>${escapeHtml(doc.number)}</title><style>body{font:14px system-ui;padding:40px;max-width:900px;margin:auto}table{width:100%;border-collapse:collapse}td,th{padding:12px;border-bottom:1px solid #ddd;text-align:left}h1{color:#58051e}@media print{button{display:none}}</style></head><body><h1>${escapeHtml(b.agency_name || settings.agency_name)}</h1><p>${escapeHtml(b.agency_address || '')}<br>${escapeHtml(b.agency_tax_number || '')}</p><h2>${escapeHtml(doc.kind)} ${escapeHtml(doc.number)}</h2><p>${escapeHtml(b.client_name)} · ${escapeHtml(b.client_email)} · ${escapeHtml(b.country)}<br>${escapeHtml(b.project_title)}</p><table><tr><th>Service</th><th>Net</th><th>Tax</th></tr>${(b.document_lines || b.lines).map((l: any) => `<tr><td>${escapeHtml(l.title)}</td><td>${fmt(l.amount)}</td><td>${escapeHtml(l.tax_label)} ${l.tax_rate}% · ${fmt(l.tax_amount)}</td></tr>`).join('')}</table><p>Contract reference total (tax included): <strong>${fmt(b.total)}</strong></p><h3>${escapeHtml(b.part?.label || 'Payment schedule')}</h3><p>${escapeHtml(b.part?.due_date || '')}</p><p>${doc.kind === 'Receipt' ? 'Amount received' : doc.kind === 'Credit Note' ? 'Credit' : 'Amount due'}: <strong>${fmt(b.amount)}</strong></p>${b.balance !== undefined ? `<p>Term balance: ${fmt(b.balance)}</p>` : ''}<p>${escapeHtml(b.notes)}</p><p>${escapeHtml(b.payment_instructions)}</p><button onclick="window.print()">Print / Save PDF</button></body></html>`);
@@ -380,7 +381,7 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
                               <td className="py-2.5 text-right whitespace-nowrap space-x-1">
                                 {term.remaining > 0 && <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-[11px] font-bold h-7" disabled={busy} onClick={() => setPay({ contract: c.id, part: term.id, amount: String(term.remaining), method: 'Bank Transfer', reference: '', date: today(), key: uid() })}><Wallet className="w-3 h-3 mr-1" /> Record payment</Button>}
                                 <Button size="sm" variant="outline" className="text-[11px] font-bold h-7" disabled={busy} onClick={() => setTermEdit({ contract: c, part, label: part.label, due: part.due_date, reason: '' })}><Pencil className="w-3 h-3 mr-1" /> Edit</Button>
-                                <Button size="sm" variant="outline" className="text-[11px] font-bold h-7" disabled={busy} onClick={() => run(async () => { const d = await issueDocument(c.id, 'Invoice', term.id); print(d); })}><FileText className="w-3 h-3 mr-1" /> Invoice</Button>
+                                <Button size="sm" variant="outline" className="text-[11px] font-bold h-7" disabled={busy} onClick={() => run(async () => { const w = window.open('', '_blank'); try { const d = await issueDocument(c.id, 'Invoice', term.id); print(d, w); } catch (e) { w?.close(); throw e; } try { await dispatchDigitalMail(); } catch { /* queued; retry from Email Delivery Logs */ } })}><FileText className="w-3 h-3 mr-1" /> Invoice</Button>
                               </td>
                             </tr>
                           );
@@ -394,7 +395,7 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
                   <Button size="sm" variant="outline" className="text-xs font-bold" disabled={busy} onClick={() => setScope({ contract: c, lines: [], parts: [], reason: '' })}><PlusCircle className="w-3.5 h-3.5 mr-1" /> Add extra scope</Button>
                   {!lock && <Button size="sm" variant="outline" className="text-xs font-bold" disabled={busy} onClick={() => setConfig({ mode: 'edit', contract: c, body: JSON.parse(JSON.stringify(c.body)) })}><Pencil className="w-3.5 h-3.5 mr-1" /> Edit configuration</Button>}
                   {lock && <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-500"><Lock className="w-3 h-3" /> Invoiced: change it by adding extra scope or editing a term.</span>}
-                  <Button size="sm" variant="outline" className="text-xs font-bold" disabled={busy} onClick={() => run(async () => { const d = await issueDocument(c.id, 'Proposal'); print(d); })}><FileText className="w-3.5 h-3.5 mr-1" /> Proposal</Button>
+                  <Button size="sm" variant="outline" className="text-xs font-bold" disabled={busy} onClick={() => run(async () => { const w = window.open('', '_blank'); try { const d = await issueDocument(c.id, 'Proposal'); print(d, w); } catch (e) { w?.close(); throw e; } try { await dispatchDigitalMail(); } catch { /* queued; retry from Email Delivery Logs */ } })}><FileText className="w-3.5 h-3.5 mr-1" /> Proposal</Button>
                 </div>
               </Card>
             );

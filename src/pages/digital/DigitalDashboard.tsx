@@ -35,11 +35,6 @@ export const DigitalDashboard: React.FC = () => {
   const roleTitle = isAdmin ? 'Digital Director' : 'Project Specialist';
   const displayName = userName ? `${greeting}, ${userName}` : `${greeting}, ${roleTitle}`;
 
-  // Migration banner
-  const [showMigrationBanner, setShowMigrationBanner] = useState(() => {
-    return localStorage.getItem('ferex_digital_migrated_v2') !== 'true';
-  });
-
   // Admin Data State
   const [stats, setStats] = useState({
     activeClientsCount: 0,
@@ -60,16 +55,6 @@ export const DigitalDashboard: React.FC = () => {
   const [myTasks, setMyTasks] = useState<DigitalTaskRecord[]>([]);
 
   const [loading, setLoading] = useState(true);
-
-  const handleClearCache = () => {
-    localStorage.removeItem('ferex_digital_clients');
-    localStorage.removeItem('ferex_digital_projects');
-    localStorage.removeItem('ferex_digital_tasks');
-    localStorage.removeItem('ferex_digital_invoices');
-    localStorage.setItem('ferex_digital_migrated_v2', 'true');
-    setShowMigrationBanner(false);
-    window.location.reload();
-  };
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -116,7 +101,7 @@ export const DigitalDashboard: React.FC = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_clients' }, () => loadData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_projects' }, () => loadData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_tasks' }, () => loadData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_invoices' }, () => loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_collections' }, () => loadData())
       .subscribe();
 
     const handleLocalChange = () => loadData();
@@ -141,27 +126,6 @@ export const DigitalDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left antialiased">
-      {/* Migration Notice Banner */}
-      {false && showMigrationBanner && (
-        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-xs">
-          <div className="flex items-center gap-2.5">
-            <RefreshCw className="w-4 h-4 text-slate-600 shrink-0" />
-            <div>
-              <span className="font-bold text-slate-900">Database Sync: </span>
-              <span className="text-slate-600 font-medium">
-                Clear browser cache to refresh projects, deliverables, and invoices.
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={handleClearCache}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 text-white font-bold hover:bg-slate-900 transition-colors shrink-0 cursor-pointer text-xs"
-          >
-            Clear Cache
-          </button>
-        </div>
-      )}
-
       <PageHeader
         eyebrow="Ferex Digital"
         title={displayName}

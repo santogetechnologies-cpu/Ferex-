@@ -70,7 +70,7 @@ export const CentralDigital: React.FC = () => {
     const channel = supabase
       .channel('central_digital_realtime_sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_projects' }, () => loadData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_invoices' }, () => loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_collections' }, () => loadData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_clients' }, () => loadData())
       .subscribe();
 

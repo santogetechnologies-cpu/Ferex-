@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Camera, CheckCircle2, Save } from 'lucide-react';
 import { Card } from '../../components/Card';
@@ -6,9 +6,10 @@ import { Button } from '../../components/Button';
 import { ToastNotification } from '../../components/ToastNotification';
 import { ChangePasswordForm } from '../../components/ChangePasswordForm';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 
 export const DigitalProfile: React.FC = () => {
-  const { profile: account, user } = useAuth();
+  const { profile: account, user, refreshProfile } = useAuth();
   const profile = {
     name: account?.full_name || '',
     email: account?.email || user?.email || '',
@@ -16,30 +17,35 @@ export const DigitalProfile: React.FC = () => {
     role: String(account?.role || '').replace(/_/g, ' ')
   };
 
-  const [avatar, setAvatar] = useState<string>('');
   const [toast, setToast] = useState('');
-
-  useEffect(() => {
-    const savedAvatar = localStorage.getItem('ferex_digital_avatar');
-    if (savedAvatar) setAvatar(savedAvatar);
-  }, []);
+  const [uploading, setUploading] = useState(false);
+  const avatar = account?.avatar_url || '';
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // The photo is stored with the account, so it follows the person to every device and is never shown to someone else on a shared one.
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setAvatar(result);
-        localStorage.setItem('ferex_digital_avatar', result);
-        showToast('Profile photo updated successfully!');
-      };
-      reader.readAsDataURL(file);
+    e.target.value = '';
+    if (!file || !user) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { showToast('Choose a JPG, PNG or WebP image'); return; }
+    if (file.size > 2 * 1024 * 1024) { showToast('Choose an image under 2 MB'); return; }
+    setUploading(true);
+    try {
+      const path = `${user.id}/avatar-${Date.now()}.${file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'}`;
+      const up = await supabase.storage.from('avatars').upload(path, file, { contentType: file.type, upsert: true });
+      if (up.error) throw up.error;
+      const url = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+      const { error } = await supabase.from('users').update({ avatar_url: url }).eq('id', user.id);
+      if (error) throw error;
+      await refreshProfile();
+      showToast('Profile photo updated');
+    } catch (err: any) {
+      showToast(`Could not update the photo: ${err.message || 'try again'}`);
+    } finally {
+      setUploading(false);
     }
   };
-
 
   return (
     <div className="space-y-6 text-left antialiased">
@@ -60,7 +66,7 @@ export const DigitalProfile: React.FC = () => {
             <label className="absolute inset-0 bg-slate-900/60 rounded-2xl flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] font-bold gap-1">
               <Camera className="w-5 h-5" />
               <span>Upload Photo</span>
-              <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageUpload} disabled={uploading} className="hidden" />
             </label>
           </div>
 

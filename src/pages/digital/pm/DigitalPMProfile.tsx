@@ -11,7 +11,7 @@ import { ToastNotification } from '../../../components/ToastNotification';
 import { supabase } from '../../../lib/supabase';
 
 export const DigitalPMProfile: React.FC = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -28,7 +28,7 @@ export const DigitalPMProfile: React.FC = () => {
     if (profile || user) {
       setFullName(profile?.full_name || user?.user_metadata?.full_name || '');
       setEmail(profile?.email || user?.email || '');
-      setPhone(profile?.phone || user?.phone || '+91 98190 22000');
+      setPhone(profile?.phone || user?.phone || '');
     }
   }, [profile, user]);
 
@@ -41,17 +41,19 @@ export const DigitalPMProfile: React.FC = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      if (user?.id) {
-        await supabase.from('users').update({
-          full_name: fullName,
-          phone: phone,
-          updated_at: new Date().toISOString()
-        }).eq('id', user.id);
-      }
-
-      showToastMsg('Profile details updated successfully!');
+      if (!fullName.trim()) throw new Error('Enter your name');
+      if (phone.trim() && !/^[+()\d\s-]{6,20}$/.test(phone.trim())) throw new Error('Enter a valid phone number');
+      if (!user?.id) throw new Error('Sign in again to update your profile');
+      const { error } = await supabase.from('users').update({
+        full_name: fullName.trim(),
+        phone: phone.trim(),
+        updated_at: new Date().toISOString()
+      }).eq('id', user.id);
+      if (error) throw error;
+      await refreshProfile();
+      showToastMsg('Profile details updated');
     } catch (err: any) {
-      showToastMsg(`Database Error: ${err.message}`);
+      showToastMsg(`Could not update the profile: ${err.message}`);
     } finally {
       setSaving(false);
     }
@@ -60,10 +62,8 @@ export const DigitalPMProfile: React.FC = () => {
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordMsg('');
-    if (!newPassword || newPassword !== confirmPassword) {
-      setPasswordMsg('Passwords do not match or are empty.');
-      return;
-    }
+    if (newPassword.length < 8) { setPasswordMsg('Use at least 8 characters.'); return; }
+    if (newPassword !== confirmPassword) { setPasswordMsg('The two passwords do not match.'); return; }
 
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });

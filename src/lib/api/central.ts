@@ -31,7 +31,7 @@ export async function getCentralEnterpriseMetrics(startDate?: string, endDate?: 
     // 1. Direct parallel aggregation queries across tables with date filtering where appropriate
     let payQuery = supabase.from('payments').select('amount, status, created_at');
     let appsQuery = supabase.from('applications').select('*', { count: 'exact', head: true });
-    let digInvQuery = supabase.from('digital_invoices').select('amount, status, created_at, issued_at');
+    const digReceivedQuery = supabase.rpc('digital_received_summary', { p_from: startDate ? startDate.slice(0, 10) : null, p_to: endDate ? endDate.slice(0, 10) : null });
     let tradeInvQuery = supabase.from('trade_invoices').select('amount, status, created_at');
     let tradeShipQuery = supabase.from('trade_shipments').select('*', { count: 'exact', head: true }).eq('status', 'In Transit');
     let rimiOrdersQuery = supabase.from('rimi_sales_orders').select('total_amount, payment_status, order_status, created_at');
@@ -39,7 +39,6 @@ export async function getCentralEnterpriseMetrics(startDate?: string, endDate?: 
     if (startDate) {
       payQuery = payQuery.gte('created_at', startDate);
       appsQuery = appsQuery.gte('created_at', startDate);
-      digInvQuery = digInvQuery.gte('created_at', startDate);
       tradeInvQuery = tradeInvQuery.gte('created_at', startDate);
       tradeShipQuery = tradeShipQuery.gte('created_at', startDate);
       rimiOrdersQuery = rimiOrdersQuery.gte('created_at', startDate);
@@ -47,7 +46,6 @@ export async function getCentralEnterpriseMetrics(startDate?: string, endDate?: 
     if (endDate) {
       payQuery = payQuery.lte('created_at', endDate);
       appsQuery = appsQuery.lte('created_at', endDate);
-      digInvQuery = digInvQuery.lte('created_at', endDate);
       tradeInvQuery = tradeInvQuery.lte('created_at', endDate);
       tradeShipQuery = tradeShipQuery.lte('created_at', endDate);
       rimiOrdersQuery = rimiOrdersQuery.lte('created_at', endDate);
@@ -70,7 +68,7 @@ export async function getCentralEnterpriseMetrics(startDate?: string, endDate?: 
       payQuery,
       supabase.from('digital_clients').select('*', { count: 'exact', head: true }).eq('status', 'Active'),
       supabase.from('digital_projects').select('*', { count: 'exact', head: true }).eq('status', 'In Progress'),
-      digInvQuery,
+      digReceivedQuery,
       tradeShipQuery,
       tradeInvQuery,
       rimiOrdersQuery,
@@ -78,7 +76,8 @@ export async function getCentralEnterpriseMetrics(startDate?: string, endDate?: 
     ]);
 
     const eduRevenue = (paymentsRes.data ?? []).filter((p: any) => p.status === 'Paid' || p.status === 'Verified').reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
-    const digRevenue = (digInvoicesRes.data ?? []).filter((i: any) => i.status === 'Paid').reduce((s: number, i: any) => s + (Number(i.amount) || 0), 0);
+    // Money actually received from clients, in rupees: payments minus refunds on INR contracts.
+    const digRevenue = ((digInvoicesRes.data ?? []) as any[]).filter(r => r.currency === 'INR').reduce((s, r) => s + (Number(r.received) || 0) - (Number(r.refunded) || 0), 0);
     const tradeRevenue = (tradeInvRes.data ?? []).filter((i: any) => i.status === 'Paid').reduce((s: number, i: any) => s + (Number(i.amount) || 0), 0);
     const rimiRevenue = (rimiOrdersRes.data ?? []).filter((o: any) => o.payment_status === 'Paid' || o.order_status === 'Delivered').reduce((s: number, o: any) => s + (Number(o.total_amount) || 0), 0);
 
@@ -121,7 +120,7 @@ export async function getCentralLiveActivities(): Promise<CentralActivityItem[]>
       supabase.from('payments').select('*').order('created_at', { ascending: false }).limit(3),
       supabase.from('trade_shipments').select('*').order('created_at', { ascending: false }).limit(3),
       supabase.from('rimi_sales_orders').select('*, distributor:rimi_distributors(business_name)').order('created_at', { ascending: false }).limit(3),
-      supabase.from('digital_invoices').select('*, client:digital_clients(company_name)').order('created_at', { ascending: false }).limit(3),
+      supabase.rpc('digital_recent_payments', { p_limit: 3 }),
     ]);
 
     if (eduPayRes.data) {
@@ -173,17 +172,17 @@ export async function getCentralLiveActivities(): Promise<CentralActivityItem[]>
     }
 
     if (digInvRes.data) {
-      digInvRes.data.forEach((i: any) => {
+      (digInvRes.data as any[]).forEach((i: any) => {
         activities.push({
           id: i.id,
           division: 'Digital Agency',
           divisionBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-          title: `Invoice ${i.invoice_no || 'INV-' + i.id?.slice(0, 6)}`,
-          subtitle: i.client?.company_name || 'Client Project Milestone',
-          time: i.created_at ? new Date(i.created_at).toLocaleDateString() : 'Recent',
-          amount: `₹${Number(i.amount || 0).toLocaleString('en-IN')}`,
-          status: i.status === 'Paid' ? 'Cleared' : 'Action Required',
-          canApprove: i.status !== 'Paid',
+          title: `Payment received${i.number ? ' · ' + i.number : ''}`,
+          subtitle: `${i.client_name || 'Client'} · ${i.project_title || 'Project'}`,
+          time: i.payment_date ? new Date(i.payment_date).toLocaleDateString() : 'Recent',
+          amount: new Intl.NumberFormat('en-IN', { style: 'currency', currency: i.currency || 'INR' }).format(Number(i.amount || 0)),
+          status: 'Cleared',
+          canApprove: false,
         });
       });
     }

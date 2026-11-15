@@ -69,9 +69,7 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
   const [toast, setToast] = useState('');
   const [liveNotifs, setLiveNotifs] = useState<any[]>([]);
 
-  const [profilePhoto, setProfilePhoto] = useState<string | null>(() => {
-    return localStorage.getItem('ferex_digital_profile_photo') || null;
-  });
+  const profilePhoto: string | null = profile?.avatar_url || null;
 
   const loadNotifs = async () => {
     try {
@@ -92,17 +90,12 @@ export const DigitalLayout: React.FC<DigitalLayoutProps> = ({ children }) => {
       })
       .subscribe();
 
-    const handleAvatarChange = () => {
-      setProfilePhoto(localStorage.getItem('ferex_digital_profile_photo') || null);
-    };
     const handleNotifChange = () => loadNotifs();
 
-    window.addEventListener('ferex_digital_avatar_change', handleAvatarChange);
     window.addEventListener('ferex_digital_notifications_change', handleNotifChange);
 
     return () => {
       supabase.removeChannel(channel);
-      window.removeEventListener('ferex_digital_avatar_change', handleAvatarChange);
       window.removeEventListener('ferex_digital_notifications_change', handleNotifChange);
     };
   }, []);

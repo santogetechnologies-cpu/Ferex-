@@ -81,7 +81,7 @@ export const CentralActivity: React.FC = () => {
         supabase.from('tasks').select('*').order('created_at', { ascending: false }).limit(10),
         supabase.from('trade_shipments').select('*').order('created_at', { ascending: false }).limit(10),
         supabase.from('rimi_sales_orders').select('*, distributor:rimi_distributors(business_name)').order('created_at', { ascending: false }).limit(10),
-        supabase.from('digital_invoices').select('*, client:digital_clients(company_name)').order('created_at', { ascending: false }).limit(10),
+        supabase.rpc('digital_recent_payments', { p_limit: 10 }),
       ]);
 
       // User Accounts Activities
@@ -172,46 +172,25 @@ export const CentralActivity: React.FC = () => {
         });
       }
 
-      // Digital Invoices
+      // Digital payments received (from the billing ledger)
       if (digInvRes.data) {
-        digInvRes.data.forEach((d: any) => {
+        (digInvRes.data as any[]).forEach((d: any) => {
+          const when = d.payment_date ? new Date(d.payment_date) : new Date();
           items.push({
-            id: `INV-${d.id?.slice(0, 8).toUpperCase()}`,
+            id: d.number || `PAY-${String(d.id).slice(0, 8).toUpperCase()}`,
             division: 'Digital',
             divisionBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-            action: `Digital Retainer Invoice ${d.status}`,
-            category: 'Agency Retainers',
-            details: `Invoice #${d.invoice_no} issued to ${d.client?.company_name || 'Client'} for ₹${Number(d.amount || 0).toLocaleString('en-IN')}.`,
+            action: 'Digital payment received',
+            category: 'Agency Billing',
+            details: `${new Intl.NumberFormat('en-IN', { style: 'currency', currency: d.currency || 'INR' }).format(Number(d.amount || 0))} received from ${d.client_name || 'client'} for ${d.project_title || 'a project'}.`,
             actor: 'Digital Billing Desk',
             actorRole: 'Digital Admin',
-            ip: '192.168.30.5',
-            timestamp: d.issued_at || d.created_at ? new Date(d.issued_at || d.created_at).toLocaleString() : 'Recent',
-            rawTimestamp: d.issued_at || d.created_at ? new Date(d.issued_at || d.created_at).getTime() : Date.now(),
-            severity: d.status === 'Paid' ? 'Success' : 'Warning',
-            severityBadge: d.status === 'Paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200',
+            ip: '',
+            timestamp: when.toLocaleDateString(),
+            rawTimestamp: when.getTime(),
+            severity: 'Success',
+            severityBadge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
             metadata: d,
-          });
-        });
-      }
-
-      // Tasks & Tickets
-      if (ticketsRes.data) {
-        ticketsRes.data.forEach((tk: any) => {
-          items.push({
-            id: `TCK-${tk.id?.slice(0, 8).toUpperCase()}`,
-            division: (tk.division as any) || 'Education',
-            divisionBadge: 'bg-slate-100 text-slate-700 border-slate-200',
-            action: `Support Ticket: ${tk.subject}`,
-            category: 'Customer Support',
-            details: `Ticket #${tk.ticket_number || tk.id?.slice(0, 6)} priority '${tk.priority || 'Normal'}' status '${tk.status || 'Open'}'.`,
-            actor: tk.created_by_name || 'System User',
-            actorRole: 'Support Agent',
-            ip: '10.0.8.19',
-            timestamp: tk.created_at ? new Date(tk.created_at).toLocaleString() : 'Recent',
-            rawTimestamp: tk.created_at ? new Date(tk.created_at).getTime() : Date.now(),
-            severity: tk.priority === 'urgent' || tk.priority === 'high' ? 'Critical' : 'Info',
-            severityBadge: tk.priority === 'urgent' ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-blue-50 text-blue-700 border-blue-200',
-            metadata: tk,
           });
         });
       }

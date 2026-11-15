@@ -18,6 +18,7 @@ import {
 } from '../../lib/api/digital';
 import { supabase } from '../../lib/supabase';
 import { provisionDigitalClientLogin, getDigitalClientAccess } from '../../lib/api/digital';
+import { formatTotals } from '../../lib/digitalCommerce';
 import { BlockCap } from '../../components/CapLoader';
 
 const INDUSTRY_OPTIONS = [
@@ -87,21 +88,29 @@ export const DigitalClients: React.FC = () => {
   const loadClients = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getDigitalClients();
+      const [data, billing] = await Promise.all([getDigitalClients(), getDigitalInvoices().catch(() => [] as any[])]);
+      // Money actually invoiced and received per client, per currency, from the billing ledger (never added across currencies).
+      const money: Record<string, { invoiced: Record<string, number>; received: Record<string, number> }> = {};
+      for (const i of billing as any[]) {
+        const m = (money[i.client_id] ||= { invoiced: {}, received: {} });
+        m.invoiced[i.currency] = (m.invoiced[i.currency] || 0) + Number(i.total_amount || 0);
+        m.received[i.currency] = (m.received[i.currency] || 0) + Number(i.amount_received || 0);
+      }
       if (Array.isArray(data) && data.length > 0) {
         // Show all active accounts, including Lead status accounts created from Add Enterprise Client
         const validClients = data.filter(d => !d.is_deleted);
         setClients(validClients.map(d => ({
           id: d.id,
-          name: d.company_name || d.name || 'Enterprise Account',
-          contact: d.contact_person || 'Point of Contact',
-          email: d.email || 'client@company.com',
-          phone: d.phone || '+91 98000 00000',
-          city: d.city || 'Mumbai',
-          type: d.industry || 'Digital Services',
+          name: d.company_name || d.name || 'Unnamed client',
+          contact: d.contact_person || '—',
+          email: d.email || '—',
+          phone: d.phone || '—',
+          city: d.city || '—',
+          type: d.industry || 'Not set',
           client_type: d.client_type || (d.company_name?.toLowerCase().includes('ferex') || d.company_name?.toLowerCase().includes('rimi') ? 'Internal' : 'External'),
           status: d.status || 'Active',
-          spent: `₹${Number(d.total_revenue || 0).toLocaleString('en-IN')}`,
+          spent: formatTotals(money[d.id]?.invoiced || {}),
+          received: formatTotals(money[d.id]?.received || {}),
           notes: d.notes || '',
           isConvertedLead: d.tags?.includes('converted_lead') || d.lead_stage === 'Closed Won',
         })));
@@ -384,8 +393,8 @@ export const DigitalClients: React.FC = () => {
               <div className="space-y-2.5 pt-3 border-t border-slate-100">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] uppercase font-extrabold text-slate-400 block">Total Invoiced</span>
-                    <span className="text-xs font-black text-slate-900">{c.spent}</span>
+                    <span className="text-[10px] uppercase font-extrabold text-slate-400 block">Contracted · Received</span>
+                    <span className="text-xs font-black text-slate-900">{c.spent} · {c.received}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <button onClick={() => setEditingClient(c)} className="p-1.5 text-slate-400 hover:text-slate-700 rounded cursor-pointer" title="Edit Client">

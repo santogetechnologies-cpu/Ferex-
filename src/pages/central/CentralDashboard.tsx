@@ -73,7 +73,7 @@ export const CentralDashboard: React.FC = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => loadData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'trade_shipments' }, () => loadData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rimi_sales_orders' }, () => loadData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_invoices' }, () => loadData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'digital_collections' }, () => loadData())
       .subscribe();
 
     return () => {
