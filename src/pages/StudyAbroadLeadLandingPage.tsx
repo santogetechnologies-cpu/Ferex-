@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import {
   User, Mail, GraduationCap, MapPin, CalendarDays, ChevronDown, ArrowRight, ShieldCheck, FileCheck2, BookOpenCheck, Headphones, Check,
@@ -75,6 +76,66 @@ const Field: React.FC<{ icon: React.ReactNode; label: string; required?: boolean
     {select && <ChevronDown className="absolute right-5 w-5 h-5 text-slate-700 pointer-events-none transition-transform duration-300 group-focus-within:rotate-180" />}
   </motion.div>
 );
+
+
+// A styled dropdown instead of the browser's own select list, which is oversized and unbranded on phones.
+// The list is drawn on the page body so no parent can clip it, and it opens upwards when there is no room below.
+const Picker: React.FC<{ label: string; value: string; options: string[]; onChange: (v: string) => void; flags?: boolean; compact?: boolean }> = ({ label, value, options, onChange, flags, compact }) => {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ left: number; width: number; top?: number; bottom?: number; max: number }>({ left: 0, width: 0, max: 240 });
+  const [hot, setHot] = useState(-1);
+  const btn = useRef<HTMLButtonElement>(null);
+  const list = useRef<HTMLUListElement>(null);
+
+  const place = () => {
+    const r = btn.current?.getBoundingClientRect(); if (!r) return;
+    const below = window.innerHeight - r.bottom - 12, above = r.top - 12, up = below < 200 && above > below;
+    const width = compact ? Math.max(r.width, 120) : r.width;
+    setPos({ left: Math.min(r.left, window.innerWidth - width - 8), width, max: Math.max(120, Math.min(260, up ? above : below)), ...(up ? { bottom: window.innerHeight - r.top + 6 } : { top: r.bottom + 6 }) });
+  };
+  const toggle = () => { if (!open) { place(); setHot(Math.max(0, options.indexOf(value))); } setOpen(o => !o); };
+  const pick = (v: string) => { onChange(v); setOpen(false); btn.current?.focus(); };
+
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent | TouchEvent) => { const t = e.target as Node; if (!btn.current?.contains(t) && !list.current?.contains(t)) setOpen(false); };
+    const close = (e: Event) => { if (!list.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', away); document.addEventListener('touchstart', away);
+    window.addEventListener('resize', close); window.addEventListener('scroll', close, true);
+    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('touchstart', away); window.removeEventListener('resize', close); window.removeEventListener('scroll', close, true); };
+  }, [open]);
+  useEffect(() => { if (open) list.current?.querySelector<HTMLElement>(`[data-i="${hot}"]`)?.scrollIntoView({ block: 'nearest' }); }, [hot, open]);
+
+  const key = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') { setOpen(false); return; }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (!open) { toggle(); return; } setHot(h => Math.min(options.length - 1, Math.max(0, h + (e.key === 'ArrowDown' ? 1 : -1)))); }
+    if ((e.key === 'Enter' || e.key === ' ') && open && hot >= 0) { e.preventDefault(); pick(options[hot]); }
+  };
+
+  return (
+    <>
+      <button ref={btn} type="button" role="combobox" aria-label={label} aria-expanded={open} aria-haspopup="listbox" onClick={toggle} onKeyDown={key}
+        className={compact ? 'h-9 px-1 inline-flex items-center gap-1 text-sm font-semibold text-slate-800 cursor-pointer shrink-0 outline-none' : 'absolute inset-0 w-full h-full text-left flex items-center pr-9 text-[14px] sm:text-base text-slate-900 outline-none cursor-pointer'}>
+        {flags && value && <span className="w-5 h-5 rounded-full overflow-hidden mr-2 shrink-0 ring-1 ring-slate-200"><CountryFlag name={value} className="w-full h-full" /></span>}
+        <span className="truncate">{value}</span>
+        {compact && <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />}
+      </button>
+      {open && createPortal(
+        <motion.ul ref={list} role="listbox" aria-label={label} initial={{ opacity: 0, y: pos.bottom !== undefined ? 6 : -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.16 }}
+          style={{ position: 'fixed', left: pos.left, width: pos.width, top: pos.top, bottom: pos.bottom, maxHeight: pos.max, zIndex: 1000 }}
+          className="overflow-y-auto overscroll-contain rounded-2xl bg-white border border-[#E9D3DC] shadow-[0_24px_50px_-18px_rgba(87,2,41,0.45)] p-1.5 font-sans">
+          {options.map((o, i) => (
+            <li key={o} data-i={i} role="option" aria-selected={o === value} onMouseEnter={() => setHot(i)} onClick={() => pick(o)}
+              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[14px] font-semibold cursor-pointer transition-colors ${o === value ? 'text-[#6B0F36] bg-[#F8E9EF]' : i === hot ? 'bg-[#FBF1F5] text-slate-900' : 'text-slate-700'}`}>
+              {flags && <span className="w-6 h-6 rounded-full overflow-hidden shrink-0 ring-1 ring-slate-200"><CountryFlag name={o} className="w-full h-full" /></span>}
+              <span className="flex-1 truncate">{o}</span>
+              {o === value && <Check className="w-4 h-4 shrink-0" strokeWidth={3} />}
+            </li>
+          ))}
+        </motion.ul>, document.body)}
+    </>
+  );
+};
 
 const control = 'appearance-none absolute inset-0 w-full h-full bg-transparent outline-none text-[14px] sm:text-base text-slate-900 !border-0 !shadow-none !bg-transparent !px-0 pr-8';
 
@@ -254,7 +315,7 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
                   )}
 
                   <Field icon={<svg viewBox="0 0 24 24" className="w-6 h-6" fill="#22A559" aria-hidden><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.2 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-3.9-4.7-4.1-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.4.6c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.4.1.6-.1l.8-1c.2-.2.4-.2.6-.1l2 1c.3.1.5.2.5.3.1.2.1.8-.1 1.4Z" /></svg>} label="WhatsApp Number" required filled={!!phone}
-                    leading={<select aria-label="Country code" value={code} onChange={e => setCode(e.target.value)} className="appearance-none !w-[4.2rem] h-9 !px-1 text-sm font-semibold text-slate-800 !border-0 !bg-transparent !shadow-none outline-none cursor-pointer shrink-0">{CODES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}</select>}>
+                    leading={<Picker compact label="Country code" value={code} options={CODES.map(c => c.code)} onChange={setCode} />}>
                     <input aria-label="WhatsApp number" type="tel" inputMode="tel" autoComplete="tel-national" value={phone} onChange={e => setPhone(e.target.value)} className={control} />
                   </Field>
 
@@ -266,17 +327,17 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
 
                   {cfg.degree_level_enabled && (
                     <Field icon={<GraduationCap className="w-6 h-6" />} label="Preferred Course / Program" required select filled={!!course}>
-                      <select aria-label="Preferred course" value={course} onChange={e => setCourse(e.target.value)} className={`${control} cursor-pointer`}><option value="" /> {COURSES.map(c => <option key={c}>{c}</option>)}</select>
+                      <Picker label="Preferred course" value={course} options={COURSES} onChange={setCourse} />
                     </Field>
                   )}
                   {cfg.country_enabled && (
                     <Field icon={<MapPin className="w-6 h-6" />} label="Preferred Study Destination" required select filled={!!country}>
-                      <select aria-label="Preferred destination" value={country} onChange={e => setCountry(e.target.value)} className={`${control} cursor-pointer`}><option value="" /> {countries.map(c => <option key={c}>{c}</option>)}</select>
+                      <Picker flags label="Preferred destination" value={country} options={countries} onChange={setCountry} />
                     </Field>
                   )}
                   {cfg.intake_enabled && (
                     <Field icon={<CalendarDays className="w-6 h-6" />} label="Preferred Intake" required select filled={!!intake}>
-                      <select aria-label="Preferred intake" value={intake} onChange={e => setIntake(e.target.value)} className={`${control} cursor-pointer`}><option value="" /> {INTAKES.map(c => <option key={c}>{c}</option>)}</select>
+                      <Picker label="Preferred intake" value={intake} options={INTAKES} onChange={setIntake} />
                     </Field>
                   )}
 
