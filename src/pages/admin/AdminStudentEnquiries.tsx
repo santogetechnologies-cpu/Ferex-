@@ -20,6 +20,7 @@ import {
   addEducationLeadActivity,
   getCounselorPerformanceMetrics,
   sendLeadWhatsAppWelcome,
+  getLeadDeletionPeriodInfo,
   type EducationLead,
   type EducationLeadActivity,
   type CounselorPerformanceMetric
@@ -33,6 +34,19 @@ import { BlockCap } from '../../components/CapLoader';
 interface AdminStudentEnquiriesProps {
   isStaff?: boolean; // When true, runs in Counselor portal view
 }
+
+const WhatsAppIcon: React.FC<{ className?: string }> = ({ className = 'w-3 h-3' }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path
+      fill="#25D366"
+      d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2z"
+    />
+    <path
+      fill="#ffffff"
+      d="M17.47 14.38c-.3-.15-1.78-.88-2.06-.98-.28-.1-.48-.15-.68.15-.2.3-.78.98-.96 1.18-.18.2-.35.23-.65.08-.3-.15-1.27-.47-2.42-1.5-.9-.8-1.5-1.79-1.68-2.09-.18-.3-.02-.46.13-.61.14-.14.3-.35.45-.53.15-.18.2-.3.3-.5.1-.2.05-.38-.03-.53-.08-.15-.68-1.63-.93-2.24-.24-.59-.49-.51-.68-.52-.18-.01-.38-.01-.58-.01-.2 0-.53.08-.8.38-.28.3-1.06 1.03-1.06 2.51s1.08 2.91 1.23 3.12c.15.2 2.13 3.24 5.15 4.55.72.31 1.28.5 1.72.64.72.23 1.38.2 1.9.12.58-.09 1.78-.73 2.03-1.43.25-.7.25-1.31.18-1.43-.08-.13-.28-.2-.58-.35z"
+    />
+  </svg>
+);
 
 const STATUS_OPTIONS: EducationLead['status'][] = [
   'New Lead',
@@ -195,15 +209,29 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
     }
   };
 
-  // Status Change Handler with Automatic Student Directory Sync
+  // Status Change Handler with Automatic Student Directory Sync & 14-day Deletion Rule
   const handleQuickStatusChange = async (lead: EducationLead, newStatus: EducationLead['status']) => {
     try {
       if (newStatus === 'Enrolled' && !lead.converted_student_id) {
         // Closing creates a login, so the credentials must be shown to the person closing the deal.
         setConvertModalLead(lead);
       } else {
-        await updateEducationLead(lead.id, { status: newStatus }, profile?.full_name || 'Staff');
+        const updates: Partial<EducationLead> = { status: newStatus };
+        if (newStatus === 'Not Interested') {
+          // Record exact date and time for 14-day deletion period
+          updates.not_interested_at = new Date().toISOString();
+        } else if (lead.status === 'Not Interested') {
+          // Cancel scheduled deletion when moved away from Not Interested
+          updates.not_interested_at = null;
+        }
+
+        const updated = await updateEducationLead(lead.id, updates, profile?.full_name || 'Staff');
         showToastMsg(`Updated "${lead.name || lead.phone}" status to "${newStatus}"`);
+
+        // If active lead drawer is currently open for this lead, update it in realtime
+        if (activeLead && activeLead.id === lead.id && updated) {
+          setActiveLead(updated);
+        }
       }
       await loadData();
     } catch (err: any) {
@@ -724,8 +752,8 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
                       <div>{new Date(lead.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                       <div className="mt-0.5">
                         {lead.whatsapp_sent
-                          ? <span className="inline-flex items-center gap-1 font-bold text-emerald-700"><Check className="w-3 h-3" /> WhatsApp sent</span>
-                          : <button type="button" onClick={() => handleResendWhatsApp(lead)} className="inline-flex items-center gap-1 font-bold text-slate-600 hover:text-emerald-700 cursor-pointer"><MessageSquare className="w-3 h-3" /> Send WhatsApp</button>}
+                          ? <span className="inline-flex items-center gap-1 font-bold text-emerald-700"><WhatsAppIcon className="w-3 h-3 shrink-0" /> WhatsApp sent</span>
+                          : <button type="button" onClick={() => handleResendWhatsApp(lead)} className="inline-flex items-center gap-1 font-bold text-slate-600 hover:text-emerald-700 cursor-pointer"><WhatsAppIcon className="w-3 h-3 shrink-0" /> Send WhatsApp</button>}
                       </div>
                     </td>
 
@@ -983,6 +1011,48 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
                     <span className="font-black text-[#58051E]">{activeLead.status}</span>
                   </div>
                 </div>
+
+                {/* Automatic 14-Day Deletion Notice for Not Interested Enquiries */}
+                {activeLead.status === 'Not Interested' && (() => {
+                  const delInfo = getLeadDeletionPeriodInfo(activeLead.not_interested_at || activeLead.updated_at);
+                  const markedDate = activeLead.not_interested_at
+                    ? new Date(activeLead.not_interested_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                    : new Date(activeLead.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                  return (
+                    <div className="p-3.5 bg-rose-50/80 rounded-2xl border border-rose-200 space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 font-black text-rose-900">
+                          <Clock className="w-3.5 h-3.5 text-rose-700" />
+                          <span>Automatic 14-Day Deletion Rule</span>
+                        </div>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
+                          Scheduled
+                        </span>
+                      </div>
+
+                      <div className="space-y-1.5 pt-1 text-slate-700 text-xs">
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-500">Status Changed:</span>
+                          <span className="font-semibold text-slate-800">{markedDate}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-500">Scheduled Deletion:</span>
+                          <span className="font-semibold text-slate-900">{delInfo?.formattedDeletionDate || 'In 14 days'}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-1 border-t border-rose-200/60">
+                          <span className="font-bold text-rose-950">Remaining Period:</span>
+                          <span className="font-black text-rose-700 text-xs bg-white border border-rose-300 px-2 py-0.5 rounded-md shadow-2xs">
+                            {delInfo?.formattedRemaining || '14 days'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-[10px] text-slate-500 leading-tight pt-0.5">
+                        This enquiry will be automatically deleted when the 14-day period expires. Changing the status to any other status cancels this deletion.
+                      </p>
+                    </div>
+                  );
+                })()}
 
                 {/* Log Interaction Form */}
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">

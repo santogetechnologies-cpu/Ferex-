@@ -24,8 +24,84 @@ export interface EducationLead {
   converted_student_id?: string;
   converted_at?: string;
   converted_by?: string;
+  /** Exact timestamp when the lead was marked 'Not Interested' (starts 14-day automatic deletion countdown) */
+  not_interested_at?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
+
+export interface LeadDeletionInfo {
+  isExpired: boolean;
+  remainingMs: number;
+  days: number;
+  hours: number;
+  minutes: number;
+  scheduledDeletionDate: Date;
+  formattedDeletionDate: string;
+  formattedRemaining: string;
+}
+
+/**
+ * Calculates remaining time until automatic 14-day deletion for 'Not Interested' enquiries.
+ */
+export function getLeadDeletionPeriodInfo(notInterestedAt?: string | null): LeadDeletionInfo | null {
+  if (!notInterestedAt) return null;
+  const notInterestedTime = new Date(notInterestedAt).getTime();
+  if (isNaN(notInterestedTime)) return null;
+
+  const scheduledDeletionMs = notInterestedTime + FOURTEEN_DAYS_MS;
+  const scheduledDeletionDate = new Date(scheduledDeletionMs);
+  const now = Date.now();
+  const remainingMs = scheduledDeletionMs - now;
+
+  const formattedDeletionDate = scheduledDeletionDate.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  if (remainingMs <= 0) {
+    return {
+      isExpired: true,
+      remainingMs: 0,
+      days: 0,
+      hours: 0,
+      minutes: 0,
+      scheduledDeletionDate,
+      formattedDeletionDate,
+      formattedRemaining: 'Pending deletion',
+    };
+  }
+
+  const totalMinutes = Math.floor(remainingMs / (60 * 1000));
+  const totalHours = Math.floor(remainingMs / (60 * 60 * 1000));
+  const days = Math.floor(remainingMs / (24 * 60 * 60 * 1000));
+  const hours = totalHours % 24;
+  const minutes = totalMinutes % 60;
+
+  let formattedRemaining = '';
+  if (days > 0) {
+    formattedRemaining = `${days} day${days === 1 ? '' : 's'}${hours > 0 ? `, ${hours} hr${hours === 1 ? '' : 's'}` : ''}`;
+  } else if (hours > 0) {
+    formattedRemaining = `${hours} hr${hours === 1 ? '' : 's'}${minutes > 0 ? `, ${minutes} min` : ''}`;
+  } else {
+    formattedRemaining = `${Math.max(1, minutes)} min`;
+  }
+
+  return {
+    isExpired: false,
+    remainingMs,
+    days,
+    hours,
+    minutes,
+    scheduledDeletionDate,
+    formattedDeletionDate,
+    formattedRemaining,
+  };
 }
 
 export interface EducationLeadActivity {
@@ -221,6 +297,11 @@ export async function getEducationLeads(filters?: {
   counselorId?: string;
   search?: string;
 }): Promise<EducationLead[]> {
+  // Opportunistically trigger backend procedure to clean up expired 14-day 'Not Interested' enquiries
+  try {
+    Promise.resolve(supabase.rpc('delete_expired_not_interested_leads')).catch(() => {});
+  } catch {}
+
   let dbLeads: EducationLead[] = [];
   let dbOk = false;
   try {
@@ -248,7 +329,20 @@ export async function getEducationLeads(filters?: {
   if (!dbOk) getLocalLeads().forEach((l) => map.set(l.id, l));
   dbLeads.forEach((l) => map.set(l.id, l));
 
-  let result = Array.from(map.values()).sort(
+  // Purge any expired 14-day 'Not Interested' enquiries from memory & local cache
+  const nowMs = Date.now();
+  const validLeads: EducationLead[] = [];
+  for (const lead of map.values()) {
+    if (lead.status === 'Not Interested' && lead.not_interested_at && !lead.converted_student_id) {
+      const t = new Date(lead.not_interested_at).getTime();
+      if (!isNaN(t) && t + FOURTEEN_DAYS_MS <= nowMs) {
+        continue; // Expired lead, omit from display
+      }
+    }
+    validLeads.push(lead);
+  }
+
+  let result = validLeads.sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
@@ -349,6 +443,18 @@ export async function updateEducationLead(
     } catch {}
   }
 
+  // Manage 14-day automatic deletion rule timestamp for 'Not Interested' enquiries:
+  // 1. When status is changed to 'Not Interested', record the exact date and time.
+  // 2. If status is changed from Not Interested to another status, cancel the scheduled deletion (set to null).
+  // 3. If marked Not Interested again later, start a new 14-day period.
+  if (updates.status === 'Not Interested') {
+    if (target?.status !== 'Not Interested' || !target?.not_interested_at || updates.not_interested_at) {
+      updates.not_interested_at = updates.not_interested_at || nowIso;
+    }
+  } else if (updates.status) {
+    updates.not_interested_at = null;
+  }
+
   // Closing a lead always records when and by whom, so monthly closure reports are complete.
   if (updates.status === 'Enrolled' && target?.status !== 'Enrolled' && !updates.converted_at) {
     updates = { ...updates, converted_at: nowIso, converted_by: updates.converted_by || performerName };
@@ -389,6 +495,20 @@ export async function updateEducationLead(
   }
 
   return updated;
+}
+
+export async function deleteEducationLead(id: string): Promise<boolean> {
+  const { error } = await supabase.from('education_leads').delete().eq('id', id);
+  if (error) {
+    console.error('Failed to delete lead from database:', error);
+    return false;
+  }
+  const local = getLocalLeads();
+  saveLocalLeads(local.filter((l) => l.id !== id));
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('ferex_education_leads_change'));
+  }
+  return true;
 }
 
 // ─── Bulk Assignment ─────────────────────────────────────────────────────────
