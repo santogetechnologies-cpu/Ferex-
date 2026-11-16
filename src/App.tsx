@@ -61,6 +61,7 @@ import { getImpersonatedStudent } from './lib/api/studentImpersonation';
 import { CentralLayout } from './layouts/CentralLayout';
 const CentralDashboard = lazy(() => import('./pages/central/CentralDashboard').then(m => ({ default: m.CentralDashboard })));
 const CentralPayments = lazy(() => import('./pages/central/CentralPayments').then(m => ({ default: m.CentralPayments })));
+const CentralAppWorkflows = lazy(() => import('./pages/central/CentralAppWorkflows').then(m => ({ default: m.CentralAppWorkflows })));
 const CentralReports = lazy(() => import('./pages/central/CentralReports').then(m => ({ default: m.CentralReports })));
 const CentralAdmins = lazy(() => import('./pages/central/CentralAdmins').then(m => ({ default: m.CentralAdmins })));
 const RolesUsers = lazy(() => import('./pages/central/RolesUsers').then(m => ({ default: m.RolesUsers })));
@@ -367,6 +368,7 @@ function App() {
           <Route path="/central/education-billing" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><AdminPaymentControl /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/finance" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralPayments /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/payments" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralPayments /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/app-workflows" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralAppWorkflows /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/reports" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralReports /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/admins" element={<Navigate to="/central/roles-users" replace />} />
           <Route path="/central/roles" element={<Navigate to="/central/roles-users" replace />} />

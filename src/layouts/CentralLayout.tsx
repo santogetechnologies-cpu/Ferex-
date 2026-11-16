@@ -5,7 +5,7 @@ import {
   LayoutDashboard, CreditCard, BarChart3, ShieldCheck, UserCheck,
   CheckSquare, Activity, Bell, Settings, Mail, BookOpen,
   Search, Menu, ChevronDown, ChevronRight, LogOut, X, Crown,
-  Globe, Snowflake, Monitor, GraduationCap, ArrowUpRight, Sparkles, Clock, Building2
+  Globe, Snowflake, Monitor, GraduationCap, ArrowUpRight, Sparkles, Clock, Building2, Workflow
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
@@ -51,6 +51,7 @@ export const CentralLayout: React.FC<CentralLayoutProps> = ({ children }) => {
       items: [
         { name: 'Dashboard', path: '/central/dashboard', icon: LayoutDashboard },
         { name: 'AI Assistant', path: '/central/ai-copilot', icon: Sparkles },
+        { name: 'App Workflows', path: '/central/app-workflows', icon: Workflow },
       ]
     },
     {

@@ -8,10 +8,11 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "gen:workflows": "node scripts/gen-app-workflows.mjs",
     "test:seed": "node --env-file=.env.test --experimental-strip-types scripts/seed.ts",
     "test:e2e": "playwright test",
     "test:auth": "node --env-file=.env.test --experimental-strip-types tests/global-setup.ts",
-    "test:billing": "node --experimental-strip-types --test tests/education-billing.test.ts tests/education-billing-db.test.ts tests/payment-signature.test.ts tests/accounting-pdf.test.ts tests/role-access.test.ts tests/university-import.test.ts tests/student-deletion-roster.test.ts tests/university-application-restriction.test.ts tests/realtime-session-revocation.test.ts tests/lead-closures.test.ts tests/package-fees.test.ts tests/gst.test.ts tests/date-range.test.ts",
+    "test:billing": "node --experimental-strip-types --test tests/education-billing.test.ts tests/education-billing-db.test.ts tests/payment-signature.test.ts tests/accounting-pdf.test.ts tests/role-access.test.ts tests/university-import.test.ts tests/student-deletion-roster.test.ts tests/university-application-restriction.test.ts tests/realtime-session-revocation.test.ts tests/lead-closures.test.ts tests/package-fees.test.ts tests/gst.test.ts tests/date-range.test.ts tests/app-workflows.test.ts",
     "test:billing:e2e": "playwright test --config playwright.education.config.ts"
   },
   "dependencies": {
