@@ -17,9 +17,10 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-d
  * staff: threads the database lets the user see, plus a picker to start a chat with any student.
  */
 export function ChatPanel({ mode, studentId }: { mode: 'student' | 'staff'; studentId?: string }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
+  const [usersMap, setUsersMap] = useState<Record<string, { name: string; role: string; email: string }>>({});
   const [students, setStudents] = useState<{ id: string; name: string }[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -38,16 +39,29 @@ export function ChatPanel({ mode, studentId }: { mode: 'student' | 'staff'; stud
         setActiveId(current => current ?? id);
       }
       const list = await listChatThreads();
-      const ids = Array.from(new Set(list.flatMap(t => [t.student_id, t.counselor_id].filter(Boolean) as string[])));
+      const ids = Array.from(new Set([
+        ...list.flatMap(t => [t.student_id, t.counselor_id].filter(Boolean) as string[]),
+        user?.id,
+      ].filter(Boolean) as string[]));
       if (ids.length) {
-        const { data } = await supabase.from('users').select('id, full_name, email').in('id', ids);
-        setNames(Object.fromEntries((data || []).map((u: any) => [u.id, u.full_name || u.email])));
+        const { data } = await supabase.from('users').select('id, full_name, email, role').in('id', ids);
+        if (data) {
+          const uMap: Record<string, { name: string; role: string; email: string }> = {};
+          const nMap: Record<string, string> = {};
+          for (const u of data as any[]) {
+            const displayName = u.full_name || u.email || 'User';
+            uMap[u.id] = { name: displayName, role: u.role || '', email: u.email || '' };
+            nMap[u.id] = displayName;
+          }
+          setUsersMap(prev => ({ ...prev, ...uMap }));
+          setNames(prev => ({ ...prev, ...nMap }));
+        }
       }
       setThreads(list);
       if (!asStudent) setActiveId(current => current ?? list[0]?.id ?? null);
       setError('');
     } catch (e) { setError((e as Error).message); } finally { setLoading(false); }
-  }, [asStudent, studentId]);
+  }, [asStudent, studentId, user?.id]);
 
   useEffect(() => { loadThreads(); }, [loadThreads]);
   useEffect(() => {
@@ -58,10 +72,38 @@ export function ChatPanel({ mode, studentId }: { mode: 'student' | 'staff'; stud
   useEffect(() => {
     if (!activeId) { setMessages([]); return; }
     let cancelled = false;
-    getChatMessages(activeId).then(list => { if (!cancelled) setMessages(list); }).catch(e => setError((e as Error).message));
+    getChatMessages(activeId).then(async list => {
+      if (!cancelled) {
+        setMessages(list);
+        const senderIds = Array.from(new Set(list.map(m => m.sender_id).filter(Boolean)));
+        if (senderIds.length) {
+          const { data } = await supabase.from('users').select('id, full_name, email, role').in('id', senderIds);
+          if (data && !cancelled) {
+            const uMap: Record<string, { name: string; role: string; email: string }> = {};
+            const nMap: Record<string, string> = {};
+            for (const u of data as any[]) {
+              const displayName = u.full_name || u.email || 'User';
+              uMap[u.id] = { name: displayName, role: u.role || '', email: u.email || '' };
+              nMap[u.id] = displayName;
+            }
+            setUsersMap(prev => ({ ...prev, ...uMap }));
+            setNames(prev => ({ ...prev, ...nMap }));
+          }
+        }
+      }
+    }).catch(e => setError((e as Error).message));
+
     markChatRead(activeId, asStudent).then(loadThreads).catch(() => {});
-    const stop = subscribeToChat(activeId, m => {
+    const stop = subscribeToChat(activeId, async m => {
       setMessages(prev => prev.some(x => x.id === m.id) ? prev : [...prev, m]);
+      if (m.sender_id) {
+        const { data } = await supabase.from('users').select('id, full_name, email, role').eq('id', m.sender_id).maybeSingle();
+        if (data) {
+          const displayName = data.full_name || data.email || 'User';
+          setUsersMap(prev => ({ ...prev, [data.id]: { name: displayName, role: data.role || '', email: data.email || '' } }));
+          setNames(prev => ({ ...prev, [data.id]: displayName }));
+        }
+      }
       if (m.sender_id !== user?.id) markChatRead(activeId, asStudent).catch(() => {});
       loadThreads();
     });
@@ -86,8 +128,14 @@ export function ChatPanel({ mode, studentId }: { mode: 'student' | 'staff'; stud
     if (!body || !activeId || !user) return;
     setText('');
     try {
+      const myName = profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
+      const myRole = profile?.role || user.user_metadata?.role || (asStudent ? 'student' : 'admin');
+      if (user.id) {
+        setUsersMap(prev => ({ ...prev, [user.id]: { name: myName, role: myRole, email: user.email || '' } }));
+      }
       const sent = await sendChatMessage({ conversation_id: activeId, sender_id: user.id, content: body });
-      setMessages(prev => prev.some(x => x.id === sent.id) ? prev : [...prev, sent]);
+      const sentWithRole = { ...sent, sender_role: sent.sender_role || myRole };
+      setMessages(prev => prev.some(x => x.id === sent.id) ? prev : [...prev, sentWithRole]);
       setError('');
     } catch (err) { setText(body); setError(`Message not sent: ${(err as Error).message}`); }
   };
@@ -163,12 +211,64 @@ export function ChatPanel({ mode, studentId }: { mode: 'student' | 'staff'; stud
                   {asStudent ? 'No messages yet. Ask your advisor a question below!' : 'No messages exchanged yet in this conversation.'}
                 </div>
               ) : messages.map(m => {
-                const self = m.sender_id === user?.id;
+                const senderProfile = usersMap[m.sender_id];
+                // Retrieve actual sender role from authenticated user's profile or database record
+                const rawSenderRole = (
+                  (m.sender_id === user?.id ? (profile?.role || user?.user_metadata?.role) : '') ||
+                  senderProfile?.role ||
+                  m.sender_role ||
+                  ''
+                ).toLowerCase().trim();
+
+                // Explicit role classification: Student, Counselor, or Admin
+                let roleLabel: 'Student' | 'Counselor' | 'Admin';
+                if (rawSenderRole === 'student') {
+                  roleLabel = 'Student';
+                } else if (rawSenderRole === 'counselor' || rawSenderRole === 'staff') {
+                  roleLabel = 'Counselor';
+                } else {
+                  roleLabel = 'Admin';
+                }
+
+                // Determine sender actual name
+                let senderName = '';
+                if (m.sender_id === user?.id) {
+                  senderName =
+                    profile?.full_name ||
+                    user?.user_metadata?.full_name ||
+                    user?.email?.split('@')[0] ||
+                    roleLabel;
+                } else {
+                  senderName =
+                    senderProfile?.name ||
+                    names[m.sender_id] ||
+                    roleLabel;
+                }
+
+                // Keep student messages left-aligned, counselor and admin messages right-aligned in staff view
+                const isStudent = roleLabel === 'Student';
+                const alignRight = asStudent ? m.sender_id === user?.id : !isStudent;
+
                 return (
-                  <div key={m.id} className={`flex ${self ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[70%] p-3.5 rounded-2xl text-xs leading-relaxed font-semibold shadow-xs ${self ? 'bg-[#58051E] text-white rounded-br-xs' : 'bg-white border border-slate-200/80 text-slate-800 rounded-bl-xs'}`}>
+                  <div key={m.id} className={`flex ${alignRight ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`min-w-[190px] max-w-[70%] p-3.5 rounded-2xl text-xs leading-relaxed font-semibold shadow-xs ${alignRight ? 'bg-[#58051E] text-white rounded-br-xs' : 'bg-white border border-slate-200/80 text-slate-800 rounded-bl-xs'}`}>
+                      {/* Sender Name, Role Label & Timestamp */}
+                      <div className={`flex items-center justify-between gap-3 pb-1 mb-1.5 border-b text-[11px] ${alignRight ? 'border-white/15' : 'border-slate-100'}`}>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className={`font-extrabold truncate ${alignRight ? 'text-white' : 'text-slate-900'}`}>
+                            {senderName}
+                          </span>
+                          <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full ${alignRight ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 border border-slate-200/60'}`}>
+                            {roleLabel}
+                          </span>
+                        </div>
+                        <span className={`text-[9.5px] font-semibold shrink-0 ${alignRight ? 'text-white/70' : 'text-slate-400'}`}>
+                          {clock(m.sent_at)}
+                        </span>
+                      </div>
+
+                      {/* Message Content */}
                       <p className="whitespace-pre-wrap break-words">{m.content}</p>
-                      <span className={`text-[9px] font-bold block mt-1 text-right ${self ? 'text-white/60' : 'text-slate-400'}`}>{clock(m.sent_at)}</span>
                     </div>
                   </div>
                 );
