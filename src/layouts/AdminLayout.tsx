@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Users, ClipboardList, FileCheck, FolderOpen,
   CreditCard, Headphones, BarChart3, Crown, GraduationCap,
   Bell, Settings, LogOut, Menu, X, ChevronDown, ChevronRight, Search, Building2, ShieldCheck, Calendar, Plane, FileText, Home, Sparkles, Mail, Award, MessageSquare, Sliders
-  , Wallet
+  , Wallet, Layers
 } from 'lucide-react';
 
 import { Logo } from '../components/Logo';
@@ -38,6 +38,7 @@ const baseMenuItems = [
   { name: 'Document Requirements', path: '/admin/document-config', icon: FileText, badge: null, hasUpdate: false },
   { name: 'Legalization', path: '/admin/legalization', icon: FileCheck, badge: null, hasUpdate: false },
   { name: 'Payments', path: '/admin/payment-control', icon: CreditCard, badge: null, hasUpdate: false },
+  { name: 'Payment plans', path: '/admin/payment-plans', icon: Layers, badge: null, hasUpdate: false },
   { name: 'Fees', path: '/admin/fee-config', icon: Sliders, badge: null, hasUpdate: false },
   { name: 'Finance', path: '/admin/finance', icon: Wallet, badge: null, hasUpdate: false },
   { name: 'Visa', path: '/admin/visa-tracker', icon: ShieldCheck, badge: null, hasUpdate: false },

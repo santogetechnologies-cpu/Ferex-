@@ -42,6 +42,7 @@ const AdminDocumentReview = lazy(() => import('./pages/admin/AdminDocumentReview
 const AdminPayments = lazy(() => import('./pages/admin/AdminPayments').then(m => ({ default: m.AdminPayments })));
 const AdminSupportTickets = lazy(() => import('./pages/admin/AdminSupportTickets').then(m => ({ default: m.AdminSupportTickets })));
 const AdminChatSupport = lazy(() => import('./pages/admin/AdminChatSupport').then(m => ({ default: m.AdminChatSupport })));
+const AdminPaymentPlans = lazy(() => import('./pages/admin/AdminPaymentPlans').then(m => ({ default: m.AdminPaymentPlans })));
 const AdminFinance = lazy(() => import('./pages/admin/AdminFinance').then(m => ({ default: m.AdminFinance })));
 const AdminReports = lazy(() => import('./pages/admin/AdminReports').then(m => ({ default: m.AdminReports })));
 const AdminNotifications = lazy(() => import('./pages/admin/AdminNotifications').then(m => ({ default: m.AdminNotifications })));
@@ -339,6 +340,7 @@ function App() {
           <Route path="/admin/nawa" element={<Navigate to="/admin/legalization" replace />} />
           <Route path="/admin/nawa-tracker" element={<Navigate to="/admin/legalization" replace />} />
           <Route path="/admin/payment-control" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminPaymentControl /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/payment-plans" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminPaymentPlans /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/payments" element={<Navigate to="/admin/payment-control" replace />} />
           <Route path="/admin/support" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminSupportTickets /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/chat" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminChatSupport /></AdminLayout></ProtectedRoute>} />

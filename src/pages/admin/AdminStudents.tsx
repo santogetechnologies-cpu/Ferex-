@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { PaymentPlanPicker } from '../../components/PaymentPlanPicker';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, ShieldCheck, AlertCircle, Clock, FileText, Receipt, ExternalLink, Package, Layers , MapPin } from 'lucide-react';

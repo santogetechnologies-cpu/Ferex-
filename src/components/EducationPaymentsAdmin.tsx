@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, Check, Plus, X, Building2, AlertCircle } from 'lucide-react';
@@ -11,8 +12,6 @@ import { getStudentFeeOverrides, type StudentFeeOverride } from '../lib/api/paym
 import { studentFees, feeBalance, resolveStudentPackage, isDirectFee, directFeeMessage, educationStages, money, type EducationFee, type PaymentPart } from '../lib/educationBilling';
 import type { Application, Payment, UserProfile } from '../lib/types';
 import { PageHeader, EmptyState, Skeleton } from './Kit';
-import { PaymentPlanPicker } from './PaymentPlanPicker';
-import { StudentDiscountEditor } from './StudentDiscountEditor';
 import { supabase } from '../lib/supabase';
 
 type Filter = 'all' | 'unconfirmed' | 'verify' | 'due';
@@ -150,7 +149,6 @@ function StudentPanel({ student, country, flow, pkg, payments, application, conf
   const [destination, setDestination] = useState(country);
   const [recording, setRecording] = useState<EducationFee | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [showDiscount, setShowDiscount] = useState(false);
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
 
@@ -181,7 +179,13 @@ function StudentPanel({ student, country, flow, pkg, payments, application, conf
         </div>
       </section>
 
-      <PaymentPlanPicker studentId={student.id} country={destination} actorName={actorName} onChanged={onChanged} onSaved={() => { window.dispatchEvent(new Event('ferex_student_billing_flow_change')); void onReload(); }} />
+      <section className="rounded-2xl border border-slate-200/80 bg-white px-5 py-3.5 flex flex-wrap items-center justify-between gap-3" aria-label="Payment plan">
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-slate-900">{flow === 'pending' ? 'Payment plan not confirmed' : flow === 'normal' ? 'Normal flow' : pkg?.name || 'Country package'}</p>
+          <p className="text-[11px] text-slate-500">{flow === 'pending' ? 'The student sees only the registration fee. Confirm a plan under Payment plans.' : `Discounts: ${Object.values(overrides).filter(o => (o.discount_percent ?? 0) > 0 || o.discount_amount > 0).length ? 'applied, already included in the amounts below' : 'none'}.`}</p>
+        </div>
+        <Link to={`/admin/payment-plans?student=${student.id}`} className="h-9 px-4 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 inline-flex items-center">Manage plan and discounts</Link>
+      </section>
 
       {err && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700">{err}</p>}
 
@@ -257,10 +261,6 @@ function StudentPanel({ student, country, flow, pkg, payments, application, conf
           </ul>
         </section>
       )}
-
-      {flow !== 'pending' && (showDiscount
-        ? <StudentDiscountEditor studentId={student.id} country={destination} onChanged={onChanged} />
-        : <button type="button" onClick={() => setShowDiscount(true)} className="h-10 px-4 rounded-xl border border-dashed border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer">+ Give this student a discount</button>)}
 
       <section className="rounded-2xl border border-slate-200/80 bg-white">
         <button type="button" onClick={() => setShowHistory(v => !v)} aria-expanded={showHistory} className="w-full flex items-center justify-between px-5 py-4 text-left cursor-pointer">

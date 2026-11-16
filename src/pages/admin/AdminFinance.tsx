@@ -14,6 +14,8 @@ import { gstBreakdown } from '../../lib/gst';
 import type { Payment, UserProfile, Application } from '../../lib/types';
 import { PageHeader, EmptyState } from '../../components/Kit';
 import { BlockCap } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 type Tab = 'overview' | 'collections' | 'receivables' | 'documents';
 const TABS: { id: Tab; label: string }[] = [
@@ -52,7 +54,7 @@ export const AdminFinance: React.FC = () => {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('all');
   const [method, setMethod] = useState('all');
-  const [month, setMonth] = useState('all');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
 
   const load = useCallback(async () => {
     try {
@@ -80,13 +82,16 @@ export const AdminFinance: React.FC = () => {
     return app?.universities?.country || (s as any).target_country || '';
   }, [apps]);
 
-  const settled = useMemo(() => payments.filter(p => SETTLED.includes(p.status)), [payments]);
+  const settledAll = useMemo(() => payments.filter(p => SETTLED.includes(p.status)), [payments]);
+  // Every figure and list on this page follows the date filter above it (payments by paid date, receivables by the date the plan started).
+  const settled = useMemo(() => settledAll.filter(p => inRange(p.paid_at || p.created_at, range)), [settledAll, range]);
   const thisMonth = monthKey(new Date().toISOString());
-  const collectedAll = settled.reduce((s, p) => s + toInr(p), 0);
-  const collectedMonth = settled.filter(p => monthKey(p.paid_at || p.created_at) === thisMonth).reduce((s, p) => s + toInr(p), 0);
+  const collectedAll = settledAll.reduce((s, p) => s + toInr(p), 0);
+  const collectedMonth = settledAll.filter(p => monthKey(p.paid_at || p.created_at) === thisMonth).reduce((s, p) => s + toInr(p), 0);
+  const collectedRange = settled.reduce((s, p) => s + toInr(p), 0);
   const waiting = payments.filter(p => p.status === 'Pending Verification');
   const gst = settled.reduce((s, p) => s + (Number(p.tax_rate_percent) > 0 ? gstBreakdown(toInr(p), Number(p.tax_rate_percent)).tax : 0), 0);
-  const discounts = payments.reduce((s, p) => s + Number(p.discount_amount || 0), 0);
+  const discounts = payments.filter(p => inRange(p.paid_at || p.created_at, range)).reduce((s, p) => s + Number(p.discount_amount || 0), 0);
 
   // Who still owes what, from each student's confirmed plan.
   const receivables = useMemo(() => {
@@ -99,12 +104,11 @@ export const AdminFinance: React.FC = () => {
       const fees = studentFees(config, country, { flow, pkg }).filter(f => !isDirectFee(f));
       const left: Record<string, number> = {}; let leftInr = 0;
       fees.forEach(f => { const r = feeBalance(f, mine).remaining; if (r > 0) { left[f.currency] = (left[f.currency] || 0) + r; leftInr += f.currency === 'INR' ? r : 0; } });
-      return { s, flow, pkg, country, left, leftInr, paid: mine.filter(p => SETTLED.includes(p.status)).reduce((x, p) => x + toInr(p), 0) };
-    }).filter(r => Object.keys(r.left).length > 0).sort((a, b) => b.leftInr - a.leftInr);
-  }, [students, plans, payments, packages, config, ready, countryOf]);
+      return { s, flow, pkg, country, left, leftInr, since: plan?.assigned_at || (s as any).created_at || '', paid: mine.filter(p => SETTLED.includes(p.status)).reduce((x, p) => x + toInr(p), 0) };
+    }).filter(r => Object.keys(r.left).length > 0 && inRange(r.since, range)).sort((a, b) => b.leftInr - a.leftInr);
+  }, [students, plans, payments, packages, config, ready, countryOf, range]);
   const outstandingInr = receivables.reduce((s, r) => s + r.leftInr, 0);
 
-  const months = useMemo(() => Array.from(new Set(payments.map(p => monthKey(p.paid_at || p.created_at)))).sort().reverse(), [payments]);
   const trend = useMemo(() => {
     const out: { key: string; label: string; v: number }[] = [];
     for (let i = 5; i >= 0; i--) { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i); const key = d.toISOString().slice(0, 7); out.push({ key, label: d.toLocaleDateString('en-GB', { month: 'short' }), v: settled.filter(p => monthKey(p.paid_at || p.created_at) === key).reduce((s, p) => s + toInr(p), 0) }); }
@@ -117,9 +121,9 @@ export const AdminFinance: React.FC = () => {
     const q = query.trim().toLowerCase();
     return (!q || `${nameOf(p.student_id)} ${p.title} ${p.utr_number || ''} ${p.ref_no || ''}`.toLowerCase().includes(q))
       && (status === 'all' || p.status === status) && (method === 'all' || p.payment_method === method)
-      && (month === 'all' || monthKey(p.paid_at || p.created_at) === month);
+      && inRange(p.paid_at || p.created_at, range);
   });
-  const shownDocs = docs.filter(d => { const q = query.trim().toLowerCase(); return !q || `${nameOf(d.student_id)} ${d.no} ${d.description}`.toLowerCase().includes(q); });
+  const shownDocs = docs.filter(d => { const q = query.trim().toLowerCase(); return (!q || `${nameOf(d.student_id)} ${d.no} ${d.description}`.toLowerCase().includes(q)) && inRange(d.at, range); });
 
   const card = (icon: React.ReactNode, label: string, value: string, hint: string, tone = 'text-slate-900') => (
     <div className="rounded-2xl border border-slate-200/80 bg-white p-4">
@@ -141,10 +145,12 @@ export const AdminFinance: React.FC = () => {
         {TABS.map(t => <button key={t.id} type="button" onClick={() => navigate(t.id === 'overview' ? '/admin/finance' : `/admin/finance/${t.id}`)} className={`px-4 py-2.5 text-sm font-bold whitespace-nowrap border-b-2 -mb-px cursor-pointer ${tab === t.id ? 'border-[#58051E] text-[#58051E]' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{t.label}</button>)}
       </div>
 
+      <DateRangeFilter value={range} onChange={setRange} label={tab === 'receivables' ? 'Plan started' : tab === 'documents' ? 'Issued' : 'Paid'} />
+
       {loading ? <BlockCap /> : tab === 'overview' ? (
         <div className="space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-            {card(<Wallet className="w-4 h-4" />, 'Collected this month', inr(collectedMonth), `${inr(collectedAll)} all time`, 'text-emerald-700')}
+            {range.key === 'all' ? card(<Wallet className="w-4 h-4" />, 'Collected this month', inr(collectedMonth), `${inr(collectedAll)} all time`, 'text-emerald-700') : card(<Wallet className="w-4 h-4" />, 'Collected in this period', inr(collectedRange), `${inr(collectedAll)} all time`, 'text-emerald-700')}
             {card(<Clock className="w-4 h-4" />, 'Waiting for verification', String(waiting.length), `${inr(waiting.reduce((s, p) => s + toInr(p), 0))} to confirm`, waiting.length ? 'text-amber-700' : 'text-slate-900')}
             {card(<AlertCircle className="w-4 h-4" />, 'Still to collect', inr(outstandingInr), `${receivables.length} students (₹ fees)`, 'text-rose-700')}
             {card(<Percent className="w-4 h-4" />, 'GST in collections', inr(gst), 'CGST + SGST included in amounts')}
@@ -189,7 +195,6 @@ export const AdminFinance: React.FC = () => {
             <div className="relative flex-1 min-w-[12rem]"><Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search student, fee or reference" aria-label="Search" className="w-full h-10 pl-9 pr-3" /></div>
             <select aria-label="Status" value={status} onChange={e => setStatus(e.target.value)} className={sel}><option value="all">All statuses</option>{['Paid', 'Verified', 'Pending Verification', 'Rejected', 'Failed'].map(x => <option key={x}>{x}</option>)}</select>
             <select aria-label="Method" value={method} onChange={e => setMethod(e.target.value)} className={sel}><option value="all">All methods</option>{Array.from(new Set(payments.map(p => p.payment_method).filter(Boolean))).map(x => <option key={x}>{x}</option>)}</select>
-            <select aria-label="Month" value={month} onChange={e => setMonth(e.target.value)} className={sel}><option value="all">All months</option>{months.map(m => <option key={m}>{m}</option>)}</select>
             <button type="button" onClick={() => exportCsv('collections', ['Date', 'Student', 'Fee', 'Method', 'Reference', 'Amount', 'Currency', 'Status'], ledger.map(p => [date(p.paid_at || p.created_at), nameOf(p.student_id), p.title || '', p.payment_method || '', p.utr_number || p.ref_no || '', Number(p.amount), p.currency || 'INR', p.status]))} className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 inline-flex items-center gap-1.5 cursor-pointer"><Download className="w-4 h-4" />Export CSV</button>
           </div>
           {ledger.length === 0 ? <EmptyState icon={Wallet} title="No payments match" hint="Clear a filter to see more." /> : (
@@ -218,11 +223,11 @@ export const AdminFinance: React.FC = () => {
             <p className="text-sm text-slate-600">{receivables.length} students still have fees to pay under a confirmed plan or the registration fee.</p>
             <button type="button" onClick={() => exportCsv('receivables', ['Student', 'Email', 'Country', 'Plan', 'Left to pay'], receivables.map(r => [r.s.full_name, r.s.email, r.country, r.flow === 'pending' ? 'Not confirmed' : r.flow === 'normal' ? 'Normal flow' : r.pkg?.name || 'Package', Object.entries(r.left).map(([c, v]) => money(v, c)).join(' + ')]))} className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:bg-slate-50 inline-flex items-center gap-1.5 cursor-pointer"><Download className="w-4 h-4" />Export CSV</button>
           </div>
-          {receivables.length === 0 ? <EmptyState icon={Wallet} title="Nothing outstanding" hint="Every student is paid up." /> : (
+          {receivables.length === 0 ? <EmptyState icon={Wallet} title="Nothing outstanding" hint={range.key === 'all' ? 'Every student is paid up.' : 'Nothing is outstanding for this period. Change the date filter to see more.'} /> : (
             <ul className="rounded-2xl border border-slate-200/80 bg-white divide-y divide-slate-100">
               {receivables.map(r => (
                 <li key={r.s.id} className="p-4 flex flex-wrap items-center justify-between gap-3">
-                  <div className="min-w-0"><p className="text-sm font-bold text-slate-900 truncate">{r.s.full_name || r.s.email}</p><p className="text-xs text-slate-500 truncate">{r.country || 'No destination'} · {r.flow === 'pending' ? 'Plan not confirmed' : r.flow === 'normal' ? 'Normal flow' : r.pkg?.name || 'Package'} · paid {inr(r.paid)}</p></div>
+                  <div className="min-w-0"><p className="text-sm font-bold text-slate-900 truncate">{r.s.full_name || r.s.email}</p><p className="text-xs text-slate-500 truncate">{r.country || 'No destination'}{r.since ? ` · since ${date(r.since)}` : ''} · {r.flow === 'pending' ? 'Plan not confirmed' : r.flow === 'normal' ? 'Normal flow' : r.pkg?.name || 'Package'} · paid {inr(r.paid)}</p></div>
                   <div className="flex items-center gap-4"><span className="text-sm font-extrabold text-rose-700 tabular-nums">{Object.entries(r.left).map(([c, v]) => money(v, c)).join(' + ')} left</span><Link to={`/admin/payment-control?student=${r.s.id}`} className="h-9 px-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 inline-flex items-center">Open</Link></div>
                 </li>
               ))}
