@@ -17,6 +17,7 @@ export interface ChatMsg {
   sender_id: string;
   content: string;
   sent_at: string;
+  sender_role?: string;
 }
 
 const toMsg = (row: any): ChatMsg => ({
@@ -25,6 +26,7 @@ const toMsg = (row: any): ChatMsg => ({
   sender_id: row.sender_id,
   content: row.message ?? row.content ?? '',
   sent_at: row.created_at ?? row.sent_at ?? new Date().toISOString(),
+  sender_role: row.sender_role,
 });
 
 /** Returns the student's thread id, creating it (with their counselor) if needed. */
