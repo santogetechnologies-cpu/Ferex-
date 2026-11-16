@@ -76,7 +76,7 @@ for (const [role, path] of [
 
 test('student sees country override, only UPI and pending verification after submission', async ({ page }) => {
   const { saved } = await setup(page, 'student'); await page.goto('/student/payments');
-  await page.getByRole('button', { name: 'Pay by UPI', exact: true }).click();
+  await page.getByRole('button', { name: 'Pay by UPI and enter the reference', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('₹2,000.00');
   await page.screenshot({ path: test.info().outputPath('student-upi.png'), fullPage: true });
   await expect(page.getByRole('dialog').getByRole('combobox')).toHaveCount(0);
@@ -105,7 +105,7 @@ test('student can pay part of a fee and sees the position clearly', async ({ pag
   const { saved } = await setup(page, 'student'); await page.goto('/student/payments');
   await expect(page.getByLabel('Payment summary INR')).toContainText('Left to pay');
   await expect(page.getByText('Not paid', { exact: true }).first()).toBeVisible();
-  await page.getByRole('button', { name: 'Pay by UPI', exact: true }).click();
+  await page.getByRole('button', { name: 'Pay by UPI and enter the reference', exact: true }).click();
   await page.getByLabel('Amount to pay').fill('500');
   await page.getByLabel('UPI transaction reference').fill('123456789012');
   await page.getByRole('button', { name: 'Submit UPI reference', exact: true }).click();

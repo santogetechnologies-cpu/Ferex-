@@ -134,6 +134,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [signOut]);
 
   const authGeneration = useRef(0);
+  // Mirrors of the signed-in user and profile, so the auth listener can tell a routine refresh from a real change of person.
+  const userIdRef = useRef<string | null>(null);
+  const hasProfileRef = useRef(false);
+  userIdRef.current = user?.id ?? null;
+  hasProfileRef.current = !!profile;
+
   const loadUserData = useCallback(async (currentSession: Session | null) => {
     const generation = ++authGeneration.current;
     setSession(currentSession);
@@ -334,6 +340,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if ((event as any) === 'TOKEN_REFRESH_FAILED') {
         supabase.auth.signOut().catch(() => {});
         loadUserData(null);
+        return;
+      }
+      // Returning to a tab (or a token refresh) re-announces the same signed-in user. Reloading the profile then would blank the
+      // whole app behind a loader and throw away what the person was doing (an open drawer, a half-filled form), so only the
+      // session token is swapped in quietly.
+      if (event !== 'SIGNED_OUT' && event !== 'USER_UPDATED' && newSession?.user && newSession.user.id === userIdRef.current && hasProfileRef.current) {
+        setSession(newSession);
         return;
       }
       loadUserData(newSession);

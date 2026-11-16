@@ -84,7 +84,9 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
   });
 
   const [editingPersonal, setEditingPersonal] = useState(false);
+  const editingRef = useRef(false);
   const [tempPersonal, setTempPersonal] = useState<PersonalInfo>({ ...personal });
+  editingRef.current = editingPersonal;
 
   // Emergency Contact State
   const [emergency, setEmergency] = useState<EmergencyInfo>(() => {
@@ -143,7 +145,8 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
             postalCode: active.postal_code || '',
           };
           setPersonal(pInfo);
-          setTempPersonal(pInfo);
+          // A background refresh must not overwrite what the student is typing.
+          if (!editingRef.current) setTempPersonal(pInfo);
 
           if (active.emergency_contact && typeof active.emergency_contact === 'object') {
             setEmergency(active.emergency_contact);
@@ -196,7 +199,7 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
       const fullName = `${tempPersonal.firstName.trim()} ${tempPersonal.lastName.trim()}`.trim();
 
       if (activeId) {
-        await supabase.from('users').update({
+        const { error: saveError } = await supabase.from('users').update({
           full_name: fullName,
           phone: tempPersonal.phone.trim(),
           passport_no: tempPersonal.passportNo.trim(),
@@ -209,6 +212,7 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
           nationality: tempPersonal.nationality.trim(),
           updated_at: new Date().toISOString()
         }).eq('id', activeId);
+        if (saveError) throw saveError;
       }
 
       setPersonal({ ...tempPersonal });

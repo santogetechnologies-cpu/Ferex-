@@ -48,6 +48,8 @@ export async function payEducationFeeOnline(input: { paymentType: string; amount
       name: 'FEREX Education', description: input.description, theme: { color: '#6B0F36' },
       prefill: { name: order.name, email: order.email, contact: order.contact },
       retry: { enabled: true },
+      // UPI always leads the list of ways to pay; cards and net banking stay available below it.
+      config: { display: { blocks: { upi: { name: 'Pay with UPI', instruments: [{ method: 'upi' }] } }, sequence: ['block.upi'], preferences: { show_default_blocks: true } } },
       handler: (r: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
         call('razorpay-verify', { razorpay_order_id: r.razorpay_order_id, razorpay_payment_id: r.razorpay_payment_id, razorpay_signature: r.razorpay_signature })
           .then(() => done(() => resolve('paid')))

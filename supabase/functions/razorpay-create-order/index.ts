@@ -3,8 +3,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info' };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
 
-// Creates a Razorpay order for one education fee the signed-in student owes. The payment row is saved through the student's
-// own session, so the database rules (fee amount, remaining balance, workflow stage, plan) apply exactly as for any other payment.
+// Creates a Razorpay order for one education fee the signed-in student owes. The database rules (fee amount, remaining
+// balance, workflow stage, plan) are applied to the saved payment exactly as for any other payment.
 Deno.serve(async req => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'POST required' }, 405);
@@ -39,7 +39,10 @@ Deno.serve(async req => {
     if (rz.status === 401) return json({ error: 'Razorpay rejected the server credentials' }, 401);
     if (!rz.ok || !order.id) return json({ error: order?.error?.description || 'Razorpay could not create the order' }, 500);
 
-    const { error } = await caller.from('payments').insert({
+    // Saved with the server's own access on the student's behalf (the student id is the verified caller), so the manual-UPI
+    // switches do not apply; the database still checks the fee, remaining balance and workflow stage for this student.
+    const db = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const { error } = await db.from('payments').insert({
       id, ref_no: receipt, student_id: user.id, student_name: profile?.full_name || '', title: 'Online payment', payment_type: paymentType,
       amount: paise / 100, currency: 'INR', payment_method: 'UPI', utr_number: order.id, status: 'Pending Verification', paid_at: null,
       description: `Online payment via Razorpay, order ${order.id}.`,

@@ -45,7 +45,7 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
   const { profile, user } = useAuth();
   const myEmail = (profile?.email || user?.email || '').toLowerCase().trim();
   const myName = (profile?.full_name || '').toLowerCase().trim();
-  const { documents: dbDocs, loading, changeStatus, addDoc, replaceDoc } = useDocuments();
+  const { documents: dbDocs, loading, changeStatus, addDoc } = useDocuments();
   const { applications } = useApplications();
 
   const [requirements, setRequirements] = useState<DocumentRequirement[]>([]);
@@ -143,7 +143,7 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
   const saveUpload = async (r: UploadDone) => {
     if (!current) return;
     const base = { file_name: r.fileName, file_url: r.path, file_size: r.size, doc_type: (upload?.req?.document_type || 'Other') as any, requirement_id: upload?.req?.id, requirement_name: upload?.req?.document_name };
-    if (upload?.replaceId) await replaceDoc(upload.replaceId, base); else await addDoc({ student_id: current.id, ...base });
+    await addDoc({ student_id: current.id, ...base });
     flash(`${r.title} uploaded for ${current.name}.`);
   };
 
@@ -151,8 +151,9 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
     <div className="flex flex-wrap items-center justify-between gap-2">
       <div className="flex items-center gap-2"><Pill s={norm(viewing.doc.status)} />{viewing.doc.reviewer_notes && <span className="text-xs text-slate-600 truncate max-w-[40ch]">“{viewing.doc.reviewer_notes}”</span>}</div>
       <div className="flex gap-2">
-        <button type="button" className={btnGhost} onClick={() => { setAsking(viewing.doc!); setNote(viewing.doc!.reviewer_notes || ''); setViewing(null); }}><RefreshCw className="w-3.5 h-3.5" />Ask for re-upload</button>
-        {norm(viewing.doc.status) !== 'Approved' && <button type="button" className={btnPrimary} disabled={busy === viewing.doc.id} onClick={async () => { await approve(viewing.doc!); setViewing(null); }}><CheckCircle2 className="w-3.5 h-3.5" />Approve</button>}
+        {norm(viewing.doc.status) !== 'Needs action' && <button type="button" className={btnGhost} onClick={() => { setAsking(viewing.doc!); setNote(viewing.doc!.reviewer_notes || ''); setViewing(null); }}><RefreshCw className="w-3.5 h-3.5" />Ask for re-upload</button>}
+        {norm(viewing.doc.status) === 'Needs action' && <span className="text-xs font-semibold text-rose-700 self-center">Waiting for the student to upload a corrected copy</span>}
+        {norm(viewing.doc.status) !== 'Approved' && norm(viewing.doc.status) !== 'Needs action' && <button type="button" className={btnPrimary} disabled={busy === viewing.doc.id} onClick={async () => { await approve(viewing.doc!); setViewing(null); }}><CheckCircle2 className="w-3.5 h-3.5" />Approve</button>}
       </div>
     </div>
   );
@@ -165,9 +166,8 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
       <div className="flex flex-wrap items-center gap-2">
         <Pill s={n} />
         <button type="button" className={btnGhost} onClick={() => open(d)}><Eye className="w-3.5 h-3.5" />View</button>
-        {n !== 'Approved' && <button type="button" className={btnPrimary} disabled={busy === d.id} onClick={() => approve(d)}><CheckCircle2 className="w-3.5 h-3.5" />Approve</button>}
+        {n !== 'Approved' && n !== 'Needs action' && <button type="button" className={btnPrimary} disabled={busy === d.id} onClick={() => approve(d)}><CheckCircle2 className="w-3.5 h-3.5" />Approve</button>}
         {n !== 'Needs action' && <button type="button" className={btnGhost} onClick={() => { setAsking(d); setNote(d.reviewer_notes || ''); }}>Ask re-upload</button>}
-        <button type="button" className={btnGhost} onClick={() => setUpload({ req, replaceId: d.id })}>Replace</button>
       </div>
     );
   };

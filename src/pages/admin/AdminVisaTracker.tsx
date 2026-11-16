@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, Save, Sparkles, X, Plus, RefreshCw } from 'lucide-react';
 import { Card } from '../../components/Card';
@@ -37,10 +37,6 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
   const embassyFor = (studentId: string) => {
     const c = countryOf(studentId);
     return c ? `Embassy of ${c}, New Delhi` : '';
-  };
-  const refFor = (studentId: string) => {
-    const c = countryOf(studentId).replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'GEN';
-    return `VFS-${c}-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
   };
 
   // Selected student state
@@ -83,9 +79,14 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
     }
   };
 
-  // Load record when selected student changes
+  // The form is filled once, when a student is chosen. It must not be refilled when the lists refresh in the background (that
+  // used to wipe what the admin was typing, such as the passport and VFS reference numbers).
+  const latest = useRef({ students, records });
+  latest.current = { students, records };
+
   useEffect(() => {
     if (!selectedStudentId) return;
+    const { students, records } = latest.current;
     const studentObj = students.find(s => s.id === selectedStudentId);
     const sName = studentObj?.full_name || studentObj?.email?.split('@')[0] || 'Student';
     const existingRec = records.find(r => r.student_id === selectedStudentId || (r.student_name && r.student_name.toLowerCase() === sName.toLowerCase()));
@@ -118,7 +119,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
       setDecisionOutcome((loadedOutcome || 'Pending') as any);
     } else {
       // Clean defaults for new student selection
-      setVfsRefNo(refFor(selectedStudentId));
+      setVfsRefNo('');
       setEmbassyName(embassyFor(selectedStudentId));
       setVfsCenter('VFS Global Center, Kochi / Mumbai');
       setAppointmentDate(new Date().toISOString().split('T')[0]);
@@ -128,7 +129,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
       setNotes('VFS appointment slot allocated. Awaiting document submission.');
       setDecisionOutcome('Pending');
     }
-  }, [selectedStudentId, records, students]);
+  }, [selectedStudentId]);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -266,7 +267,6 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
     const studentObj = students.find(s => s.id === initiateStudentId);
     const sName = studentObj?.full_name || studentObj?.email?.split('@')[0] || 'Student';
     const recId = generateUUID();
-    const defaultRef = refFor(initiateStudentId);
 
     try {
       setIsSaving(true);
@@ -274,7 +274,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
         student_id: initiateStudentId,
         student_name: sName,
         student_email: studentObj?.email || '',
-        vfs_ref_no: defaultRef,
+        vfs_ref_no: '',
         embassy_name: embassyFor(initiateStudentId),
         vfs_center: 'VFS Global Center, Kochi / Mumbai',
         appointment_date: new Date().toISOString().split('T')[0],

@@ -775,7 +775,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                                       ) : (
                                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                                           <button className={primaryBtn} disabled={needsCountry || !!onlineFee} onClick={() => payOnline(fee)}>
-                                            {onlineFee === fee.id ? <CapLoader size="sm" tone="light" /> : <><CreditCard className="w-4 h-4" /><span>Pay {money(balance.payable, fee.currency)} now</span></>}
+                                            {onlineFee === fee.id ? <CapLoader size="sm" tone="light" /> : <><CreditCard className="w-4 h-4" /><span>Pay {money(balance.payable, fee.currency)} now{fee.currency === 'INR' ? ' (UPI)' : ''}</span></>}
                                           </button>
                                           {fee.currency === 'INR' && upiAvailable && <button type="button" className="text-xs font-semibold text-slate-600 underline underline-offset-2 cursor-pointer" disabled={!!onlineFee} onClick={() => openPayment(fee)}>Pay by UPI and enter the reference</button>}
                                         </div>
