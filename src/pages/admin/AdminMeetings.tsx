@@ -12,13 +12,15 @@ export interface AdminMeetingsProps {
   isStaff?: boolean;
 }
 
-export const AdminMeetings: React.FC<AdminMeetingsProps> = ({ isStaff = false }) => {
+export const AdminMeetings: React.FC<AdminMeetingsProps> = ({ isStaff: staffRoute = false }) => {
   const { profile, user } = useAuth();
+  // Staff and counselors only ever see their own meetings, whichever page they reach; only admins can pick other advisors.
+  const isStaff = staffRoute || ['staff', 'counselor'].includes((profile?.role || '').toLowerCase());
   const { meetings: dbMeetings, changeStatus, deleteCall, loading, addMeeting } = useMeetings();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const counselorName = profile?.full_name || '';
-  const [advisorFilter, setAdvisorFilter] = useState(() => (isStaff && counselorName) ? counselorName : 'All');
+  const [advisorFilter, setAdvisorFilter] = useState('All');
   const [toastMessage, setToastMessage] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -387,8 +389,8 @@ export const AdminMeetings: React.FC<AdminMeetingsProps> = ({ isStaff = false })
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {/* Advisor Filter Dropdown */}
-                  <select
+                  {/* Advisor Filter Dropdown: admins only */}
+                  {!isStaff && <select
                     value={advisorFilter}
                     onChange={(e) => setAdvisorFilter(e.target.value)}
                     className="h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]/40"
@@ -397,7 +399,7 @@ export const AdminMeetings: React.FC<AdminMeetingsProps> = ({ isStaff = false })
                     {counselorsList.map(c => (
                       <option key={c} value={c}>{c}</option>
                     ))}
-                  </select>
+                  </select>}
 
                   <div className="flex items-center gap-1 border border-slate-200 rounded-lg p-0.5 bg-white">
                     <button

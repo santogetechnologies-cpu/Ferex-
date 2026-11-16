@@ -45,6 +45,8 @@ export const Documents: React.FC = () => {
   const { getWorkflowForCountry } = useCountryWorkflows();
 
   const isStaffRole = ['admin', 'super_admin', 'superadmin', 'staff', 'counselor', 'education_admin', 'central'].includes((profile?.role || 'student').toLowerCase());
+  // Only the student changes their own files. Admin and staff who open this page for a student can view, but not upload or replace.
+  const canChangeFiles = !isStaffRole;
   const studentId = activeStudentId || (!isStaffRole ? user?.id : undefined);
   const { documents: docs, loading, addDoc, replaceDoc } = useDocuments(studentId, !!studentId);
 
@@ -113,7 +115,7 @@ export const Documents: React.FC = () => {
         eyebrow="Ferex Education"
         title={isImpersonating && activeStudentName ? `${activeStudentName}'s documents` : 'My documents'}
         subtitle="Upload each required document once. We review it and tell you if anything needs to change."
-        actions={<button type="button" className={btnPrimary} onClick={() => setUpload({})}><UploadCloud className="w-4 h-4" />Additional Documents</button>}
+        actions={canChangeFiles ? <button type="button" className={btnPrimary} onClick={() => setUpload({})}><UploadCloud className="w-4 h-4" />Additional Documents</button> : undefined}
       />
       {toast && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{toast}</p>}
 
@@ -146,7 +148,7 @@ export const Documents: React.FC = () => {
             {needAction.map(d => (
               <li key={d.id} className="bg-white rounded-xl border border-rose-100 p-3 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
                 <div className="min-w-0"><p className="text-sm font-semibold text-slate-900 truncate">{d.requirement_name || d.file_name}</p><p className="text-xs text-rose-700 mt-0.5">{d.reviewer_notes || 'Please upload a clearer copy.'}</p></div>
-                <button type="button" className={btnPrimary} onClick={() => setUpload({ replaceId: d.id, req: requirements.find(r => r.id === d.requirement_id || r.document_name === d.requirement_name) })}><RefreshCw className="w-3.5 h-3.5" />Upload again</button>
+                {canChangeFiles && <button type="button" className={btnPrimary} onClick={() => setUpload({ replaceId: d.id, req: requirements.find(r => r.id === d.requirement_id || r.document_name === d.requirement_name) })}><RefreshCw className="w-3.5 h-3.5" />Upload again</button>}
               </li>
             ))}
           </ul>
@@ -180,9 +182,9 @@ export const Documents: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2 sm:justify-end flex-wrap"><Pill s={s} />
                   {doc && <button type="button" className={btnGhost} onClick={() => view(doc)}><Eye className="w-3.5 h-3.5" />View</button>}
-                  {s === 'Missing' && <button type="button" className={btnPrimary} onClick={() => setUpload({ req: r })}><UploadCloud className="w-3.5 h-3.5" />Upload</button>}
-                  {s === 'Needs action' && doc && <button type="button" className={btnPrimary} onClick={() => setUpload({ req: r, replaceId: doc.id })}><RefreshCw className="w-3.5 h-3.5" />Upload again</button>}
-                  {s !== 'Missing' && s !== 'Needs action' && s !== 'Approved' && doc && <button type="button" className={btnGhost} onClick={() => setUpload({ req: r, replaceId: doc.id })}>Replace</button>}
+                  {canChangeFiles && s === 'Missing' && <button type="button" className={btnPrimary} onClick={() => setUpload({ req: r })}><UploadCloud className="w-3.5 h-3.5" />Upload</button>}
+                  {canChangeFiles && s === 'Needs action' && doc && <button type="button" className={btnPrimary} onClick={() => setUpload({ req: r, replaceId: doc.id })}><RefreshCw className="w-3.5 h-3.5" />Upload again</button>}
+                  {canChangeFiles && s !== 'Missing' && s !== 'Needs action' && s !== 'Approved' && doc && <button type="button" className={btnGhost} onClick={() => setUpload({ req: r, replaceId: doc.id })}>Replace</button>}
                 </div>
               </article>
             );
