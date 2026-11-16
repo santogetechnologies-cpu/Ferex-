@@ -51,7 +51,7 @@ const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata',
 
 export function EducationBillingConsole({ admin = false }: { admin?: boolean }) {
   const { user, profile } = useAuth();
-  const { activeStudentId } = useActiveStudentScope();
+  const { activeStudentId, isImpersonating } = useActiveStudentScope();
   const { config, ready: configReady } = useFeeConfig();
   const { universities } = useUniversities();
   const { destinations } = useDestinations();
@@ -786,6 +786,8 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                                     <div className="mt-4">
                                       {admin ? (
                                         <button className={primaryBtn} disabled={needsCountry} onClick={() => openPayment(fee)}><CreditCard className="w-4 h-4" /><span>Record payment</span></button>
+                                      ) : isImpersonating ? (
+                                        <p className="text-xs font-semibold text-slate-600 rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 inline-block">You are viewing this student's account. The student pays from their own login; to record a payment for them, use Payments.</p>
                                       ) : !feeIsOpen(fee) ? (
                                         <p className="text-xs font-semibold text-slate-500 rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 inline-block">This fee opens after the "{educationStages[Math.max(0, feeOpensAt(fee) - 1)] || 'previous'}" step.</p>
                                       ) : (

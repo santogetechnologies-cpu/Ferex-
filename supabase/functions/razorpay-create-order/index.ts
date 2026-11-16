@@ -26,7 +26,12 @@ Deno.serve(async req => {
     const paise = Math.round(amount * 100);
     if (Math.abs(paise / 100 - amount) > 1e-9) return json({ error: 'Amount can have at most two decimals' }, 400);
 
-    const { data: profile } = await caller.from('users').select('full_name,email,phone').eq('id', user.id).maybeSingle();
+    const { data: profile } = await caller.from('users').select('full_name,email,phone,role').eq('id', user.id).maybeSingle();
+    // Online payment is the student's own action. A counselor or admin previewing a student's screen is signed in as themselves.
+    if ((profile?.role || '') !== 'student') return json({ error: 'Only the student can pay online. Sign in with the student account to pay, or record the payment under Payments.' }, 403);
+    const db = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const { data: prefs } = await db.from('education_student_preferences').select('fee_flow_mode').eq('student_id', user.id).maybeSingle();
+    if (!prefs?.fee_flow_mode || prefs.fee_flow_mode === 'pending') return json({ error: 'Your payment plan has not been set yet. You can pay as soon as your counselor sets it.' }, 400);
     const id = crypto.randomUUID();
     const receipt = `EDU-RZP-${id.slice(0, 8)}`;
 
@@ -41,7 +46,6 @@ Deno.serve(async req => {
 
     // Saved with the server's own access on the student's behalf (the student id is the verified caller), so the manual-UPI
     // switches do not apply; the database still checks the fee, remaining balance and workflow stage for this student.
-    const db = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const { error } = await db.from('payments').insert({
       id, ref_no: receipt, student_id: user.id, student_name: profile?.full_name || '', title: 'Online payment', payment_type: paymentType,
       amount: paise / 100, currency: 'INR', payment_method: 'UPI', utr_number: order.id, status: 'Pending Verification', paid_at: null,
