@@ -10,7 +10,7 @@ import {
 import { useStudents } from '../../hooks/useStudents';
 import { useApplications } from '../../hooks/useApplications';
 import { useDocuments } from '../../hooks/useDocuments';
-import { getStaffMembers, DEFAULT_COUNSELOR_ROSTER, assignCounselorToStudent, generateTempPassword, pickCounselorForNewStudent } from '../../lib/api/students';
+import { getStaffMembers, getCounselors, DEFAULT_COUNSELOR_ROSTER, assignCounselorToStudent, generateTempPassword, pickCounselorForNewStudent } from '../../lib/api/students';
 import { useDestinations } from '../../hooks/useDestinations';
 import { useUniversities } from '../../hooks/useUniversities';
 import { getAllDocumentRequirements, calculateDossierStatus, type DocumentRequirement } from '../../lib/api/documentRequirements';
@@ -93,6 +93,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
   const { applications: dbApps } = useApplications();
   const [students, setStudents] = useState<StudentItem[]>([]);
   const [staffMembers, setStaffMembers] = useState<UserProfile[]>([]);
+  const [counselors, setCounselors] = useState<UserProfile[]>([]);
 
   // Add Student Modal State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -164,6 +165,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
   useEffect(() => {
     const fetchStaff = () => {
       getStaffMembers().then(setStaffMembers).catch(() => {});
+      getCounselors().then(setCounselors).catch(() => {});
     };
     fetchStaff();
     window.addEventListener('ferex_staff_change', fetchStaff);
@@ -175,6 +177,12 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
       window.removeEventListener('storage', fetchStaff);
     };
   }, []);
+
+  // Filter dedicated counselor list strictly to counselor accounts (excludes Education Admin, Super Admin, Admin)
+  const eligibleCounselors = React.useMemo(() => {
+    const pool = counselors.length > 0 ? counselors : staffMembers;
+    return pool.filter(s => (s.role || '').toLowerCase() === 'counselor');
+  }, [counselors, staffMembers]);
 
   useEffect(() => {
     // Strict deduplication of dbStudents by ID and email
@@ -1318,7 +1326,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                 </div>
 
                 <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                  {staffMembers.map(s => {
+                  {eligibleCounselors.map(s => {
                     const parts = (s.department || '').split(':');
                     const deskLabel = parts[1] || parts[0] || 'Admissions Desk';
                     const counselorVal = `${s.full_name || s.email} (${deskLabel})`;
@@ -1355,6 +1363,11 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                       </div>
                     );
                   })}
+                  {eligibleCounselors.length === 0 && (
+                    <div className="p-4 text-center text-xs text-slate-400 font-semibold bg-slate-50 rounded-2xl border border-slate-100">
+                      No counselor accounts found.
+                    </div>
+                  )}
                 </div>
               </div>
 
