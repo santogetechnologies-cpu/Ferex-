@@ -25,6 +25,8 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { CapLoader } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 export const TradeTickets: React.FC = () => {
   const { profile } = useAuth();
@@ -32,6 +34,7 @@ export const TradeTickets: React.FC = () => {
   const [orders, setOrders] = useState<TradeOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [filterStatus, setFilterStatus] = useState<string>('All');
   const [filterChannel, setFilterChannel] = useState<string>('All');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -175,7 +178,7 @@ export const TradeTickets: React.FC = () => {
     }
   };
 
-  const filteredTickets = tickets.filter(t => {
+  const filteredTickets = tickets.filter(t => inRange(t.created_at, range)).filter(t => {
     const matchesSearch =
       t.ticket_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -211,6 +214,7 @@ export const TradeTickets: React.FC = () => {
 
       {/* Filter and Search Bar */}
       <Card className="p-3 border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <DateRangeFilter compact label="Raised" value={range} onChange={setRange} />
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input

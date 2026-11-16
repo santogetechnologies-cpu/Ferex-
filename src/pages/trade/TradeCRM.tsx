@@ -25,10 +25,13 @@ import {
 } from '../../lib/api/trade';
 import { supabase } from '../../lib/supabase';
 import { BlockCap } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 export const TradeCRM: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [filterCategory, setFilterCategory] = useState('All');
   const [selectedCompany, setSelectedCompany] = useState<any>(null);
   const [editingCompany, setEditingCompany] = useState<any>(null);
@@ -200,7 +203,7 @@ export const TradeCRM: React.FC = () => {
     navigate(`/trade/shipments?create=true&client=${encodeURIComponent(partnerName)}`);
   };
 
-  const filteredCompanies = companies.filter((c) => {
+  const filteredCompanies = companies.filter(c => inRange(c.created_at, range)).filter((c) => {
     const matchesSearch =
       c.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.contact?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -271,6 +274,7 @@ export const TradeCRM: React.FC = () => {
       {/* Search & Category Filter */}
       <Card className="p-3 border border-slate-200/80 shadow-xs">
         <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <DateRangeFilter compact label="Added" value={range} onChange={setRange} />
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input

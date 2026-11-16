@@ -28,6 +28,8 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useRimiAccess } from '../../lib/rimiAccess';
 import { BlockCap, CapLoader } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 const ORDER_STATUSES = ['Received', 'Confirmed', 'Cold Storage Picking', 'Dispatched', 'Delivered', 'Cancelled'] as const;
 
@@ -44,6 +46,7 @@ export const RimiSalesOrders: React.FC = () => {
 
   // Filters
   const [search, setSearch] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [paymentFilter, setPaymentFilter] = useState<string>('All');
 
@@ -300,7 +303,7 @@ export const RimiSalesOrders: React.FC = () => {
     }
   };
 
-  const filteredOrders = orders.filter(o => {
+  const filteredOrders = orders.filter(o => inRange(o.created_at, range)).filter(o => {
     const matchStatus = statusFilter === 'All' || o.order_status === statusFilter;
     const matchPayment = paymentFilter === 'All' || o.payment_status === paymentFilter;
     const s = search.toLowerCase();
@@ -335,6 +338,7 @@ export const RimiSalesOrders: React.FC = () => {
 
       {/* Filter Card */}
       <Card className="p-4 border border-slate-200/80 shadow-xs grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <DateRangeFilter compact label="Ordered" value={range} onChange={setRange} />
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input

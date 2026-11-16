@@ -28,6 +28,8 @@ import {
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 import { BlockCap } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 const CUSTOMER_TYPES = ['Distributor', 'Shop / Retailer', 'Wholesaler', 'HORECA Partner'] as const;
 const PIPELINE_STAGES = ['Lead', 'Contacted', 'Sample Sent', 'Negotiation', 'Active Account', 'Suspended'] as const;
@@ -42,6 +44,7 @@ export const RimiCustomers: React.FC = () => {
   const [staffList, setStaffList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [typeFilter, setTypeFilter] = useState<string>('All');
   const [territoryFilter, setTerritoryFilter] = useState<string>('All');
   const [stageFilter, setStageFilter] = useState<string>('All');
@@ -269,7 +272,7 @@ export const RimiCustomers: React.FC = () => {
     }
   };
 
-  const filteredCustomers = customers.filter(c => {
+  const filteredCustomers = customers.filter(c => inRange(c.created_at, range)).filter(c => {
     const matchType = typeFilter === 'All' || c.customer_type === typeFilter;
     const matchTerritory = territoryFilter === 'All' || c.territory === territoryFilter;
     const matchStage = stageFilter === 'All' || c.pipeline_stage === stageFilter;
@@ -311,6 +314,7 @@ export const RimiCustomers: React.FC = () => {
       <Card className="p-4 border border-slate-200/80 shadow-xs space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Search */}
+          <DateRangeFilter compact label="Added" value={range} onChange={setRange} />
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input

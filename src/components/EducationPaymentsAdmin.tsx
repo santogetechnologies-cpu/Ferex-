@@ -13,6 +13,8 @@ import { studentFees, feeBalance, resolveStudentPackage, isDirectFee, directFeeM
 import type { Application, Payment, UserProfile } from '../lib/types';
 import { PageHeader, EmptyState, Skeleton } from './Kit';
 import { supabase } from '../lib/supabase';
+import { DateRangeFilter } from '../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../lib/dateRange';
 
 type Filter = 'all' | 'unconfirmed' | 'verify' | 'due';
 const METHODS: PaymentPart['method'][] = ['Bank Transfer', 'UPI', 'Cash', 'Cheque', 'Card'];
@@ -32,6 +34,7 @@ export function EducationPaymentsAdmin() {
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [params] = useSearchParams();
   const [selected, setSelected] = useState(params.get('student') || '');
   const [toast, setToast] = useState('');
@@ -67,13 +70,15 @@ export function EducationPaymentsAdmin() {
     const reg = fees.find(f => f.id === 'registration');
     const regPaid = reg ? feeBalance(reg, mine).remaining === 0 : true;
     const toVerify = mine.filter(p => p.status === 'Pending Verification').length;
-    return { s, flow, pkg, country: countryOf(s), left, regPaid, toVerify, hasDue: Object.keys(left).length > 0 };
+    const lastPay = mine.reduce((m, p) => { const d = p.paid_at || p.created_at || ''; return d > m ? d : m; }, '');
+    return { s, flow, pkg, country: countryOf(s), left, regPaid, toVerify, lastPay, hasDue: Object.keys(left).length > 0 };
   }), [students, plans, payments, packages, config, countryOf]);
 
   const counts = useMemo(() => ({ all: rows.length, unconfirmed: rows.filter(r => r.flow === 'pending').length, verify: rows.filter(r => r.toVerify > 0).length, due: rows.filter(r => r.hasDue).length }), [rows]);
   const shown = rows.filter(r => {
     const q = query.trim().toLowerCase();
     if (q && !`${r.s.full_name} ${r.s.email} ${r.country}`.toLowerCase().includes(q)) return false;
+    if (!inRange(r.lastPay, range)) return false;
     return filter === 'all' || (filter === 'unconfirmed' && r.flow === 'pending') || (filter === 'verify' && r.toVerify > 0) || (filter === 'due' && r.hasDue);
   }).sort((a, b) => b.toVerify - a.toVerify || a.s.full_name.localeCompare(b.s.full_name));
   const current = rows.find(r => r.s.id === selected);
@@ -86,7 +91,7 @@ export function EducationPaymentsAdmin() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Payments" subtitle="Pick a student to see where they stand, confirm how they pay and record what they have paid." />
+      <PageHeader title="Payments" subtitle="Pick a student to see what is paid and not paid, verify payments and record new ones. Plans and discounts are under Payment plans." />
       {toast && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800">{toast}</p>}
       {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700">{error}</p>}
 
@@ -96,6 +101,7 @@ export function EducationPaymentsAdmin() {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search students" aria-label="Search students" className="w-full h-10 pl-9 pr-3" />
           </div>
+          <DateRangeFilter label="Last payment" value={range} onChange={setRange} />
           <div className="flex flex-wrap gap-1.5">{chip('all', 'All')}{chip('unconfirmed', 'Plan not confirmed')}{chip('verify', 'To verify')}{chip('due', 'Balance due')}</div>
           <ul className="divide-y divide-slate-100 max-h-[62vh] overflow-y-auto -mx-1" aria-label="Students">
             {loading && [0, 1, 2, 3].map(i => <li key={i} className="p-3"><Skeleton className="h-10" /></li>)}

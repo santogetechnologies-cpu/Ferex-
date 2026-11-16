@@ -26,6 +26,8 @@ import { createDivisionStaff } from '../../lib/api/staff';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { CapLoader } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 export const TradeTasks: React.FC = () => {
   const { profile } = useAuth();
@@ -33,6 +35,7 @@ export const TradeTasks: React.FC = () => {
   const [orders, setOrders] = useState<TradeOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [filterStatus, setFilterStatus] = useState<string>('All');
   const [filterPriority, setFilterPriority] = useState<string>('All');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -243,7 +246,7 @@ export const TradeTasks: React.FC = () => {
     completed: tasks.filter(t => t.status === 'Completed').length,
   };
 
-  const filteredTasks = tasks.filter(t => {
+  const filteredTasks = tasks.filter(t => inRange(t.due_date || t.created_at, range)).filter(t => {
     const matchesSearch =
       t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.assigned_staff_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -314,6 +317,7 @@ export const TradeTasks: React.FC = () => {
 
       {/* Filter and Search Bar */}
       <Card className="p-3 border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <DateRangeFilter compact label="Due" value={range} onChange={setRange} />
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input

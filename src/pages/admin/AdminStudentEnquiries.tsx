@@ -30,6 +30,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { Link } from 'react-router-dom';
 import { BlockCap } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 interface AdminStudentEnquiriesProps {
   isStaff?: boolean; // When true, runs in Counselor portal view
@@ -81,6 +83,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
   const currentCounselorName = (profile?.full_name || '').trim();
 
   const [leads, setLeads] = useState<EducationLead[]>([]);
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [counselors, setCounselors] = useState<DivisionStaffMember[]>([]);
   const [metrics, setMetrics] = useState<CounselorPerformanceMetric[]>([]);
   const [loading, setLoading] = useState(true);
@@ -347,7 +350,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
 
   // Filtered Leads
   const filteredLeads = useMemo(() => {
-    return leads.filter((l) => {
+    return leads.filter(l => inRange(l.created_at, range)).filter((l) => {
       // Status filter
       if (statusFilter !== 'All' && l.status !== statusFilter) return false;
 
@@ -374,7 +377,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
 
       return true;
     });
-  }, [leads, statusFilter, counselorFilter, searchQuery]);
+  }, [leads, statusFilter, counselorFilter, searchQuery, range]);
 
   // Counts for Status Tabs — scoped to counselor when in staff view
   const statusCounts = useMemo(() => {
@@ -628,6 +631,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
               </select>
             )}
 
+            <DateRangeFilter compact label="Enquired" value={range} onChange={setRange} />
             <div className="relative min-w-[220px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input

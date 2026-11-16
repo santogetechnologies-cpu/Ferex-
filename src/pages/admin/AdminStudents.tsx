@@ -19,6 +19,8 @@ import { isAgreementSigned, getLocalAgreement } from '../../lib/api/agreement';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { startImpersonatingStudent } from '../../lib/api/studentImpersonation';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 interface StudentItem {
   id: string;
@@ -118,6 +120,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
   const [searchParams] = useSearchParams();
   // Filters
   const [search, setSearch] = useState(() => searchParams.get('q') || searchParams.get('search') || '');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
 
   useEffect(() => {
     const q = searchParams.get('q') || searchParams.get('search');
@@ -513,7 +516,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
     }
   };
 
-  const filtered = students.filter(s => {
+  const filtered = students.filter(s => inRange(s.joined, range)).filter(s => {
     const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.id.toLowerCase().includes(search.toLowerCase()) ||
       s.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -603,6 +606,8 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
           );
         })}
       </div>
+
+      <div><DateRangeFilter compact label="Joined" value={range} onChange={setRange} /></div>
 
       {/* Search + Counselor + Status Filters */}
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">

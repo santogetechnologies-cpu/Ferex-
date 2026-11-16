@@ -35,6 +35,8 @@ import { trackContract, money, type CommerceBody } from '../../lib/digitalCommer
 import { Link } from 'react-router-dom';
 import { DIGITAL_CURRENCIES, formatDigitalCurrency, getCurrencySymbol } from '../../lib/digitalCurrency';
 import { BlockCap } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 const DEFAULT_STAGES: DigitalProjectStage[] = ['Briefing', 'In Progress', 'Review', 'Revisions', 'Delivered', 'Closed'];
 
@@ -49,6 +51,7 @@ export const DigitalProjects: React.FC = () => {
   const [serviceCategories, setServiceCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [clientTypeFilter, setClientTypeFilter] = useState<'All' | 'Internal' | 'External'>('All');
   const [stageFilter, setStageFilter] = useState<string>('All');
   const [myProjectsOnly, setMyProjectsOnly] = useState(false);
@@ -384,7 +387,7 @@ export const DigitalProjects: React.FC = () => {
   };
 
   // Filtering
-  const filteredProjects = projects.filter(p => {
+  const filteredProjects = projects.filter(p => inRange((p as any).created_at, range)).filter(p => {
     const isInternal = p.client_type === 'Internal' || (p.client_name || '').toLowerCase().includes('ferex') || (p.client_name || '').toLowerCase().includes('rimi');
     const matchType = clientTypeFilter === 'All' || (clientTypeFilter === 'Internal' ? isInternal : !isInternal);
     const matchStage = stageFilter === 'All' || p.status === stageFilter;
@@ -462,6 +465,7 @@ export const DigitalProjects: React.FC = () => {
       <Card className="p-4 border border-slate-200/80 shadow-xs space-y-3">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-3">
           {/* Search Box */}
+          <DateRangeFilter compact label="Created" value={range} onChange={setRange} />
           <div className="relative w-full lg:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input

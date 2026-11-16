@@ -20,6 +20,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useDigitalPermissions } from '../../hooks/usePermissions';
 import { getMasters } from '../../lib/api/masters';
 import { BlockCap } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 export const DigitalTasks: React.FC = () => {
   const { profile } = useAuth();
@@ -31,6 +33,7 @@ export const DigitalTasks: React.FC = () => {
   const [taskPriorities, setTaskPriorities] = useState<string[]>(['Critical', 'High', 'Medium', 'Low']);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [priorityFilter, setPriorityFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [staffFilter, setStaffFilter] = useState('All');
@@ -177,7 +180,7 @@ export const DigitalTasks: React.FC = () => {
     }
   };
 
-  const filtered = tasks.filter(t => {
+  const filtered = tasks.filter(t => inRange((t as any).due_date || (t as any).created_at, range)).filter(t => {
     const matchSearch =
       (t.title || '').toLowerCase().includes(search.toLowerCase()) ||
       (t.project?.title || t.project_title || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -246,6 +249,7 @@ export const DigitalTasks: React.FC = () => {
       <Card className="p-4 border border-slate-200/80 shadow-xs space-y-3">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-3">
           {/* Search */}
+          <DateRangeFilter compact label="Due" value={range} onChange={setRange} />
           <div className="relative w-full lg:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input

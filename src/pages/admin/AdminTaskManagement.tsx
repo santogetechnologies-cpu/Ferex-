@@ -9,6 +9,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { getStaffMembers, getStudents } from '../../lib/api/students';
 import { deleteTask, updateTask } from '../../lib/api/tasks';
 import { ToastNotification } from '../../components/ToastNotification';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 type Priority = 'High' | 'Medium' | 'Low';
 type TaskStatus = 'To Do' | 'In Progress' | 'Review' | 'Done';
@@ -150,6 +152,7 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
 
   const [view, setView] = useState<'kanban' | 'list'>('kanban');
   const [search, setSearch] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [activeFilter, setActiveFilter] = useState<string>('All');
   const [showCreate, setShowCreate] = useState(false);
   const [editTask, setEditTask] = useState<Task | null>(null);
@@ -258,7 +261,7 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
   const currentUserEmail = (user?.email || profile?.email || '').toLowerCase().trim();
 
   // Filter tasks based on active pill + search query
-  const filtered = tasks.filter(t => {
+  const filtered = tasks.filter(t => inRange(/^\d{4}-\d{2}-\d{2}/.test(t.due) ? t.due : null, range)).filter(t => {
     const matchesSearch =
       t.title.toLowerCase().includes(search.toLowerCase()) ||
       t.studentName.toLowerCase().includes(search.toLowerCase()) ||
@@ -474,7 +477,8 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
         </div>
 
         {/* Search & View Switcher */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <DateRangeFilter compact label="Due" value={range} onChange={setRange} />
           <div className="relative flex-1 md:w-56">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input

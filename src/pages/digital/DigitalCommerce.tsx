@@ -18,6 +18,8 @@ import { useDigitalPermissions } from '../../hooks/usePermissions';
 import { supabase } from '../../lib/supabase';
 import { BlockCap } from '../../components/CapLoader';
 import { openDocument } from '../../lib/digitalDocument';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 type View = 'billing' | 'invoices' | 'payments' | 'emails';
 
@@ -91,6 +93,7 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
   const [toast, setToast] = useState('');
   const [filter, setFilter] = useState<'All' | 'Overdue' | 'Partially Paid' | 'Paid' | 'Not started'>('All');
   const [search, setSearch] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
 
   // Dialogs
@@ -160,12 +163,17 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
     return tracked
       .filter(({ c, t }) => {
         if (focusProject && c.project_id !== focusProject) return false;
+        if (!inRange((c as any).created_at, range)) return false;
         const state = t.total > 0 && t.received >= t.total ? 'Paid' : t.overdue_count > 0 ? 'Overdue' : t.received > 0 ? 'Partially Paid' : 'Not started';
         if (filter !== 'All' && state !== filter) return false;
         return !q || `${c.body.project_title} ${c.body.client_name}`.toLowerCase().includes(q);
       })
       .sort((a, b) => b.t.overdue_amount - a.t.overdue_amount || a.c.body.project_title.localeCompare(b.c.body.project_title));
-  }, [tracked, filter, search, focusProject]);
+  }, [tracked, filter, search, focusProject, range]);
+
+  const shownCollections = useMemo(() => collections.filter(t => inRange(t.payment_date, range)), [collections, range]);
+  const shownDocuments = useMemo(() => documents.filter(d => inRange(d.created_at, range)), [documents, range]);
+  const shownMail = useMemo(() => mail.filter(m => inRange(m.created_at, range)), [mail, range]);
 
   const withoutContract = useMemo(() => projects.filter(p => !contracts.some(c => c.project_id === p.id)), [projects, contracts]);
   const locked = (c: CommerceContract) => documents.some(d => d.contract_id === c.id);
@@ -301,6 +309,8 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
         ))}
       </nav>
 
+      <DateRangeFilter value={range} onChange={setRange} label={view === 'payments' ? 'Paid' : view === 'billing' ? 'Contract created' : view === 'invoices' ? 'Issued' : 'Sent'} />
+
       {!loaded && <BlockCap />}
 
       {loaded && (view === 'billing' || view === 'payments') && (
@@ -402,14 +412,14 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
       {loaded && view === 'payments' && (
         <>
           <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" disabled={busy || contracts.length === 0} onClick={() => setPay({ contract: '', part: '', amount: '', method: 'Bank Transfer', reference: '', date: today(), key: uid() })}><Plus className="w-4 h-4 mr-1" /> Record payment</Button>
-          {collections.length === 0 && <Card className="p-8 text-center text-xs font-semibold text-slate-500 border-dashed">No payments recorded yet.</Card>}
-          {collections.length > 0 && (
+          {shownCollections.length === 0 && <Card className="p-8 text-center text-xs font-semibold text-slate-500 border-dashed">{collections.length ? 'No payments in this period.' : 'No payments recorded yet.'}</Card>}
+          {shownCollections.length > 0 && (
             <Card className="p-0 overflow-hidden border border-slate-200/80">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-[10px] font-extrabold uppercase text-slate-500"><tr><th className="p-3">Date</th><th className="p-3">Project</th><th className="p-3">Milestone / term</th><th className="p-3 text-right">Amount</th><th className="p-3">Method</th><th className="p-3">Reference</th><th className="p-3 text-right">Refunded</th><th className="p-3" /></tr></thead>
                   <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-                    {collections.map(t => {
+                    {shownCollections.map(t => {
                       const c = contracts.find(x => x.id === t.contract_id); const cur = c?.body.currency || 'INR';
                       const refunded = refunds.filter(r => r.collection_id === t.id).reduce((s, r) => s + Number(r.amount), 0);
                       return (
@@ -436,8 +446,8 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
       {/* ───────── Invoices & documents ───────── */}
       {loaded && view === 'invoices' && (
         <>
-          {documents.length === 0 && <Card className="p-8 text-center text-xs font-semibold text-slate-500 border-dashed">No documents yet. Issue an invoice from a milestone, or record a payment to generate its receipt.</Card>}
-          {documents.map(d => (
+          {shownDocuments.length === 0 && <Card className="p-8 text-center text-xs font-semibold text-slate-500 border-dashed">{documents.length ? 'No documents in this period.' : 'No documents yet.'}  Issue an invoice from a milestone, or record a payment to generate its receipt.</Card>}
+          {shownDocuments.map(d => (
             <Card key={d.id} className="p-4 border border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="text-xs font-black text-slate-900 flex items-center gap-2">{d.kind === 'Receipt' ? <Receipt className="w-4 h-4 text-emerald-600" /> : d.kind === 'Credit Note' ? <Undo2 className="w-4 h-4 text-rose-600" /> : <FileText className="w-4 h-4 text-[#58051E]" />} {d.kind} · {d.number}</div>
@@ -454,8 +464,8 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
         <>
           <p className="text-xs font-semibold text-slate-500">"Sent" means the provider accepted the email. Delivery needs provider confirmation.</p>
           <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" disabled={busy} onClick={() => run(deliver)}><Mail className="w-3.5 h-3.5 mr-1" /> Retry queued / failed delivery</Button>
-          {mail.length === 0 && <Card className="p-8 text-center text-xs font-semibold text-slate-500 border-dashed">No emails queued yet.</Card>}
-          {mail.map(m => (
+          {shownMail.length === 0 && <Card className="p-8 text-center text-xs font-semibold text-slate-500 border-dashed">{mail.length ? 'No emails in this period.' : 'No emails queued yet.'}</Card>}
+          {shownMail.map(m => (
             <Card key={m.id} className="p-3 border border-slate-200/80 text-xs font-semibold text-slate-700 flex flex-wrap justify-between gap-2">
               <span>{m.recipient}</span>
               <span className={m.status === 'Failed' ? 'text-rose-600 font-black' : m.status === 'Sent' ? 'text-emerald-700 font-black' : 'text-amber-700 font-black'}>{m.status}{m.error ? ` · ${m.error}` : ''}</span>

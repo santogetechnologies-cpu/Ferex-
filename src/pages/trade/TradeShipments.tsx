@@ -28,6 +28,8 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { CapLoader } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 export const TradeShipments: React.FC = () => {
   const { profile } = useAuth();
@@ -36,6 +38,7 @@ export const TradeShipments: React.FC = () => {
   const [partners, setPartners] = useState<TradeClientPartner[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [filterStage, setFilterStage] = useState<string>('All');
   const [selectedOrder, setSelectedOrder] = useState<TradeOrder | null>(null);
   // The Add Order form and its data survive switching to another tab and coming back.
@@ -217,7 +220,7 @@ export const TradeShipments: React.FC = () => {
     }
   };
 
-  const filteredOrders = orders.filter(o => {
+  const filteredOrders = orders.filter(o => inRange(o.created_at, range)).filter(o => {
     const matchesSearch =
       o.order_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
       o.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -287,6 +290,7 @@ export const TradeShipments: React.FC = () => {
 
       {/* Filters & Search */}
       <Card className="p-3 border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <DateRangeFilter compact label="Booked" value={range} onChange={setRange} />
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input

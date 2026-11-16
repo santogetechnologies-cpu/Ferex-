@@ -21,9 +21,12 @@ import {
 } from '../../lib/api/trade';
 import { supabase } from '../../lib/supabase';
 import { BlockCap } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 export const TradeInvoices: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [filterStatus, setFilterStatus] = useState('All');
   const [selectedInv, setSelectedInv] = useState<any>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -296,7 +299,7 @@ export const TradeInvoices: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  const filteredInvoices = invoices.filter((i) => {
+  const filteredInvoices = invoices.filter(i => inRange(i.issueDate, range)).filter((i) => {
     const matchesSearch =
       i.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       i.buyer.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -331,6 +334,7 @@ export const TradeInvoices: React.FC = () => {
       {/* Search & Status Filter */}
       <Card className="p-3 border border-slate-200/80 shadow-xs">
         <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <DateRangeFilter compact label="Issued" value={range} onChange={setRange} />
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input

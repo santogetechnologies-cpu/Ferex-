@@ -17,12 +17,15 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useRimiAccess } from '../../lib/rimiAccess';
 import { BlockCap } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 export const RimiDeliveries: React.FC = () => {
   // Admin and Warehouse users both run dispatch.
   const { canManage: isAdmin } = useRimiAccess();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
   const [deliveries, setDeliveries] = useState<RimiDeliveryRecord[]>([]);
@@ -126,7 +129,7 @@ export const RimiDeliveries: React.FC = () => {
     }
   };
 
-  const filteredDeliveries = deliveries.filter(d => {
+  const filteredDeliveries = deliveries.filter(d => inRange(d.created_at, range)).filter(d => {
     const s = searchQuery.toLowerCase();
     return (
       d.delivery_no.toLowerCase().includes(s) ||
@@ -159,6 +162,7 @@ export const RimiDeliveries: React.FC = () => {
       </div>
 
       <Card className="p-4 border border-slate-200/80 shadow-xs">
+        <DateRangeFilter compact label="Trip date" value={range} onChange={setRange} />
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input

@@ -19,6 +19,8 @@ import {
   type DigitalAsset
 } from '../../lib/api/digital';
 import { BlockCap } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 export const DigitalExpenses: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'expenses' | 'assets'>('expenses');
@@ -33,6 +35,7 @@ export const DigitalExpenses: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
   const [showAddAssetModal, setShowAddAssetModal] = useState(false);
   const [toast, setToast] = useState('');
@@ -169,7 +172,7 @@ export const DigitalExpenses: React.FC = () => {
 
   const totalOperatingSpend = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
-  const filteredExpenses = expenses.filter(e =>
+  const filteredExpenses = expenses.filter(e => inRange((e as any).date || (e as any).created_at, range)).filter(e =>
     (e.title || '').toLowerCase().includes(search.toLowerCase()) ||
     (e.category || '').toLowerCase().includes(search.toLowerCase()) ||
     (e.vendor || '').toLowerCase().includes(search.toLowerCase())
@@ -260,6 +263,7 @@ export const DigitalExpenses: React.FC = () => {
       </div>
 
       <Card className="p-3.5 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+        <DateRangeFilter compact label="Spent" value={range} onChange={setRange} />
         <div className="relative w-full sm:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input

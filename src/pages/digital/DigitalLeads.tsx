@@ -13,6 +13,8 @@ import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { getDigitalLeads, createDigitalLead, updateDigitalClient, deleteDigitalClient, createDigitalProject, convertDigitalLead } from '../../lib/api/digital';
 import { supabase } from '../../lib/supabase';
 import { BlockCap } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 const DEFAULT_CATEGORIES = [
   'Web Development',
@@ -44,6 +46,7 @@ export const DigitalLeads: React.FC = () => {
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [stageFilter, setStageFilter] = useState('All');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -248,7 +251,7 @@ export const DigitalLeads: React.FC = () => {
     }
   };
 
-  const filtered = leads.filter(l => {
+  const filtered = leads.filter(l => inRange((l as any).created_at, range)).filter(l => {
     const matchSearch =
       (l.company || '').toLowerCase().includes(search.toLowerCase()) ||
       (l.contact || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -282,6 +285,7 @@ export const DigitalLeads: React.FC = () => {
 
       {/* Filter Bar */}
       <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+        <DateRangeFilter compact label="Enquired" value={range} onChange={setRange} />
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input

@@ -18,6 +18,8 @@ import {
 } from '../../lib/api/digitalMeetings';
 import { getDigitalClients, type DigitalClientRecord } from '../../lib/api/digital';
 import { CapLoader } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 const MEETING_TYPES = [
   'Discovery Call',
@@ -37,6 +39,7 @@ export const DigitalMeetings: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [toast, setToast] = useState('');
   const [search, setSearch] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [statusFilter, setStatusFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
 
@@ -169,7 +172,7 @@ export const DigitalMeetings: React.FC = () => {
     }
   };
 
-  const filteredMeetings = meetings.filter(m => {
+  const filteredMeetings = meetings.filter(m => inRange((m as any).scheduled_at || (m as any).created_at, range)).filter(m => {
     const matchesSearch =
       (m.title || '').toLowerCase().includes(search.toLowerCase()) ||
       (m.client_name || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -219,6 +222,7 @@ export const DigitalMeetings: React.FC = () => {
 
       {/* Filter Bar */}
       <div className="bg-white border border-slate-200/80 rounded-xl p-3 shadow-subtle flex flex-col sm:flex-row items-center justify-between gap-3">
+        <DateRangeFilter compact label="Meeting date" value={range} onChange={setRange} />
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
           <input

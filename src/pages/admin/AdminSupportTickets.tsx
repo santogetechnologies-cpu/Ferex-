@@ -12,6 +12,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { ToastNotification } from '../../components/ToastNotification';
 import { CapLoader } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 type TicketStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed';
 type TicketPriority = 'High' | 'Medium' | 'Low';
@@ -64,6 +66,7 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 
   const [search, setSearch] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [filter, setFilter] = useState(isStaff ? 'My Tickets' : 'All');
   const [replyText, setReplyText] = useState('');
   const [toast, setToast] = useState('');
@@ -275,7 +278,7 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
     return (myId && a === myId) || (myName && a.includes(myName)) || (myEmail && a.includes(myEmail)) || a === 'unassigned';
   };
 
-  const filtered = tickets.filter(t => {
+  const filtered = tickets.filter(t => inRange(t.created, range)).filter(t => {
     const matchesSearch = t.studentName.toLowerCase().includes(search.toLowerCase()) ||
       t.subject.toLowerCase().includes(search.toLowerCase()) ||
       t.id.toLowerCase().includes(search.toLowerCase());
@@ -373,6 +376,8 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
               </button>
             ))}
           </div>
+
+          <div className="px-3 pt-3"><DateRangeFilter compact label="Raised" value={range} onChange={setRange} /></div>
 
           {/* Search bar */}
           <div className="p-3 border-b border-slate-100 shrink-0 relative">

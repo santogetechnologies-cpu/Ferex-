@@ -20,6 +20,8 @@ import { supabase } from '../../lib/supabase';
 import { provisionDigitalClientLogin, getDigitalClientAccess } from '../../lib/api/digital';
 import { formatTotals } from '../../lib/digitalCommerce';
 import { BlockCap } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 const INDUSTRY_OPTIONS = [
   'Fintech & Banking',
@@ -43,6 +45,7 @@ export const DigitalClients: React.FC = () => {
 
   const [clients, setClients] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [editingClient, setEditingClient] = useState<any>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState('');
@@ -112,6 +115,7 @@ export const DigitalClients: React.FC = () => {
           spent: formatTotals(money[d.id]?.invoiced || {}),
           received: formatTotals(money[d.id]?.received || {}),
           notes: d.notes || '',
+          created_at: d.created_at,
           isConvertedLead: d.tags?.includes('converted_lead') || d.lead_stage === 'Closed Won',
         })));
       } else {
@@ -261,7 +265,7 @@ export const DigitalClients: React.FC = () => {
     }
   };
 
-  const filteredClients = clients.filter(c => {
+  const filteredClients = clients.filter(c => inRange((c as any).created_at, range)).filter(c => {
     const matchType = clientTypeFilter === 'All' || c.client_type?.toLowerCase() === clientTypeFilter.toLowerCase();
     const matchStatus = statusFilter === 'All' || c.status?.toLowerCase() === statusFilter.toLowerCase();
     const matchSearch =
@@ -292,6 +296,7 @@ export const DigitalClients: React.FC = () => {
       </div>
 
       <Card className="p-4 border border-slate-200/70 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3 flex-wrap">
+        <DateRangeFilter compact label="Added" value={range} onChange={setRange} />
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input

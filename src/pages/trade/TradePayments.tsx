@@ -21,6 +21,8 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { CapLoader } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 export const TradePayments: React.FC = () => {
   const { profile } = useAuth();
@@ -28,6 +30,7 @@ export const TradePayments: React.FC = () => {
   const [orders, setOrders] = useState<TradeOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [filterType, setFilterType] = useState<string>('All');
   const [showRecordModal, setShowRecordModal] = useState(false);
   const [sendingReminderOrderNo, setSendingReminderOrderNo] = useState<string | null>(null);
@@ -231,7 +234,7 @@ export const TradePayments: React.FC = () => {
     lc: payments.filter(p => normalizeType(p.type) === 'LC Drawdown').length,
   };
 
-  const filteredPayments = payments.filter(p => {
+  const filteredPayments = payments.filter(p => inRange(p.payment_date, range)).filter(p => {
     const norm = normalizeType(p.type);
     const matchesFilter =
       filterType === 'All' ||
@@ -407,6 +410,7 @@ export const TradePayments: React.FC = () => {
 
       {/* Filter and Search Bar */}
       <Card className="p-3 border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <DateRangeFilter compact label="Paid" value={range} onChange={setRange} />
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input

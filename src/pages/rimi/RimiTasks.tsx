@@ -21,6 +21,8 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useRimiAccess } from '../../lib/rimiAccess';
 import { createNotification } from '../../lib/api/notifications';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 const STATUS_OPTIONS = ['Pending', 'In Progress', 'Completed', 'Incomplete'] as const;
 const fmtDateTime = (v?: string | null) => (v ? new Date(v).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—');
@@ -46,6 +48,7 @@ export const RimiTasks: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterStaff, setFilterStaff] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
 
   // Modals & Editing State
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -92,7 +95,7 @@ export const RimiTasks: React.FC = () => {
     );
   };
 
-  const filteredTasks = tasks.filter(t => {
+  const filteredTasks = tasks.filter(t => inRange(t.due_date || t.created_at, range)).filter(t => {
     if (filterCategory !== 'All' && t.category !== filterCategory) return false;
     if (filterPriority !== 'All' && t.priority !== filterPriority) return false;
     if (filterStatus !== 'All' && t.status !== filterStatus) return false;
@@ -248,6 +251,7 @@ export const RimiTasks: React.FC = () => {
       {/* Filter Toolbar */}
       <Card className="p-3.5 bg-white border-slate-200 shadow-xs">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5">
+          <DateRangeFilter compact label="Due" value={range} onChange={setRange} />
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input

@@ -8,6 +8,8 @@ import { updateNawaStep } from '../../lib/api/nawa';
 import { ToastNotification } from '../../components/ToastNotification';
 import { useAuth } from '../../contexts/AuthContext';
 import { CapLoader } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 export const COUNTRY_AUTHORITIES: Record<string, { acronym: string; name: string; flag: string }> = {
   'Poland': { acronym: 'Legalization', name: 'Polish Ministry of Science & Legalization', flag: 'PL' },
@@ -153,6 +155,7 @@ export const AdminApplications: React.FC<AdminApplicationsProps> = ({ initialFil
   }, [dbApps, isStaff, counselorEmail, counselorName]);
 
   const [search, setSearch] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [viewApp, setViewApp] = useState<ApplicationItem | null>(null);
   const [toast, setToast] = useState('');
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
@@ -498,7 +501,7 @@ startxref
     return { ...p, count };
   });
 
-  const filtered = apps.filter(a => {
+  const filtered = apps.filter(a => inRange(a.date, range)).filter(a => {
     const q = search.toLowerCase().trim();
     const matchSearch = !q ||
       a.studentName.toLowerCase().includes(q) ||
@@ -534,6 +537,8 @@ startxref
           <button onClick={() => refresh()} className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"><RefreshCw className="w-3.5 h-3.5" /> Refresh</button>
         </div>
       </div>
+
+      <div><DateRangeFilter compact label="Applied" value={range} onChange={setRange} /></div>
 
       {/* Search Input and Destination Country Selector */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
