@@ -113,7 +113,7 @@ export const Documents: React.FC = () => {
         eyebrow="Ferex Education"
         title={isImpersonating && activeStudentName ? `${activeStudentName}'s documents` : 'My documents'}
         subtitle="Upload each required document once. We review it and tell you if anything needs to change."
-        actions={<button type="button" className={btnPrimary} onClick={() => setUpload({})}><UploadCloud className="w-4 h-4" />Upload a document</button>}
+        actions={<button type="button" className={btnPrimary} onClick={() => setUpload({})}><UploadCloud className="w-4 h-4" />Additional Documents</button>}
       />
       {toast && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{toast}</p>}
 

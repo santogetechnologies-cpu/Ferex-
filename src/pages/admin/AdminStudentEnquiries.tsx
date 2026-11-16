@@ -40,8 +40,7 @@ const STATUS_OPTIONS: EducationLead['status'][] = [
   'Interested',
   'Follow Up',
   'Not Interested',
-  'Enrolled',
-  'Lost'
+  'Enrolled'
 ];
 
 const STATUS_COLORS: Record<EducationLead['status'], { bg: string; text: string; border: string }> = {
