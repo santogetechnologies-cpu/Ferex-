@@ -130,6 +130,42 @@ export async function getStaffMembers(): Promise<UserProfile[]> {
   return [];
 }
 
+export async function getCounselors(): Promise<UserProfile[]> {
+  const isDeletedStaff = (u: any) => {
+    if (!u) return true;
+    if (u.is_active === false) return true;
+    const st = (u.status || '').toLowerCase();
+    if (['deleted', 'inactive', 'deactivated', 'suspended'].includes(st)) return true;
+    return isStaffDeleted(u.email) || isStaffDeleted(u.id);
+  };
+
+  try {
+    const admin = await getAdminSupabaseClient();
+    const client = admin || supabase;
+    const { data, error } = await client
+      .from('users')
+      .select('id, email, full_name, role, avatar_url, phone, department, permissions, assigned_counselor, must_change_password, is_active, status, created_at')
+      .eq('role', 'counselor')
+      .order('full_name', { ascending: true });
+
+    if (!error && data) {
+      return (data as any[]).filter(u => !isDeletedStaff(u) && (u.role || '').toLowerCase() === 'counselor') as UserProfile[];
+    }
+  } catch {}
+
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, email, full_name, role, avatar_url, phone, department, permissions, assigned_counselor, must_change_password, is_active, status, created_at')
+    .eq('role', 'counselor')
+    .order('full_name', { ascending: true });
+
+  if (!error && data) {
+    return (data as any[]).filter(u => !isDeletedStaff(u) && (u.role || '').toLowerCase() === 'counselor') as UserProfile[];
+  }
+
+  return [];
+}
+
 export async function assignCounselorToStudent(studentId: string, counselorName: string): Promise<UserProfile | null> {
   const admin = await getAdminSupabaseClient();
   const client = admin || supabase;
