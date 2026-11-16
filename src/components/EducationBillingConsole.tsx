@@ -223,6 +223,19 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   const fees = studentFees(config, country, { flow: studentAssignment?.flow_mode ?? 'pending', pkg: activePackage, overrides: feeOverrides }).sort((a, b) => (a.timing === 'before' ? a.stage - 0.5 : a.stage) - (b.timing === 'before' ? b.stage - 0.5 : b.stage));
   const flowPending = !studentAssignment || studentAssignment.flow_mode === 'pending';
 
+  // How far along the student is, as the database counts it, so the Pay button agrees with what the payment guard will accept.
+  const [reachedStage, setReachedStage] = useState<number | null>(null);
+  useEffect(() => {
+    setReachedStage(null);
+    if (admin || !targetId) return;
+    let live = true;
+    supabase.rpc('education_student_reached_stage', { p_student: targetId }).then(({ data, error }) => { if (live && !error && typeof data === 'number') setReachedStage(data); });
+    return () => { live = false; };
+  }, [admin, targetId, application?.status, studentPayments.length]);
+  // The registration fee is due as soon as the plan is set; every other fee waits for its step.
+  const feeOpensAt = (fee: EducationFee) => fee.id === 'registration' ? 0 : fee.stage - (fee.timing === 'before' ? 1 : 0);
+  const feeIsOpen = (fee: EducationFee) => reachedStage === null || reachedStage >= feeOpensAt(fee);
+
   const totals = useMemo(() => {
     const result: Record<string, { paid: number; pending: number }> = {};
     for (const p of payments.filter(p => !targetId || p.student_id === targetId)) {
@@ -605,8 +618,8 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
 
               {!admin && flowPending && (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
-                  <p className="text-sm font-bold text-slate-900">Your payment plan is not confirmed yet</p>
-                  <p className="text-sm text-slate-600 mt-1">For now only the registration fee is shown. Your counselor will confirm your plan, and the other fees will appear here once they do.</p>
+                  <p className="text-sm font-bold text-slate-900">Your payment plan has not been set yet</p>
+                  <p className="text-sm text-slate-600 mt-1">Payments open as soon as your counselor sets your fees. Nothing is due from you until then, and your fees will appear here once they are set.</p>
                 </div>
               )}
 
@@ -676,7 +689,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                         <Clock className="w-3.5 h-3.5 text-indigo-600" /> Payment Installment Schedule
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {activePackage.installments.map((inst, idx) => (
+                        {activePackage.installments.filter(i => i.amount > 0).map((inst, idx) => (
                           <div key={inst.id} className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-2">
                             <div className="flex items-center justify-between">
                               <span className="text-[10px] font-black text-[#58051E] uppercase tracking-wider">
@@ -705,7 +718,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
               )}
 
               {/* Payment position */}
-              {Object.entries(feeSummary).map(([currency, row]) => (
+              {(admin || !flowPending) && Object.entries(feeSummary).map(([currency, row]) => (
                 <section key={currency} aria-label={`Payment summary ${currency}`} className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
                     ['Total to pay', row.due, 'text-slate-900'],
@@ -723,19 +736,20 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
 
               {/* Fees Ferex collects, in the order they fall due */}
               {(() => {
-                const collected = fees.filter(f => !isDirectFee(f));
-                const direct = fees.filter(isDirectFee);
+                const shown = !admin && flowPending ? [] : fees;
+                const collected = shown.filter(f => !isDirectFee(f));
+                const direct = shown.filter(isDirectFee);
                 return (
                   <>
                     <section className="space-y-3" aria-label="Your fees">
                       <div className="flex items-end justify-between gap-3">
                         <div>
-                          <h2 className="text-base font-bold text-slate-900">{flowPending && !admin ? 'Registration fee' : 'Your fees, in order'}</h2>
-                          <p className="text-xs text-slate-500 mt-0.5">{flowPending && !admin ? 'The one fee that applies to every student.' : 'Pay each one when it falls due. You can pay by UPI and get a receipt once it is verified.'}</p>
+                          <h2 className="text-base font-bold text-slate-900">{'Your fees, in order'}</h2>
+                          <p className="text-xs text-slate-500 mt-0.5">{'Pay each one when it falls due. You can pay by UPI and get a receipt once it is verified.'}</p>
                         </div>
                       </div>
                       {notice && <p role={notice.tone === 'error' ? 'alert' : 'status'} className={`rounded-xl px-4 py-3 text-sm font-semibold ${notice.tone === 'ok' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>{notice.text}</p>}
-                      {collected.length === 0 && <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">No fees to pay right now.</p>}
+                      {collected.length === 0 && <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">{!admin && flowPending ? 'Your fees will appear here once your counselor sets your payment plan.' : 'No fees to pay right now.'}</p>}
                       <ol className="space-y-3">
                         {collected.map((fee, index) => {
                           const balance = feeBalance(fee, studentPayments);
@@ -772,6 +786,8 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                                     <div className="mt-4">
                                       {admin ? (
                                         <button className={primaryBtn} disabled={needsCountry} onClick={() => openPayment(fee)}><CreditCard className="w-4 h-4" /><span>Record payment</span></button>
+                                      ) : !feeIsOpen(fee) ? (
+                                        <p className="text-xs font-semibold text-slate-500 rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 inline-block">This fee opens after the "{educationStages[Math.max(0, feeOpensAt(fee) - 1)] || 'previous'}" step.</p>
                                       ) : (
                                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                                           <button className={primaryBtn} disabled={needsCountry || !!onlineFee} onClick={() => payOnline(fee)}>

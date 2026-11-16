@@ -427,32 +427,39 @@ export function CountryFeePackageBuilder() {
                           <div>
                             <label className={lbl}>Registration fee for this plan</label>
                             {editing ? (
-                              <div className="flex items-center gap-2">
-                                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer select-none">
+                              <div className="space-y-2">
+                                <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer select-none">
                                   <input
                                     type="checkbox"
-                                    aria-label="Enable registration fee"
-                                    checked={p.registration_fee.enabled}
-                                    onChange={e => handleDraftChange({ registration_fee: { ...p.registration_fee, enabled: e.target.checked } })}
+                                    aria-label="Include registration fee"
+                                    checked={p.registration_fee.included !== false}
+                                    onChange={e => handleDraftChange({ registration_fee: { ...p.registration_fee, included: e.target.checked } })}
                                     className="w-4 h-4 rounded text-[#58051E] border-slate-300 cursor-pointer"
                                   />
-                                  Override
+                                  Include the registration fee in this plan
                                 </label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  aria-label="Registration fee amount"
-                                  disabled={!p.registration_fee.enabled}
-                                  className={`${inp} flex-1 disabled:opacity-50`}
-                                  value={p.registration_fee.amount}
-                                  onChange={e => handleDraftChange({ registration_fee: { ...p.registration_fee, amount: Math.max(0, parseFloat(e.target.value) || 0) } })}
-                                />
+                                {p.registration_fee.included !== false && (
+                                  <div>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      aria-label="Custom registration fee amount"
+                                      placeholder="0"
+                                      className={`${inp} w-full`}
+                                      value={p.registration_fee.amount || ''}
+                                      onChange={e => { const amount = Math.max(0, parseFloat(e.target.value) || 0); handleDraftChange({ registration_fee: { ...p.registration_fee, amount, enabled: amount > 0 } }); }}
+                                    />
+                                    <p className="text-[11px] text-slate-500 mt-1">Leave empty to charge the standard registration fee. Enter an amount to replace it for this plan.</p>
+                                  </div>
+                                )}
                               </div>
                             ) : (
                               <p className="text-sm font-black text-[#58051E]">
-                                {p.registration_fee.enabled && p.registration_fee.amount > 0
-                                  ? money(p.registration_fee.amount, p.currency)
-                                  : <span className="text-slate-400 font-bold">Standard registration fee</span>}
+                                {p.registration_fee.included === false
+                                  ? <span className="text-slate-500 font-bold">Not included</span>
+                                  : p.registration_fee.enabled && p.registration_fee.amount > 0
+                                    ? money(p.registration_fee.amount, p.currency)
+                                    : <span className="text-slate-400 font-bold">Standard registration fee</span>}
                               </p>
                             )}
                           </div>

@@ -63,3 +63,18 @@ test('a package carries its GST into its fees, and each instalment can override 
   assert.equal(fees.find(f => f.id === 'pkg:p1:i1')!.tax_rate_percent, 18);
   assert.equal(fees.find(f => f.id === 'pkg:p1:i2')!.tax_rate_percent, 0);
 });
+
+test('a package can leave the registration fee out entirely, or include the standard or a custom one', () => {
+  const excluded = packageFees(pkg({ enabled: false, amount: 0, included: false } as any), base).map(f => f.id);
+  assert.deepEqual(excluded, ['pkg:p1:i1', 'vfs']);
+  // Excluded wins even if a custom amount is still stored.
+  assert.deepEqual(packageFees(pkg({ enabled: true, amount: 5000, included: false } as any), base).map(f => f.id), ['pkg:p1:i1', 'vfs']);
+  // Included with no custom amount: the standard fee. Packages saved before the toggle existed count as included.
+  assert.deepEqual(packageFees(pkg({ enabled: false, amount: 0, included: true } as any), base).map(f => [f.id, f.amount]), [['registration', 1500], ['pkg:p1:i1', 20000], ['vfs', 15000]]);
+  assert.deepEqual(packageFees(pkg({ enabled: false, amount: 0 }), base).map(f => f.id), ['registration', 'pkg:p1:i1', 'vfs']);
+});
+
+test('installments with no amount are not billed', () => {
+  const withBlank = { ...pkg({ enabled: false, amount: 0 }), installments: [{ id: 'i1', title: 'Deposit', amount: 20000, timing: 'after', stage_trigger: 2 }, { id: 'i2', title: 'New Payment Milestone', amount: 0, timing: 'before', stage_trigger: 3 }] } as any;
+  assert.deepEqual(packageFees(withBlank, base).map(f => f.id), ['registration', 'pkg:p1:i1', 'vfs']);
+});

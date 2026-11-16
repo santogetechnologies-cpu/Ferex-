@@ -30,8 +30,11 @@ export interface CountryFeePackage {
   currency: 'INR' | 'EUR' | 'USD' | 'GBP' | 'PLN';
   covered_services: FeePackageCoveredService[];
   installments: FeePackageInstallment[];
-  /** Advance registration fee charged on top of the installments. Disabled = not collected for package students. */
-  registration_fee: { enabled: boolean; amount: number };
+  /**
+   * The registration fee for students on this package. `included: false` leaves it out entirely; otherwise the standard fee applies,
+   * unless a custom `amount` (with `enabled`) replaces it.
+   */
+  registration_fee: { enabled: boolean; amount: number; included?: boolean };
   /** Tax included in the package prices, e.g. 18 = CGST 9% + SGST 9%. */
   tax_rate_percent?: number;
   terms_note?: string;
@@ -142,7 +145,7 @@ const LOCAL_KEY = 'ferex_country_fee_packages_cache';
 // ─── API Functions ────────────────────────────────────────────────────────────
 
 const normalizePackages = (list: CountryFeePackage[]): CountryFeePackage[] =>
-  list.map(p => ({ ...p, registration_fee: p.registration_fee ?? { enabled: false, amount: 0 } }));
+  list.map(p => ({ ...p, registration_fee: { enabled: !!p.registration_fee?.enabled, amount: Number(p.registration_fee?.amount) || 0, included: p.registration_fee?.included !== false } }));
 
 export async function getCountryFeePackages(): Promise<CountryFeePackage[]> {
   try {
@@ -200,7 +203,7 @@ export function createBlankPackage(country: string): CountryFeePackage {
     currency: ['Germany', 'France', 'Poland', 'Hungary'].includes(country) ? 'INR' : 'INR',
     covered_services: getDefaultServices(country),
     installments: getDefaultInstallments(50000, 'INR'),
-    registration_fee: { enabled: false, amount: 0 },
+    registration_fee: { enabled: false, amount: 0, included: true },
     tax_rate_percent: 18,
     terms_note: 'Package fees are non-refundable once legalization or visa processes are initiated. FEREX acts as the authorized admissions representative for all services listed.',
     created_at: now,

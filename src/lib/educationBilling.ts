@@ -76,15 +76,17 @@ export function resolveEducationFee(
  */
 export function packageFees(pkg: CountryFeePackage, base: EducationFee[]): EducationFee[] {
   // Registration is the basic fee for every student: the standard one stays unless the plan overrides it.
+  // The package can leave registration out altogether (included: false); otherwise the standard fee applies unless a custom amount replaces it.
   const reg = pkg.registration_fee;
-  const overridesRegistration = !!reg?.enabled && reg.amount > 0;
-  const standard = base.filter(f => f.id === 'registration' && !overridesRegistration);
+  const includesRegistration = reg?.included !== false;
+  const overridesRegistration = includesRegistration && !!reg?.enabled && reg.amount > 0;
+  const standard = base.filter(f => f.id === 'registration' && includesRegistration && !overridesRegistration);
   const direct = base.filter(f => f.recipient !== 'ferex');
   const out: EducationFee[] = [...standard];
   if (overridesRegistration) {
     out.push({ id: 'registration', title: 'Advanced Registration Fee', enabled: true, amount: reg!.amount, currency: pkg.currency, recipient: 'ferex', timing: 'before', stage: 3, description: `Registration fee for ${pkg.name}`, package_id: pkg.id, tax_rate_percent: pkg.tax_rate_percent ?? 0 });
   }
-  for (const inst of pkg.installments) {
+  for (const inst of pkg.installments.filter(i => i.amount > 0)) {
     out.push({ id: `pkg:${pkg.id}:${inst.id}`, title: inst.title, enabled: true, amount: inst.amount, currency: pkg.currency, recipient: 'ferex', timing: inst.timing, stage: Math.min(12, Math.max(1, inst.stage_trigger)), description: inst.due_description || `${pkg.name} installment`, package_id: pkg.id, tax_rate_percent: inst.tax_rate_percent ?? pkg.tax_rate_percent ?? 0 });
   }
   return [...out, ...direct.filter(f => f.id !== 'registration')];
