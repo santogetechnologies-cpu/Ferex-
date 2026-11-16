@@ -425,7 +425,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
         <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
           <Link
             to="/admin/applications"
-            className="h-10 px-3.5 bg-white border border-[#58051E]/25 hover:bg-[#58051E] hover:text-white text-[#58051E] text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+            className="h-10 px-3.5 bg-white border border-[#58051E]/25 hover:!bg-[#58051E] hover:!text-white text-[#58051E] text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
           >
             <GraduationCap className="w-4 h-4" />
             <span>University Applications Control</span>

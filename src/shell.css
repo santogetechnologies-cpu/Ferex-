@@ -82,22 +82,25 @@
 .fx-topbar span[class*='bg-slate-100'] { background: var(--sh-chip) !important; border-color: transparent !important; color: var(--sh-chip-text) !important; border-radius: 999px !important; padding: 0.3rem 0.8rem !important; font-weight: 700; }
 
 /* ── Primary buttons ───────────────────────────────────────── */
-.fx-app button[class*='bg-[#58051E]']:not([class*='bg-[#58051E]/']):not([class*='hover:bg-[#58051E]/']),
-.fx-app a[class*='bg-[#58051E]']:not([class*='bg-[#58051E]/']) {
+.fx-app button[class~='bg-[#58051E]']:not([class*='bg-white']):not([class*='bg-slate']),
+.fx-app a[class~='bg-[#58051E]']:not([class*='bg-white']):not([class*='bg-slate']) {
   background-image: var(--sh-btn); background-color: #58051E;
   box-shadow: 0 14px 26px -14px rgba(88, 5, 30, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.22);
   transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
 }
-.fx-app button[class*='bg-[#58051E]']:not([class*='bg-[#58051E]/']):hover { transform: translateY(-1px); filter: brightness(1.06); }
-.fx-app .app-main button[class*='bg-[#58051E]'][class*='px-4'], .fx-app .app-main button[class*='bg-[#58051E]'][class*='px-5'], .fx-app .app-main button[class*='bg-[#58051E]'][class*='px-6'] { border-radius: 999px; }
+.fx-app button[class~='bg-[#58051E]']:hover,
+.fx-app a[class~='bg-[#58051E]']:hover { transform: translateY(-1px); filter: brightness(1.06); }
+.fx-app .app-main button[class~='bg-[#58051E]'][class*='px-4'], .fx-app .app-main button[class~='bg-[#58051E]'][class*='px-5'], .fx-app .app-main button[class~='bg-[#58051E]'][class*='px-6'] { border-radius: 999px; }
 
 /* ── Cards ─────────────────────────────────────────────────── */
-.fx-app .app-main [class*='rounded-2xl'][class*='bg-white'], .fx-app .app-main [class*='rounded-3xl'][class*='bg-white'],
-.fx-app .app-main [class*='rounded-xl'][class*='bg-white'][class*='border'] {
+.fx-app .app-main :not(button):not(a)[class*='rounded-2xl'][class*='bg-white'],
+.fx-app .app-main :not(button):not(a)[class*='rounded-3xl'][class*='bg-white'],
+.fx-app .app-main :not(button):not(a)[class*='rounded-xl'][class*='bg-white'][class*='border'] {
   background-color: var(--sh-glass); border-color: var(--sh-edge); box-shadow: var(--sh-shadow);
   backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3);
 }
-.fx-app .app-main [class*='rounded-2xl'][class*='bg-white'], .fx-app .app-main [class*='rounded-3xl'][class*='bg-white'] { border-radius: 1.5rem; }
+.fx-app .app-main :not(button):not(a)[class*='rounded-2xl'][class*='bg-white'],
+.fx-app .app-main :not(button):not(a)[class*='rounded-3xl'][class*='bg-white'] { border-radius: 1.5rem; }
 .fx-app .fixed [class*='rounded'][class*='bg-white'] { background-color: var(--sh-glass-strong); }
 .fx-app .app-main table thead th { background: var(--sh-th); color: var(--sh-muted); border-bottom-color: var(--sh-line); }
 .fx-app .app-main table tbody tr:hover { background-color: rgba(239, 232, 248, 0.5); }
