@@ -16,7 +16,7 @@ Deno.serve(async req => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'POST required' }, 405);
   try {
-    const keyId = Deno.env.get('RAZORPAY_KEY_ID'), keySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
+    const keyId = Deno.env.get('RAZORPAY_KEY_ID')?.trim().replace(/^['"]|['"]$/g, ''), keySecret = Deno.env.get('RAZORPAY_KEY_SECRET')?.trim().replace(/^['"]|['"]$/g, '');
     if (!keyId || !keySecret) return json({ error: 'Online payments are not configured yet' }, 503);
     const url = Deno.env.get('SUPABASE_URL')!;
     const caller = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: req.headers.get('Authorization') || '' } } });

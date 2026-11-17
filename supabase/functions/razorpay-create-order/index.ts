@@ -9,7 +9,8 @@ Deno.serve(async req => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'POST required' }, 405);
   try {
-    const keyId = Deno.env.get('RAZORPAY_KEY_ID'), keySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
+    // Secrets pasted into a dashboard often carry a trailing space or newline; Razorpay then rejects them.
+    const keyId = Deno.env.get('RAZORPAY_KEY_ID')?.trim().replace(/^['"]|['"]$/g, ''), keySecret = Deno.env.get('RAZORPAY_KEY_SECRET')?.trim().replace(/^['"]|['"]$/g, '');
     if (!keyId || !keySecret) return json({ error: 'Online payments are not configured yet' }, 503);
 
     const auth = req.headers.get('Authorization') || '';
@@ -41,7 +42,7 @@ Deno.serve(async req => {
       body: JSON.stringify({ amount: paise, currency: 'INR', receipt, notes: { ferex_payment_id: id, student_id: user.id, fee: paymentType } }),
     });
     const order = await rz.json().catch(() => ({}));
-    if (rz.status === 401) return json({ error: 'Razorpay rejected the server credentials' }, 401);
+    if (rz.status === 401) return json({ error: `Razorpay rejected the server credentials (key ${keyId.slice(0, 12)}…). In Supabase → Edge Functions → Secrets, RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET must be a matching pair from the same Razorpay mode (Test or Live), with no spaces or quotes.` }, 401);
     if (!rz.ok || !order.id) return json({ error: order?.error?.description || 'Razorpay could not create the order' }, 500);
 
     // Saved with the server's own access on the student's behalf (the student id is the verified caller), so the manual-UPI
