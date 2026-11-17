@@ -42,7 +42,11 @@ Deno.serve(async req => {
       body: JSON.stringify({ amount: paise, currency: 'INR', receipt, notes: { ferex_payment_id: id, student_id: user.id, fee: paymentType } }),
     });
     const order = await rz.json().catch(() => ({}));
-    if (rz.status === 401) return json({ error: `Razorpay rejected the server credentials (key ${keyId.slice(0, 12)}…). In Supabase → Edge Functions → Secrets, RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET must be a matching pair from the same Razorpay mode (Test or Live), with no spaces or quotes.` }, 401);
+    if (rz.status === 401) {
+      // Non-secret facts only (key id is public; the secret is reported by length), so a wrong or truncated value is obvious.
+      const hint = `Function sees key id ${keyId.slice(0, 9)}…${keyId.slice(-4)} (${keyId.length} chars, a test key id has 23) and a secret of ${keySecret.length} chars (Razorpay secrets have 24).`;
+      return json({ error: `Razorpay rejected the server credentials: ${order?.error?.description || 'authentication failed'}. ${hint} Re-save BOTH secrets from the same Razorpay key pair; a regenerated key changes the key id too.` }, 401);
+    }
     if (!rz.ok || !order.id) return json({ error: order?.error?.description || 'Razorpay could not create the order' }, 500);
 
     // Saved with the server's own access on the student's behalf (the student id is the verified caller), so the manual-UPI
