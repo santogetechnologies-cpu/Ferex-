@@ -1,3 +1,4 @@
+import { useTradeStaff } from '../../hooks/useTradeStaff';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDraftState } from '../../hooks/useDraftState';
 import { useLocation } from 'react-router-dom';
@@ -46,7 +47,7 @@ export const TradeShipments: React.FC = () => {
   const [toast, setToast] = useState('');
   const [advancingId, setAdvancingId] = useState<string | null>(null);
 
-  const staffList = getTradeStaffOfficers();
+  const staffList = useTradeStaff();
   const userName = profile?.full_name || 'Trade Officer';
 
   const initialForm = {
@@ -79,6 +80,13 @@ export const TradeShipments: React.FC = () => {
   };
 
   const [formData, setFormData, clearFormDraft] = useDraftState('trade_order_form', initialForm);
+
+  // Once the staff list arrives, pick a valid officer if the current one is not on it.
+  useEffect(() => {
+    if (staffList.length && !staffList.some(m => m.name === formData.assigned_staff_name)) {
+      setFormData(f => ({ ...f, assigned_staff_name: staffList[0].name, assigned_staff_email: staffList[0].email }));
+    }
+  }, [staffList]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = useCallback(async () => {
     setLoading(true);

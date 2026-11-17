@@ -91,6 +91,9 @@ const DEFAULT_DIVISION_STAFF: Record<string, DivisionStaffMember[]> = {
 
 const LOCAL_STORAGE_KEY = 'ferex_staff_registry_cache';
 
+// Customers and partners (trade_client, rimi_client, "Trade Partner Enterprise"...) have a login but are not staff, so they never appear in a staff list.
+const isWorkforce = (m: { role?: string }) => !/(^|_)(client|customer|partner|student)$/.test((m.role || '').toLowerCase().trim()) && !/partner|customer/.test((m.role || '').toLowerCase());
+
 export async function getDivisionStaff(division: 'trade' | 'rimi' | 'digital' | 'education' | 'all' = 'all'): Promise<DivisionStaffMember[]> {
   const deletedList = getDeletedStaffList();
   const isDeleted = (m: { id?: string; email?: string }) => {
@@ -196,7 +199,7 @@ export async function getDivisionStaff(division: 'trade' | 'rimi' | 'digital' | 
       }
     });
 
-    const combined = Array.from(map.values()).filter(m => !isDeleted(m));
+    const combined = Array.from(map.values()).filter(m => !isDeleted(m) && isWorkforce(m));
 
     try {
       localStorage.setItem(`${LOCAL_STORAGE_KEY}_${division}`, JSON.stringify(combined));
@@ -213,7 +216,7 @@ export async function getDivisionStaff(division: 'trade' | 'rimi' | 'digital' | 
     if (cached) {
       const parsed = JSON.parse(cached);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.filter((m: any) => !isDeleted(m));
+        return parsed.filter((m: any) => !isDeleted(m) && isWorkforce(m));
       }
     }
   } catch {}
@@ -239,7 +242,7 @@ export function getDivisionStaffSync(division: 'trade' | 'rimi' | 'digital' | 'e
     if (cached) {
       const parsed = JSON.parse(cached);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.filter((m: any) => !isDeleted(m));
+        return parsed.filter((m: any) => !isDeleted(m) && isWorkforce(m));
       }
     }
   } catch {}
@@ -281,7 +284,7 @@ function matchDivision(staff: DivisionStaffMember, division: string): boolean {
   const email = (staff.email || '').toLowerCase();
 
   if (division === 'trade') {
-    return (r.includes('trade') || r.includes('logistics') || dept.includes('trade') || email.includes('trade')) && !r.includes('digital') && !r.includes('rimi') && !r.includes('education');
+    return (r.includes('trade') || r.includes('logistics') || dept.includes('trade')) && !r.includes('digital') && !r.includes('rimi') && !r.includes('education');
   }
   if (division === 'rimi') {
     return (r.includes('rimi') || r.includes('operations') || r.includes('warehouse') || dept.includes('rimi') || dept.includes('frozen') || email.includes('rimi')) && !r.includes('digital') && !r.includes('trade') && !r.includes('education');

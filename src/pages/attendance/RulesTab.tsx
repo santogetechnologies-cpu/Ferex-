@@ -7,6 +7,7 @@ const PLATFORMS = ['all', 'education', 'rimi', 'trade', 'digital'];
 
 export const RulesTab: React.FC<Shared & { reload: () => void }> = ({ ctx, rules, holidays, toast, reload, scope }) => {
   const isSuper = ctx.level === 'superadmin';
+  const canHoliday = isSuper || ctx.level === 'admin'; // staff (e.g. Trade Logistics) can see holidays but not change them
   const [platform, setPlatform] = useState(scope || (isSuper ? 'all' : ctx.division));
   const current = rules.find(r => r.division === platform) || rules.find(r => r.division === 'all')!;
   const [f, setF] = useState<AttendanceRules>(current);
@@ -46,12 +47,12 @@ export const RulesTab: React.FC<Shared & { reload: () => void }> = ({ ctx, rules
       </Panel>
 
       <Panel title="Holidays">
-        {holidaysFor.length === 0 ? <Empty>No holidays set.</Empty> : <ul className="text-xs divide-y divide-slate-100">{holidaysFor.map(h => <li key={h.id} className="py-1.5 flex justify-between items-center"><span><b>{h.holiday_date}</b> · {h.name} <span className="text-slate-500">({h.division === 'all' ? 'everyone' : platformName(h.division)})</span></span>{(isSuper || h.division !== 'all') && <Btn tone="danger" onClick={() => void run(() => saveHoliday(h.division, h.holiday_date, h.name, true), 'Holiday removed')}>Remove</Btn>}</li>)}</ul>}
-        <div className="flex flex-wrap items-end gap-2 mt-3">
+        {holidaysFor.length === 0 ? <Empty>No holidays set.</Empty> : <ul className="text-xs divide-y divide-slate-100">{holidaysFor.map(h => <li key={h.id} className="py-1.5 flex justify-between items-center"><span><b>{h.holiday_date}</b> · {h.name} <span className="text-slate-500">({h.division === 'all' ? 'everyone' : platformName(h.division)})</span></span>{canHoliday && (isSuper || h.division !== 'all') && <Btn tone="danger" onClick={() => void run(() => saveHoliday(h.division, h.holiday_date, h.name, true), 'Holiday removed')}>Remove</Btn>}</li>)}</ul>}
+        {canHoliday && <div className="flex flex-wrap items-end gap-2 mt-3">
           <div><label className={labelCls}>Date</label><input type="date" className={inputCls} value={hol.date} onChange={e => setHol({ ...hol, date: e.target.value })} /></div>
           <div className="flex-1 min-w-[160px]"><label className={labelCls}>Name</label><input className={`${inputCls} w-full`} value={hol.name} onChange={e => setHol({ ...hol, name: e.target.value })} /></div>
           <Btn tone="brand" onClick={() => { if (!hol.date) { toast('Choose the date'); return; } void run(() => saveHoliday(isSuper ? platform : ctx.division, hol.date, hol.name), 'Holiday saved').then(() => setHol({ date: '', name: '' })); }}>Add holiday{isSuper ? ` for ${platform === 'all' ? 'everyone' : platformName(platform)}` : ''}</Btn>
-        </div>
+        </div>}
       </Panel>
     </div>
   );

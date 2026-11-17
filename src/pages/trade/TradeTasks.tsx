@@ -44,6 +44,8 @@ export const TradeTasks: React.FC = () => {
   const [toast, setToast] = useState('');
 
   const [staffList, setStaffList] = useState(getTradeStaffOfficers());
+  // Creating staff logins is for the Trade Admin; logistics officers only assign existing staff.
+  const canAddStaff = ['trade_admin', 'trade', 'global_trade', 'admin', 'central', 'super_admin', 'superadmin'].includes(profile?.role || '');
   const userEmail = profile?.email || 'trade@ferex.com';
   const userName = profile?.full_name || 'Trade Logistics Desk';
 
@@ -272,7 +274,7 @@ export const TradeTasks: React.FC = () => {
           <p className="text-xs font-semibold text-slate-500 mt-0.5">Assign and follow order, document, customs and logistics tasks.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
+          {canAddStaff && <Button
             size="sm"
             variant="outline"
             onClick={() => setShowAddStaffModal(true)}
@@ -280,7 +282,7 @@ export const TradeTasks: React.FC = () => {
           >
             <UserPlus className="w-4 h-4 mr-1.5 text-[#58051E]" />
             Add New Staff
-          </Button>
+          </Button>}
           <Button
             size="sm"
             onClick={() => {
@@ -531,7 +533,7 @@ export const TradeTasks: React.FC = () => {
                       >
                         Select Existing
                       </button>
-                      <button
+                      {canAddStaff && <button
                         type="button"
                         onClick={() => setStaffAssignMode('new')}
                         className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
@@ -539,7 +541,7 @@ export const TradeTasks: React.FC = () => {
                         }`}
                       >
                         + Enter New Staff
-                      </button>
+                      </button>}
                     </div>
                   </div>
 

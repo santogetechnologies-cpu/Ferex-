@@ -1,3 +1,4 @@
+import { useTradeStaff } from '../../hooks/useTradeStaff';
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -43,7 +44,7 @@ export const TradeTickets: React.FC = () => {
   const [resolutionText, setResolutionText] = useState('');
   const [toast, setToast] = useState('');
 
-  const staffList = getTradeStaffOfficers();
+  const staffList = useTradeStaff();
   const userName = profile?.full_name || 'Trade Desk Admin';
 
   const initialForm = {
@@ -60,6 +61,13 @@ export const TradeTickets: React.FC = () => {
   };
 
   const [formData, setFormData] = useState(initialForm);
+
+  // Once the staff list arrives, pick a valid officer if the current one is not on it.
+  useEffect(() => {
+    if (staffList.length && !staffList.some(m => m.name === formData.assigned_staff_name)) {
+      setFormData(f => ({ ...f, assigned_staff_name: staffList[0].name, assigned_staff_email: staffList[0].email }));
+    }
+  }, [staffList]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = useCallback(async () => {
     setLoading(true);
