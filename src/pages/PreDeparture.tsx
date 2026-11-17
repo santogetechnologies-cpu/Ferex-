@@ -12,6 +12,7 @@ import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useVisa } from '../hooks/useVisa';
 import { useApplications } from '../hooks/useApplications';
 import { usePayments } from '../hooks/usePayments';
+import { supabase } from '../lib/supabase';
 import { getPreDepartureRecords, savePreDepartureRecord } from '../lib/api/preDeparture';
 import type { PreDepartureRecord } from '../lib/api/preDeparture';
 import { canAccessPage, checkPaymentStage } from '../lib/paymentUnlock';
@@ -62,8 +63,9 @@ export const PreDeparture: React.FC = () => {
   );
 
   useEffect(() => {
+    let first = true;
     const fetchRecord = async () => {
-      setLoading(true);
+      if (first) setLoading(true);
       try {
         const recs = await getPreDepartureRecords();
         const myEmail = (activeStudentEmail || '').toLowerCase().trim();
@@ -88,6 +90,7 @@ export const PreDeparture: React.FC = () => {
       } catch (err) {
         console.warn('[PreDeparture fetch notice]:', err);
       } finally {
+        first = false;
         setLoading(false);
       }
     };
@@ -95,7 +98,12 @@ export const PreDeparture: React.FC = () => {
     fetchRecord();
     window.addEventListener('ferex_pre_departure_change', fetchRecord);
     window.addEventListener('ferex_predeparture_change', fetchRecord);
+    // Live: when staff save flight, housing or pickup details they appear here without a reload.
+    const ch = supabase.channel(`predep-${activeStudentId || 'me'}-${Math.random().toString(36).slice(2, 8)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pre_departure_checklists' }, () => { void fetchRecord(); })
+      .subscribe();
     return () => {
+      void supabase.removeChannel(ch);
       window.removeEventListener('ferex_pre_departure_change', fetchRecord);
       window.removeEventListener('ferex_predeparture_change', fetchRecord);
     };

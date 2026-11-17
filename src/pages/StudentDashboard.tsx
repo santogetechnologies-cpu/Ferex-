@@ -72,7 +72,11 @@ export const StudentDashboard: React.FC = () => {
     fetchLegalization();
     window.addEventListener('ferex_nawa_change', fetchLegalization);
     window.addEventListener('ferex_legalization_change', fetchLegalization);
+    const lch = supabase.channel(`legal-${activeStudentId || 'me'}-${Math.random().toString(36).slice(2, 8)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'legalization_records' }, fetchLegalization)
+      .subscribe();
     return () => {
+      void supabase.removeChannel(lch);
       window.removeEventListener('ferex_nawa_change', fetchLegalization);
       window.removeEventListener('ferex_legalization_change', fetchLegalization);
     };
@@ -191,7 +195,8 @@ export const StudentDashboard: React.FC = () => {
     Boolean(a.final_acceptance_url)
   );
 
-  const isLegalizationApproved = applications.some(a =>
+  const isLegalizationRejected = legalizationRecord?.status === 'Rejected';
+  const isLegalizationApproved = !isLegalizationRejected && applications.some(a =>
     ['Legalization Cleared', 'Legalization Approved', 'APS Approved', 'Approved', 'Under Review', 'Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved'].includes(String(a.status || ''))
   );
   const isLegalizationSubmitted = applications.some(a => String(a.status || '') === 'Legalization Lodged' || String(a.status || '') === 'Legalization Submitted');
@@ -217,7 +222,7 @@ export const StudentDashboard: React.FC = () => {
         ? (approvedDocsCount === documents.length && documents.length > 0 ? 'Verified' : 'Submitted')
         : `Incomplete (${dossierStatus.uploadedMandatoryCount}/${dossierStatus.mandatoryCount || 2})`
     },
-    { title: `5. ${targetWf?.authority_acronym || 'Legalization'} Process — Qualification & Legalization Audit`, isDone: isLegalizationApproved || isStageDone(5), path: '/student/documents', tag: isLegalizationApproved ? 'Approved' : isLegalizationSubmitted ? 'Submitted' : isLegalizationInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Pending' },
+    { title: `5. ${targetWf?.authority_acronym || 'Legalization'} Process — Qualification & Legalization Audit`, isDone: isLegalizationApproved || (!isLegalizationRejected && isStageDone(5)), path: '/student/documents', tag: isLegalizationRejected ? 'Rejected' : isLegalizationApproved ? 'Approved' : isLegalizationSubmitted ? 'Submitted' : isLegalizationInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Pending' },
     { title: '6. University Selection & Course Application', isDone: isUniSelected || isStageDone(6), path: '/student/select-university', tag: isUniSelected ? 'Submitted' : 'Pending Selection' },
     { title: '7. Official Admission Offer Issued & Accepted', isDone: isOfferAccepted || isStageDone(7), path: '/student/offers', tag: isOfferAccepted ? 'Accepted' : hasOffer ? 'Offer Released' : 'Pending' },
     { title: '8. University Tuition Deposit & Visa Documents Clearance', isDone: inst2Paid || isStageDone(8), path: '/student/payments', tag: inst2Paid ? `Cleared (${visaRecord?.status_label || 'Visa Ready'})` : 'Due' },
@@ -353,7 +358,9 @@ export const StudentDashboard: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
               <span className="text-xs font-bold text-slate-900">{targetWf?.authority_acronym ? `${targetWf.authority_acronym} Legalization` : 'Legalization Status'}</span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                isLegalizationApproved
+                isLegalizationRejected
+                  ? 'bg-red-50 text-red-700 border-red-200'
+                  : isLegalizationApproved
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                   : isLegalizationSubmitted || isLegalizationInReview
                     ? 'bg-amber-50 text-amber-700 border-amber-200'
@@ -361,7 +368,7 @@ export const StudentDashboard: React.FC = () => {
                       ? 'bg-blue-50 text-blue-700 border-blue-200'
                       : 'bg-slate-100 text-slate-500 border-slate-200'
               }`}>
-                {isLegalizationApproved ? 'Approved' : isLegalizationSubmitted ? 'Submitted' : isLegalizationInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Locked'}
+                {isLegalizationRejected ? 'Rejected' : isLegalizationApproved ? 'Approved' : isLegalizationSubmitted ? 'Submitted' : isLegalizationInReview ? 'Under Review' : inst1Paid ? 'Initiated' : 'Locked'}
               </span>
             </div>
 
@@ -371,6 +378,11 @@ export const StudentDashboard: React.FC = () => {
                   <>
                     <Lock className="w-4 h-4 text-slate-400 shrink-0" />
                     <span>Target Country Required</span>
+                  </>
+                ) : isLegalizationRejected ? (
+                  <>
+                    <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                    <span>{targetWf?.authority_acronym || 'Authority'} Legalization Rejected</span>
                   </>
                 ) : isLegalizationApproved ? (
                   <>
@@ -402,6 +414,8 @@ export const StudentDashboard: React.FC = () => {
               <p className="text-[11px] font-normal text-slate-500 leading-relaxed">
                 {!targetCountry
                   ? 'Select your target European country in your student profile to initialize your authority qualification audit.'
+                  : isLegalizationRejected
+                    ? `${legalizationRecord?.notes || 'Your legalization file was rejected.'} Please contact your counselor to correct and resubmit.`
                   : isLegalizationApproved
                     ? `Your educational credentials and ${targetWf?.authority_acronym || 'legalization'} audit are officially verified.`
                     : isLegalizationSubmitted

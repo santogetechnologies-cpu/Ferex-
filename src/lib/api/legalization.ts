@@ -120,10 +120,13 @@ export async function updateLegalizationStatus(
     if (updatedRecord.student_id) {
       try {
         const isApproved = status === 'Approved';
+        const isRejected = status === 'Rejected';
         await createNotification({
           user_id: updatedRecord.student_id,
-          title: isApproved ? 'Qualification Legalization Approved!' : `Legalization Status: ${status}`,
-          body: isApproved
+          title: isApproved ? 'Qualification Legalization Approved!' : isRejected ? 'Legalization Rejected' : `Legalization Status: ${status}`,
+          body: isRejected
+            ? `Your legalization file (${updatedRecord.ref_no || ''}) was rejected.${updatedRecord.notes ? ' ' + updatedRecord.notes : ''} Please contact your counselor to correct and resubmit.`
+            : isApproved
             ? `Your official qualifications for ${updatedRecord.country || 'Europe'} have been recognized and approved (${updatedRecord.ref_no || ''}). You can now file for your National Student Visa!`
             : `Your legalization file (${updatedRecord.ref_no || ''}) has reached Step ${updatedRecord.current_step || step || 1}: ${status}.`,
           category: 'Legalization',

@@ -64,3 +64,13 @@ export async function payEducationFeeOnline(input: { paymentType: string; amount
     rzp.open();
   });
 }
+
+/** Asks Razorpay what really happened to online payments that are not settled here (closed checkout, late UPI confirmation) and syncs the stored status. Returns true when anything changed. */
+export async function reconcileOnlinePayments(orderIds: string[]): Promise<boolean> {
+  const ids = [...new Set(orderIds.filter(id => /^order_\w+$/.test(id)))].slice(0, 25);
+  if (!ids.length) return false;
+  try {
+    const r = await call<{ reconciled: { order_id: string; status: string }[] }>('razorpay-verify', { reconcile: true, order_ids: ids });
+    return (r.reconciled || []).some(x => x.status === 'Paid');
+  } catch { return false; }
+}

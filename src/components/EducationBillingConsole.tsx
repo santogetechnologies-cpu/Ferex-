@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   CreditCard, Banknote, Landmark, QrCode, Search,
@@ -75,7 +75,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const [viewPayment, setViewPayment] = useState<Payment | null>(null);
+  const [viewPaymentRow, setViewPayment] = useState<Payment | null>(null);
   const [activeFee, setActiveFee] = useState<EducationFee | null>(null);
   const [parts, setParts] = useState<PaymentPart[]>([]);
   const [total, setTotal] = useState(0);
@@ -101,6 +101,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   const [activePackage, setActivePackage] = useState<CountryFeePackage | null>(null);
   const [allPackages, setAllPackages] = useState<CountryFeePackage[]>([]);
 
+  const reconciledRef = useRef(false);
   const load = useCallback(async () => {
     if (!admin && !targetId) return;
     setLoading(true);
@@ -113,6 +114,14 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
         getGlobalPaymentGateways(),
       ]);
       setPayments(records);
+      // Online payments that are not settled may have been completed (or failed) at Razorpay after the window closed: sync once, then reload.
+      const open = records.filter(r => /^order_\w+$/.test(String(r.utr_number || '')) && ['Pending Verification', 'Rejected'].includes(r.status) && Date.now() - new Date((r as any).created_at || 0).getTime() < 14 * 86400000).map(r => String(r.utr_number));
+      if (open.length && !reconciledRef.current) {
+        reconciledRef.current = true;
+        void import('../lib/api/razorpayCheckout').then(m => m.reconcileOnlinePayments(open)).then(async changed => {
+          if (changed) setPayments(await listEducationPayments(admin ? undefined : targetId));
+        });
+      }
       setApplications(apps.filter(isRealApplication));
       setStudents(studentList);
       setGateway(gateways);
@@ -301,7 +310,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-            <span>Paid</span>
+            <span>Payment Received</span>
           </span>
         );
       case 'Pending':
@@ -1628,7 +1637,9 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
       )}
 
       {/* View Payment Details & Receipt Modal */}
-      {viewPayment && (() => {
+      {viewPaymentRow && (() => {
+        // Always show the live row so the list and the details can never disagree.
+        const viewPayment = payments.find(x => x.id === (viewPaymentRow as Payment).id) || viewPaymentRow as Payment;
         const student = studentMap.get(viewPayment.student_id);
         const sName = viewPayment.student_name || student?.full_name || (profile?.full_name ?? 'Student');
         const sEmail = student?.email || (viewPayment as any).student_email || (profile?.email ?? '—');

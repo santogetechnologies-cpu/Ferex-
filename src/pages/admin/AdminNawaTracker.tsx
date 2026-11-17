@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
   Plus, Search, X, Trash2, CheckCircle2,
-  FileText, Stamp, Globe, Edit2, ArrowRight, GraduationCap
+  FileText, Stamp, Globe, Edit2, ArrowRight, GraduationCap, XCircle
 } from 'lucide-react';
 import { getStudents } from '../../lib/api/students';
 import {
@@ -199,6 +199,26 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
       }
     } catch (e) {
       showToast('Failed to update step.');
+    }
+  };
+
+  const handleReject = async (rec: NawaRecord) => {
+    const reason = window.prompt(`Reject ${rec.student_name}'s legalization file? Add a short reason the student will see (optional).`, '');
+    if (reason === null) return;
+    try {
+      const updated = await updateNawaStep(rec.id, rec.current_step, 'Rejected', reason.trim() ? `Rejected: ${reason.trim()}` : undefined);
+      if (updated) {
+        setRecords(prev => prev.map(r => r.id === rec.id ? updated : r));
+        showToast(`Legalization rejected for ${updated.student_name}.`);
+        if (updated.student_id) {
+          try {
+            const { setStudentStageStatus } = await import('../../lib/api/journey');
+            await setStudentStageStatus(updated.student_id, 5, 'In Progress', 'Legalization rejected. Please check the notes and resubmit.');
+          } catch {}
+        }
+      }
+    } catch {
+      showToast('Failed to reject the application.');
     }
   };
 
@@ -595,7 +615,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
                               key={idx}
                               className={`flex-1 h-full transition-all ${
                                 idx + 1 <= rec.current_step
-                                  ? rec.status === 'Approved' ? 'bg-emerald-500' : 'bg-[#58051E]'
+                                  ? rec.status === 'Approved' ? 'bg-emerald-500' : rec.status === 'Rejected' ? 'bg-red-500' : 'bg-[#58051E]'
                                   : 'bg-slate-200'
                               }`}
                             />
@@ -607,7 +627,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
                     {/* Step Controls */}
                     <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1">
-                        {rec.current_step < maxSteps && (
+                        {rec.current_step < maxSteps && rec.status !== 'Rejected' && (
                           <button
                             onClick={() => handleStepChange(rec.id, rec.current_step + 1, 'In Review')}
                             className="text-[10.5px] font-bold text-[#58051E] bg-[#58051E]/5 hover:bg-[#58051E]/10 px-2.5 py-1 rounded-lg border border-[#58051E]/20 cursor-pointer"
@@ -621,6 +641,14 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
                             className="text-[10.5px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 cursor-pointer inline-flex items-center gap-1"
                           >
                             <CheckCircle2 className="w-3 h-3" /> Mark Approved
+                          </button>
+                        )}
+                        {rec.status !== 'Rejected' && rec.status !== 'Approved' && (
+                          <button
+                            onClick={() => handleReject(rec)}
+                            className="text-[10.5px] font-bold text-red-700 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg border border-red-200 cursor-pointer inline-flex items-center gap-1"
+                          >
+                            <XCircle className="w-3 h-3" /> Reject
                           </button>
                         )}
                       </div>

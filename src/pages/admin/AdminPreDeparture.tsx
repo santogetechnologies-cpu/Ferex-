@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Plane, Search, Edit3, Save, X, Sparkles, UserPlus, AlertTriangle, Building2, Car } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { ToastNotification } from '../../components/ToastNotification';
@@ -20,10 +20,11 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
   const counselorEmail = (profile?.email || user?.email || '').toLowerCase().trim();
   const counselorName = (profile?.full_name || '').toLowerCase().trim();
   const { students: allStudents } = useStudents();
-  const dbStudents = isStaff ? allStudents.filter(s => {
+  // Memoised: a fresh array on every render used to re-trigger the loader below forever for staff.
+  const dbStudents = useMemo(() => isStaff ? allStudents.filter(s => {
     const ac = (s.assigned_counselor || '').toLowerCase().trim();
     return Boolean(ac && ((counselorEmail && ac.includes(counselorEmail)) || (counselorName && ac.includes(counselorName))));
-  }) : allStudents;
+  }) : allStudents, [isStaff, allStudents, counselorEmail, counselorName]);
   const { applications: dbApps } = useApplications();
 
   const [search, setSearch] = useState('');
@@ -54,15 +55,17 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
     notes: 'Pre-departure flight packet & campus dorm allotment ready.'
   });
 
+  const firstLoad = useRef(true);
   const loadAllData = async () => {
-    setLoading(true);
+    if (firstLoad.current) setLoading(true);
     try {
-      const dbRecs = await getPreDepartureRecords();
-
-      const visaRecs = await getVisaRecords();
+      // The three lists load independently: one failing must not leave the page stuck or empty.
+      const [recsR, visaR, payR] = await Promise.allSettled([getPreDepartureRecords(), getVisaRecords(), getAllPaymentsAdmin()]);
+      if (recsR.status === 'rejected') throw recsR.reason;
+      const dbRecs = recsR.value;
+      const visaRecs = visaR.status === 'fulfilled' ? visaR.value : [];
       const visaMap = new Map(visaRecs.map(v => [v.student_id, v]));
-
-      const payments = await getAllPaymentsAdmin();
+      const payments = payR.status === 'fulfilled' ? payR.value : [];
 
       // Collect all active registered students, prioritizing Visa Approved / Stage 11 applicants
       const candidateList: Array<{ id: string; name: string; email: string; university: string; isStage11: boolean }> = [];
@@ -107,7 +110,9 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
       setRecords(dbRecs);
     } catch (e) {
       console.warn('[AdminPreDeparture load notice]:', e);
+      showToast(`Could not load pre-departure records: ${(e as Error)?.message || 'please retry'}`);
     } finally {
+      firstLoad.current = false;
       setLoading(false);
     }
   };
