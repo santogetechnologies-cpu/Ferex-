@@ -84,7 +84,7 @@ export function EducationPaymentsAdmin() {
   const current = rows.find(r => r.s.id === selected);
 
   const chip = (id: Filter, label: string) => (
-    <button key={id} type="button" onClick={() => setFilter(id)} className={`h-8 px-3 rounded-full text-xs font-semibold border cursor-pointer ${filter === id ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>
+    <button key={id} type="button" onClick={() => setFilter(id)} className={`h-8 px-3 rounded-full text-xs font-semibold border cursor-pointer ${filter === id ? 'bg-[#5A0122] text-white border-[#5A0122]' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>
       {label} <span className="opacity-70 tabular-nums">{counts[id]}</span>
     </button>
   );
@@ -108,7 +108,7 @@ export function EducationPaymentsAdmin() {
             {!loading && shown.length === 0 && <li className="p-6 text-center text-sm text-slate-500">No students match.</li>}
             {shown.map(r => (
               <li key={r.s.id}>
-                <button type="button" onClick={() => setSelected(r.s.id)} aria-current={selected === r.s.id} className={`w-full text-left px-3 py-3 rounded-xl cursor-pointer ${selected === r.s.id ? 'bg-[#58051E]/[0.06]' : 'hover:bg-slate-50'}`}>
+                <button type="button" onClick={() => setSelected(r.s.id)} aria-current={selected === r.s.id} className={`w-full text-left px-3 py-3 rounded-xl cursor-pointer ${selected === r.s.id ? 'bg-[#5A0122]/[0.06]' : 'hover:bg-slate-50'}`}>
                   <span className="flex items-center justify-between gap-2">
                     <span className="text-sm font-semibold text-slate-900 truncate">{r.s.full_name || r.s.email}</span>
                     {r.toVerify > 0 && <span className="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">{r.toVerify} to verify</span>}
@@ -245,7 +245,7 @@ function StudentPanel({ student, country, flow, pkg, payments, application, conf
                       <span className="text-xs text-slate-500">Paid {money(b.paid, fee.currency)} · Left {money(b.remaining, fee.currency)}{b.pending > 0 ? ` · In review ${money(b.pending, fee.currency)}` : ''}</span>
                     </div>
                     <div className="mt-3 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden"><div className="h-full rounded-full bg-emerald-600" style={{ width: `${pct}%` }} /></div>
-                    {b.payable > 0 && <button type="button" onClick={() => setRecording(fee)} className="mt-4 h-9 px-4 rounded-xl bg-[#58051E] text-white text-xs font-semibold hover:bg-[#430316] inline-flex items-center gap-1.5 cursor-pointer"><Plus className="w-3.5 h-3.5" /> Record payment</button>}
+                    {b.payable > 0 && <button type="button" onClick={() => setRecording(fee)} className="mt-4 h-9 px-4 rounded-xl bg-[#5A0122] text-white text-xs font-semibold hover:bg-[#68092A] inline-flex items-center gap-1.5 cursor-pointer"><Plus className="w-3.5 h-3.5" /> Record payment</button>}
                   </div>
                 </li>
               );
@@ -330,7 +330,7 @@ function RecordModal({ student, fee, payments, application, onClose, onDone }: {
               {parts.length > 1 && <button type="button" onClick={() => setParts(ps => ps.filter((_, j) => j !== i))} className="col-span-2 text-xs font-semibold text-rose-700 text-left cursor-pointer">Remove this entry</button>}
             </div>
           ))}
-          <button type="button" onClick={() => setParts(ps => [...ps, { method: 'Cash', amount: 0, reference: '', date: today() }])} className="text-xs font-semibold text-[#58051E] cursor-pointer">+ Add another entry (split payment)</button>
+          <button type="button" onClick={() => setParts(ps => [...ps, { method: 'Cash', amount: 0, reference: '', date: today() }])} className="text-xs font-semibold text-[#5A0122] cursor-pointer">+ Add another entry (split payment)</button>
         </div>
         <label className="block text-xs font-semibold text-slate-600">Note (optional)
           <input value={notes} onChange={e => setNotes(e.target.value)} className="mt-1 w-full h-10 px-3" /></label>
@@ -338,7 +338,7 @@ function RecordModal({ student, fee, payments, application, onClose, onDone }: {
         {err && <p role="alert" className="text-sm font-semibold text-rose-700">{err}</p>}
         <div className="flex justify-end gap-2">
           <button type="button" onClick={onClose} className="h-10 px-4 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer">Cancel</button>
-          <button type="button" onClick={save} disabled={busy} className="h-10 px-5 rounded-xl bg-[#58051E] text-white text-sm font-semibold hover:bg-[#430316] disabled:opacity-50 cursor-pointer">{busy ? 'Saving…' : 'Save payment'}</button>
+          <button type="button" onClick={save} disabled={busy} className="h-10 px-5 rounded-xl bg-[#5A0122] text-white text-sm font-semibold hover:bg-[#68092A] disabled:opacity-50 cursor-pointer">{busy ? 'Saving…' : 'Save payment'}</button>
         </div>
       </div>
     </div>

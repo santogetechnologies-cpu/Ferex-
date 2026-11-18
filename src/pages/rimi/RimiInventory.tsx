@@ -239,7 +239,7 @@ export const RimiInventory: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Boxes className="w-5 h-5 text-[#58051E]" /> Inventory
+            <Boxes className="w-5 h-5 text-[#5A0122]" /> Inventory
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">Batches, expiry dates and stock movements.</p>
         </div>
@@ -247,7 +247,7 @@ export const RimiInventory: React.FC = () => {
         <Button
           size="sm"
           onClick={() => { setFormData(blankForm); setShowAddModal(true); }}
-          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
+          className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
         >
           <Plus className="w-4 h-4" /> Receive Production Batch
         </Button>
@@ -261,7 +261,7 @@ export const RimiInventory: React.FC = () => {
             onClick={() => setExpiryTab(tab)}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
               expiryTab === tab
-                ? 'bg-[#58051E] text-white shadow-xs'
+                ? 'bg-[#5A0122] text-white shadow-xs'
                 : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
             }`}
           >
@@ -337,7 +337,7 @@ export const RimiInventory: React.FC = () => {
                   <tr key={b.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="p-3.5 font-bold text-slate-900">
                       <div className="flex items-center gap-1.5">
-                        <QrCode className="w-3.5 h-3.5 text-[#58051E]" />
+                        <QrCode className="w-3.5 h-3.5 text-[#5A0122]" />
                         <span>{b.batch_no}</span>
                       </div>
                     </td>
@@ -506,7 +506,7 @@ export const RimiInventory: React.FC = () => {
 
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Lot Batch</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]">Save Lot Batch</Button>
                 </div>
               </form>
             </motion.div>
@@ -523,7 +523,7 @@ export const RimiInventory: React.FC = () => {
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="text-base font-black text-slate-900">Edit Inventory Batch Lot</h3>
-                  <p className="text-[10px] font-bold text-[#58051E]">{editingBatch.product_name} • {editingBatch.batch_no}</p>
+                  <p className="text-[10px] font-bold text-[#5A0122]">{editingBatch.product_name} • {editingBatch.batch_no}</p>
                 </div>
                 <button onClick={() => setEditingBatch(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
@@ -588,7 +588,7 @@ export const RimiInventory: React.FC = () => {
 
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setEditingBatch(null)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Batch Updates</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]">Save Batch Updates</Button>
                 </div>
               </form>
             </motion.div>
@@ -603,7 +603,7 @@ export const RimiInventory: React.FC = () => {
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
                 <div>
                   <h3 className="text-sm font-black text-slate-900">Stock Movements History</h3>
-                  <span className="text-[10px] font-bold text-[#58051E]">{selectedBatchHistory.batch_no}</span>
+                  <span className="text-[10px] font-bold text-[#5A0122]">{selectedBatchHistory.batch_no}</span>
                 </div>
                 <button onClick={() => setSelectedBatchHistory(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"><X className="w-4 h-4" /></button>
               </div>

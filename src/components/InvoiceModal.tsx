@@ -128,7 +128,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
       margin: 0;
       padding: 0;
       background: #ffffff;
-      color: #0f172a;
+      color: #141414;
       line-height: 1.4;
       font-size: 11.5px;
       -webkit-print-color-adjust: exact;
@@ -144,26 +144,26 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
       justify-content: space-between;
       align-items: flex-start;
       padding-bottom: 12px;
-      border-bottom: 2.5px solid #58051E;
+      border-bottom: 2.5px solid #5A0122;
     }
     .brand-title {
       font-size: 24px;
       font-weight: 900;
-      color: #58051E;
+      color: #5A0122;
       letter-spacing: 0.5px;
       margin: 0 0 2px 0;
     }
     .brand-sub {
       font-size: 10.5px;
       font-weight: 700;
-      color: #475569;
+      color: #525252;
       text-transform: uppercase;
       letter-spacing: 0.8px;
     }
     .company-info {
       text-align: right;
       font-size: 10.5px;
-      color: #334155;
+      color: #404040;
     }
     .company-info p { margin: 1.5px 0; }
     .title-banner {
@@ -173,14 +173,14 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
     .invoice-title {
       font-size: 20px;
       font-weight: 900;
-      color: #0f172a;
+      color: #141414;
       letter-spacing: 2px;
       margin: 0;
     }
     .gst-tag {
       font-size: 11px;
       font-weight: 800;
-      color: #58051E;
+      color: #5A0122;
       margin-top: 3px;
     }
     .details-grid {
@@ -189,8 +189,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
       gap: 16px;
       margin: 12px 0;
       padding: 10px 14px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: #FAFAFA;
+      border: 1px solid #E5E5E5;
       border-radius: 8px;
     }
     .info-col h4 {
@@ -198,18 +198,18 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
       font-size: 9.5px;
       font-weight: 800;
       text-transform: uppercase;
-      color: #64748b;
+      color: #737373;
       letter-spacing: 0.5px;
     }
     .info-col p { margin: 1.5px 0; font-size: 11.5px; }
-    .info-col strong { color: #0f172a; }
+    .info-col strong { color: #141414; }
     table {
       width: 100%;
       border-collapse: collapse;
       margin: 12px 0;
     }
     th {
-      background: #58051E !important;
+      background: #5A0122 !important;
       color: #ffffff !important;
       font-size: 10.5px;
       font-weight: 800;
@@ -222,7 +222,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
     td {
       padding: 10px;
       font-size: 11px;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 1px solid #E5E5E5;
     }
     td.text-center { text-align: center; }
     td.text-right { text-align: right; }
@@ -237,14 +237,14 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
       flex: 1;
       font-size: 11px;
       padding: 10px 12px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: #FAFAFA;
+      border: 1px solid #E5E5E5;
       border-radius: 8px;
     }
     .summary-box {
       width: 270px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: #FAFAFA;
+      border: 1px solid #E5E5E5;
       border-radius: 8px;
       padding: 10px 12px;
       font-size: 11px;
@@ -253,15 +253,15 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
       display: flex;
       justify-content: space-between;
       margin-bottom: 4px;
-      color: #475569;
+      color: #525252;
     }
     .summary-row.total {
-      border-top: 1.5px solid #cbd5e1;
+      border-top: 1.5px solid #D4D4D4;
       padding-top: 6px;
       margin-top: 6px;
       font-size: 13px;
       font-weight: 900;
-      color: #58051E;
+      color: #5A0122;
     }
     .paid-badge {
       margin-top: 12px;
@@ -277,13 +277,13 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
     .footer-note {
       text-align: center;
       font-size: 9.5px;
-      color: #64748b;
+      color: #737373;
       margin-top: 18px;
       line-height: 1.35;
     }
     .footer-bar {
       height: 4px;
-      background: linear-gradient(90deg, #58051E 0%, #80002E 100%);
+      background: linear-gradient(90deg, #5A0122 0%, #68092A 100%);
       margin-top: 8px;
       border-radius: 2px;
     }
@@ -341,7 +341,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
           <td class="text-center">1</td>
           <td>
             <strong>${escapeHtml(invoice.description || 'Education fee')}</strong>
-            ${invoice.course_destination ? `<br><span style="color:#64748b; font-size:10px;">Destination: ${invoice.course_destination}</span>` : ''}
+            ${invoice.course_destination ? `<br><span style="color:#737373; font-size:10px;">Destination: ${invoice.course_destination}</span>` : ''}
           </td>
           <td class="text-center font-mono">${escapeHtml(sacCode)}</td>
           <td class="text-right font-mono">${currencySymbol}${taxableAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
@@ -355,8 +355,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
     <div class="tax-box">
       <div class="words-box">
         <strong>Amount Chargeable (in words):</strong><br>
-        <span style="color: #0f172a; font-weight: bold; line-height: 1.5;">${amountWords}</span>
-        <div style="margin-top: 8px; font-size: 10px; color: #64748b;">
+        <span style="color: #141414; font-weight: bold; line-height: 1.5;">${amountWords}</span>
+        <div style="margin-top: 8px; font-size: 10px; color: #737373;">
           Applicable GST Rate: <strong>${taxRate}%</strong> (Central Tax: ${halfTaxRate}% + State Tax: ${halfTaxRate}%)
         </div>
       </div>
@@ -434,7 +434,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
             <div className="flex items-center gap-2">
               <button
                 onClick={handlePrint}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#58051E] hover:bg-[#6b0027] text-white text-xs font-extrabold rounded-xl transition-all shadow-xs cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#5A0122] hover:bg-[#6b0027] text-white text-xs font-extrabold rounded-xl transition-all shadow-xs cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" /> Print / Save PDF
               </button>
@@ -459,19 +459,19 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
               {/* Company Contact Details */}
               <div className="text-right space-y-1 text-xs font-medium text-slate-700">
                 <div className="flex items-center justify-end gap-1.5 text-slate-800 font-semibold">
-                  <Phone className="w-3 h-3 text-[#58051E]" />
+                  <Phone className="w-3 h-3 text-[#5A0122]" />
                   <span>+91 95448 85077, +44 78678 67779</span>
                 </div>
                 <div className="flex items-center justify-end gap-1.5 text-slate-800 font-semibold">
-                  <Mail className="w-3 h-3 text-[#58051E]" />
+                  <Mail className="w-3 h-3 text-[#5A0122]" />
                   <span>ferexventuresoffice@gmail.com</span>
                 </div>
                 <div className="flex items-start justify-end gap-1.5 text-slate-600 text-[11px] max-w-xs ml-auto leading-tight">
-                  <MapPin className="w-3 h-3 text-[#58051E] shrink-0 mt-0.5" />
+                  <MapPin className="w-3 h-3 text-[#5A0122] shrink-0 mt-0.5" />
                   <span>{companyAddress}</span>
                 </div>
                 <div className="text-[11px] text-slate-700 font-bold flex items-center justify-end gap-2 pt-0.5">
-                  <span className="text-[#58051E]">GSTIN: {companyGstin}</span>
+                  <span className="text-[#5A0122]">GSTIN: {companyGstin}</span>
                   <span>•</span>
                   <span>PAN: {companyPan}</span>
                 </div>
@@ -479,14 +479,14 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
             </div>
 
             {/* Top Maroon Divider */}
-            <div className="h-0.5 bg-[#58051E] my-3" />
+            <div className="h-0.5 bg-[#5A0122] my-3" />
 
             {/* Title */}
             <div className="text-center my-4 space-y-0.5">
               <h1 className="text-2xl font-black tracking-wide text-slate-900 font-serif uppercase">
                 TAX INVOICE
               </h1>
-              <p className="text-[11px] font-bold text-[#58051E]">
+              <p className="text-[11px] font-bold text-[#5A0122]">
                 GSTIN: {companyGstin} • {taxRate}% Total tax (Central {halfTaxRate}% + State {halfTaxRate}%) • SAC {sacCode}
               </p>
             </div>
@@ -535,13 +535,13 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
             <div className="my-4 overflow-hidden rounded-xl border border-slate-200">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-[#58051E] text-white text-[10px] font-extrabold uppercase tracking-wider">
-                    <th className="py-2.5 px-3 text-center w-10 border-r border-[#6d0228]">#</th>
-                    <th className="py-2.5 px-3 border-r border-[#6d0228]">Service Description</th>
-                    <th className="py-2.5 px-3 text-center w-20 border-r border-[#6d0228]">SAC</th>
-                    <th className="py-2.5 px-3 text-right w-24 border-r border-[#6d0228]">Taxable ({currencyCode})</th>
-                    <th className="py-2.5 px-3 text-right w-20 border-r border-[#6d0228]">Central tax ({halfTaxRate}%)</th>
-                    <th className="py-2.5 px-3 text-right w-20 border-r border-[#6d0228]">State tax ({halfTaxRate}%)</th>
+                  <tr className="bg-[#5A0122] text-white text-[10px] font-extrabold uppercase tracking-wider">
+                    <th className="py-2.5 px-3 text-center w-10 border-r border-[#5A0122]">#</th>
+                    <th className="py-2.5 px-3 border-r border-[#5A0122]">Service Description</th>
+                    <th className="py-2.5 px-3 text-center w-20 border-r border-[#5A0122]">SAC</th>
+                    <th className="py-2.5 px-3 text-right w-24 border-r border-[#5A0122]">Taxable ({currencyCode})</th>
+                    <th className="py-2.5 px-3 text-right w-20 border-r border-[#5A0122]">Central tax ({halfTaxRate}%)</th>
+                    <th className="py-2.5 px-3 text-right w-20 border-r border-[#5A0122]">State tax ({halfTaxRate}%)</th>
                     <th className="py-2.5 px-3 text-right w-24">Total ({currencyCode})</th>
                   </tr>
                 </thead>
@@ -603,7 +603,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
                   <span>Total Tax Amount ({taxRate}%):</span>
                   <span className="font-mono">{currencySymbol}{totalGstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
-                <div className="flex justify-between text-base font-black text-[#58051E] pt-1.5 border-t border-slate-300">
+                <div className="flex justify-between text-base font-black text-[#5A0122] pt-1.5 border-t border-slate-300">
                   <span>Grand Total Paid:</span>
                   <span className="font-mono">
                     {currencySymbol}{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -613,7 +613,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
             </div>
 
             {/* Payment Status Card */}
-            <div className="p-3.5 bg-[#FAF5F7] border border-[#58051E]/15 rounded-2xl flex items-center justify-between my-4 text-left">
+            <div className="p-3.5 bg-[#FAF5F7] border border-[#5A0122]/15 rounded-2xl flex items-center justify-between my-4 text-left">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs">
                   <Check className="w-4 h-4 stroke-[3]" />
@@ -637,7 +637,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, inv
             </div>
 
             {/* Bottom Maroon Gradient Bar */}
-            <div className="h-1.5 w-full bg-gradient-to-r from-[#58051E] to-[#80002E] rounded-full mt-2" />
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#5A0122] to-[#68092A] rounded-full mt-2" />
           </div>
         </motion.div>
       </div>

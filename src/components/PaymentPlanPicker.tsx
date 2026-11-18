@@ -56,7 +56,7 @@ export const PaymentPlanPicker: React.FC<Props> = ({ studentId, country, actorNa
     } catch (e: any) { setError(e.message); } finally { setBusy(false); }
   };
 
-  const tile = (active: boolean) => `text-left rounded-xl border p-3.5 transition cursor-pointer ${active ? 'border-[#58051E] bg-[#58051E]/[0.04] ring-1 ring-[#58051E]/20' : 'border-slate-200 bg-white hover:border-slate-300'}`;
+  const tile = (active: boolean) => `text-left rounded-xl border p-3.5 transition cursor-pointer ${active ? 'border-[#5A0122] bg-[#5A0122]/[0.04] ring-1 ring-[#5A0122]/20' : 'border-slate-200 bg-white hover:border-slate-300'}`;
 
   // Once a plan is confirmed it shows as one line. The choices open only when the admin wants to change it.
   if (assignment && current !== 'pending' && !editing) {
@@ -88,11 +88,11 @@ export const PaymentPlanPicker: React.FC<Props> = ({ studentId, country, actorNa
 
       <div className="grid sm:grid-cols-2 gap-3">
         <button type="button" className={tile(choice === 'normal')} onClick={() => setChoice('normal')} aria-pressed={choice === 'normal'}>
-          <span className="flex items-center gap-2 text-sm font-bold text-slate-900"><Layers className="w-4 h-4 text-[#58051E]" /> Normal flow</span>
+          <span className="flex items-center gap-2 text-sm font-bold text-slate-900"><Layers className="w-4 h-4 text-[#5A0122]" /> Normal flow</span>
           <span className="block text-xs text-slate-500 mt-1">The common fees you set up under Fees: legalization, visa support, agency and any others, step by step.</span>
         </button>
         <button type="button" className={tile(choice === 'package')} onClick={() => { setChoice('package'); if (!pkgId && sorted[0]) setPkgId(sorted[0].id); }} aria-pressed={choice === 'package'} disabled={sorted.length === 0}>
-          <span className="flex items-center gap-2 text-sm font-bold text-slate-900"><Package className="w-4 h-4 text-[#58051E]" /> Country package</span>
+          <span className="flex items-center gap-2 text-sm font-bold text-slate-900"><Package className="w-4 h-4 text-[#5A0122]" /> Country package</span>
           <span className="block text-xs text-slate-500 mt-1">{sorted.length ? 'One bundle for a country, with its own instalments and covered services.' : 'No active packages yet. Create one under Fees.'}</span>
         </button>
       </div>
@@ -119,7 +119,7 @@ export const PaymentPlanPicker: React.FC<Props> = ({ studentId, country, actorNa
       <div className="flex items-center justify-between gap-3">
         <p className="text-[11px] text-slate-500">{assignment?.assigned_by && current !== 'pending' ? `Confirmed by ${assignment.assigned_by}${assignment.assigned_at ? ` on ${new Date(assignment.assigned_at).toLocaleDateString('en-GB')}` : ''}` : ' '}</p>
         <button type="button" onClick={save} disabled={busy || !changed || !canSave}
-          className="h-10 px-5 rounded-xl bg-[#58051E] text-white text-sm font-semibold hover:bg-[#430316] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+          className="h-10 px-5 rounded-xl bg-[#5A0122] text-white text-sm font-semibold hover:bg-[#68092A] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
           {busy ? 'Saving…' : current === 'pending' ? 'Confirm plan' : 'Change plan'}
         </button>
       </div>

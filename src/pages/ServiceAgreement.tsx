@@ -77,7 +77,7 @@ export const ServiceAgreement: React.FC = () => {
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#570229';
+    ctx.strokeStyle = '#5A0122';
   };
 
   useEffect(() => {
@@ -132,7 +132,7 @@ export const ServiceAgreement: React.FC = () => {
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.arc(x, y, 1.25, 0, Math.PI * 2);
-    ctx.fillStyle = '#570229';
+    ctx.fillStyle = '#5A0122';
     ctx.fill();
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -334,7 +334,7 @@ export const ServiceAgreement: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-[10px] font-black uppercase tracking-wider text-[#570229] bg-[#570229]/10 px-2.5 py-0.5 rounded-md">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#5A0122] bg-[#5A0122]/10 px-2.5 py-0.5 rounded-md">
               Legal Compliance
             </span>
             {isSigned ? (
@@ -367,7 +367,7 @@ export const ServiceAgreement: React.FC = () => {
             <button
               onClick={() => navigate('/student/payments')}
               type="button"
-              className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-[#570229] hover:bg-[#6F0335] shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+              className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-[#5A0122] hover:bg-[#68092A] shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
             >
               Proceed to Payments <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -383,25 +383,25 @@ export const ServiceAgreement: React.FC = () => {
         {/* Header / Company Info (Screen UI only - in print, moved to bottom of final page) */}
         <div className="agreement-print-header border-b border-slate-200 pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
           <div>
-            <span className="text-[11px] font-black tracking-widest text-[#570229] uppercase block mb-1">
+            <span className="text-[11px] font-black tracking-widest text-[#5A0122] uppercase block mb-1">
               FEREX EDUCATION
             </span>
             <span className="text-xs font-semibold text-slate-500 block">
               (Under Ferex Ventures Private Limited)
             </span>
             <div className="flex items-start gap-1.5 text-xs text-slate-600 mt-2 max-w-md">
-              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5 print:text-[#570229]" />
+              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5 print:text-[#5A0122]" />
               <span>12/640 Thachukuzhi, Companipady Road, Nellikuzhy PO, Kothamangalam, Kerala - 686 691</span>
             </div>
           </div>
 
           <div className="text-xs text-slate-600 space-y-1 md:text-right print:text-right">
             <div className="flex items-center md:justify-end gap-1.5 print:justify-end">
-              <Phone className="w-3.5 h-3.5 text-slate-400 print:text-[#570229]" />
+              <Phone className="w-3.5 h-3.5 text-slate-400 print:text-[#5A0122]" />
               <span className="font-medium">+91 95448 85077 , +44 78678 67779</span>
             </div>
             <div className="flex items-center md:justify-end gap-1.5 print:justify-end">
-              <Mail className="w-3.5 h-3.5 text-slate-400 print:text-[#570229]" />
+              <Mail className="w-3.5 h-3.5 text-slate-400 print:text-[#5A0122]" />
               <span className="font-medium">ferexventuresoffice@gmail.com</span>
             </div>
             <div className="text-[11px] text-slate-400 font-mono">
@@ -595,7 +595,7 @@ export const ServiceAgreement: React.FC = () => {
                           <img src={agreement.signature_data} alt="Student Signature" className="h-12 object-contain" />
                         </div>
                       ) : (
-                        <div className="font-serif italic text-lg text-[#570229] border-b border-slate-300 pb-1 inline-block">
+                        <div className="font-serif italic text-lg text-[#5A0122] border-b border-slate-300 pb-1 inline-block">
                           {agreement?.signature_data}
                         </div>
                       )}
@@ -622,7 +622,7 @@ export const ServiceAgreement: React.FC = () => {
               <form onSubmit={handleSignAgreement} className="space-y-6 print:hidden">
                 <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
                   <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
-                    <PenTool className="w-4 h-4 text-[#570229]" />
+                    <PenTool className="w-4 h-4 text-[#5A0122]" />
                     <span>Student Declaration &amp; Electronic Signature</span>
                   </h4>
 
@@ -637,7 +637,7 @@ export const ServiceAgreement: React.FC = () => {
                         value={studentName}
                         onChange={(e) => setStudentName(e.target.value)}
                         placeholder="e.g. John Doe"
-                        className="w-full h-11 px-3.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#570229]"
+                        className="w-full h-11 px-3.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
 
@@ -663,7 +663,7 @@ export const ServiceAgreement: React.FC = () => {
                         onClick={() => setSignatureType('typed')}
                         className={`px-3 py-1 rounded-lg font-bold text-xs cursor-pointer transition-colors ${
                           signatureType === 'typed'
-                            ? 'bg-[#570229] text-white shadow-xs'
+                            ? 'bg-[#5A0122] text-white shadow-xs'
                             : 'bg-white border border-slate-200 text-slate-600'
                         }`}
                       >
@@ -674,7 +674,7 @@ export const ServiceAgreement: React.FC = () => {
                         onClick={() => setSignatureType('drawn')}
                         className={`px-3 py-1 rounded-lg font-bold text-xs cursor-pointer transition-colors ${
                           signatureType === 'drawn'
-                            ? 'bg-[#570229] text-white shadow-xs'
+                            ? 'bg-[#5A0122] text-white shadow-xs'
                             : 'bg-white border border-slate-200 text-slate-600'
                         }`}
                       >
@@ -689,7 +689,7 @@ export const ServiceAgreement: React.FC = () => {
                           value={typedSignature}
                           onChange={(e) => setTypedSignature(e.target.value)}
                           placeholder="Type signature"
-                          className="w-full h-12 px-4 bg-white border border-slate-300 rounded-xl text-lg font-serif italic text-[#570229] focus:outline-none focus:border-[#570229]"
+                          className="w-full h-12 px-4 bg-white border border-slate-300 rounded-xl text-lg font-serif italic text-[#5A0122] focus:outline-none focus:border-[#5A0122]"
                         />
                         <p className="text-[10px] text-slate-400 font-medium mt-1">
                           Your typed legal name constitutes an electronic signature under the Information Technology Act.
@@ -729,7 +729,7 @@ export const ServiceAgreement: React.FC = () => {
                         type="checkbox"
                         checked={agreeAll}
                         onChange={(e) => setAgreeAll(e.target.checked)}
-                        className="mt-0.5 rounded text-[#570229] focus:ring-[#570229]"
+                        className="mt-0.5 rounded text-[#5A0122] focus:ring-[#5A0122]"
                       />
                       <span className="text-xs text-slate-700 font-medium leading-snug">
                         I have carefully read, understood, and unequivocally agree to all 13 clauses and fee structures
@@ -750,7 +750,7 @@ export const ServiceAgreement: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isSubmitting || !agreeAll}
-                    className="h-11 px-6 rounded-xl text-xs font-bold text-white bg-[#570229] hover:bg-[#6F0335] disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-all cursor-pointer flex items-center gap-2"
+                    className="h-11 px-6 rounded-xl text-xs font-bold text-white bg-[#5A0122] hover:bg-[#68092A] disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-all cursor-pointer flex items-center gap-2"
                   >
                     {isSubmitting ? (
                       <>
@@ -774,25 +774,25 @@ export const ServiceAgreement: React.FC = () => {
             {/* FEREX Education Company Details */}
             <div className="agreement-print-company-footer border-t border-slate-200 pt-4 mt-6 print:pt-3 print:mt-4 print:border-t-[1.5pt] print:border-slate-300 flex justify-between items-start text-left print:break-inside-avoid">
               <div className="space-y-1">
-                <span className="text-[11px] font-black tracking-widest text-[#570229] uppercase block mb-1">
+                <span className="text-[11px] font-black tracking-widest text-[#5A0122] uppercase block mb-1">
                   FEREX EDUCATION
                 </span>
                 <span className="text-xs font-semibold text-slate-500 block">
                   (Under Ferex Ventures Private Limited)
                 </span>
                 <div className="flex items-start gap-1.5 text-xs text-slate-600 mt-2 max-w-md">
-                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5 print:text-[#570229]" />
+                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5 print:text-[#5A0122]" />
                   <span>12/640 Thachukuzhi, Companipady Road, Nellikuzhy PO, Kothamangalam, Kerala - 686 691</span>
                 </div>
               </div>
 
               <div className="text-xs text-slate-600 space-y-1 text-right print:text-right">
                 <div className="flex items-center justify-end gap-1.5 print:justify-end">
-                  <Phone className="w-3.5 h-3.5 text-slate-400 print:text-[#570229]" />
+                  <Phone className="w-3.5 h-3.5 text-slate-400 print:text-[#5A0122]" />
                   <span className="font-medium">+91 95448 85077 , +44 78678 67779</span>
                 </div>
                 <div className="flex items-center justify-end gap-1.5 print:justify-end">
-                  <Mail className="w-3.5 h-3.5 text-slate-400 print:text-[#570229]" />
+                  <Mail className="w-3.5 h-3.5 text-slate-400 print:text-[#5A0122]" />
                   <span className="font-medium">ferexventuresoffice@gmail.com</span>
                 </div>
                 <div className="text-[11px] text-slate-400 font-mono">

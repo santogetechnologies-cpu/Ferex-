@@ -49,7 +49,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               hasToggle && 'pr-9',
               error
                 ? 'border-rose-300 dark:border-rose-700 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/15'
-                : 'border-slate-200/90 dark:border-slate-700 focus:border-[#58051E] dark:focus:border-rose-400 focus:ring-2 focus:ring-[#58051E]/10 dark:focus:ring-rose-500/20',
+                : 'border-slate-200/90 dark:border-slate-700 focus:border-[#5A0122] dark:focus:border-rose-400 focus:ring-2 focus:ring-[#5A0122]/10 dark:focus:ring-rose-500/20',
               inputClassName
             )}
             {...props}

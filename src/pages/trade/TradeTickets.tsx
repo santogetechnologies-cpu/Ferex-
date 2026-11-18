@@ -205,7 +205,7 @@ export const TradeTickets: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <LifeBuoy className="w-5 h-5 text-[#58051E]" />
+            <LifeBuoy className="w-5 h-5 text-[#5A0122]" />
             Support
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">Log requests received by phone, email, WhatsApp or in person.</p>
@@ -213,7 +213,7 @@ export const TradeTickets: React.FC = () => {
         <Button
           size="sm"
           onClick={() => setShowCreateModal(true)}
-          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
+          className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-xs cursor-pointer"
         >
           <Plus className="w-4 h-4 mr-1.5" />
           Log Manual Ticket
@@ -230,7 +230,7 @@ export const TradeTickets: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search tickets, clients, order #..."
-            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
           />
         </div>
 
@@ -242,7 +242,7 @@ export const TradeTickets: React.FC = () => {
               onClick={() => setFilterStatus(st)}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 filterStatus === st
-                  ? 'bg-[#58051E] text-white'
+                  ? 'bg-[#5A0122] text-white'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
               }`}
             >
@@ -274,7 +274,7 @@ export const TradeTickets: React.FC = () => {
               <Card
                 key={t.id}
                 onClick={() => setSelectedTicket(t)}
-                className="p-4 border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-[#58051E]/30 transition-all flex flex-col justify-between cursor-pointer group"
+                className="p-4 border border-slate-200/80 shadow-2xs hover:shadow-md hover:border-[#5A0122]/30 transition-all flex flex-col justify-between cursor-pointer group"
               >
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-2">
@@ -300,7 +300,7 @@ export const TradeTickets: React.FC = () => {
                     </span>
                   </div>
 
-                  <h3 className="text-sm font-black text-slate-900 leading-snug mb-1 group-hover:text-[#58051E] transition-colors">{t.subject}</h3>
+                  <h3 className="text-sm font-black text-slate-900 leading-snug mb-1 group-hover:text-[#5A0122] transition-colors">{t.subject}</h3>
                   <div className="text-[11px] text-slate-500 font-bold mb-2">
                     Client: <strong className="text-slate-900">{t.client_name}</strong> {t.client_contact ? `(${t.client_contact})` : ''}
                     {t.order_no ? ` • Linked Order: ${t.order_no}` : ''}
@@ -463,7 +463,7 @@ export const TradeTickets: React.FC = () => {
               <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
                 <div>
                   <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                    <Plus className="w-4 h-4 text-[#58051E]" /> Log Manual Issue / Complaint
+                    <Plus className="w-4 h-4 text-[#5A0122]" /> Log Manual Issue / Complaint
                   </h3>
                   <p className="text-xs text-slate-500 font-semibold">
                     Records phone or email requests so they become trackable and assignable to staff.
@@ -482,7 +482,7 @@ export const TradeTickets: React.FC = () => {
                       value={formData.client_name}
                       onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
                       placeholder="e.g. Baltic Grain Sp. z o.o."
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -508,7 +508,7 @@ export const TradeTickets: React.FC = () => {
                       value={formData.client_contact}
                       onChange={(e) => setFormData({ ...formData, client_contact: e.target.value })}
                       placeholder="e.g. Marek Wojcik (+48 58...)"
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -532,7 +532,7 @@ export const TradeTickets: React.FC = () => {
                     value={formData.subject}
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                     placeholder="e.g. Request for updated container seal numbers before customs filing"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -543,7 +543,7 @@ export const TradeTickets: React.FC = () => {
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="Provide full context of caller statement or email body..."
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -582,7 +582,7 @@ export const TradeTickets: React.FC = () => {
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowCreateModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Log Ticket</Button>
+                  <Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-white">Log Ticket</Button>
                 </div>
               </form>
             </motion.div>

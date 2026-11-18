@@ -21,7 +21,7 @@ import { BlockCap } from '../../components/CapLoader';
 type PlanFilter = 'all' | 'pending' | 'normal' | 'package';
 const SETTLED = ['Paid', 'Verified', 'Partial'];
 const date = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '');
-const field = 'h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20';
+const field = 'h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#5A0122]/20';
 
 /**
  * Where education admin decides how each student pays and gives discounts. Payments (the other page) is only for
@@ -97,7 +97,7 @@ export const AdminPaymentPlans: React.FC = () => {
   const actorName = profile?.full_name || profile?.email || 'Education admin';
 
   const planLabel = (r: typeof rows[number]) => r.flow === 'pending' ? 'Not confirmed' : r.flow === 'normal' ? 'Normal flow' : r.pkg?.name || 'Country package';
-  const chip = (active: boolean) => `h-8 px-3 rounded-full text-xs font-bold border cursor-pointer whitespace-nowrap ${active ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-white text-slate-600 border-slate-200 hover:border-[#58051E]/40'}`;
+  const chip = (active: boolean) => `h-8 px-3 rounded-full text-xs font-bold border cursor-pointer whitespace-nowrap ${active ? 'bg-[#5A0122] text-white border-[#5A0122]' : 'bg-white text-slate-600 border-slate-200 hover:border-[#5A0122]/40'}`;
 
   return (
     <div className="space-y-6 text-left">
@@ -117,7 +117,7 @@ export const AdminPaymentPlans: React.FC = () => {
               <ul className="rounded-2xl border border-slate-200/80 bg-white divide-y divide-slate-100 max-h-[70vh] overflow-y-auto">
                 {shown.map(r => (
                   <li key={r.s.id}>
-                    <button type="button" onClick={() => select(r.s.id)} aria-current={r.s.id === selectedId} className={`w-full text-left p-3.5 cursor-pointer hover:bg-slate-50 ${r.s.id === selectedId ? 'bg-[#58051E]/[0.04]' : ''}`}>
+                    <button type="button" onClick={() => select(r.s.id)} aria-current={r.s.id === selectedId} className={`w-full text-left p-3.5 cursor-pointer hover:bg-slate-50 ${r.s.id === selectedId ? 'bg-[#5A0122]/[0.04]' : ''}`}>
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0"><p className="text-sm font-bold text-slate-900 truncate">{r.s.full_name || r.s.email}</p><p className="text-[11px] text-slate-500 truncate">{r.country || 'No destination'}</p></div>
                         <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ring-1 ring-inset ${r.flow === 'pending' ? 'bg-amber-50 text-amber-800 ring-amber-600/20' : 'bg-emerald-50 text-emerald-700 ring-emerald-600/15'}`}>{r.flow === 'pending' ? <AlertCircle className="w-3 h-3" /> : r.flow === 'package' ? <Package className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />}{planLabel(r)}</span>
@@ -178,7 +178,7 @@ function PlanWorkspace({ row, payments, overrides, config, actorName, onBack, on
       <button type="button" onClick={onBack} className="lg:hidden text-xs font-bold text-slate-500 inline-flex items-center gap-1 cursor-pointer"><ChevronLeft className="w-3.5 h-3.5" />All students</button>
       <section className="rounded-2xl border border-slate-200/80 bg-white p-5 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0"><h2 className="text-lg font-bold text-slate-900 truncate">{s.full_name || s.email}</h2><p className="text-sm text-slate-500 truncate">{s.email}{country ? ` · ${country}` : ' · No destination yet'}</p></div>
-        <Link to={`/admin/payment-control?student=${s.id}`} className="h-9 px-4 rounded-xl bg-[#58051E] text-white text-xs font-bold inline-flex items-center gap-1.5 hover:bg-[#430316]"><Wallet className="w-3.5 h-3.5" />Record payments</Link>
+        <Link to={`/admin/payment-control?student=${s.id}`} className="h-9 px-4 rounded-xl bg-[#5A0122] text-white text-xs font-bold inline-flex items-center gap-1.5 hover:bg-[#68092A]"><Wallet className="w-3.5 h-3.5" />Record payments</Link>
       </section>
 
       <PaymentPlanPicker studentId={s.id} country={country} actorName={actorName} onChanged={onChanged} onSaved={() => window.dispatchEvent(new Event('ferex_student_billing_flow_change'))} />
@@ -190,7 +190,7 @@ function PlanWorkspace({ row, payments, overrides, config, actorName, onBack, on
         <>
           <section className="rounded-2xl border border-slate-200/80 bg-white p-5 space-y-4" aria-label="Discounts">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div><h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5"><BadgePercent className="w-4 h-4 text-[#58051E]" />Discounts</h3><p className="text-xs text-slate-500 mt-0.5">A discount lowers what the student pays. They see the lower amount, and Payments uses it too.</p></div>
+              <div><h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5"><BadgePercent className="w-4 h-4 text-[#5A0122]" />Discounts</h3><p className="text-xs text-slate-500 mt-0.5">A discount lowers what the student pays. They see the lower amount, and Payments uses it too.</p></div>
               {hasDiscount && <button type="button" disabled={busy} onClick={() => run(async () => { for (const id of Object.keys(overrides)) await deleteStudentFeeOverride(s.id, id); }, 'All discounts removed.')} className="h-8 px-3 rounded-lg border border-rose-200 text-rose-700 text-xs font-bold hover:bg-rose-50 cursor-pointer disabled:opacity-50">Remove all discounts</button>}
             </div>
 
@@ -199,7 +199,7 @@ function PlanWorkspace({ row, payments, overrides, config, actorName, onBack, on
               <div className="grid sm:grid-cols-[7rem_1fr_auto] gap-2">
                 <input aria-label="Discount percent for all fees" type="number" min="0" max="100" step="0.01" placeholder="Discount %" className={field} value={wholePct} onChange={e => setWholePct(e.target.value)} />
                 <input aria-label="Reason for the discount" placeholder="Reason (optional)" className={field} value={wholeReason} onChange={e => setWholeReason(e.target.value)} />
-                <button type="button" disabled={busy || !valid(wholePct)} onClick={() => run(async () => { for (const f of base) await apply(f, pct(wholePct), wholeReason); setWholePct(''); setWholeReason(''); }, `${wholePct}% discount applied to every fee.`)} className="h-9 px-4 rounded-xl bg-[#58051E] text-white text-xs font-bold hover:bg-[#430316] disabled:opacity-40 cursor-pointer">Apply to all</button>
+                <button type="button" disabled={busy || !valid(wholePct)} onClick={() => run(async () => { for (const f of base) await apply(f, pct(wholePct), wholeReason); setWholePct(''); setWholeReason(''); }, `${wholePct}% discount applied to every fee.`)} className="h-9 px-4 rounded-xl bg-[#5A0122] text-white text-xs font-bold hover:bg-[#68092A] disabled:opacity-40 cursor-pointer">Apply to all</button>
               </div>
             </div>
 

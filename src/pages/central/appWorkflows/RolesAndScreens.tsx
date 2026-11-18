@@ -15,7 +15,7 @@ export const RolesView: React.FC<{ app: InvApp; curated: AppCurated; role: strin
       <ul className="rounded-2xl border border-slate-200/80 bg-white divide-y divide-slate-100 overflow-hidden" aria-label="Roles">
         {app.roles.map(r => (
           <li key={r.role}>
-            <button type="button" aria-pressed={role === r.role} onClick={() => setRole(role === r.role ? '' : r.role)} className={`w-full text-left px-4 py-3 cursor-pointer hover:bg-slate-50 ${role === r.role ? 'bg-[#58051E]/[0.05]' : ''}`}>
+            <button type="button" aria-pressed={role === r.role} onClick={() => setRole(role === r.role ? '' : r.role)} className={`w-full text-left px-4 py-3 cursor-pointer hover:bg-slate-50 ${role === r.role ? 'bg-[#5A0122]/[0.05]' : ''}`}>
               <span className="flex items-center justify-between gap-2"><span className="text-sm font-bold text-slate-900 capitalize">{pretty(r.role)}</span><span className="text-[11px] font-bold text-slate-500 tabular-nums">{r.screens} screens</span></span>
               <span className="block text-xs text-slate-500 mt-0.5">{curated.roleNotes[r.role] || 'Access defined by the app\'s routes.'}</span>
             </button>
@@ -29,7 +29,7 @@ export const RolesView: React.FC<{ app: InvApp; curated: AppCurated; role: strin
             {groups.map(([g, list]) => (
               <section key={g} className="rounded-2xl border border-slate-200/80 bg-white p-4">
                 <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-500 mb-2">{g} ({list.length})</h3>
-                <ul className="grid sm:grid-cols-2 gap-1.5">{list.map(p => <li key={p.path}><button type="button" onClick={() => onOpenScreen(p.path)} className="w-full text-left rounded-lg border border-slate-200 px-3 py-2 hover:border-[#58051E]/40 cursor-pointer"><span className="block text-sm font-semibold text-slate-900">{p.title}</span><span className="block text-[11px] font-mono text-slate-500 truncate">{p.path} · {p.buttons.length} buttons</span></button></li>)}</ul>
+                <ul className="grid sm:grid-cols-2 gap-1.5">{list.map(p => <li key={p.path}><button type="button" onClick={() => onOpenScreen(p.path)} className="w-full text-left rounded-lg border border-slate-200 px-3 py-2 hover:border-[#5A0122]/40 cursor-pointer"><span className="block text-sm font-semibold text-slate-900">{p.title}</span><span className="block text-[11px] font-mono text-slate-500 truncate">{p.path} · {p.buttons.length} buttons</span></button></li>)}</ul>
               </section>
             ))}
           </>
@@ -53,7 +53,7 @@ export const ScreensView: React.FC<{ app: InvApp; curated: AppCurated; query: st
         {!query && <div className="relative"><Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input aria-label="Search screens" value={local} onChange={e => setLocal(e.target.value)} placeholder="Find a button, field, table…" className="w-full h-10 pl-9 pr-3" /></div>}
         <ul className="rounded-2xl border border-slate-200/80 bg-white divide-y divide-slate-100 max-h-[42rem] overflow-y-auto" aria-label="Screens">
           {list.length === 0 && <li className="p-6 text-center text-sm text-slate-500">Nothing matches "{q}".</li>}
-          {list.map(p => <li key={p.path}><button type="button" aria-current={page?.path === p.path} onClick={() => setSelected(p.path)} className={`w-full text-left px-3.5 py-2.5 cursor-pointer hover:bg-slate-50 ${page?.path === p.path ? 'bg-[#58051E]/[0.05]' : ''}`}><span className="block text-sm font-semibold text-slate-900">{p.title}</span><span className="block text-[11px] font-mono text-slate-500 truncate">{p.path}</span><span className="block text-[11px] text-slate-500">{p.buttons.length} buttons · {p.fields.length} fields</span></button></li>)}
+          {list.map(p => <li key={p.path}><button type="button" aria-current={page?.path === p.path} onClick={() => setSelected(p.path)} className={`w-full text-left px-3.5 py-2.5 cursor-pointer hover:bg-slate-50 ${page?.path === p.path ? 'bg-[#5A0122]/[0.05]' : ''}`}><span className="block text-sm font-semibold text-slate-900">{p.title}</span><span className="block text-[11px] font-mono text-slate-500 truncate">{p.path}</span><span className="block text-[11px] text-slate-500">{p.buttons.length} buttons · {p.fields.length} fields</span></button></li>)}
         </ul>
       </div>
       <div className="min-w-0 space-y-3">
@@ -91,7 +91,7 @@ export const CoverageView: React.FC<{ app: InvApp; curated: AppCurated; onOpenSc
       {unplaced.length > 0 && (
         <section className="rounded-2xl border border-slate-200/80 bg-white p-4">
           <h3 className="text-xs font-extrabold uppercase tracking-wide text-slate-500 mb-2">Screens not placed in a flowchart step ({unplaced.length})</h3>
-          <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-1.5">{unplaced.map(p => <li key={p.path}><button type="button" onClick={() => onOpenScreen(p.path)} className="w-full text-left rounded-lg border border-slate-200 px-3 py-2 hover:border-[#58051E]/40 cursor-pointer"><span className="block text-sm font-semibold text-slate-900">{p.title}</span><span className="block text-[11px] font-mono text-slate-500 truncate">{p.path}</span></button></li>)}</ul>
+          <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-1.5">{unplaced.map(p => <li key={p.path}><button type="button" onClick={() => onOpenScreen(p.path)} className="w-full text-left rounded-lg border border-slate-200 px-3 py-2 hover:border-[#5A0122]/40 cursor-pointer"><span className="block text-sm font-semibold text-slate-900">{p.title}</span><span className="block text-[11px] font-mono text-slate-500 truncate">{p.path}</span></button></li>)}</ul>
         </section>
       )}
     </div>

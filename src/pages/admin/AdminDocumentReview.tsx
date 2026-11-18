@@ -34,7 +34,7 @@ const TONE: Record<Norm | 'Missing', string> = {
 const LABEL: Record<Norm | 'Missing', string> = { Approved: 'Approved', 'Under Review': 'Under review', 'Needs action': 'Re-upload asked', Submitted: 'To review', Missing: 'Not uploaded' };
 const Pill: React.FC<{ s: Norm | 'Missing' }> = ({ s }) => <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-semibold ring-1 ring-inset whitespace-nowrap ${TONE[s]}`}>{LABEL[s]}</span>;
 const dateOf = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '');
-const btnPrimary = 'h-8 px-3 rounded-lg bg-[#58051E] text-white text-xs font-bold hover:bg-[#430316] inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50';
+const btnPrimary = 'h-8 px-3 rounded-lg bg-[#5A0122] text-white text-xs font-bold hover:bg-[#68092A] inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50';
 const btnGhost = 'h-8 px-3 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 inline-flex items-center gap-1.5 cursor-pointer';
 
 interface StudentInfo { full_name: string; email: string; assigned_counselor?: string; target_country?: string }
@@ -189,7 +189,7 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
         {current.pct !== null && (
           <div className="rounded-xl bg-slate-50 border border-slate-200/70 p-3.5 space-y-1.5">
             <div className="flex justify-between text-xs font-bold text-slate-700"><span>Required documents uploaded</span><span className="tabular-nums">{current.pct}%</span></div>
-            <div className="h-2 rounded-full bg-slate-200 overflow-hidden"><div className="h-full bg-[#58051E] rounded-full transition-all" style={{ width: `${current.pct}%` }} /></div>
+            <div className="h-2 rounded-full bg-slate-200 overflow-hidden"><div className="h-full bg-[#5A0122] rounded-full transition-all" style={{ width: `${current.pct}%` }} /></div>
           </div>
         )}
 
@@ -241,17 +241,17 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
       <div className="grid lg:grid-cols-[320px_minmax(0,1fr)] gap-5 items-start">
         <aside className={`${selected ? 'hidden lg:block' : ''} space-y-3`}>
           <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search students" className="w-full h-10 pl-9 pr-3" /></div>
-          <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer"><input type="checkbox" checked={queueOnly} onChange={e => setQueueOnly(e.target.checked)} className="w-4 h-4 accent-[#58051E]" />Only students with files to review</label>
+          <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer"><input type="checkbox" checked={queueOnly} onChange={e => setQueueOnly(e.target.checked)} className="w-4 h-4 accent-[#5A0122]" />Only students with files to review</label>
           {loading ? <BlockCap /> : visible.length === 0 ? (
             <EmptyState icon={Users} title={rows.length ? 'No students match' : isStaff ? 'No students assigned to you' : 'No students yet'} hint={rows.length ? 'Clear the search or the review filter.' : 'Students appear here once they register.'} />
           ) : (
             <ul className="space-y-2 max-h-[70vh] overflow-y-auto pr-1">
               {visible.map(r => (
                 <li key={r.id}>
-                  <button type="button" onClick={() => setSelected(r.id)} className={`w-full text-left rounded-xl border p-3 transition cursor-pointer ${selected === r.id ? 'border-[#58051E] bg-[#58051E]/[0.04] ring-1 ring-[#58051E]/20' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                  <button type="button" onClick={() => setSelected(r.id)} className={`w-full text-left rounded-xl border p-3 transition cursor-pointer ${selected === r.id ? 'border-[#5A0122] bg-[#5A0122]/[0.04] ring-1 ring-[#5A0122]/20' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
                     <div className="flex items-center justify-between gap-2"><p className="text-sm font-bold text-slate-900 truncate">{r.name}</p>{r.toReview > 0 && <span className="text-[10px] font-bold bg-amber-100 text-amber-800 rounded-full px-2 py-0.5 shrink-0">{r.toReview} to review</span>}</div>
                     <p className="text-[11px] text-slate-500 truncate">{r.country || 'No country yet'} · {r.docs.length} {r.docs.length === 1 ? 'file' : 'files'}</p>
-                    {r.pct !== null && <div className="mt-2 h-1.5 rounded-full bg-slate-100 overflow-hidden"><div className="h-full bg-[#58051E]/80" style={{ width: `${r.pct}%` }} /></div>}
+                    {r.pct !== null && <div className="mt-2 h-1.5 rounded-full bg-slate-100 overflow-hidden"><div className="h-full bg-[#5A0122]/80" style={{ width: `${r.pct}%` }} /></div>}
                   </button>
                 </li>
               ))}

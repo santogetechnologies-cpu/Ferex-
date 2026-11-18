@@ -39,7 +39,7 @@ const FEREX_APPS: AppItem[] = [
     matchPrefixes: ['/admin', '/student', '/staff'],
     icon: GraduationCap,
     tag: 'Education',
-    tagClass: 'bg-[#58051E]/8 text-[#58051E] border-[#58051E]/20',
+    tagClass: 'bg-[#5A0122]/8 text-[#5A0122] border-[#5A0122]/20',
   },
   {
     id: 'digital',
@@ -120,7 +120,7 @@ export const AppSwitcher: React.FC = () => {
         title="Switch Ferex Enterprise Applications"
         className={`relative p-2 rounded-xl border transition-all duration-150 cursor-pointer flex items-center justify-center ${
           isOpen
-            ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm'
+            ? 'bg-[#5A0122] text-white border-[#5A0122] shadow-sm'
             : 'bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border-slate-200/90 shadow-2xs'
         }`}
       >
@@ -129,7 +129,7 @@ export const AppSwitcher: React.FC = () => {
             <span
               key={i}
               className={`w-0.5 h-0.5 rounded-[0.5px] transition-colors ${
-                isOpen ? 'bg-white' : 'bg-slate-500 group-hover:bg-[#58051E]'
+                isOpen ? 'bg-white' : 'bg-slate-500 group-hover:bg-[#5A0122]'
               }`}
             />
           ))}

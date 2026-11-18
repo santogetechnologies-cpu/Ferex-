@@ -98,7 +98,7 @@ export const DigitalPMNotifications: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-[#58051E]/8 text-[#58051E] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#5A0122]/8 text-[#5A0122] flex items-center justify-center">
               <Bell className="w-4 h-4" />
             </div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
@@ -136,7 +136,7 @@ export const DigitalPMNotifications: React.FC = () => {
           onClick={() => setFilter('All')}
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
             filter === 'All'
-              ? 'bg-[#58051E] text-white shadow-xs'
+              ? 'bg-[#5A0122] text-white shadow-xs'
               : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
           }`}
         >
@@ -146,7 +146,7 @@ export const DigitalPMNotifications: React.FC = () => {
           onClick={() => setFilter('Unread')}
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
             filter === 'Unread'
-              ? 'bg-[#58051E] text-white shadow-xs'
+              ? 'bg-[#5A0122] text-white shadow-xs'
               : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
           }`}
         >
@@ -170,13 +170,13 @@ export const DigitalPMNotifications: React.FC = () => {
               <div
                 key={n.id}
                 className={`p-4 flex items-start justify-between gap-3 transition-colors ${
-                  !n.is_read ? 'bg-[#58051E]/3' : 'hover:bg-slate-50'
+                  !n.is_read ? 'bg-[#5A0122]/3' : 'hover:bg-slate-50'
                 }`}
               >
                 <div className="flex items-start gap-3 min-w-0">
                   <span
                     className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
-                      !n.is_read ? 'bg-[#58051E]' : 'bg-slate-300'
+                      !n.is_read ? 'bg-[#5A0122]' : 'bg-slate-300'
                     }`}
                   />
                   <div>

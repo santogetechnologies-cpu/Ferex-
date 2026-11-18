@@ -66,7 +66,7 @@ export default function DigitalClientWorkspace() {
               </div>
               {t && <div className="text-right"><div className="text-sm font-black">{money(t.total, cur)}</div><div className="text-[11px] font-bold text-slate-500">{t.percent_paid}% paid</div></div>}
             </div>
-            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-[#58051E] rounded-full" style={{ width: `${Math.min(100, p.progress || 0)}%` }} /></div>
+            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-[#5A0122] rounded-full" style={{ width: `${Math.min(100, p.progress || 0)}%` }} /></div>
             {p.scope && <p className="text-sm text-slate-600">{p.scope}</p>}
 
             {t && c && (
@@ -86,7 +86,7 @@ export default function DigitalClientWorkspace() {
                         <span>Paid {money(term.received, cur)} of {money(term.amount, cur)}</span>
                         <span className="font-black">Balance {money(term.remaining, cur)}</span>
                       </div>
-                      <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden"><div className={`h-full rounded-full ${term.status === 'Overdue' ? 'bg-rose-500' : term.status === 'Paid' ? 'bg-emerald-500' : 'bg-[#58051E]'}`} style={{ width: `${Math.min(100, term.percent_paid)}%` }} /></div>
+                      <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden"><div className={`h-full rounded-full ${term.status === 'Overdue' ? 'bg-rose-500' : term.status === 'Paid' ? 'bg-emerald-500' : 'bg-[#5A0122]'}`} style={{ width: `${Math.min(100, term.percent_paid)}%` }} /></div>
                     </div>
                   ))}
                 </div>

@@ -88,7 +88,7 @@ export const DigitalPMProfile: React.FC = () => {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2.5 mb-1">
-          <div className="w-8 h-8 rounded-lg bg-[#58051E]/8 text-[#58051E] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-[#5A0122]/8 text-[#5A0122] flex items-center justify-center">
             <User className="w-4 h-4" />
           </div>
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">
@@ -103,7 +103,7 @@ export const DigitalPMProfile: React.FC = () => {
 
       {/* Profile Card Header */}
       <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-subtle flex flex-col sm:flex-row items-center sm:items-start gap-5">
-        <div className="w-16 h-16 rounded-2xl bg-[#58051E] text-white text-xl font-extrabold flex items-center justify-center shadow-md shrink-0">
+        <div className="w-16 h-16 rounded-2xl bg-[#5A0122] text-white text-xl font-extrabold flex items-center justify-center shadow-md shrink-0">
           {pmInitials}
         </div>
 
@@ -126,7 +126,7 @@ export const DigitalPMProfile: React.FC = () => {
         {/* Personal Details */}
         <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-subtle">
           <h3 className="text-sm font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
-            <User className="w-4 h-4 text-[#58051E]" />
+            <User className="w-4 h-4 text-[#5A0122]" />
             Staff Identity Details
           </h3>
 
@@ -177,7 +177,7 @@ export const DigitalPMProfile: React.FC = () => {
         {/* Security & Password */}
         <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-subtle">
           <h3 className="text-sm font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
-            <KeyRound className="w-4 h-4 text-[#58051E]" />
+            <KeyRound className="w-4 h-4 text-[#5A0122]" />
             Account Security & Password
           </h3>
 

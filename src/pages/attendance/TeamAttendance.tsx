@@ -53,7 +53,7 @@ export const TeamAttendance: React.FC<Shared> = ({ ctx, rules, holidays, toast, 
       {error && <p role="alert" className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700">{error}</p>}
       <Panel title="Verify attendance" right={
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg border border-slate-200 overflow-hidden">{(['day', 'week'] as Mode[]).map(m => <button key={m} type="button" onClick={() => setMode(m)} className={`px-3 py-1.5 text-xs font-bold cursor-pointer ${mode === m ? 'bg-[#58051E] text-white' : 'bg-white text-slate-600'}`}>{m === 'day' ? 'Daily' : 'Weekly'}</button>)}</div>
+          <div className="inline-flex rounded-lg border border-slate-200 overflow-hidden">{(['day', 'week'] as Mode[]).map(m => <button key={m} type="button" onClick={() => setMode(m)} className={`px-3 py-1.5 text-xs font-bold cursor-pointer ${mode === m ? 'bg-[#5A0122] text-white' : 'bg-white text-slate-600'}`}>{m === 'day' ? 'Daily' : 'Weekly'}</button>)}</div>
           <Btn onClick={() => setAnchor(addDays(anchor, -step))} aria-label="Previous">←</Btn>
           <input type="date" className={inputCls} value={anchor} max={ctx.today} onChange={e => e.target.value && setAnchor(e.target.value)} aria-label="Date" />
           <Btn onClick={() => setAnchor(addDays(anchor, step))} disabled={addDays(anchor, step) > addDays(ctx.today, mode === 'week' ? 6 : 0)} aria-label="Next">→</Btn>

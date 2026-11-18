@@ -286,11 +286,11 @@ export const DigitalClients: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Users className="w-5 h-5 text-[#58051E]" /> Clients
+            <Users className="w-5 h-5 text-[#5A0122]" /> Clients
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">Your clients, internal platforms and leads.</p>
         </div>
-        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+        <Button size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold" onClick={() => setShowAddModal(true)}>
           <Plus className="w-4 h-4 mr-1.5" /> Add Client
         </Button>
       </div>
@@ -304,7 +304,7 @@ export const DigitalClients: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search company, contact person, industry, email..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
           />
         </div>
 
@@ -316,7 +316,7 @@ export const DigitalClients: React.FC = () => {
               onClick={() => { setClientTypeFilter(tab); setCurrentPage(1); }}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                 clientTypeFilter === tab
-                  ? 'bg-[#58051E] text-white shadow-xs'
+                  ? 'bg-[#5A0122] text-white shadow-xs'
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
@@ -384,7 +384,7 @@ export const DigitalClients: React.FC = () => {
                   <p className="text-xs font-semibold text-slate-500 mt-0.5 flex items-center gap-1">
                     <Users className="w-3 h-3 text-slate-400" /> {c.contact}
                   </p>
-                  <p className="text-[11px] font-bold text-[#58051E] mt-0.5">
+                  <p className="text-[11px] font-bold text-[#5A0122] mt-0.5">
                     {c.type}
                   </p>
                 </div>
@@ -417,7 +417,7 @@ export const DigitalClients: React.FC = () => {
                   className="w-full text-[11px] font-bold h-8 border-slate-200 hover:border-slate-300"
                   onClick={() => handleOpenDossier(c)}
                 >
-                  <Eye className="w-3 h-3 mr-1 text-[#58051E]" /> View Client File & Services
+                  <Eye className="w-3 h-3 mr-1 text-[#5A0122]" /> View Client File & Services
                 </Button>
               </div>
             </Card>
@@ -481,7 +481,7 @@ export const DigitalClients: React.FC = () => {
               <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                    <Building2 className="w-5 h-5 text-[#58051E]" /> Add Client Account
+                    <Building2 className="w-5 h-5 text-[#5A0122]" /> Add Client Account
                   </h3>
                   <p className="text-xs text-slate-500 font-semibold mt-0.5">
                     Register a new internal platform or external enterprise organization in Ferex Digital ERP.
@@ -496,14 +496,14 @@ export const DigitalClients: React.FC = () => {
                   <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">Client Classification *</label>
                   <div className="grid grid-cols-2 gap-3">
                     <label className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition-all ${
-                      newClient.client_type === 'External' ? 'bg-[#58051E]/5 border-[#58051E] text-[#58051E] font-bold' : 'bg-white border-slate-200 text-slate-600 font-medium'
+                      newClient.client_type === 'External' ? 'bg-[#5A0122]/5 border-[#5A0122] text-[#5A0122] font-bold' : 'bg-white border-slate-200 text-slate-600 font-medium'
                     }`}>
                       <input
                         type="radio"
                         name="client_type"
                         checked={newClient.client_type === 'External'}
                         onChange={() => setNewClient({ ...newClient, client_type: 'External' })}
-                        className="accent-[#58051E]"
+                        className="accent-[#5A0122]"
                       />
                       <div>
                         <span className="block text-xs font-black">External Account</span>
@@ -512,14 +512,14 @@ export const DigitalClients: React.FC = () => {
                     </label>
 
                     <label className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition-all ${
-                      newClient.client_type === 'Internal' ? 'bg-[#58051E]/5 border-[#58051E] text-[#58051E] font-bold' : 'bg-white border-slate-200 text-slate-600 font-medium'
+                      newClient.client_type === 'Internal' ? 'bg-[#5A0122]/5 border-[#5A0122] text-[#5A0122] font-bold' : 'bg-white border-slate-200 text-slate-600 font-medium'
                     }`}>
                       <input
                         type="radio"
                         name="client_type"
                         checked={newClient.client_type === 'Internal'}
                         onChange={() => setNewClient({ ...newClient, client_type: 'Internal' })}
-                        className="accent-[#58051E]"
+                        className="accent-[#5A0122]"
                       />
                       <div>
                         <span className="block text-xs font-black">Internal Ferex Platform</span>
@@ -539,7 +539,7 @@ export const DigitalClients: React.FC = () => {
                       value={newClient.company_name}
                       onChange={(e) => setNewClient({ ...newClient, company_name: e.target.value })}
                       placeholder="e.g. Apex Global Technologies Ltd."
-                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -547,7 +547,7 @@ export const DigitalClients: React.FC = () => {
                     <select
                       value={newClient.industry}
                       onChange={(e) => setNewClient({ ...newClient, industry: e.target.value })}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     >
                       {INDUSTRY_OPTIONS.map(ind => (
                         <option key={ind} value={ind}>{ind}</option>
@@ -566,7 +566,7 @@ export const DigitalClients: React.FC = () => {
                       value={newClient.contact_person}
                       onChange={(e) => setNewClient({ ...newClient, contact_person: e.target.value })}
                       placeholder="e.g. John Doe, VP Marketing"
-                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -577,7 +577,7 @@ export const DigitalClients: React.FC = () => {
                       value={newClient.email}
                       onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
                       placeholder="contact@company.com"
-                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -591,7 +591,7 @@ export const DigitalClients: React.FC = () => {
                       value={newClient.phone}
                       onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
                       placeholder="+91 98200 12345"
-                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -601,7 +601,7 @@ export const DigitalClients: React.FC = () => {
                       value={newClient.city}
                       onChange={(e) => setNewClient({ ...newClient, city: e.target.value })}
                       placeholder="e.g. Mumbai / Maharashtra"
-                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -617,7 +617,7 @@ export const DigitalClients: React.FC = () => {
                         value={newClient.estimated_budget}
                         onChange={(e) => setNewClient({ ...newClient, estimated_budget: Number(e.target.value) })}
                         placeholder="250000"
-                        className="w-full h-10 pl-9 pr-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-10 pl-9 pr-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
                   </div>
@@ -630,7 +630,7 @@ export const DigitalClients: React.FC = () => {
                         value={newClient.contract_value}
                         onChange={(e) => setNewClient({ ...newClient, contract_value: Number(e.target.value) })}
                         placeholder="500000"
-                        className="w-full h-10 pl-9 pr-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-10 pl-9 pr-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
                   </div>
@@ -647,7 +647,7 @@ export const DigitalClients: React.FC = () => {
                         value={newClient.website}
                         onChange={(e) => setNewClient({ ...newClient, website: e.target.value })}
                         placeholder="https://company.com"
-                        className="w-full h-10 pl-9 pr-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-10 pl-9 pr-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
                   </div>
@@ -658,7 +658,7 @@ export const DigitalClients: React.FC = () => {
                       value={newClient.tax_id}
                       onChange={(e) => setNewClient({ ...newClient, tax_id: e.target.value })}
                       placeholder="e.g. 27AAAAA0000A1Z5"
-                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -671,13 +671,13 @@ export const DigitalClients: React.FC = () => {
                     value={newClient.notes}
                     onChange={(e) => setNewClient({ ...newClient, notes: e.target.value })}
                     placeholder="Enter project requirements, billing terms, key stakeholder notes..."
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Client</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]">Save Client</Button>
                 </div>
               </form>
             </motion.div>
@@ -717,7 +717,7 @@ export const DigitalClients: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setEditingClient(null)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Changes</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]">Save Changes</Button>
                 </div>
               </form>
             </motion.div>
@@ -734,7 +734,7 @@ export const DigitalClients: React.FC = () => {
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
                 <div>
                   <h3 className="text-sm font-black text-slate-900">{dossierClient.name}</h3>
-                  <span className="text-[10px] font-bold text-[#58051E] uppercase">Client Service File & Ledger</span>
+                  <span className="text-[10px] font-bold text-[#5A0122] uppercase">Client Service File & Ledger</span>
                 </div>
                 <button onClick={() => setDossierClient(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
@@ -756,7 +756,7 @@ export const DigitalClients: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400 font-semibold">Industry Tier:</span>
-                    <span className="font-bold text-[#58051E]">{dossierClient.type}</span>
+                    <span className="font-bold text-[#5A0122]">{dossierClient.type}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400 font-semibold">Classification:</span>
@@ -772,7 +772,7 @@ export const DigitalClients: React.FC = () => {
                       <div className="text-[11px] font-semibold text-slate-500">{hasPortal ? 'This client has a login and can see their projects, milestones and invoices.' : 'The Central admin can invite the client so they can follow their projects, milestones and payments.'}</div>
                     </div>
                     {isCentral && (
-                      <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-[11px] font-bold shrink-0" disabled={inviting} onClick={handleInvite}>
+                      <Button size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-[11px] font-bold shrink-0" disabled={inviting} onClick={handleInvite}>
                         {inviting ? 'Sending…' : hasPortal ? 'Resend invitation' : 'Send invitation'}
                       </Button>
                     )}
@@ -782,7 +782,7 @@ export const DigitalClients: React.FC = () => {
                 {/* Subscribed Projects */}
                 <div className="space-y-2">
                   <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <FolderKanban className="w-3.5 h-3.5 text-[#58051E]" /> Active Digital Projects ({clientProjects.length})
+                    <FolderKanban className="w-3.5 h-3.5 text-[#5A0122]" /> Active Digital Projects ({clientProjects.length})
                   </h4>
                   {clientProjects.length === 0 ? (
                     <div className="p-3 bg-slate-50 rounded-xl text-slate-400 text-center font-medium">No projects currently mapped</div>
@@ -792,7 +792,7 @@ export const DigitalClients: React.FC = () => {
                         <div key={p.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 space-y-1.5">
                           <div className="flex justify-between font-bold text-slate-900">
                             <span>{p.title}</span>
-                            <span className="text-[#58051E]">₹{Number(p.budget || 0).toLocaleString('en-IN')}</span>
+                            <span className="text-[#5A0122]">₹{Number(p.budget || 0).toLocaleString('en-IN')}</span>
                           </div>
                           <div className="flex justify-between text-[11px] text-slate-500">
                             <span>Category: {p.service_category}</span>
@@ -807,7 +807,7 @@ export const DigitalClients: React.FC = () => {
                 {/* Tasks */}
                 <div className="space-y-2">
                   <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <CheckSquare className="w-3.5 h-3.5 text-[#58051E]" /> Active Engineering Tasks ({clientTasks.length})
+                    <CheckSquare className="w-3.5 h-3.5 text-[#5A0122]" /> Active Engineering Tasks ({clientTasks.length})
                   </h4>
                   {clientTasks.length === 0 ? (
                     <div className="p-3 bg-slate-50 rounded-xl text-slate-400 text-center font-medium">All tasks cleared or in queue</div>
@@ -826,7 +826,7 @@ export const DigitalClients: React.FC = () => {
                 {/* Invoices */}
                 <div className="space-y-2">
                   <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-[#58051E]" /> Billing Ledgers ({clientInvoices.length})
+                    <FileText className="w-3.5 h-3.5 text-[#5A0122]" /> Billing Ledgers ({clientInvoices.length})
                   </h4>
                   {clientInvoices.length === 0 ? (
                     <div className="p-3 bg-slate-50 rounded-xl text-slate-400 text-center font-medium">No invoices issued yet</div>
@@ -848,7 +848,7 @@ export const DigitalClients: React.FC = () => {
                   )}
                 </div>
 
-                <Button size="sm" className="w-full text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => setDossierClient(null)}>
+                <Button size="sm" className="w-full text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]" onClick={() => setDossierClient(null)}>
                   Close File
                 </Button>
               </div>

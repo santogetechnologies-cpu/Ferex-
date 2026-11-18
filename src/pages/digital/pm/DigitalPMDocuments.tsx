@@ -123,7 +123,7 @@ export const DigitalPMDocuments: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-[#58051E]/8 text-[#58051E] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#5A0122]/8 text-[#5A0122] flex items-center justify-center">
               <FileText className="w-4 h-4" />
             </div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
@@ -161,7 +161,7 @@ export const DigitalPMDocuments: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search deliverables, URLs, assets..."
-            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
           />
         </div>
       </div>
@@ -213,7 +213,7 @@ export const DigitalPMDocuments: React.FC = () => {
                       href={d.file_url}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-[#58051E] font-bold text-xs hover:underline flex items-center gap-1"
+                      className="text-[#5A0122] font-bold text-xs hover:underline flex items-center gap-1"
                     >
                       Open Asset <ExternalLink className="w-3.5 h-3.5" />
                     </a>

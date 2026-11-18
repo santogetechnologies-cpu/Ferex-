@@ -237,7 +237,7 @@ export const DigitalPMSprints: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-[#58051E]/8 text-[#58051E] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#5A0122]/8 text-[#5A0122] flex items-center justify-center">
               <Layers className="w-4 h-4" />
             </div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
@@ -261,7 +261,7 @@ export const DigitalPMSprints: React.FC = () => {
           </Button>
           <Button
             size="sm"
-            className="bg-[#58051E] hover:bg-[#430316] text-white"
+            className="bg-[#5A0122] hover:bg-[#68092A] text-white"
             onClick={() => {
               if (projects.length > 0 && !newTask.project_id) {
                 setNewTask(prev => ({ ...prev, project_id: projects[0].id }));
@@ -294,7 +294,7 @@ export const DigitalPMSprints: React.FC = () => {
               onClick={() => setSelectedSprintId('All')}
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 selectedSprintId === 'All'
-                  ? 'bg-[#58051E] text-white shadow-xs font-bold'
+                  ? 'bg-[#5A0122] text-white shadow-xs font-bold'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -306,7 +306,7 @@ export const DigitalPMSprints: React.FC = () => {
                 onClick={() => setSelectedSprintId(s.id)}
                 className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   selectedSprintId === s.id
-                    ? 'bg-[#58051E] text-white shadow-xs font-bold'
+                    ? 'bg-[#5A0122] text-white shadow-xs font-bold'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
@@ -506,7 +506,7 @@ export const DigitalPMSprints: React.FC = () => {
             >
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#58051E]/10 flex items-center justify-center text-[#58051E]">
+                  <div className="w-8 h-8 rounded-lg bg-[#5A0122]/10 flex items-center justify-center text-[#5A0122]">
                     <CheckSquare className="w-4 h-4" />
                   </div>
                   <div>
@@ -606,7 +606,7 @@ export const DigitalPMSprints: React.FC = () => {
 
                 <div className="flex justify-end gap-2 pt-2">
                   <Button variant="ghost" size="sm" onClick={() => setShowAddTask(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Create Task</Button>
+                  <Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-white">Create Task</Button>
                 </div>
               </form>
             </motion.div>
@@ -700,7 +700,7 @@ export const DigitalPMSprints: React.FC = () => {
 
                 <div className="flex justify-end gap-2 pt-2">
                   <Button variant="ghost" size="sm" onClick={() => setShowAddSprint(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Start Sprint</Button>
+                  <Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-white">Start Sprint</Button>
                 </div>
               </form>
             </motion.div>

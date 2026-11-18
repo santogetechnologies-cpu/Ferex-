@@ -269,7 +269,7 @@ export const DigitalLeads: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Target className="w-5 h-5 text-[#58051E]" /> Leads
+            <Target className="w-5 h-5 text-[#5A0122]" /> Leads
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">Track prospects from first contact to client.</p>
         </div>
@@ -277,7 +277,7 @@ export const DigitalLeads: React.FC = () => {
           <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => setShowCategoryMgr(true)}>
             <Settings className="w-3.5 h-3.5 mr-1.5" /> Categories
           </Button>
-          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+          <Button size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold" onClick={() => setShowAddModal(true)}>
             <Plus className="w-4 h-4 mr-1.5" /> Log Opportunity Lead
           </Button>
         </div>
@@ -293,7 +293,7 @@ export const DigitalLeads: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search company, contact, email..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -331,7 +331,7 @@ export const DigitalLeads: React.FC = () => {
             <Card key={l.id} className="p-5 border border-slate-200/70 shadow-xs space-y-4 hover:border-slate-300 transition-all flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded-md truncate max-w-[140px]">{l.service}</span>
+                  <span className="text-[10px] font-black uppercase text-[#5A0122] bg-[#5A0122]/10 px-2 py-0.5 rounded-md truncate max-w-[140px]">{l.service}</span>
                   <select
                     value={l.stage}
                     onChange={(e) => handleUpdateStage(l, e.target.value)}
@@ -381,7 +381,7 @@ export const DigitalLeads: React.FC = () => {
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                 <Button
                   size="sm"
-                  className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
+                  className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]"
                   onClick={() => openConvert(l)}
                 >
                   <ArrowRight className="w-3.5 h-3.5 mr-1" /> Convert to Client
@@ -407,7 +407,7 @@ export const DigitalLeads: React.FC = () => {
               className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2"><Target className="w-4 h-4 text-[#58051E]" /> Log Opportunity Lead</h3>
+                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2"><Target className="w-4 h-4 text-[#5A0122]" /> Log Opportunity Lead</h3>
                 <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
               </div>
               <form onSubmit={handleAdd} className="space-y-3">
@@ -491,7 +491,7 @@ export const DigitalLeads: React.FC = () => {
 
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Lead</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]">Save Lead</Button>
                 </div>
               </form>
             </motion.div>
@@ -582,7 +582,7 @@ export const DigitalLeads: React.FC = () => {
               className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6"
             >
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2"><Settings className="w-4 h-4 text-[#58051E]" /> Manage Service Categories</h3>
+                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2"><Settings className="w-4 h-4 text-[#5A0122]" /> Manage Service Categories</h3>
                 <button onClick={() => setShowCategoryMgr(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
               </div>
 
@@ -616,7 +616,7 @@ export const DigitalLeads: React.FC = () => {
                 />
                 <Button
                   size="sm"
-                  className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold"
+                  className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold"
                   onClick={() => {
                     if (newCategory.trim()) {
                       saveCategories([...categories, newCategory.trim()]);

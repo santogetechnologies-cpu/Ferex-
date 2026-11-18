@@ -179,7 +179,7 @@ const LeaveForm: React.FC<{ types: LeaveType[]; today: string; level: string; on
         {t && t.is_paid && t.kind !== 'hourly' && <p className="text-[11px] font-semibold text-slate-500">Days beyond your yearly limit of {t.annual_quota} are treated as loss of pay.</p>}
         <p className="text-[11px] font-semibold text-slate-500">{level === 'admin' ? 'The superadmin approves your leave.' : 'Your platform administrator approves your leave.'}</p>
         {err && <p role="alert" className="text-xs font-semibold text-rose-700">{err}</p>}
-        <div className="flex justify-end gap-2"><Btn onClick={onClose}>Cancel</Btn><button type="submit" disabled={busy} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#58051E] text-white cursor-pointer disabled:opacity-50">{busy ? 'Sending…' : 'Send request'}</button></div>
+        <div className="flex justify-end gap-2"><Btn onClick={onClose}>Cancel</Btn><button type="submit" disabled={busy} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#5A0122] text-white cursor-pointer disabled:opacity-50">{busy ? 'Sending…' : 'Send request'}</button></div>
       </form>
     </Modal>
   );

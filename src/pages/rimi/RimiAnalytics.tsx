@@ -98,12 +98,12 @@ export const RimiAnalytics: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-md bg-[#58051E]/10 text-[#58051E] text-[10px] font-black uppercase tracking-wider">
+            <span className="px-2.5 py-0.5 rounded-md bg-[#5A0122]/10 text-[#5A0122] text-[10px] font-black uppercase tracking-wider">
               Financial Intelligence Hub
             </span>
           </div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight mt-1 flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-[#58051E]" /> Reports
+            <BarChart3 className="w-5 h-5 text-[#5A0122]" /> Reports
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">Sales, receivables, product performance and batches at risk.</p>
         </div>
@@ -116,7 +116,7 @@ export const RimiAnalytics: React.FC = () => {
               onClick={() => setTimeRange(tab)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 timeRange === tab
-                  ? 'bg-[#58051E] text-white shadow-xs'
+                  ? 'bg-[#5A0122] text-white shadow-xs'
                   : 'text-slate-600 hover:bg-slate-50'
               }`}
             >
@@ -132,7 +132,7 @@ export const RimiAnalytics: React.FC = () => {
         <Card className="p-4 border border-slate-200/80 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Gross Sales Invoiced</span>
-            <div className="w-8 h-8 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-xl bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center font-bold">
               <DollarSign className="w-4 h-4" />
             </div>
           </div>
@@ -216,7 +216,7 @@ export const RimiAnalytics: React.FC = () => {
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                <PieChart className="w-4 h-4 text-[#58051E]" /> Category Sales Volume
+                <PieChart className="w-4 h-4 text-[#5A0122]" /> Category Sales Volume
               </h3>
               <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
                 Revenue generation breakdown by product family.
@@ -238,7 +238,7 @@ export const RimiAnalytics: React.FC = () => {
                   </div>
                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#58051E] rounded-full"
+                      className="h-full bg-[#5A0122] rounded-full"
                       style={{ width: `${cat.percentage}%` }}
                     />
                   </div>
@@ -253,7 +253,7 @@ export const RimiAnalytics: React.FC = () => {
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                <Boxes className="w-4 h-4 text-[#58051E]" /> Regional Customer Distribution
+                <Boxes className="w-4 h-4 text-[#5A0122]" /> Regional Customer Distribution
               </h3>
               <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
                 Customer account concentration & outstanding book across territories.
@@ -289,7 +289,7 @@ export const RimiAnalytics: React.FC = () => {
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div>
             <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-              <Package className="w-4 h-4 text-[#58051E]" /> Top Revenue-Generating Frozen SKUs
+              <Package className="w-4 h-4 text-[#5A0122]" /> Top Revenue-Generating Frozen SKUs
             </h3>
             <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
               Fastest-moving items ranked by realized sales order total.
@@ -306,10 +306,10 @@ export const RimiAnalytics: React.FC = () => {
             {analytics.topSellingProducts.map((p, idx) => (
               <div key={idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-200/70 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="w-6 h-6 rounded-lg bg-[#58051E] text-white font-black text-xs flex items-center justify-center">
+                  <span className="w-6 h-6 rounded-lg bg-[#5A0122] text-white font-black text-xs flex items-center justify-center">
                     #{idx + 1}
                   </span>
-                  <span className="text-xs font-black text-[#58051E]">₹{p.revenue.toLocaleString('en-IN')}</span>
+                  <span className="text-xs font-black text-[#5A0122]">₹{p.revenue.toLocaleString('en-IN')}</span>
                 </div>
                 <h4 className="text-xs font-black text-slate-900 truncate">{p.name}</h4>
                 <p className="text-[11px] text-slate-500 font-semibold">Total Dispatched: {p.quantity} Units</p>

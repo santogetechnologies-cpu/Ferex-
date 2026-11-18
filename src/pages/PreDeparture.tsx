@@ -178,7 +178,7 @@ export const PreDeparture: React.FC = () => {
       {/* Header */}
       <div className="p-6 md:p-8 bg-white text-slate-900 rounded-2xl shadow-xs border border-slate-200/80 relative overflow-hidden">
         <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#58051E]/10 rounded-md text-[10px] font-black uppercase text-[#58051E] mb-3">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#5A0122]/10 rounded-md text-[10px] font-black uppercase text-[#5A0122] mb-3">
             <Plane className="w-3.5 h-3.5" /> Phase 03 • Pre-Departure & Campus Arrival
           </div>
           <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900">
@@ -208,7 +208,7 @@ export const PreDeparture: React.FC = () => {
           onClick={() => setActiveTab('overview')}
           className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors flex items-center gap-2 cursor-pointer ${
             activeTab === 'overview'
-              ? 'bg-[#58051E] text-white shadow-subtle'
+              ? 'bg-[#5A0122] text-white shadow-subtle'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
@@ -219,7 +219,7 @@ export const PreDeparture: React.FC = () => {
           onClick={() => setActiveTab('dorm')}
           className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors flex items-center gap-2 cursor-pointer ${
             activeTab === 'dorm'
-              ? 'bg-[#58051E] text-white shadow-subtle'
+              ? 'bg-[#5A0122] text-white shadow-subtle'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
@@ -230,7 +230,7 @@ export const PreDeparture: React.FC = () => {
           onClick={() => setActiveTab('checklist')}
           className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors flex items-center gap-2 cursor-pointer ${
             activeTab === 'checklist'
-              ? 'bg-[#58051E] text-white shadow-subtle'
+              ? 'bg-[#5A0122] text-white shadow-subtle'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
@@ -241,7 +241,7 @@ export const PreDeparture: React.FC = () => {
           onClick={() => setActiveTab('contacts')}
           className={`px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors flex items-center gap-2 cursor-pointer ${
             activeTab === 'contacts'
-              ? 'bg-[#58051E] text-white shadow-subtle'
+              ? 'bg-[#5A0122] text-white shadow-subtle'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
@@ -267,7 +267,7 @@ export const PreDeparture: React.FC = () => {
               {/* Flight Ticket Card */}
               <Card className="p-6 border border-slate-200/80 bg-white space-y-5 shadow-xs">
                 <div className="flex items-center gap-3.5 border-b border-slate-100 pb-4">
-                  <div className="w-11 h-11 rounded-2xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black shrink-0 border border-[#58051E]/20">
+                  <div className="w-11 h-11 rounded-2xl bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center font-black shrink-0 border border-[#5A0122]/20">
                     <Plane className="w-5 h-5" />
                   </div>
                   <div>
@@ -288,7 +288,7 @@ export const PreDeparture: React.FC = () => {
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                     <span className="text-slate-500 font-medium">Departure Date:</span>
                     <span className="font-extrabold text-slate-900 flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-[#58051E]" /> {activeDepRecord.departure_date}
+                      <Calendar className="w-3.5 h-3.5 text-[#5A0122]" /> {activeDepRecord.departure_date}
                     </span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
@@ -325,7 +325,7 @@ export const PreDeparture: React.FC = () => {
                     <span className="text-slate-500 font-medium">Hotline Contact:</span>
                     <a
                       href={activeDepRecord.pickup_contact ? `tel:${activeDepRecord.pickup_contact}` : '#emergency'}
-                      className="font-extrabold text-[#58051E] hover:underline flex items-center gap-1"
+                      className="font-extrabold text-[#5A0122] hover:underline flex items-center gap-1"
                     >
                       <PhoneCall className="w-3.5 h-3.5" /> {activeDepRecord.pickup_contact || '+48 22 552 0999'}
                     </a>
@@ -452,7 +452,7 @@ export const PreDeparture: React.FC = () => {
                 <h3 className="text-sm font-extrabold text-slate-900 border-b border-slate-100 pb-3">24/7 European Student Support & Emergency Helpline</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold">
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-start gap-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center font-black shrink-0">
                       <PhoneCall className="w-5 h-5" />
                     </div>
                     <div>
@@ -460,7 +460,7 @@ export const PreDeparture: React.FC = () => {
                       <p className="text-slate-500 mt-1">{activeDepRecord.pickup_contact || 'Assigned 48h prior to departure'} | support@ferex.com</p>
                       <a
                         href={`tel:${activeDepRecord.pickup_contact || '+48225520999'}`}
-                        className="inline-flex items-center gap-1.5 text-xs font-black text-[#58051E] mt-2 hover:underline"
+                        className="inline-flex items-center gap-1.5 text-xs font-black text-[#5A0122] mt-2 hover:underline"
                       >
                         <PhoneCall className="w-3.5 h-3.5" /> Call Hotline Now
                       </a>

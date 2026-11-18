@@ -45,7 +45,7 @@ export async function payEducationFeeOnline(input: { paymentType: string; amount
 
     const rzp = new Razorpay({
       key: order.key_id, amount: order.amount, currency: order.currency, order_id: order.order_id,
-      name: 'FEREX Education', description: input.description, theme: { color: '#6B0F36' },
+      name: 'FEREX Education', description: input.description, theme: { color: '#68092A' },
       prefill: { name: order.name, email: order.email, contact: order.contact },
       retry: { enabled: true },
       // UPI always leads the list of ways to pay; cards and net banking stay available below it.

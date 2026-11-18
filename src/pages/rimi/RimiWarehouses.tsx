@@ -232,7 +232,7 @@ export const RimiWarehouses: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Warehouse className="w-5 h-5 text-[#58051E]" /> Warehouses
+            <Warehouse className="w-5 h-5 text-[#5A0122]" /> Warehouses
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">Cold storage locations, temperature and pallet use.</p>
         </div>
@@ -241,7 +241,7 @@ export const RimiWarehouses: React.FC = () => {
           <Button
             size="sm"
             onClick={() => setShowAddModal(true)}
-            className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
+            className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4" /> Add Cold Facility
           </Button>
@@ -301,7 +301,7 @@ export const RimiWarehouses: React.FC = () => {
                     </div>
                     <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all ${utilPct > 85 ? 'bg-rose-600' : 'bg-[#58051E]'}`}
+                        className={`h-full rounded-full transition-all ${utilPct > 85 ? 'bg-rose-600' : 'bg-[#5A0122]'}`}
                         style={{ width: `${Math.min(100, utilPct)}%` }}
                       />
                     </div>
@@ -322,9 +322,9 @@ export const RimiWarehouses: React.FC = () => {
                       setHubStockSearch('');
                       setHubTab('stock');
                     }}
-                    className="w-full text-xs font-bold bg-white hover:bg-slate-50 text-slate-800 border-slate-200 hover:border-[#58051E]/40 flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                    className="w-full text-xs font-bold bg-white hover:bg-slate-50 text-slate-800 border-slate-200 hover:border-[#5A0122]/40 flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
                   >
-                    <Package className="w-3.5 h-3.5 text-[#58051E]" />
+                    <Package className="w-3.5 h-3.5 text-[#5A0122]" />
                     View Stored Products & Stock Details
                   </Button>
                 </div>
@@ -418,7 +418,7 @@ export const RimiWarehouses: React.FC = () => {
                     <div className="grid grid-cols-3 gap-3">
                       <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                         <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Total Physical Stock</span>
-                        <span className="text-base font-black text-[#58051E] mt-0.5 block">{totalUnits.toLocaleString('en-IN')} Units</span>
+                        <span className="text-base font-black text-[#5A0122] mt-0.5 block">{totalUnits.toLocaleString('en-IN')} Units</span>
                       </div>
                       <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                         <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Distinct SKUs</span>
@@ -431,8 +431,8 @@ export const RimiWarehouses: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-xs font-bold">
-                      <button type="button" onClick={() => setHubTab('stock')} className={`h-9 rounded-xl border cursor-pointer ${hubTab === 'stock' ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-white text-slate-600 border-slate-200'}`}>Stored Products</button>
-                      <button type="button" onClick={() => setHubTab('history')} className={`h-9 rounded-xl border cursor-pointer ${hubTab === 'history' ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-white text-slate-600 border-slate-200'}`}>History ({hubMovements.length})</button>
+                      <button type="button" onClick={() => setHubTab('stock')} className={`h-9 rounded-xl border cursor-pointer ${hubTab === 'stock' ? 'bg-[#5A0122] text-white border-[#5A0122]' : 'bg-white text-slate-600 border-slate-200'}`}>Stored Products</button>
+                      <button type="button" onClick={() => setHubTab('history')} className={`h-9 rounded-xl border cursor-pointer ${hubTab === 'history' ? 'bg-[#5A0122] text-white border-[#5A0122]' : 'bg-white text-slate-600 border-slate-200'}`}>History ({hubMovements.length})</button>
                     </div>
 
                     {hubTab === 'history' ? (
@@ -471,7 +471,7 @@ export const RimiWarehouses: React.FC = () => {
                     <div className="space-y-2.5">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                          <Package className="w-4 h-4 text-[#58051E]" /> Products Stored in this Hub ({filteredStock.length})
+                          <Package className="w-4 h-4 text-[#5A0122]" /> Products Stored in this Hub ({filteredStock.length})
                         </span>
                         <span className="text-slate-400 font-semibold text-[11px]">Cold Chain Verified</span>
                       </div>
@@ -555,7 +555,7 @@ export const RimiWarehouses: React.FC = () => {
 
                     <Button
                       size="sm"
-                      className="w-full text-xs font-bold bg-[#58051E] hover:bg-[#430316] text-white"
+                      className="w-full text-xs font-bold bg-[#5A0122] hover:bg-[#68092A] text-white"
                       onClick={() => setSelectedFacility(null)}
                     >
                       Close Hub Details
@@ -615,7 +615,7 @@ export const RimiWarehouses: React.FC = () => {
                 <p className="text-[11px] font-semibold text-slate-500">Changing the quantity is logged as a stock adjustment, and this hub's pallet usage is recalculated.</p>
                 <div className="flex gap-2 pt-1">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setEditingStored(null)}>Cancel</Button>
-                  <Button type="submit" size="sm" disabled={savingStored} className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">{savingStored ? 'Saving…' : 'Save Changes'}</Button>
+                  <Button type="submit" size="sm" disabled={savingStored} className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]">{savingStored ? 'Saving…' : 'Save Changes'}</Button>
                 </div>
               </form>
             </motion.div>
@@ -632,7 +632,7 @@ export const RimiWarehouses: React.FC = () => {
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="text-base font-black text-slate-900">Edit Cold Storage Facility</h3>
-                  <p className="text-[10px] font-bold text-[#58051E]">{editingFacility.code} • {editingFacility.name}</p>
+                  <p className="text-[10px] font-bold text-[#5A0122]">{editingFacility.code} • {editingFacility.name}</p>
                 </div>
                 <button onClick={() => setEditingFacility(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
@@ -705,7 +705,7 @@ export const RimiWarehouses: React.FC = () => {
 
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setEditingFacility(null)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Update Facility</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]">Update Facility</Button>
                 </div>
               </form>
             </motion.div>
@@ -786,7 +786,7 @@ export const RimiWarehouses: React.FC = () => {
 
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Register Facility</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]">Register Facility</Button>
                 </div>
               </form>
             </motion.div>

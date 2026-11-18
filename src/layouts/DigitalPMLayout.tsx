@@ -99,7 +99,7 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
   };
 
   return (
-    <div className="fx-app h-screen overflow-hidden bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
+    <div className="fx-app h-screen overflow-hidden bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#5A0122]/10 selection:text-[#5A0122]">
       {/* Mobile Backdrop */}
       <AnimatePresence>
         {isMobileOpen && (
@@ -154,12 +154,12 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
                   onClick={() => setIsMobileOpen(false)}
                   className={`relative flex items-center gap-2.5 h-9 px-2.5 rounded-xl text-xs font-semibold transition-all duration-150 group
                     ${isActive
-                      ? 'bg-[#58051E]/8 text-[#58051E] font-bold border-l-2 border-[#58051E]'
+                      ? 'bg-[#5A0122]/8 text-[#5A0122] font-bold border-l-2 border-[#5A0122]'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'}`}
                 >
                   <Icon
                     className={`w-4 h-4 shrink-0 transition-transform duration-150 ${
-                      isActive ? 'text-[#58051E]' : 'text-slate-400 group-hover:text-slate-700'
+                      isActive ? 'text-[#5A0122]' : 'text-slate-400 group-hover:text-slate-700'
                     }`}
                   />
                   <span className="truncate flex-1 flex items-center justify-between">
@@ -170,7 +170,7 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
                     <span
                       className={`px-1.5 py-0.2 rounded text-[9px] font-bold shrink-0 ${
                         isActive
-                          ? 'bg-[#58051E]/15 text-[#58051E]'
+                          ? 'bg-[#5A0122]/15 text-[#5A0122]'
                           : item.name === 'Client Tickets'
                           ? 'bg-amber-50 text-amber-800 border border-amber-200'
                           : 'bg-rose-50 text-rose-700 border border-rose-200'
@@ -191,7 +191,7 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
                     }}
                     className="w-full relative flex items-center gap-2.5 h-9 px-2.5 rounded-xl text-xs font-bold transition-all duration-150 text-slate-600 hover:bg-slate-100 hover:text-slate-900 text-left cursor-pointer group"
                   >
-                    <Sparkles className="w-4 h-4 shrink-0 text-slate-400 group-hover:text-[#58051E] transition-colors" />
+                    <Sparkles className="w-4 h-4 shrink-0 text-slate-400 group-hover:text-[#5A0122] transition-colors" />
                     <span className="truncate flex-1">AI Assistant</span>
                   </button>
                 )}
@@ -204,7 +204,7 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
         <div className="p-3 border-t border-slate-100 shrink-0 bg-slate-50/50">
           <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white border border-slate-200/60 shadow-2xs">
             <div className="relative">
-              <div className="w-7.5 h-7.5 rounded-lg bg-[#58051E] flex items-center justify-center text-white text-xs font-bold shadow-xs">
+              <div className="w-7.5 h-7.5 rounded-lg bg-[#5A0122] flex items-center justify-center text-white text-xs font-bold shadow-xs">
                 {pmName[0]?.toUpperCase() || 'P'}
               </div>
               <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 border-2 border-white rounded-full" />
@@ -241,7 +241,7 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
               to="/digital/pm/dashboard"
               className="hover:text-slate-700 transition-colors flex items-center gap-1.5 text-slate-700 font-semibold shrink-0"
             >
-              <Sparkles className="w-4 h-4 text-[#58051E]" />
+              <Sparkles className="w-4 h-4 text-[#5A0122]" />
               <span className="hidden sm:inline">FEREX Digital</span>
             </Link>
             <span className="text-[9.5px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200/80 px-2 py-0.2 rounded hidden md:inline-block">
@@ -262,7 +262,7 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search projects, tasks, tickets..."
-                className="h-9 w-60 pl-9 pr-8 bg-slate-100/70 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#58051E]/40 focus:ring-4 focus:ring-[#58051E]/5 transition-all"
+                className="h-9 w-60 pl-9 pr-8 bg-slate-100/70 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#5A0122]/40 focus:ring-4 focus:ring-[#5A0122]/5 transition-all"
               />
             </div>
 
@@ -291,7 +291,7 @@ export const DigitalPMLayout: React.FC<DigitalPMLayoutProps> = ({ children }) =>
               to="/digital/pm/profile"
               className="flex items-center gap-2 pl-2 border-l border-slate-200 hover:opacity-90 transition-opacity"
             >
-              <div className="w-8 h-8 rounded-xl bg-[#58051E] text-white font-bold text-xs flex items-center justify-center shadow-xs">
+              <div className="w-8 h-8 rounded-xl bg-[#5A0122] text-white font-bold text-xs flex items-center justify-center shadow-xs">
                 {pmName.slice(0, 2).toUpperCase()}
               </div>
               <div className="hidden sm:block text-left">

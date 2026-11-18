@@ -165,7 +165,7 @@ export const DigitalPMDashboard: React.FC = () => {
       value: String(projects.reduce((acc, p) => acc + (p.deliverables?.length || 0), 0)),
       subtext: 'Figma, GitHub, Docs',
       icon: FileText,
-      color: 'text-[#58051E] bg-[#58051E]/8',
+      color: 'text-[#5A0122] bg-[#5A0122]/8',
       path: '/digital/pm/documents'
     }
   ];
@@ -178,7 +178,7 @@ export const DigitalPMDashboard: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-[#58051E]/8 text-[#58051E] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#5A0122]/8 text-[#5A0122] flex items-center justify-center">
               <Sparkles className="w-4 h-4" />
             </div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
@@ -286,7 +286,7 @@ export const DigitalPMDashboard: React.FC = () => {
                         className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
                           t.status === 'Done'
                             ? 'bg-emerald-600 border-emerald-600 text-white'
-                            : 'border-slate-300 hover:border-[#58051E] bg-white'
+                            : 'border-slate-300 hover:border-[#5A0122] bg-white'
                         }`}
                         title="Click to toggle status"
                       >
@@ -362,7 +362,7 @@ export const DigitalPMDashboard: React.FC = () => {
                       <span className="text-xs font-bold text-slate-900 truncate max-w-[170px]">
                         {p.title}
                       </span>
-                      <span className="text-[10px] font-bold text-[#58051E] bg-[#58051E]/8 px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] font-bold text-[#5A0122] bg-[#5A0122]/8 px-1.5 py-0.5 rounded">
                         {p.status}
                       </span>
                     </div>
@@ -372,7 +372,7 @@ export const DigitalPMDashboard: React.FC = () => {
                     </div>
                     <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-[#58051E] rounded-full transition-all"
+                        className="h-full bg-[#5A0122] rounded-full transition-all"
                         style={{ width: `${p.progress || 0}%` }}
                       />
                     </div>

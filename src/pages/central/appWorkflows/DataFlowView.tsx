@@ -65,7 +65,7 @@ export const DataFlowView: React.FC<{ app: InvApp; dfd: DataFlow; onOpenScreen: 
       <aside className="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-3 xl:sticky xl:top-4 max-h-[44rem] overflow-y-auto" aria-live="polite">
         {!sel ? <div><p className="text-sm font-bold text-slate-900">How data moves</p><p className="text-xs text-slate-600 mt-1">Arrows show what is sent and where it is kept. Click a box to see what it is, the tables it holds and the screens that use it. Hover to light up its connections.</p></div> : (
           <>
-            <p className="text-[10px] font-extrabold uppercase tracking-wide text-[#58051E]">{sel.kind === 'actor' ? 'Person' : sel.kind === 'process' ? 'Process' : sel.kind === 'store' ? 'Data store' : 'Outside service'}</p>
+            <p className="text-[10px] font-extrabold uppercase tracking-wide text-[#5A0122]">{sel.kind === 'actor' ? 'Person' : sel.kind === 'process' ? 'Process' : sel.kind === 'store' ? 'Data store' : 'Outside service'}</p>
             <p className="text-sm font-black text-slate-900">{sel.label}</p><p className="text-sm text-slate-700">{sel.desc}</p>
             {sel.tables?.length ? <p className="text-xs"><b className="text-slate-700">Tables:</b> {sel.tables.map(t => <code key={t} className="mx-0.5 px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">{t}</code>)}</p> : null}
             <div className="text-xs"><b className="text-slate-700">Sends to:</b> {dfd.edges.filter(e => e.from === sel.id).map(e => `${byId.get(e.to)?.label} (${e.label})`).join(', ') || 'nothing'}<br /><b className="text-slate-700">Receives from:</b> {dfd.edges.filter(e => e.to === sel.id).map(e => `${byId.get(e.from)?.label} (${e.label})`).join(', ') || 'nothing'}</div>

@@ -3,8 +3,8 @@ import { Maximize2, ZoomIn, ZoomOut } from 'lucide-react';
 
 /** Colours for every diagram, light and dark, so the SVG follows the app theme. */
 export const DIAGRAM_CSS = `
-.wf{--wf-bg:#FBF9FA;--wf-grid:#EADDE2;--wf-node:#FFFFFF;--wf-node-b:#D9C3CC;--wf-text:#2A1520;--wf-muted:#7B6670;--wf-accent:#58051E;--wf-accent-soft:#F6E7EC;--wf-lane:#F4EEF0;--wf-lane-b:#E6D8DD;--wf-edge:#9A7E89;--wf-sys:#EEF2FF;--wf-sys-b:#B6C1F2;--wf-dec:#FFF7E6;--wf-dec-b:#E8C27A;--wf-end:#E9F7EF;--wf-end-b:#8CCBA5}
-.dark .wf{--wf-bg:#161013;--wf-grid:#2A1E24;--wf-node:#241A1F;--wf-node-b:#4A3640;--wf-text:#F5E9EE;--wf-muted:#B39AA5;--wf-accent:#F2B1D0;--wf-accent-soft:#3A2230;--wf-lane:#1D1519;--wf-lane-b:#36272F;--wf-edge:#B08A9A;--wf-sys:#1C2140;--wf-sys-b:#4B5BA8;--wf-dec:#3A2D14;--wf-dec-b:#9A7326;--wf-end:#14301F;--wf-end-b:#2F7A4C}
+.wf{--wf-bg:#FBF9FA;--wf-grid:#EADDE2;--wf-node:#FFFFFF;--wf-node-b:#D9C3CC;--wf-text:#2A1520;--wf-muted:#7B6670;--wf-accent:#5A0122;--wf-accent-soft:#F6E7EC;--wf-lane:#F4EEF0;--wf-lane-b:#E6D8DD;--wf-edge:#9A7E89;--wf-sys:#EEF2FF;--wf-sys-b:#B6C1F2;--wf-dec:#FFF7E6;--wf-dec-b:#E8C27A;--wf-end:#E9F7EF;--wf-end-b:#8CCBA5}
+.dark .wf{--wf-bg:#161013;--wf-grid:#2A1E24;--wf-node:#241A1F;--wf-node-b:#4A3640;--wf-text:#F5E9EE;--wf-muted:#B39AA5;--wf-accent:#E3BFCB;--wf-accent-soft:#3A2230;--wf-lane:#1D1519;--wf-lane-b:#36272F;--wf-edge:#B08A9A;--wf-sys:#1C2140;--wf-sys-b:#4B5BA8;--wf-dec:#3A2D14;--wf-dec-b:#9A7326;--wf-end:#14301F;--wf-end-b:#2F7A4C}
 `;
 
 /** A pan-and-zoom surface for diagrams: drag to move, wheel or buttons to zoom, Fit to see everything. */
@@ -36,7 +36,7 @@ export const Canvas: React.FC<{ width: number; height: number; children: React.R
       <style>{DIAGRAM_CSS}</style>
       <div
         ref={box} role="img" aria-label={label} tabIndex={0}
-        className="w-full h-full min-h-[22rem] cursor-grab active:cursor-grabbing touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-[#58051E]/40"
+        className="w-full h-full min-h-[22rem] cursor-grab active:cursor-grabbing touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-[#5A0122]/40"
         onWheel={e => { if (e.ctrlKey || e.metaKey || Math.abs(e.deltaY) > 0) { e.preventDefault(); const r = box.current!.getBoundingClientRect(); zoomAt(e.deltaY < 0 ? 1.1 : 0.9, e.clientX - r.left, e.clientY - r.top); } }}
         onPointerDown={e => { if ((e.target as HTMLElement).closest('[data-node]')) return; drag.current = { sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y }; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); }}
         onPointerMove={e => { const d = drag.current; if (d) setView(v => ({ ...v, x: d.vx + e.clientX - d.sx, y: d.vy + e.clientY - d.sy })); }}

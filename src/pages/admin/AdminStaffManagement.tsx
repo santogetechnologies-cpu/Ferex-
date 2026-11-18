@@ -178,10 +178,10 @@ export const AdminStaffManagement: React.FC = () => {
 
       {/* Central Super Admin User Governance Banner (VISIBLE ONLY TO CENTRAL SUPER ADMINS) */}
       {isSuper && (
-        <div className="p-4 bg-gradient-to-r from-[#58051E]/10 via-[#58051E]/5 to-transparent border border-[#58051E]/20 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="p-4 bg-gradient-to-r from-[#5A0122]/10 via-[#5A0122]/5 to-transparent border border-[#5A0122]/20 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-black text-[#58051E] flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-[#58051E]" /> Universal User & Admin Management
+            <p className="text-xs font-black text-[#5A0122] flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-[#5A0122]" /> Universal User & Admin Management
             </p>
             <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
               Creating and provisioning logins for all 4 enterprise divisions (Education, Trade, Rimi Frozen, Digital) is managed centrally in Super Admin.
@@ -189,7 +189,7 @@ export const AdminStaffManagement: React.FC = () => {
           </div>
           <Link
             to="/central/roles-users"
-            className="px-3 py-1.5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] transition-all shrink-0 shadow-xs"
+            className="px-3 py-1.5 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#68092A] transition-all shrink-0 shadow-xs"
           >
             Open Super Admin Console →
           </Link>
@@ -213,14 +213,14 @@ export const AdminStaffManagement: React.FC = () => {
         {roles.map(r => (
           <button key={r} onClick={() => setRoleFilter(r)}
             className={`h-8 px-3 rounded-xl text-[10px] font-extrabold border transition-all cursor-pointer
-              ${roleFilter === r ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}>
+              ${roleFilter === r ? 'bg-[#5A0122] text-white border-[#5A0122]' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}>
             {r}
           </button>
         ))}
         <div className="ml-auto relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search admin users..."
-            className="h-9 pl-8 pr-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold placeholder-slate-300 focus:outline-none focus:border-[#58051E]/40 w-52" />
+            className="h-9 pl-8 pr-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold placeholder-slate-300 focus:outline-none focus:border-[#5A0122]/40 w-52" />
         </div>
       </div>
 
@@ -229,7 +229,7 @@ export const AdminStaffManagement: React.FC = () => {
         {filtered.map((s) => (
           <motion.div key={s.id} layout className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-slate-200 transition-all">
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-[#58051E] flex items-center justify-center text-white font-extrabold text-lg shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-[#5A0122] flex items-center justify-center text-white font-extrabold text-lg shrink-0">
                 {s.name.split(' ').map(n => n[0]).join('')}
               </div>
               <div className="flex-1 min-w-0">
@@ -237,7 +237,7 @@ export const AdminStaffManagement: React.FC = () => {
                   <p className="text-sm font-extrabold text-slate-900 truncate">{s.name}</p>
                   <span className={`shrink-0 inline-flex px-1.5 py-0.5 rounded-full text-[9px] font-bold border ${STATUS_COLORS[s.status]}`}>{s.status}</span>
                 </div>
-                <p className="text-[10px] font-bold text-[#58051E]">{s.role}</p>
+                <p className="text-[10px] font-bold text-[#5A0122]">{s.role}</p>
                 <p className="text-[10px] font-semibold text-slate-400">{s.department}</p>
               </div>
             </div>
@@ -294,7 +294,7 @@ export const AdminStaffManagement: React.FC = () => {
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Full Name</label>
                     <input value={editTemp.name} onChange={(e) => setEditTemp({ ...editTemp, name: e.target.value })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/40" />
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]/40" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Administrative Role</label>
@@ -307,7 +307,7 @@ export const AdminStaffManagement: React.FC = () => {
                       else if (newRole === 'Admin') newDept = 'Administration';
                       setEditTemp({ ...editTemp, role: newRole, department: newDept });
                     }}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/40">
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]/40">
                       {ALLOWED_ROLES.map(r => (
                         <option key={r} value={r}>{r}</option>
                       ))}
@@ -316,24 +316,24 @@ export const AdminStaffManagement: React.FC = () => {
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Email</label>
                     <input value={editTemp.email} onChange={(e) => setEditTemp({ ...editTemp, email: e.target.value })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/40" />
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]/40" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Phone</label>
                     <input value={editTemp.phone} onChange={(e) => setEditTemp({ ...editTemp, phone: e.target.value })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/40" />
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]/40" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Department</label>
                     <select value={editTemp.department} onChange={(e) => setEditTemp({ ...editTemp, department: e.target.value })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/40">
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]/40">
                       {['Administration', 'Central Office', 'Executive', 'Admissions', 'Operations', 'Documents', 'Finance'].map(d => <option key={d}>{d}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">Status</label>
                     <select value={editTemp.status} onChange={(e) => setEditTemp({ ...editTemp, status: e.target.value as any })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/40">
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]/40">
                       <option>Active</option><option>On Leave</option><option>Inactive</option>
                     </select>
                   </div>
@@ -358,7 +358,7 @@ export const AdminStaffManagement: React.FC = () => {
                             );
                             setEditTemp({ ...editTemp, permissions: updatedPerms });
                           }}
-                          className="w-3.5 h-3.5 rounded text-[#58051E] border-slate-300 focus:ring-[#58051E]"
+                          className="w-3.5 h-3.5 rounded text-[#5A0122] border-slate-300 focus:ring-[#5A0122]"
                         />
                         <span className={`font-semibold ${p.enabled ? 'text-slate-900 font-extrabold' : 'text-slate-400'}`}>
                           {p.label}
@@ -370,7 +370,7 @@ export const AdminStaffManagement: React.FC = () => {
               </div>
               <div className="flex gap-3 mt-5">
                 <button onClick={() => setEditStaff(null)} className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
-                <button onClick={handleSaveEdit} className="flex-1 h-9 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] flex items-center justify-center gap-1.5 cursor-pointer">
+                <button onClick={handleSaveEdit} className="flex-1 h-9 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#5A0122] flex items-center justify-center gap-1.5 cursor-pointer">
                   <Save className="w-3.5 h-3.5" /> Save
                 </button>
               </div>

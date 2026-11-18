@@ -473,7 +473,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-1.5 flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-lg bg-[#58051E]/5 text-[#58051E] flex items-center justify-center">
+            <span className="w-8 h-8 rounded-lg bg-[#5A0122]/5 text-[#5A0122] flex items-center justify-center">
               <ShieldCheck className="w-5 h-5" />
             </span>
             Visa
@@ -499,7 +499,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
               setInitiateStudentId(students[0]?.id || '');
               setShowInitiateModal(true);
             }}
-            className="bg-[#58051E] text-white hover:bg-[#430316] font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm cursor-pointer"
+            className="bg-[#5A0122] text-white hover:bg-[#68092A] font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-sm cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Initiate VFS Process
           </Button>
@@ -525,7 +525,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
             >
               <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black">
+                  <div className="w-8 h-8 rounded-lg bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center font-black">
                     <ShieldCheck className="w-5 h-5" />
                   </div>
                   <div>
@@ -547,7 +547,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
                     required
                     value={initiateStudentId}
                     onChange={(e) => setInitiateStudentId(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E] cursor-pointer"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122] cursor-pointer"
                   >
                     <option value="">-- Choose Student --</option>
                     {students.map((s) => (
@@ -559,7 +559,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
                 </div>
 
                 <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs space-y-1 font-semibold text-slate-600">
-                  <p className="text-[#58051E] font-extrabold">Initial VFS Setup Configuration:</p>
+                  <p className="text-[#5A0122] font-extrabold">Initial VFS Setup Configuration:</p>
                   <p>• Initial Stage: <span className="font-bold text-slate-900">Stage 1 — VFS Appointment Booked</span></p>
                   <p>• Application Status: <span className="font-bold text-indigo-700">Auto-changes to "Visa Processing"</span></p>
                   <p>• Consulate: <span className="font-bold text-slate-900">{initiateStudentId ? (embassyFor(initiateStudentId) || 'Set after choosing destination') : 'Based on the student\'s destination'}</span></p>
@@ -576,7 +576,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="flex-1 h-9 bg-[#58051E] text-white text-xs font-black rounded-xl hover:bg-[#430316] shadow-xs cursor-pointer disabled:opacity-50"
+                    className="flex-1 h-9 bg-[#5A0122] text-white text-xs font-black rounded-xl hover:bg-[#68092A] shadow-xs cursor-pointer disabled:opacity-50"
                   >
                     {isSaving ? <CapLoader size="xs" tone="light" /> : 'Start VFS Tracking'}
                   </button>
@@ -661,7 +661,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
                             onClick={() => handleStageSelect(st.num)}
                             className={`py-2 px-2.5 rounded-xl text-[10px] font-black border transition-all text-center flex items-center justify-center min-h-[44px] cursor-pointer ${
                               isActive
-                                ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm scale-[1.02]'
+                                ? 'bg-[#5A0122] text-white border-[#5A0122] shadow-sm scale-[1.02]'
                                 : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
                             }`}
                           >
@@ -678,7 +678,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
                       <select
                         value={currentStage}
                         onChange={(e) => handleStageSelect(Number(e.target.value))}
-                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]/40 cursor-pointer"
+                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]/40 cursor-pointer"
                       >
                         <option value={1}>Stage 1 — Documents Ready</option>
                         <option value={2}>Stage 2 — Visa File Prepared</option>
@@ -721,7 +721,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
                         value={vfsRefNo}
                         onChange={(e) => setVfsRefNo(e.target.value)}
                         placeholder="e.g. POL/DEL/26/0812/01"
-                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
 
@@ -731,7 +731,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
                         type="date"
                         value={appointmentDate}
                         onChange={(e) => setAppointmentDate(e.target.value)}
-                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
                   </div>
@@ -743,7 +743,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
                         type="text"
                         value={embassyName}
                         onChange={(e) => setEmbassyName(e.target.value)}
-                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
 
@@ -753,7 +753,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
                         type="text"
                         value={vfsCenter}
                         onChange={(e) => setVfsCenter(e.target.value)}
-                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
                   </div>
@@ -765,7 +765,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
                         type="text"
                         value={passportNo}
                         onChange={(e) => setPassportNo(e.target.value)}
-                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
 
@@ -782,7 +782,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
                         className={`w-full h-10 px-3 border rounded-xl text-xs font-bold focus:outline-none ${
                           currentStage < 5
                             ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
-                            : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-[#58051E]'
+                            : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-[#5A0122]'
                         }`}
                       />
                     </div>
@@ -795,7 +795,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
                       onChange={(e) => setNotes(e.target.value)}
                       rows={4}
                       placeholder="Add notes for student..."
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
 
@@ -811,7 +811,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
                     <Button
                       type="submit"
                       disabled={isSaving}
-                      className="h-10 bg-[#58051E] text-white hover:bg-[#430316] font-bold text-xs px-5 cursor-pointer disabled:opacity-50"
+                      className="h-10 bg-[#5A0122] text-white hover:bg-[#68092A] font-bold text-xs px-5 cursor-pointer disabled:opacity-50"
                     >
                       <Save className="w-4 h-4 mr-1.5" /> {isSaving ? 'Saving...' : 'Save VFS Status'}
                     </Button>
@@ -836,7 +836,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search student, ref no, or status..."
-              className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]/40"
+              className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]/40"
             />
           </div>
         </div>
@@ -888,7 +888,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
                       <td className="py-3.5 px-4 text-center font-bold text-slate-800">
                         {row.current_stage > 0 ? `Stage ${row.current_stage} of 8` : '—'}
                       </td>
-                      <td className="py-3.5 px-4 text-[#58051E] font-extrabold">
+                      <td className="py-3.5 px-4 text-[#5A0122] font-extrabold">
                         {row.status_label}
                       </td>
                       <td className="py-3.5 px-4">
@@ -917,7 +917,7 @@ export const AdminVisaTracker: React.FC<AdminVisaTrackerProps> = ({ isStaff = fa
                           onClick={() => {
                             if (row.student_id) setSelectedStudentId(row.student_id);
                           }}
-                          className={`h-8 font-black text-[10px] cursor-pointer ${!row.hasRecord ? 'bg-[#58051E] text-white hover:bg-[#430316]' : ''}`}
+                          className={`h-8 font-black text-[10px] cursor-pointer ${!row.hasRecord ? 'bg-[#5A0122] text-white hover:bg-[#68092A]' : ''}`}
                         >
                           {row.hasRecord ? 'Configure & Edit' : 'Initiate VFS'}
                         </Button>

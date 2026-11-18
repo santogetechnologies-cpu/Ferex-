@@ -191,7 +191,7 @@ export const DigitalMeetings: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-[#58051E]/8 text-[#58051E] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#5A0122]/8 text-[#5A0122] flex items-center justify-center">
               <Video className="w-4 h-4" />
             </div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
@@ -230,7 +230,7 @@ export const DigitalMeetings: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search meetings, clients, hosts..."
-            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
           />
         </div>
 
@@ -295,7 +295,7 @@ export const DigitalMeetings: React.FC = () => {
                 <h3 className="text-sm font-bold text-slate-900 mb-1">
                   {m.title}
                 </h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#58051E]/8 text-[#58051E] inline-block mb-3">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#5A0122]/8 text-[#5A0122] inline-block mb-3">
                   {m.meeting_type}
                 </span>
 
@@ -315,8 +315,8 @@ export const DigitalMeetings: React.FC = () => {
                     <span>Host: {m.host_staff_name || 'Digital Staff'}</span>
                   </div>
                   {m.notes && m.notes.includes('[Digital Manager:') && (
-                    <div className="flex items-center gap-1.5 text-[#58051E] font-semibold">
-                      <Globe2 className="w-3.5 h-3.5 text-[#58051E]" />
+                    <div className="flex items-center gap-1.5 text-[#5A0122] font-semibold">
+                      <Globe2 className="w-3.5 h-3.5 text-[#5A0122]" />
                       <span>Mgr: {m.notes.match(/\[Digital Manager: ([^\]]+)\]/)?.[1] || 'Digital Manager'}</span>
                     </div>
                   )}
@@ -329,7 +329,7 @@ export const DigitalMeetings: React.FC = () => {
                     href={m.meeting_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#58051E] hover:bg-[#430417] text-white text-xs font-bold transition-all shadow-2xs"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#5A0122] hover:bg-[#430417] text-white text-xs font-bold transition-all shadow-2xs"
                   >
                     <Video className="w-3.5 h-3.5" /> Join Call
                   </a>
@@ -473,8 +473,8 @@ export const DigitalMeetings: React.FC = () => {
                 </div>
 
                 {/* Digital Manager Field */}
-                <div className="p-3 bg-[#58051E]/5 border border-[#58051E]/20 rounded-xl">
-                  <label className="block text-[10px] font-bold uppercase text-[#58051E] mb-2">📌 Assign Digital Manager (sees meeting link)</label>
+                <div className="p-3 bg-[#5A0122]/5 border border-[#5A0122]/20 rounded-xl">
+                  <label className="block text-[10px] font-bold uppercase text-[#5A0122] mb-2">📌 Assign Digital Manager (sees meeting link)</label>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="block text-[9px] font-bold uppercase text-slate-400 mb-1">Manager Name</label>

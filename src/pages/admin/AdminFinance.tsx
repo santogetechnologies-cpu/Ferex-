@@ -142,7 +142,7 @@ export const AdminFinance: React.FC = () => {
       {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700">{error}</p>}
 
       <div className="flex gap-1 border-b border-slate-200 overflow-x-auto">
-        {TABS.map(t => <button key={t.id} type="button" onClick={() => navigate(t.id === 'overview' ? '/admin/finance' : `/admin/finance/${t.id}`)} className={`px-4 py-2.5 text-sm font-bold whitespace-nowrap border-b-2 -mb-px cursor-pointer ${tab === t.id ? 'border-[#58051E] text-[#58051E]' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{t.label}</button>)}
+        {TABS.map(t => <button key={t.id} type="button" onClick={() => navigate(t.id === 'overview' ? '/admin/finance' : `/admin/finance/${t.id}`)} className={`px-4 py-2.5 text-sm font-bold whitespace-nowrap border-b-2 -mb-px cursor-pointer ${tab === t.id ? 'border-[#5A0122] text-[#5A0122]' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{t.label}</button>)}
       </div>
 
       <DateRangeFilter value={range} onChange={setRange} label={tab === 'receivables' ? 'Plan started' : tab === 'documents' ? 'Issued' : 'Paid'} />
@@ -164,7 +164,7 @@ export const AdminFinance: React.FC = () => {
                 {trend.map(t => (
                   <div key={t.key} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
                     <span className="text-[10px] font-semibold text-slate-500 tabular-nums">{t.v ? inr(t.v) : ''}</span>
-                    <div className="w-full rounded-t-lg bg-[#58051E]/80" style={{ height: `${Math.max(4, (t.v / maxTrend) * 100)}%`, opacity: t.v ? 1 : 0.2 }} />
+                    <div className="w-full rounded-t-lg bg-[#5A0122]/80" style={{ height: `${Math.max(4, (t.v / maxTrend) * 100)}%`, opacity: t.v ? 1 : 0.2 }} />
                     <span className="text-[11px] font-semibold text-slate-600">{t.label}</span>
                   </div>
                 ))}
@@ -180,7 +180,7 @@ export const AdminFinance: React.FC = () => {
 
           <div className="grid lg:grid-cols-2 gap-6">
             <section className="rounded-2xl border border-slate-200/80 bg-white p-5">
-              <div className="flex items-center justify-between"><h3 className="text-sm font-bold text-slate-900">Waiting for verification</h3><Link to="/admin/payment-control" className="text-xs font-bold text-[#58051E]">Open Payments →</Link></div>
+              <div className="flex items-center justify-between"><h3 className="text-sm font-bold text-slate-900">Waiting for verification</h3><Link to="/admin/payment-control" className="text-xs font-bold text-[#5A0122]">Open Payments →</Link></div>
               {waiting.length === 0 ? <p className="mt-3 text-sm text-slate-500">Nothing is waiting.</p> : <ul className="mt-3 divide-y divide-slate-100">{waiting.slice(0, 6).map(p => <li key={p.id} className="py-2.5 flex items-center justify-between gap-3 text-sm"><span className="min-w-0"><b className="text-slate-900">{nameOf(p.student_id)}</b><span className="block text-xs text-slate-500 truncate">{p.title} · {p.payment_method} · {date(p.created_at)}</span></span><span className="font-semibold tabular-nums">{money(Number(p.amount), p.currency || 'INR')}</span></li>)}</ul>}
             </section>
             <section className="rounded-2xl border border-slate-200/80 bg-white p-5">
@@ -205,7 +205,7 @@ export const AdminFinance: React.FC = () => {
                   {ledger.slice(0, 300).map(p => (
                     <tr key={p.id} className="align-top">
                       <td className="p-3 text-xs text-slate-500">{date(p.paid_at || p.created_at)}</td>
-                      <td className="p-3 min-w-0"><Link to={`/admin/payment-control?student=${p.student_id}`} className="font-bold text-slate-900 hover:text-[#58051E] truncate block">{nameOf(p.student_id)}</Link><span className="block text-xs text-slate-500 truncate">{p.title}</span></td>
+                      <td className="p-3 min-w-0"><Link to={`/admin/payment-control?student=${p.student_id}`} className="font-bold text-slate-900 hover:text-[#5A0122] truncate block">{nameOf(p.student_id)}</Link><span className="block text-xs text-slate-500 truncate">{p.title}</span></td>
                       <td className="p-3 hidden md:table-cell min-w-0"><span className="block truncate">{p.payment_method}</span><span className="block text-xs text-slate-500 truncate">{p.utr_number || p.ref_no}</span></td>
                       <td className="p-3 text-right font-semibold tabular-nums">{money(Number(p.amount), p.currency || 'INR')}</td>
                       <td className="p-3 text-right"><span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold ${SETTLED.includes(p.status) ? 'bg-emerald-50 text-emerald-700' : p.status === 'Pending Verification' ? 'bg-amber-50 text-amber-800' : 'bg-rose-50 text-rose-700'}`}>{p.status === 'Pending Verification' ? 'To verify' : p.status}</span></td>

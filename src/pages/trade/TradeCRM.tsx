@@ -230,14 +230,14 @@ export const TradeCRM: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-[#58051E]" />
+            <Building2 className="w-5 h-5 text-[#5A0122]" />
             Partners
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">Buyers, importers, suppliers, forwarders and banks.</p>
         </div>
         <Button
           size="sm"
-          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
+          className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-xs cursor-pointer"
           onClick={() => setShowAddModal(true)}
         >
           <Plus className="w-4 h-4 mr-1.5" />
@@ -253,7 +253,7 @@ export const TradeCRM: React.FC = () => {
         </Card>
         <Card className="p-3 border border-slate-200/80 bg-white">
           <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Buyers / Importers</div>
-          <div className="text-xl font-black text-[#58051E] mt-0.5">
+          <div className="text-xl font-black text-[#5A0122] mt-0.5">
             {companies.filter(c => c.category?.includes('Buyer')).length}
           </div>
         </Card>
@@ -282,7 +282,7 @@ export const TradeCRM: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by company, contact, country or email..."
-              className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+              className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
             />
           </div>
 
@@ -291,7 +291,7 @@ export const TradeCRM: React.FC = () => {
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+              className="h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#5A0122]"
             >
               <option value="All">All Categories ({companies.length})</option>
               {TRADE_MASTER_PARTNER_CATEGORIES.map((cat) => (
@@ -316,7 +316,7 @@ export const TradeCRM: React.FC = () => {
           </p>
           <Button
             size="sm"
-            className="mt-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold cursor-pointer"
+            className="mt-4 bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold cursor-pointer"
             onClick={() => setShowAddModal(true)}
           >
             <Plus className="w-3.5 h-3.5 mr-1" /> Add Trade Partner
@@ -325,11 +325,11 @@ export const TradeCRM: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCompanies.map((c) => (
-            <Card key={c.id} className="p-4 border border-slate-200/80 shadow-xs hover:border-[#58051E]/30 transition-all flex flex-col justify-between">
+            <Card key={c.id} className="p-4 border border-slate-200/80 shadow-xs hover:border-[#5A0122]/30 transition-all flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <span className="text-[9px] font-black uppercase tracking-wider text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-[#5A0122] bg-[#5A0122]/10 px-2 py-0.5 rounded">
                       {c.id}
                     </span>
                     <h3 className="text-sm font-black text-slate-900 mt-1 truncate" title={c.name}>
@@ -362,14 +362,14 @@ export const TradeCRM: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleCreateOrderForPartner(c.name)}
-                    className="px-2.5 py-1 bg-[#58051E] hover:bg-[#430316] text-white rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                    className="px-2.5 py-1 bg-[#5A0122] hover:bg-[#68092A] text-white rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer"
                     title="Log New Order for this Partner"
                   >
                     <PlusCircle className="w-3 h-3" /> New Order
                   </button>
                   <button
                     onClick={() => setSelectedCompany(c)}
-                    className="font-extrabold text-slate-700 hover:text-[#58051E] flex items-center gap-1 cursor-pointer text-[11px]"
+                    className="font-extrabold text-slate-700 hover:text-[#5A0122] flex items-center gap-1 cursor-pointer text-[11px]"
                   >
                     <Eye className="w-3 h-3" /> Details
                   </button>
@@ -415,7 +415,7 @@ export const TradeCRM: React.FC = () => {
                     value={newCompany.name}
                     onChange={(e) => setNewCompany({ ...newCompany, name: e.target.value })}
                     placeholder="e.g. Baltic Grain Sp. z o.o."
-                    className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -425,7 +425,7 @@ export const TradeCRM: React.FC = () => {
                     <select
                       value={newCompany.category}
                       onChange={(e) => setNewCompany({ ...newCompany, category: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#5A0122]"
                     >
                       {TRADE_MASTER_PARTNER_CATEGORIES.map((cat) => (
                         <option key={cat} value={cat}>{cat}</option>
@@ -439,7 +439,7 @@ export const TradeCRM: React.FC = () => {
                       value={newCompany.vat_number}
                       onChange={(e) => setNewCompany({ ...newCompany, vat_number: e.target.value })}
                       placeholder="e.g. PL5830009921"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -453,7 +453,7 @@ export const TradeCRM: React.FC = () => {
                       value={newCompany.country}
                       onChange={(e) => setNewCompany({ ...newCompany, country: e.target.value })}
                       placeholder="e.g. Poland, Germany, UAE"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -463,7 +463,7 @@ export const TradeCRM: React.FC = () => {
                       value={newCompany.city}
                       onChange={(e) => setNewCompany({ ...newCompany, city: e.target.value })}
                       placeholder="e.g. Gdansk, Hamburg"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -476,7 +476,7 @@ export const TradeCRM: React.FC = () => {
                       value={newCompany.contact}
                       onChange={(e) => setNewCompany({ ...newCompany, contact: e.target.value })}
                       placeholder="e.g. Marek Wojcik"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -487,7 +487,7 @@ export const TradeCRM: React.FC = () => {
                       value={newCompany.email}
                       onChange={(e) => setNewCompany({ ...newCompany, email: e.target.value })}
                       placeholder="e.g. trade@balticgrain.pl"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -500,7 +500,7 @@ export const TradeCRM: React.FC = () => {
                       value={newCompany.phone}
                       onChange={(e) => setNewCompany({ ...newCompany, phone: e.target.value })}
                       placeholder="e.g. +48 58 660 4100"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -510,14 +510,14 @@ export const TradeCRM: React.FC = () => {
                       value={newCompany.payment_terms}
                       onChange={(e) => setNewCompany({ ...newCompany, payment_terms: e.target.value })}
                       placeholder="e.g. 30% Advance, 70% against B/L"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
 
                 <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Save Partner Entity</Button>
+                  <Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-white">Save Partner Entity</Button>
                 </div>
               </form>
             </motion.div>
@@ -543,7 +543,7 @@ export const TradeCRM: React.FC = () => {
                     required
                     value={editingCompany.name}
                     onChange={(e) => setEditingCompany({ ...editingCompany, name: e.target.value })}
-                    className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -553,7 +553,7 @@ export const TradeCRM: React.FC = () => {
                     <select
                       value={editingCompany.category}
                       onChange={(e) => setEditingCompany({ ...editingCompany, category: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#5A0122]"
                     >
                       {TRADE_MASTER_PARTNER_CATEGORIES.map((cat) => (
                         <option key={cat} value={cat}>{cat}</option>
@@ -566,7 +566,7 @@ export const TradeCRM: React.FC = () => {
                       type="text"
                       value={editingCompany.vat_number}
                       onChange={(e) => setEditingCompany({ ...editingCompany, vat_number: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -578,7 +578,7 @@ export const TradeCRM: React.FC = () => {
                       type="text"
                       value={editingCompany.country}
                       onChange={(e) => setEditingCompany({ ...editingCompany, country: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -587,7 +587,7 @@ export const TradeCRM: React.FC = () => {
                       type="text"
                       value={editingCompany.city}
                       onChange={(e) => setEditingCompany({ ...editingCompany, city: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -599,7 +599,7 @@ export const TradeCRM: React.FC = () => {
                       type="text"
                       value={editingCompany.contact}
                       onChange={(e) => setEditingCompany({ ...editingCompany, contact: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -609,7 +609,7 @@ export const TradeCRM: React.FC = () => {
                       required
                       value={editingCompany.email}
                       onChange={(e) => setEditingCompany({ ...editingCompany, email: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -621,7 +621,7 @@ export const TradeCRM: React.FC = () => {
                       type="text"
                       value={editingCompany.phone}
                       onChange={(e) => setEditingCompany({ ...editingCompany, phone: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -630,14 +630,14 @@ export const TradeCRM: React.FC = () => {
                       type="text"
                       value={editingCompany.paymentTerms}
                       onChange={(e) => setEditingCompany({ ...editingCompany, paymentTerms: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
 
                 <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
                   <Button type="button" variant="outline" size="sm" onClick={() => setEditingCompany(null)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Save Changes</Button>
+                  <Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-white">Save Changes</Button>
                 </div>
               </form>
             </motion.div>
@@ -688,7 +688,7 @@ export const TradeCRM: React.FC = () => {
                     {/* Connected Orders */}
                     <div>
                       <h4 className="text-xs font-black uppercase text-slate-700 mb-2 flex items-center gap-1.5">
-                        <Ship className="w-3.5 h-3.5 text-[#58051E]" /> Active Trade Orders
+                        <Ship className="w-3.5 h-3.5 text-[#5A0122]" /> Active Trade Orders
                       </h4>
                       {dossier.orders.length === 0 ? (
                         <p className="text-xs text-slate-400 font-medium bg-slate-50 p-3 rounded-xl border border-slate-100">No active orders linked to this entity.</p>
@@ -714,7 +714,7 @@ export const TradeCRM: React.FC = () => {
                     {/* Connected Documents */}
                     <div>
                       <h4 className="text-xs font-black uppercase text-slate-700 mb-2 flex items-center gap-1.5">
-                        <FolderArchive className="w-3.5 h-3.5 text-[#58051E]" /> Trade Compliance Documents
+                        <FolderArchive className="w-3.5 h-3.5 text-[#5A0122]" /> Trade Compliance Documents
                       </h4>
                       {dossier.docs.length === 0 ? (
                         <p className="text-xs text-slate-400 font-medium bg-slate-50 p-3 rounded-xl border border-slate-100">No compliance documents attached for this partner.</p>
@@ -743,7 +743,7 @@ export const TradeCRM: React.FC = () => {
               <div className="pt-3 border-t border-slate-100 flex justify-between items-center">
                 <Button
                   size="sm"
-                  className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold"
+                  className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold"
                   onClick={() => {
                     const name = selectedCompany.name;
                     setSelectedCompany(null);

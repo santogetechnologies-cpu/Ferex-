@@ -249,14 +249,14 @@ export const TradeBillsOfLading: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <FileCheck2 className="w-5 h-5 text-[#58051E]" />
+            <FileCheck2 className="w-5 h-5 text-[#5A0122]" />
             Bills of lading
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">Issue, amend, release and track bills of lading.</p>
         </div>
         <Button
           size="sm"
-          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
+          className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-xs cursor-pointer"
           onClick={() => setShowCreateModal(true)}
         >
           <Plus className="w-4 h-4 mr-1.5" />
@@ -274,7 +274,7 @@ export const TradeBillsOfLading: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by B/L #, vessel, carrier, consignee, port..."
-              className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+              className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
             />
           </div>
 
@@ -283,7 +283,7 @@ export const TradeBillsOfLading: React.FC = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+              className="h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#5A0122]"
             >
               <option value="All">All B/Ls ({bills.length})</option>
               {TRADE_BL_STATUSES.map(st => (
@@ -306,7 +306,7 @@ export const TradeBillsOfLading: React.FC = () => {
           </p>
           <Button
             size="sm"
-            className="mt-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold cursor-pointer"
+            className="mt-4 bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold cursor-pointer"
             onClick={() => setShowCreateModal(true)}
           >
             <Plus className="w-3.5 h-3.5 mr-1" /> Issue Bill of Lading
@@ -331,7 +331,7 @@ export const TradeBillsOfLading: React.FC = () => {
               <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
                 {filteredBills.map((b) => (
                   <tr key={b.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-4 font-black text-[#58051E] whitespace-nowrap">
+                    <td className="py-3.5 px-4 font-black text-[#5A0122] whitespace-nowrap">
                       {b.id}
                     </td>
                     <td className="py-3.5 px-4 whitespace-nowrap">
@@ -366,7 +366,7 @@ export const TradeBillsOfLading: React.FC = () => {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => setSelectedBL(b)}
-                          className="p-1.5 text-slate-400 hover:text-[#58051E] hover:bg-slate-100 rounded-lg cursor-pointer"
+                          className="p-1.5 text-slate-400 hover:text-[#5A0122] hover:bg-slate-100 rounded-lg cursor-pointer"
                           title="View Bill of Lading"
                         >
                           <Eye className="w-4 h-4" />
@@ -403,7 +403,7 @@ export const TradeBillsOfLading: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <FileCheck2 className="w-4 h-4 text-[#58051E]" /> Issue Ocean Bill of Lading
+                  <FileCheck2 className="w-4 h-4 text-[#5A0122]" /> Issue Ocean Bill of Lading
                 </h3>
                 <button onClick={() => setShowCreateModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
@@ -415,7 +415,7 @@ export const TradeBillsOfLading: React.FC = () => {
                     <select
                       value={newBL.shipment_no}
                       onChange={(e) => handleShipmentSelect(e.target.value)}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#5A0122]"
                     >
                       <option value="">Select active shipment...</option>
                       {shipments.map(s => <option key={s.id} value={s.order_no}>{s.order_no} · {s.commodity} · {s.client_name} ({s.currency})</option>)}
@@ -426,7 +426,7 @@ export const TradeBillsOfLading: React.FC = () => {
                     <select
                       value={newBL.carrier}
                       onChange={(e) => setNewBL({ ...newBL, carrier: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#5A0122]"
                     >
                       {TRADE_MASTER_CARRIERS.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
@@ -439,7 +439,7 @@ export const TradeBillsOfLading: React.FC = () => {
                     <select
                       value={newBL.vessel}
                       onChange={(e) => setNewBL({ ...newBL, vessel: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#5A0122]"
                     >
                       {TRADE_MASTER_VESSELS.map(v => <option key={v} value={v}>{v}</option>)}
                     </select>
@@ -451,7 +451,7 @@ export const TradeBillsOfLading: React.FC = () => {
                       value={newBL.voyage_no}
                       onChange={(e) => setNewBL({ ...newBL, voyage_no: e.target.value })}
                       placeholder="VY-2026-088"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -465,7 +465,7 @@ export const TradeBillsOfLading: React.FC = () => {
                       value={newBL.pol}
                       onChange={(e) => setNewBL({ ...newBL, pol: e.target.value })}
                       placeholder="Select or enter custom port..."
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                     <datalist id="bl-master-pol-ports">
                       {TRADE_MASTER_PORTS.map(p => <option key={p} value={p}>{p}</option>)}
@@ -479,7 +479,7 @@ export const TradeBillsOfLading: React.FC = () => {
                       value={newBL.pod}
                       onChange={(e) => setNewBL({ ...newBL, pod: e.target.value })}
                       placeholder="Select or enter custom port..."
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                     <datalist id="bl-master-pod-ports">
                       {TRADE_MASTER_PORTS.map(p => <option key={p} value={p}>{p}</option>)}
@@ -502,7 +502,7 @@ export const TradeBillsOfLading: React.FC = () => {
                             setNewBL({ ...newBL, consignee: e.target.value });
                           }
                         }}
-                        className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                       >
                         <option value="">-- Select Registered CRM Partner --</option>
                         {crmPartners.map(p => (
@@ -520,7 +520,7 @@ export const TradeBillsOfLading: React.FC = () => {
                           value={newBL.consignee}
                           onChange={(e) => setNewBL({ ...newBL, consignee: e.target.value })}
                           placeholder="Enter custom consignee company..."
-                          className="flex-1 h-8.5 px-3 bg-white border border-[#58051E] rounded-xl text-xs font-semibold focus:outline-none"
+                          className="flex-1 h-8.5 px-3 bg-white border border-[#5A0122] rounded-xl text-xs font-semibold focus:outline-none"
                         />
                         <button
                           type="button"
@@ -542,7 +542,7 @@ export const TradeBillsOfLading: React.FC = () => {
                       value={newBL.notify_party}
                       onChange={(e) => setNewBL({ ...newBL, notify_party: e.target.value })}
                       placeholder="e.g. Logistics Desk Gdansk"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -553,7 +553,7 @@ export const TradeBillsOfLading: React.FC = () => {
                     <select
                       value={newBL.freight_terms}
                       onChange={(e) => setNewBL({ ...newBL, freight_terms: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#5A0122]"
                     >
                       <option value="Freight Prepaid">Freight Prepaid</option>
                       <option value="Freight Collect">Freight Collect</option>
@@ -564,7 +564,7 @@ export const TradeBillsOfLading: React.FC = () => {
                     <select
                       value={newBL.status}
                       onChange={(e) => setNewBL({ ...newBL, status: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#5A0122]"
                     >
                       {TRADE_BL_STATUSES.map(st => <option key={st} value={st}>{st}</option>)}
                     </select>
@@ -573,7 +573,7 @@ export const TradeBillsOfLading: React.FC = () => {
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowCreateModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Issue Ocean B/L</Button>
+                  <Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-white">Issue Ocean B/L</Button>
                 </div>
               </form>
             </motion.div>
@@ -589,7 +589,7 @@ export const TradeBillsOfLading: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto text-left">
               <div className="flex items-start justify-between pb-4 border-b border-slate-100">
                 <div>
-                  <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-black uppercase text-[#5A0122] bg-[#5A0122]/10 px-2 py-0.5 rounded">
                     {selectedBL.id}
                   </span>
                   <h2 className="text-lg font-black text-slate-900 mt-1">Ocean Bill of Lading Details</h2>

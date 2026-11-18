@@ -433,7 +433,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
             <h1 className="text-xl font-black text-slate-900 tracking-tight">
               Legalization
             </h1>
-            <span className="text-[10px] font-black uppercase tracking-wider bg-[#58051E]/10 text-[#58051E] px-2.5 py-0.5 rounded-md border border-[#58051E]/20">
+            <span className="text-[10px] font-black uppercase tracking-wider bg-[#5A0122]/10 text-[#5A0122] px-2.5 py-0.5 rounded-md border border-[#5A0122]/20">
               SuperAdmin Config
             </span>
           </div>
@@ -445,7 +445,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
         <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
           <Link
             to="/admin/applications"
-            className="h-10 px-3.5 bg-white border border-[#58051E]/25 hover:!bg-[#58051E] hover:!text-white text-[#58051E] text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+            className="h-10 px-3.5 bg-white border border-[#5A0122]/25 hover:!bg-[#5A0122] hover:!text-white text-[#5A0122] text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
           >
             <GraduationCap className="w-4 h-4" />
             <span>University Applications Control</span>
@@ -458,7 +458,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
               onClick={() => setActiveTab('tracking')}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'tracking'
-                  ? 'bg-[#58051E] text-white shadow-xs'
+                  ? 'bg-[#5A0122] text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -468,7 +468,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
               onClick={() => setActiveTab('workflows')}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'workflows'
-                  ? 'bg-[#58051E] text-white shadow-xs'
+                  ? 'bg-[#5A0122] text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -490,7 +490,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by student name, reference ID, or document type..."
-                className="w-full h-9.5 pl-9 pr-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                className="w-full h-9.5 pl-9 pr-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]"
               />
             </div>
 
@@ -520,7 +520,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
 
               <button
                 onClick={handleOpenAddModal}
-                className="h-9.5 px-4 bg-[#58051E] hover:bg-[#3D0016] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer whitespace-nowrap"
+                className="h-9.5 px-4 bg-[#5A0122] hover:bg-[#5A0122] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer whitespace-nowrap"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Student to Queue</span>
@@ -562,11 +562,11 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
                             <span className="text-[10px] font-black uppercase bg-slate-100 text-slate-800 px-2 py-0.5 rounded border border-slate-200">
                               {country}
                             </span>
-                            <span className="text-[10px] font-black uppercase bg-[#58051E]/10 text-[#58051E] px-2 py-0.5 rounded border border-[#58051E]/20">
+                            <span className="text-[10px] font-black uppercase bg-[#5A0122]/10 text-[#5A0122] px-2 py-0.5 rounded border border-[#5A0122]/20">
                               {wf?.authority_acronym || 'Legalization'}
                             </span>
                           </div>
-                          <h3 className="text-sm font-black text-slate-900 group-hover:text-[#58051E] transition-colors">
+                          <h3 className="text-sm font-black text-slate-900 group-hover:text-[#5A0122] transition-colors">
                             {rec.student_name}
                           </h3>
                           <p className="text-[11px] font-semibold text-slate-400 font-mono">
@@ -604,7 +604,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
                           <span className="text-slate-500">
                             Stage {rec.current_step} of {maxSteps}:
                           </span>
-                          <span className="text-[#58051E] font-black">
+                          <span className="text-[#5A0122] font-black">
                             {currentStageObj?.short_name || currentStageObj?.title || `Step ${rec.current_step}`}
                           </span>
                         </div>
@@ -615,7 +615,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
                               key={idx}
                               className={`flex-1 h-full transition-all ${
                                 idx + 1 <= rec.current_step
-                                  ? rec.status === 'Approved' ? 'bg-emerald-500' : rec.status === 'Rejected' ? 'bg-red-500' : 'bg-[#58051E]'
+                                  ? rec.status === 'Approved' ? 'bg-emerald-500' : rec.status === 'Rejected' ? 'bg-red-500' : 'bg-[#5A0122]'
                                   : 'bg-slate-200'
                               }`}
                             />
@@ -630,7 +630,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
                         {rec.current_step < maxSteps && rec.status !== 'Rejected' && (
                           <button
                             onClick={() => handleStepChange(rec.id, rec.current_step + 1, 'In Review')}
-                            className="text-[10.5px] font-bold text-[#58051E] bg-[#58051E]/5 hover:bg-[#58051E]/10 px-2.5 py-1 rounded-lg border border-[#58051E]/20 cursor-pointer"
+                            className="text-[10.5px] font-bold text-[#5A0122] bg-[#5A0122]/5 hover:bg-[#5A0122]/10 px-2.5 py-1 rounded-lg border border-[#5A0122]/20 cursor-pointer"
                           >
                             Advance Step →
                           </button>
@@ -675,7 +675,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200/80 p-6 rounded-2xl shadow-xs">
             <div className="space-y-1">
               <h2 className="text-base sm:text-lg font-black tracking-tight text-slate-900 flex items-center gap-2">
-                <Globe className="w-5 h-5 text-[#58051E]" />
+                <Globe className="w-5 h-5 text-[#5A0122]" />
                 Country Workflows & Legalization Procedures
               </h2>
               <p className="text-xs text-slate-500 max-w-2xl font-medium">
@@ -686,7 +686,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
             {!isStaff && (
               <button
                 onClick={handleOpenNewWorkflowModal}
-                className="h-9 px-4 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition-all cursor-pointer whitespace-nowrap self-start sm:self-auto"
+                className="h-9 px-4 bg-[#5A0122] hover:bg-[#68092A] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition-all cursor-pointer whitespace-nowrap self-start sm:self-auto"
               >
                 <Plus className="w-4 h-4 text-white" />
                 <span>Add Country Workflow</span>
@@ -708,7 +708,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-base font-black text-slate-900">{wf.country}</h3>
-                        <span className="text-[10px] font-black uppercase tracking-wider bg-[#58051E] text-amber-300 px-2 py-0.5 rounded-md">
+                        <span className="text-[10px] font-black uppercase tracking-wider bg-[#5A0122] text-amber-300 px-2 py-0.5 rounded-md">
                           {wf.authority_acronym}
                         </span>
                       </div>
@@ -735,7 +735,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
                     </div>
                     <div>
                       <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Stages:</span>
-                      <span className="font-bold text-[#58051E]">{wf.stages?.length || 0} Step Flow</span>
+                      <span className="font-bold text-[#5A0122]">{wf.stages?.length || 0} Step Flow</span>
                     </div>
                   </div>
 
@@ -759,7 +759,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
                   <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
                     <button
                       onClick={() => handleOpenEditWorkflowModal(wf)}
-                      className="flex-1 h-9 bg-[#58051E] hover:bg-[#3D0016] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      className="flex-1 h-9 bg-[#5A0122] hover:bg-[#5A0122] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <Edit2 className="w-3.5 h-3.5 text-amber-300" />
                       <span>Configure Workflow & Stages</span>
@@ -868,7 +868,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
 
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
                   <button type="button" onClick={() => setShowAddModal(false)} className="h-10 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
-                  <button type="submit" disabled={isSubmitting} className="h-10 px-6 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#3D0016] shadow-sm cursor-pointer disabled:opacity-50">
+                  <button type="submit" disabled={isSubmitting} className="h-10 px-6 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#5A0122] shadow-sm cursor-pointer disabled:opacity-50">
                     {isSubmitting ? 'Initiating Process...' : 'Add to Legalization Queue'}
                   </button>
                 </div>
@@ -910,7 +910,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
                     onClick={() => setActiveWorkflowTab(tab.id as any)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                       activeWorkflowTab === tab.id
-                        ? 'bg-[#58051E] text-white shadow-xs'
+                        ? 'bg-[#5A0122] text-white shadow-xs'
                         : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
                     }`}
                   >
@@ -942,7 +942,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
                                   handleCountrySelectChange(fallbackC);
                                 }
                               }}
-                              className="text-[10px] font-bold text-[#58051E] hover:underline cursor-pointer"
+                              className="text-[10px] font-bold text-[#5A0122] hover:underline cursor-pointer"
                             >
                               {isCustomWfCountry ? '← Choose Configured Country' : '+ Type Custom Country'}
                             </button>
@@ -1067,7 +1067,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
                             }
                           ]);
                         }}
-                        className="h-8 px-3 bg-[#58051E] text-white text-xs font-bold rounded-xl flex items-center gap-1 cursor-pointer"
+                        className="h-8 px-3 bg-[#5A0122] text-white text-xs font-bold rounded-xl flex items-center gap-1 cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" /> Add Step
                       </button>
@@ -1077,7 +1077,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
                       {wfStages.map((st, idx) => (
                         <div key={idx} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase text-[#58051E]">Stage #{idx + 1}</span>
+                            <span className="text-[10px] font-black uppercase text-[#5A0122]">Stage #{idx + 1}</span>
                             {wfStages.length > 1 && (
                               <button
                                 type="button"
@@ -1144,7 +1144,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
                             { id: nextId, name: 'New Required Document', category: 'academic', is_mandatory: true, instructions: 'Document upload instructions.' }
                           ]);
                         }}
-                        className="h-8 px-3 bg-[#58051E] text-white text-xs font-bold rounded-xl flex items-center gap-1 cursor-pointer"
+                        className="h-8 px-3 bg-[#5A0122] text-white text-xs font-bold rounded-xl flex items-center gap-1 cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" /> Add Requirement
                       </button>
@@ -1244,7 +1244,7 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
                   <button type="button" onClick={() => setShowWorkflowModal(false)} className="h-10 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">
                     Cancel
                   </button>
-                  <button type="submit" className="h-10 px-6 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#3D0016] shadow-sm cursor-pointer">
+                  <button type="submit" className="h-10 px-6 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#5A0122] shadow-sm cursor-pointer">
                     {editingWorkflowId ? 'Save & Sync Workflow Across System' : 'Publish Country Workflow'}
                   </button>
                 </div>

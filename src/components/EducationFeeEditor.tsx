@@ -93,7 +93,7 @@ export function EducationFeeEditor() {
         <div role="group" aria-label="Who collects this fee" className="inline-flex rounded-xl border border-slate-200 p-0.5 bg-slate-50">
           {([['ferex', 'Ferex collects it'], ['direct_third_party', 'Student pays it directly']] as const).map(([value, label]) => (
             <button key={value} type="button" onClick={() => change(fee.id, { recipient: value, ...(value === 'direct_third_party' ? { is_direct_payment: true } : { is_direct_payment: false }) })} aria-pressed={fee.recipient === value}
-              className={`px-3.5 h-8 rounded-[10px] text-xs font-semibold cursor-pointer ${fee.recipient === value ? 'bg-white text-[#58051E] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>{label}</button>
+              className={`px-3.5 h-8 rounded-[10px] text-xs font-semibold cursor-pointer ${fee.recipient === value ? 'bg-white text-[#5A0122] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>{label}</button>
           ))}
         </div>
       )}
@@ -169,10 +169,10 @@ export function EducationFeeEditor() {
           <div><h3 className="text-base font-bold text-slate-900">2. Normal flow fees</h3><p className="text-sm text-slate-500">The common fees for students you put on the normal flow. Add anything you need: legalization, visa support, agency, documents. Fees the student pays to the university or embassy are shown to them as a message, without an amount.</p></div>
           {flowFees.map(f => card(f))}
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => add({ title: 'Legalization fee', stage: 5 })} className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-[#58051E]/40 hover:text-[#58051E] inline-flex items-center gap-1.5 cursor-pointer"><Plus className="w-4 h-4" /> Legalization fee</button>
-            <button type="button" onClick={() => add({ title: 'Visa support fee', stage: 9 })} className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-[#58051E]/40 hover:text-[#58051E] inline-flex items-center gap-1.5 cursor-pointer"><Plus className="w-4 h-4" /> Visa support fee</button>
-            <button type="button" onClick={() => add({ title: 'Visa fee', recipient: 'direct_third_party', is_direct_payment: true, direct_recipient_institution: 'the embassy or visa centre', stage: 9 })} className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-[#58051E]/40 hover:text-[#58051E] inline-flex items-center gap-1.5 cursor-pointer"><Plus className="w-4 h-4" /> Visa fee (paid directly)</button>
-            <button type="button" onClick={() => add({})} className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-[#58051E]/40 hover:text-[#58051E] inline-flex items-center gap-1.5 cursor-pointer"><Plus className="w-4 h-4" /> Add another fee</button>
+            <button type="button" onClick={() => add({ title: 'Legalization fee', stage: 5 })} className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-[#5A0122]/40 hover:text-[#5A0122] inline-flex items-center gap-1.5 cursor-pointer"><Plus className="w-4 h-4" /> Legalization fee</button>
+            <button type="button" onClick={() => add({ title: 'Visa support fee', stage: 9 })} className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-[#5A0122]/40 hover:text-[#5A0122] inline-flex items-center gap-1.5 cursor-pointer"><Plus className="w-4 h-4" /> Visa support fee</button>
+            <button type="button" onClick={() => add({ title: 'Visa fee', recipient: 'direct_third_party', is_direct_payment: true, direct_recipient_institution: 'the embassy or visa centre', stage: 9 })} className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-[#5A0122]/40 hover:text-[#5A0122] inline-flex items-center gap-1.5 cursor-pointer"><Plus className="w-4 h-4" /> Visa fee (paid directly)</button>
+            <button type="button" onClick={() => add({})} className="h-10 px-4 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 hover:border-[#5A0122]/40 hover:text-[#5A0122] inline-flex items-center gap-1.5 cursor-pointer"><Plus className="w-4 h-4" /> Add another fee</button>
           </div>
         </div>
 
@@ -195,7 +195,7 @@ export function EducationFeeEditor() {
       )}
 
       <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-        <button type="button" disabled={saving || !dirty} onClick={handleSave} className="h-10 px-6 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-sm font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-50">
+        <button type="button" disabled={saving || !dirty} onClick={handleSave} className="h-10 px-6 bg-[#5A0122] hover:bg-[#68092A] text-white rounded-xl text-sm font-semibold flex items-center gap-2 cursor-pointer disabled:opacity-50">
           {saving ? <><CapLoader size="sm" /><span>Saving…</span></> : <><Save className="w-3.5 h-3.5" /><span>Save fee configuration</span></>}
         </button>
       </div>

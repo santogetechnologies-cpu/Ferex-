@@ -63,7 +63,7 @@ const STATUS_COLORS: Record<AppStatus, string> = {
   'NAWA Submitted': 'bg-indigo-50 text-indigo-800 border-indigo-200 font-black',
   'NAWA Approved': 'bg-emerald-50 text-emerald-800 border-emerald-200 font-black',
   'Under Review': 'bg-blue-50 text-blue-700 border-blue-200',
-  'Offer Issued': 'bg-[#58051E]/10 text-[#58051E] border-[#58051E]/20 font-black',
+  'Offer Issued': 'bg-[#5A0122]/10 text-[#5A0122] border-[#5A0122]/20 font-black',
   'Accepted': 'bg-emerald-50 text-emerald-800 border-emerald-200 font-black',
   'Final Acceptance Issued': 'bg-teal-50 text-teal-800 border-teal-200 font-black',
   'Visa Processing': 'bg-violet-50 text-violet-700 border-violet-200',
@@ -533,7 +533,7 @@ startxref
           <p className="text-sm font-medium text-slate-500">Review applications and issue offer and acceptance letters.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link to="/admin/legalization" className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"><ShieldCheck className="w-4 h-4 text-[#58051E]" /> Legalization</Link>
+          <Link to="/admin/legalization" className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"><ShieldCheck className="w-4 h-4 text-[#5A0122]" /> Legalization</Link>
           <button onClick={() => refresh()} className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"><RefreshCw className="w-3.5 h-3.5" /> Refresh</button>
         </div>
       </div>
@@ -549,19 +549,19 @@ startxref
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by student name, university, program, or application ID..."
-            className="w-full h-10 pl-9 pr-4 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#58051E] transition-all shadow-xs"
+            className="w-full h-10 pl-9 pr-4 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#5A0122] transition-all shadow-xs"
           />
         </div>
 
         <div className="flex items-center gap-2">
           {isStaff && (
             <div className="flex items-center gap-1.5 px-3 h-10 rounded-xl text-xs font-bold border border-slate-200 bg-slate-50 text-slate-700">
-              <Users className="w-3.5 h-3.5 text-[#58051E]" />
+              <Users className="w-3.5 h-3.5 text-[#5A0122]" />
               <span>Assigned Students Only</span>
             </div>
           )}
           <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-3 h-10 shadow-xs">
-            <Globe className="w-4 h-4 text-[#58051E] shrink-0" />
+            <Globe className="w-4 h-4 text-[#5A0122] shrink-0" />
             <select
               value={countryFilter}
               onChange={(e) => setCountryFilter(e.target.value)}
@@ -590,7 +590,7 @@ startxref
             key={s.key}
             onClick={() => setStatusFilter(s.key)}
             className={`h-8 px-3.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${statusFilter === s.key
-              ? 'bg-[#58051E] text-white border-[#58051E] shadow-xs'
+              ? 'bg-[#5A0122] text-white border-[#5A0122] shadow-xs'
               : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
               }`}
           >
@@ -623,7 +623,7 @@ startxref
                   <td className="px-5 py-4">
                     <span className="font-bold text-slate-900 block">{a.university}</span>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[11px] text-[#58051E] font-extrabold">{a.course}</span>
+                      <span className="text-[11px] text-[#5A0122] font-extrabold">{a.course}</span>
                       <span className="inline-flex items-center gap-1 text-[9.5px] font-black px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200" title={auth.name}>
                         <span className="font-mono text-[9px] text-slate-500">{auth.flag}</span>
                         <span>{auth.acronym}</span>
@@ -666,7 +666,7 @@ startxref
                     <button onClick={() => setViewApp(a)} className="h-8 px-3 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 inline-flex items-center gap-1.5 cursor-pointer" title="View details"><Eye className="w-3.5 h-3.5" /> View</button>
                     <button
                       onClick={() => { setOfferNotes(a.notes || `Official Admission Offer Letter for ${a.studentName}`); setOfferPdfUrlInput(a.offerLetterUrl || ''); setOfferPdfFile(null); setOfferModalApp(a); }}
-                      className={`h-8 px-3 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer border ${a.offerLetterUrl ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100' : 'bg-[#58051E] text-white border-[#58051E] hover:bg-[#430316]'}`}
+                      className={`h-8 px-3 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer border ${a.offerLetterUrl ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100' : 'bg-[#5A0122] text-white border-[#5A0122] hover:bg-[#68092A]'}`}
                       title={a.offerLetterUrl ? 'Replace the offer letter' : 'Upload the offer letter'}
                     ><FileText className="w-3.5 h-3.5" /> {a.offerLetterUrl ? 'Offer' : '+ Offer'}</button>
                     <button
@@ -684,7 +684,7 @@ startxref
               <tr>
                 <td colSpan={5} className="py-16 text-center">
                   <div className="max-w-md mx-auto space-y-3">
-                    <div className="w-12 h-12 rounded-2xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center mx-auto">
+                    <div className="w-12 h-12 rounded-2xl bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center mx-auto">
                       <FileText className="w-6 h-6" />
                     </div>
                     <div>
@@ -701,7 +701,7 @@ startxref
                       {statusFilter !== 'All' && (
                         <button
                           onClick={() => setStatusFilter('All')}
-                          className="px-4 py-2 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] transition-all shadow-xs cursor-pointer"
+                          className="px-4 py-2 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#68092A] transition-all shadow-xs cursor-pointer"
                         >
                           View All Applications ({apps.length})
                         </button>
@@ -729,7 +729,7 @@ startxref
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-slate-100 z-10 text-left">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black">
+                  <div className="w-9 h-9 rounded-xl bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center font-black">
                     <FileText className="w-5 h-5" />
                   </div>
                   <div>
@@ -751,7 +751,7 @@ startxref
                     Upload Official Offer Letter PDF Document *
                   </label>
                   <div className="p-4 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 hover:bg-slate-50 transition-colors text-center">
-                    <Upload className="w-6 h-6 text-[#58051E] mx-auto mb-2" />
+                    <Upload className="w-6 h-6 text-[#5A0122] mx-auto mb-2" />
                     <input
                       type="file"
                       accept="application/pdf,.pdf"
@@ -761,7 +761,7 @@ startxref
                           setOfferPdfUrlInput('');
                         }
                       }}
-                      className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#58051E] file:text-white hover:file:bg-[#430316] cursor-pointer"
+                      className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#5A0122] file:text-white hover:file:bg-[#68092A] cursor-pointer"
                     />
                     {offerPdfFile && (
                       <p className="text-xs font-bold text-emerald-700 mt-2 flex items-center justify-center gap-1">
@@ -799,7 +799,7 @@ startxref
 
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                   <button type="button" onClick={() => setOfferModalApp(null)} className="h-9 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">Cancel</button>
-                  <button type="submit" disabled={isUploadingOffer} className="h-9 px-5 bg-[#58051E] text-white rounded-xl text-xs font-black hover:bg-[#430316] shadow-xs flex items-center gap-1.5">
+                  <button type="submit" disabled={isUploadingOffer} className="h-9 px-5 bg-[#5A0122] text-white rounded-xl text-xs font-black hover:bg-[#68092A] shadow-xs flex items-center gap-1.5">
                     {isUploadingOffer ? <CapLoader size="xs" tone="light" /> : 'Confirm & Issue Offer Letter PDF'}
                   </button>
                 </div>
@@ -982,7 +982,7 @@ startxref
                         setOfferPdfFile(null);
                         setOfferModalApp(viewApp);
                       }}
-                      className="w-full h-9.5 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                      className="w-full h-9.5 bg-[#5A0122] hover:bg-[#68092A] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
                     >
                       <FileText className="w-3.5 h-3.5" /> Issue Official Offer Letter
                     </button>

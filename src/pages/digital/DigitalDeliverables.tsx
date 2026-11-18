@@ -193,7 +193,7 @@ export const DigitalDeliverables: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">Deliverables</h1>
-            <span className="text-[10px] font-bold text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded-md border border-[#58051E]/20">
+            <span className="text-[10px] font-bold text-[#5A0122] bg-[#5A0122]/10 px-2 py-0.5 rounded-md border border-[#5A0122]/20">
               Files & Assets
             </span>
           </div>
@@ -206,7 +206,7 @@ export const DigitalDeliverables: React.FC = () => {
           <Button
             size="sm"
             onClick={() => setShowAddModal(true)}
-            className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
+            className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4" /> Upload Deliverable
           </Button>

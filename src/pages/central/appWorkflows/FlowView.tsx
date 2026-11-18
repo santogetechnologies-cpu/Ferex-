@@ -61,7 +61,7 @@ export const FlowView: React.FC<{ app: InvApp; flow: Flowchart; role: string; qu
     <div className="grid xl:grid-cols-[minmax(0,1fr)_22rem] gap-4 items-start">
       <div className="space-y-2 min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => { if (!walking) setStep(0); setPlaying(p => !p); }} className="h-8 px-3 rounded-full bg-[#58051E] text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer">{playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}{playing ? 'Pause' : walking ? 'Resume' : 'Walk through'}</button>
+          <button type="button" onClick={() => { if (!walking) setStep(0); setPlaying(p => !p); }} className="h-8 px-3 rounded-full bg-[#5A0122] text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer">{playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}{playing ? 'Pause' : walking ? 'Resume' : 'Walk through'}</button>
           <button type="button" aria-label="Previous step" disabled={!walking || step <= 0} onClick={() => { setPlaying(false); setStep(s => Math.max(0, s - 1)); }} className="w-8 h-8 grid place-items-center rounded-full border border-slate-200 bg-white disabled:opacity-40 cursor-pointer"><SkipBack className="w-3.5 h-3.5" /></button>
           <button type="button" aria-label="Next step" disabled={walking && step >= order.length - 1} onClick={() => { setPlaying(false); setStep(s => Math.min(order.length - 1, s + 1)); }} className="w-8 h-8 grid place-items-center rounded-full border border-slate-200 bg-white disabled:opacity-40 cursor-pointer"><SkipForward className="w-3.5 h-3.5" /></button>
           {walking && <><span className="text-xs font-bold text-slate-600">Step {step + 1} of {order.length}</span><button type="button" onClick={() => { setStep(-1); setPlaying(false); setSelected(''); }} className="text-xs font-semibold text-slate-500 underline cursor-pointer">Stop</button></>}
@@ -118,7 +118,7 @@ export const FlowView: React.FC<{ app: InvApp; flow: Flowchart; role: string; qu
           <div><p className="text-sm font-bold text-slate-900">{flow.title}</p><p className="text-xs text-slate-600 mt-1">{flow.summary}</p><p className="text-xs text-slate-500 mt-3">Click any box to see what happens in that step, who does it, and every button and field on the screens involved.</p></div>
         ) : (
           <>
-            <div className="flex items-start justify-between gap-2"><div><p className="text-[10px] font-extrabold uppercase tracking-wide text-[#58051E]">{flow.lanes.find(l => l.id === sel.lane)?.label}</p><p className="text-sm font-black text-slate-900">{sel.label}</p></div><button type="button" aria-label="Close details" onClick={() => setSelected('')} className="p-1 text-slate-400 hover:text-slate-700 cursor-pointer"><X className="w-4 h-4" /></button></div>
+            <div className="flex items-start justify-between gap-2"><div><p className="text-[10px] font-extrabold uppercase tracking-wide text-[#5A0122]">{flow.lanes.find(l => l.id === sel.lane)?.label}</p><p className="text-sm font-black text-slate-900">{sel.label}</p></div><button type="button" aria-label="Close details" onClick={() => setSelected('')} className="p-1 text-slate-400 hover:text-slate-700 cursor-pointer"><X className="w-4 h-4" /></button></div>
             <p className="text-sm text-slate-700">{sel.desc}</p>
             {(sel.tables?.length || sel.functions?.length) ? (
               <div className="text-xs space-y-1">

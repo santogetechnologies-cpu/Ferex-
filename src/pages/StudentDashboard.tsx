@@ -280,7 +280,7 @@ export const StudentDashboard: React.FC = () => {
       {legalizationRecord && targetWf && (
         <motion.div variants={itemVariants} className="rounded-2xl border border-slate-200/80 bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <span className="grid place-items-center w-10 h-10 rounded-xl bg-[#58051E]/8 text-[#58051E]"><ScrollText className="w-5 h-5" /></span>
+            <span className="grid place-items-center w-10 h-10 rounded-xl bg-[#5A0122]/8 text-[#5A0122]"><ScrollText className="w-5 h-5" /></span>
             <div><p className="text-sm font-bold text-slate-900">Legalization · {legalizationRecord.ref_no || legalizationRecord.nawa_ref_no}</p>
               <p className="text-xs text-slate-500">Step {legalizationRecord.current_step} of 4 · {legalizationRecord.status}</p></div>
           </div>
@@ -299,7 +299,7 @@ export const StudentDashboard: React.FC = () => {
                 <h3 className="text-sm font-bold text-slate-900">{checklistItems.length}-Stage Admission Journey</h3>
                 <p className="text-xs text-slate-400 font-medium mt-0.5">Sequential milestones from inquiry to campus arrival</p>
               </div>
-              <span className="text-[10px] font-bold text-[#58051E] bg-[#58051E]/5 px-2.5 py-1 rounded-full uppercase border border-[#58051E]/15">
+              <span className="text-[10px] font-bold text-[#5A0122] bg-[#5A0122]/5 px-2.5 py-1 rounded-full uppercase border border-[#5A0122]/15">
                 {completedCount} of {checklistItems.length} Completed
               </span>
             </div>
@@ -484,14 +484,14 @@ export const StudentDashboard: React.FC = () => {
                     <span className="px-2 py-0.2 rounded text-[9.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Active</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[#58051E] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                    <div className="w-9 h-9 rounded-xl bg-[#5A0122] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
                       {initials}
                     </div>
                     <div className="min-w-0">
                       <h4 className="text-xs font-bold text-slate-900 truncate">
                         {namePart}
                       </h4>
-                      <p className="text-[10.5px] font-medium text-[#58051E] truncate">{titlePart}</p>
+                      <p className="text-[10.5px] font-medium text-[#5A0122] truncate">{titlePart}</p>
                     </div>
                   </div>
                   {config.branding.operating_hours && (
@@ -521,13 +521,13 @@ export const StudentDashboard: React.FC = () => {
             {upcomingMeeting ? (
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[9.5px] font-bold uppercase text-[#58051E]">Confirmed</span>
+                  <span className="text-[9.5px] font-bold uppercase text-[#5A0122]">Confirmed</span>
                   <span className="text-[9.5px] font-bold px-2 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">{upcomingMeeting.status || 'Confirmed'}</span>
                 </div>
                 <h4 className="text-xs font-bold text-slate-900">{upcomingMeeting.subject || 'Admissions Strategy'}</h4>
                 <div className="flex items-center gap-3 text-[11px] font-medium text-slate-500">
-                  <span className="flex items-center gap-1"><Calendar className="w-3 h-3 text-[#58051E]" /> {upcomingMeeting.scheduled_date || 'Upcoming'}</span>
-                  <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-[#58051E]" /> {upcomingMeeting.start_time || '3:00 PM'}</span>
+                  <span className="flex items-center gap-1"><Calendar className="w-3 h-3 text-[#5A0122]" /> {upcomingMeeting.scheduled_date || 'Upcoming'}</span>
+                  <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-[#5A0122]" /> {upcomingMeeting.start_time || '3:00 PM'}</span>
                 </div>
                 <Button size="xs" className="w-full mt-1.5" onClick={() => navigate('/student/meetings')}>
                   Join Session

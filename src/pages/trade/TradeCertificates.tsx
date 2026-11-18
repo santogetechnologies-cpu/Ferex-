@@ -202,14 +202,14 @@ export const TradeCertificates: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <Award className="w-5 h-5 text-[#58051E]" />
+            <Award className="w-5 h-5 text-[#5A0122]" />
             Certificates
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">Certificates of origin, health, quality and movement.</p>
         </div>
         <Button
           size="sm"
-          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
+          className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-xs cursor-pointer"
           onClick={() => setShowCreateModal(true)}
         >
           <Plus className="w-4 h-4 mr-1.5" />
@@ -227,7 +227,7 @@ export const TradeCertificates: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by certificate #, title, authority, country..."
-              className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+              className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
             />
           </div>
 
@@ -236,7 +236,7 @@ export const TradeCertificates: React.FC = () => {
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+              className="h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#5A0122]"
             >
               <option value="All">All Certificate Types ({certs.length})</option>
               {TRADE_MASTER_CERT_TYPES.map(t => (
@@ -259,7 +259,7 @@ export const TradeCertificates: React.FC = () => {
           </p>
           <Button
             size="sm"
-            className="mt-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold cursor-pointer"
+            className="mt-4 bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold cursor-pointer"
             onClick={() => setShowCreateModal(true)}
           >
             <Plus className="w-3.5 h-3.5 mr-1" /> Register Certificate
@@ -284,7 +284,7 @@ export const TradeCertificates: React.FC = () => {
               <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
                 {filteredCerts.map((c) => (
                   <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-4 font-black text-[#58051E] whitespace-nowrap">
+                    <td className="py-3.5 px-4 font-black text-[#5A0122] whitespace-nowrap">
                       {c.id}
                     </td>
                     <td className="py-3.5 px-4 max-w-[200px] truncate">
@@ -319,7 +319,7 @@ export const TradeCertificates: React.FC = () => {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => setSelectedCert(c)}
-                          className="p-1.5 text-slate-400 hover:text-[#58051E] hover:bg-slate-100 rounded-lg cursor-pointer"
+                          className="p-1.5 text-slate-400 hover:text-[#5A0122] hover:bg-slate-100 rounded-lg cursor-pointer"
                           title="View Certificate Details"
                         >
                           <Eye className="w-4 h-4" />
@@ -356,7 +356,7 @@ export const TradeCertificates: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <Award className="w-4 h-4 text-[#58051E]" /> Register Trade Compliance Certificate
+                  <Award className="w-4 h-4 text-[#5A0122]" /> Register Trade Compliance Certificate
                 </h3>
                 <button onClick={() => setShowCreateModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
@@ -367,7 +367,7 @@ export const TradeCertificates: React.FC = () => {
                   <select
                     value={newCert.cert_type}
                     onChange={(e) => setNewCert({ ...newCert, cert_type: e.target.value })}
-                    className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#5A0122]"
                   >
                     {TRADE_MASTER_CERT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
@@ -380,7 +380,7 @@ export const TradeCertificates: React.FC = () => {
                     value={newCert.title}
                     onChange={(e) => setNewCert({ ...newCert, title: e.target.value })}
                     placeholder="e.g. EU Non-Preferential Certificate of Origin"
-                    className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -393,7 +393,7 @@ export const TradeCertificates: React.FC = () => {
                       value={newCert.authority}
                       onChange={(e) => setNewCert({ ...newCert, authority: e.target.value })}
                       placeholder="e.g. Polish Chamber of Commerce (KIG)"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -404,7 +404,7 @@ export const TradeCertificates: React.FC = () => {
                       value={newCert.country}
                       onChange={(e) => setNewCert({ ...newCert, country: e.target.value })}
                       placeholder="e.g. Poland, Germany, UAE"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -415,7 +415,7 @@ export const TradeCertificates: React.FC = () => {
                     <select
                       value={newCert.shipment_no}
                       onChange={(e) => setNewCert({ ...newCert, shipment_no: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#5A0122]"
                     >
                       <option value="">No linked shipment (Master Certificate)</option>
                       {shipments.map(s => <option key={s.id} value={s.order_no}>{s.order_no} · {s.commodity} · {s.client_name} ({s.currency})</option>)}
@@ -434,7 +434,7 @@ export const TradeCertificates: React.FC = () => {
                             setNewCert({ ...newCert, importer: e.target.value });
                           }
                         }}
-                        className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                       >
                         <option value="">-- Select Registered CRM Partner --</option>
                         {crmPartners.map(p => (
@@ -451,7 +451,7 @@ export const TradeCertificates: React.FC = () => {
                           value={newCert.importer}
                           onChange={(e) => setNewCert({ ...newCert, importer: e.target.value })}
                           placeholder="Enter custom importer company..."
-                          className="flex-1 h-8.5 px-3 bg-white border border-[#58051E] rounded-xl text-xs font-semibold focus:outline-none"
+                          className="flex-1 h-8.5 px-3 bg-white border border-[#5A0122] rounded-xl text-xs font-semibold focus:outline-none"
                         />
                         <button
                           type="button"
@@ -475,7 +475,7 @@ export const TradeCertificates: React.FC = () => {
                       type="date"
                       value={newCert.issue_date}
                       onChange={(e) => setNewCert({ ...newCert, issue_date: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -484,14 +484,14 @@ export const TradeCertificates: React.FC = () => {
                       type="date"
                       value={newCert.expiry_date}
                       onChange={(e) => setNewCert({ ...newCert, expiry_date: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowCreateModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Register Certificate</Button>
+                  <Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-white">Register Certificate</Button>
                 </div>
               </form>
             </motion.div>
@@ -507,7 +507,7 @@ export const TradeCertificates: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto text-left">
               <div className="flex items-start justify-between pb-4 border-b border-slate-100">
                 <div>
-                  <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-black uppercase text-[#5A0122] bg-[#5A0122]/10 px-2 py-0.5 rounded">
                     {selectedCert.id}
                   </span>
                   <h2 className="text-lg font-black text-slate-900 mt-1">{selectedCert.title}</h2>

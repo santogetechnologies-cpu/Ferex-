@@ -5,9 +5,9 @@ const SIZES = { xs: 18, sm: 26, md: 44, lg: 72 } as const;
 
 export const CapLoader: React.FC<{ size?: keyof typeof SIZES; tone?: 'brand' | 'light' | 'current'; className?: string; label?: string }> = ({ size = 'md', tone = 'brand', className = '', label = 'Loading' }) => {
   const px = SIZES[size];
-  const color = tone === 'light' ? '#ffffff' : 'var(--cap-color, #58051E)';
+  const color = tone === 'light' ? '#ffffff' : 'var(--cap-color, #5A0122)';
   return (
-    <span role="status" aria-label={label} className={`cap-loader inline-flex items-center justify-center ${tone === 'brand' ? 'text-[#58051E] dark:text-white' : ''} ${className}`} style={{ width: px * 1.25, height: px }}>
+    <span role="status" aria-label={label} className={`cap-loader inline-flex items-center justify-center ${tone === 'brand' ? 'text-[#5A0122] dark:text-white' : ''} ${className}`} style={{ width: px * 1.25, height: px }}>
       <svg width={px} height={px * 0.85} viewBox="0 0 100 85" fill="none" aria-hidden style={{ overflow: 'visible' }}>
         <g className="cap-bob">
           <path d="M50 8 L94 28 L50 48 L6 28 Z" fill={tone === 'light' ? color : 'currentColor'} />

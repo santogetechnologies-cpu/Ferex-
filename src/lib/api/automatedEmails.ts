@@ -147,7 +147,7 @@ export async function sendEducationProcessEmail(params: {
     htmlContent: `
       <h2>Dear ${params.studentName},</h2>
       <p>Your university & visa journey milestone has advanced:</p>
-      <div style="background:#f8fafc;padding:16px;border-left:4px solid #58051E;margin:16px 0;">
+      <div style="background:#FAFAFA;padding:16px;border-left:4px solid #5A0122;margin:16px 0;">
         <strong>Milestone:</strong> ${params.stepName}<br/>
         <strong>Status:</strong> ${params.stepStatus}<br/>
         ${params.notes ? `<strong>Notes:</strong> ${params.notes}<br/>` : ''}

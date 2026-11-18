@@ -147,7 +147,7 @@ export const RimiDeliveries: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Truck className="w-5 h-5 text-[#58051E]" /> Deliveries
+            <Truck className="w-5 h-5 text-[#5A0122]" /> Deliveries
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">Dispatches, drivers and delivery status.</p>
         </div>
@@ -155,7 +155,7 @@ export const RimiDeliveries: React.FC = () => {
         <Button
           size="sm"
           onClick={() => setShowAddModal(true)}
-          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
+          className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
         >
           <Plus className="w-4 h-4" /> Schedule Dispatch
         </Button>
@@ -237,7 +237,7 @@ export const RimiDeliveries: React.FC = () => {
                       onClick={() => handleStatusChange(d.id, st)}
                       className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                         d.delivery_status === st
-                          ? 'bg-[#58051E] text-white shadow-xs'
+                          ? 'bg-[#5A0122] text-white shadow-xs'
                           : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                       }`}
                     >
@@ -344,7 +344,7 @@ export const RimiDeliveries: React.FC = () => {
 
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Dispatch Reefer Vehicle</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]">Dispatch Reefer Vehicle</Button>
                 </div>
               </form>
             </motion.div>

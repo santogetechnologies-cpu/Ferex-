@@ -188,10 +188,10 @@ const STAFF_ROLES = ['staff', 'counselor', 'admin', 'education_admin'];
 const NotFound: React.FC = () => (
   <main className="min-h-screen grid place-items-center bg-slate-50 px-6 text-center">
     <div>
-      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#58051E] mb-2">Error 404</p>
+      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#5A0122] mb-2">Error 404</p>
       <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">This page does not exist</h1>
       <p className="mt-2 text-sm font-medium text-slate-500">The link may be old or mistyped.</p>
-      <Link to="/" className="inline-flex mt-6 h-10 items-center px-5 rounded-xl bg-[#58051E] text-white text-sm font-semibold hover:bg-[#430316]">Go to the home page</Link>
+      <Link to="/" className="inline-flex mt-6 h-10 items-center px-5 rounded-xl bg-[#5A0122] text-white text-sm font-semibold hover:bg-[#68092A]">Go to the home page</Link>
     </div>
   </main>
 );

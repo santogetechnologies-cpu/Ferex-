@@ -23,8 +23,8 @@ export const Badge: React.FC<BadgeProps> = ({
   const hasDot = showDot || dot;
   const variantStyles: Record<BadgeVariant, { container: string; dot: string }> = {
     brand: {
-      container: 'bg-[#58051E]/8 dark:bg-rose-950/40 text-[#58051E] dark:text-rose-300 border-[#58051E]/20 dark:border-rose-900/60 font-semibold',
-      dot: 'bg-[#58051E] dark:bg-rose-400',
+      container: 'bg-[#5A0122]/8 dark:bg-rose-950/40 text-[#5A0122] dark:text-rose-300 border-[#5A0122]/20 dark:border-rose-900/60 font-semibold',
+      dot: 'bg-[#5A0122] dark:bg-rose-400',
     },
     success: {
       container: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-900/60 font-semibold',

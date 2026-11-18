@@ -204,7 +204,7 @@ export const DigitalStaff: React.FC = () => {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase font-black tracking-widest bg-[#58051E]/10 text-[#58051E] px-2.5 py-1 rounded-md">
+              <span className="text-[10px] uppercase font-black tracking-widest bg-[#5A0122]/10 text-[#5A0122] px-2.5 py-1 rounded-md">
                 Agency Workforce & Leads
               </span>
             </div>
@@ -221,7 +221,7 @@ export const DigitalStaff: React.FC = () => {
             </button>
             <button
               onClick={() => setShowAddModal(true)}
-              className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-[#58051E] hover:bg-[#430316] transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+              className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-[#5A0122] hover:bg-[#68092A] transition-all shadow-xs flex items-center gap-2 cursor-pointer"
             >
               <UserPlus className="w-4 h-4" /> Add Team Member
             </button>

@@ -187,7 +187,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="fx-app h-screen overflow-hidden bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
+    <div className="fx-app h-screen overflow-hidden bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#5A0122]/10 selection:text-[#5A0122]">
       
       {/* Mobile Backdrop */}
       <AnimatePresence>
@@ -246,11 +246,11 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                       onClick={() => setIsMobileOpen(false)}
                       className={`relative flex items-center rounded-xl h-8.5 px-2.5 transition-all duration-150 text-xs font-semibold group
                         ${isActive 
-                          ? 'bg-[#58051E]/8 text-[#58051E] font-bold border-l-2 border-[#58051E]' 
+                          ? 'bg-[#5A0122]/8 text-[#5A0122] font-bold border-l-2 border-[#5A0122]' 
                           : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'}`}
                       title={isCollapsed ? item.name : undefined}
                     >
-                      <Icon className={`w-4 h-4 shrink-0 transition-transform duration-150 ${isCollapsed ? 'mx-auto' : 'mr-2.5'} ${isActive ? 'text-[#58051E]' : 'text-slate-400 group-hover:text-slate-700'}`} />
+                      <Icon className={`w-4 h-4 shrink-0 transition-transform duration-150 ${isCollapsed ? 'mx-auto' : 'mr-2.5'} ${isActive ? 'text-[#5A0122]' : 'text-slate-400 group-hover:text-slate-700'}`} />
 
                       {!isCollapsed && (
                         <span className="truncate flex-1">
@@ -320,7 +320,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
               >
                 <Bell size={18} />
                 {liveNotifs.length > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#58051E] rounded-full" />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#5A0122] rounded-full" />
                 )}
               </button>
 
@@ -334,7 +334,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                   >
                     <div className="flex items-center justify-between pb-2 border-b border-slate-100 text-xs font-black text-slate-900">
                       <span>Automated Email Triggers</span>
-                      <Link to="/trade/notifications" onClick={() => setShowNotifications(false)} className="text-[10px] text-[#58051E] hover:underline">
+                      <Link to="/trade/notifications" onClick={() => setShowNotifications(false)} className="text-[10px] text-[#5A0122] hover:underline">
                         View Audit Log
                       </Link>
                     </div>
@@ -353,12 +353,12 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
 
             {/* User Profile Pill */}
             <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-              <div className="w-8 h-8 rounded-xl bg-[#58051E] text-white flex items-center justify-center text-xs font-black">
+              <div className="w-8 h-8 rounded-xl bg-[#5A0122] text-white flex items-center justify-center text-xs font-black">
                 {initials}
               </div>
               <div className="hidden sm:block text-left">
                 <div className="text-xs font-black text-slate-900 leading-tight">{userName || (isAdmin ? 'Trade Admin' : 'Trade Officer')}</div>
-                <div className="text-[10px] font-bold text-[#58051E] leading-tight">{isAdmin ? 'Trade Director' : 'Logistics Officer'}</div>
+                <div className="text-[10px] font-bold text-[#5A0122] leading-tight">{isAdmin ? 'Trade Director' : 'Logistics Officer'}</div>
               </div>
               <button
                 onClick={handleSignOut}
@@ -393,7 +393,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search trade orders, commodities, consignees..."
-                  className="w-full h-11 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-11 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
 
@@ -409,7 +409,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                       <div className="font-extrabold text-slate-900">{r.title}</div>
                       <div className="text-[10px] text-slate-400">{r.subtitle}</div>
                     </div>
-                    <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded">
+                    <span className="text-[10px] font-black uppercase text-[#5A0122] bg-[#5A0122]/10 px-2 py-0.5 rounded">
                       {r.category}
                     </span>
                   </Link>

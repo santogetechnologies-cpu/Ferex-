@@ -40,7 +40,7 @@ export const Incentives: React.FC<Shared> = ({ ctx, toast, scope }) => {
           <div><label className={labelCls}>Type</label><select className={`${inputCls} w-full`} value={f.kind} onChange={e => setF({ ...f, kind: e.target.value })}>{KINDS.map(k => <option key={k}>{k}</option>)}</select></div>
           <div><label className={labelCls}>Amount</label><input type="number" min="0" step="0.01" className={`${inputCls} w-full`} value={f.amount} onChange={e => setF({ ...f, amount: e.target.value })} /></div>
           <div><label className={labelCls}>Reference</label><input className={`${inputCls} w-full`} placeholder="Student / order / lead" value={f.reference} onChange={e => setF({ ...f, reference: e.target.value })} /></div>
-          <button type="submit" disabled={busy} className="h-9 px-3 rounded-lg text-xs font-bold bg-[#58051E] text-white cursor-pointer disabled:opacity-50">Log</button>
+          <button type="submit" disabled={busy} className="h-9 px-3 rounded-lg text-xs font-bold bg-[#5A0122] text-white cursor-pointer disabled:opacity-50">Log</button>
           <div className="sm:col-span-6"><input className={`${inputCls} w-full`} placeholder="Notes (optional)" value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} aria-label="Notes" /></div>
         </form>
         <p className="text-[11px] font-semibold text-slate-500 mt-2">Entries for your team count towards that month's pay as soon as you log them. Your own entries need the superadmin's approval.</p>

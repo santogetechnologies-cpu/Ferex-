@@ -82,7 +82,7 @@ export const StaffProfile: React.FC = () => {
       <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Header Banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-[#58051E] via-[#430316] to-[#2E030F] text-white p-8 shadow-xl relative overflow-hidden">
+      <div className="rounded-3xl bg-gradient-to-r from-[#5A0122] via-[#68092A] to-[#2E030F] text-white p-8 shadow-xl relative overflow-hidden">
         <div
           className="absolute inset-0 opacity-10 pointer-events-none"
           style={{ backgroundImage: 'radial-gradient(circle at 80% 50%, white 0%, transparent 60%)' }}
@@ -113,7 +113,7 @@ export const StaffProfile: React.FC = () => {
         {/* Employment & Role Information */}
         <Card className="p-6 border border-slate-200/80 shadow-xs space-y-4">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-            <User className="w-4 h-4 text-[#58051E]" />
+            <User className="w-4 h-4 text-[#5A0122]" />
             <h3 className="text-sm font-black text-slate-900">Counselor Profile Information</h3>
           </div>
 
@@ -144,7 +144,7 @@ export const StaffProfile: React.FC = () => {
         {/* Security & Password Reset */}
         <Card className="p-6 border border-slate-200/80 shadow-xs space-y-4">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-            <KeyRound className="w-4 h-4 text-[#58051E]" />
+            <KeyRound className="w-4 h-4 text-[#5A0122]" />
             <h3 className="text-sm font-black text-slate-900">Security & Authentication</h3>
           </div>
 
@@ -177,7 +177,7 @@ export const StaffProfile: React.FC = () => {
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
                 placeholder="At least 6 characters"
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#58051E]"
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#5A0122]"
               />
             </div>
 
@@ -191,7 +191,7 @@ export const StaffProfile: React.FC = () => {
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 placeholder="Repeat new password"
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#58051E]"
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#5A0122]"
               />
             </div>
 
@@ -199,7 +199,7 @@ export const StaffProfile: React.FC = () => {
               type="submit"
               size="sm"
               disabled={isUpdatingPassword}
-              className="w-full bg-[#58051E] hover:bg-[#430316] text-white font-black text-xs mt-2"
+              className="w-full bg-[#5A0122] hover:bg-[#68092A] text-white font-black text-xs mt-2"
             >
               <Lock className="w-3.5 h-3.5 mr-1.5" />
               {isUpdatingPassword ? 'Updating Password...' : 'Update password'}

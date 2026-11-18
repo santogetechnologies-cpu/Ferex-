@@ -170,7 +170,7 @@ export const CentralSettings: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Settings className="w-6 h-6 text-[#58051E]" /> Settings
+              <Settings className="w-6 h-6 text-[#5A0122]" /> Settings
             </h1>
             <span className="text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full">
               Live DB Sync
@@ -191,7 +191,7 @@ export const CentralSettings: React.FC = () => {
             size="sm"
             onClick={() => handleSave()}
             disabled={saving}
-            className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold text-white shadow-xs cursor-pointer"
+            className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold text-white shadow-xs cursor-pointer"
           >
             <Save className={`w-3.5 h-3.5 mr-1.5 ${saving ? 'animate-spin' : ''}`} />
             {saving ? 'Syncing to DB...' : 'Save & Sync DB'}
@@ -215,7 +215,7 @@ export const CentralSettings: React.FC = () => {
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                 isActive
-                  ? 'bg-[#58051E] text-white shadow-xs'
+                  ? 'bg-[#5A0122] text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
@@ -234,7 +234,7 @@ export const CentralSettings: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#58051E]" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#5A0122]" />
                   <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">AI Provider Keys</h2>
                   {aiStatus && (
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${aiStatus.openai && aiStatus.openrouter ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
@@ -255,7 +255,7 @@ export const CentralSettings: React.FC = () => {
                 disabled={testingOpenAI}
                 className="text-xs font-bold border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 cursor-pointer"
               >
-                <Zap className={`w-3.5 h-3.5 mr-1 text-[#58051E] ${testingOpenAI ? 'animate-spin' : ''}`} />
+                <Zap className={`w-3.5 h-3.5 mr-1 text-[#5A0122] ${testingOpenAI ? 'animate-spin' : ''}`} />
                 {testingOpenAI ? 'Checking…' : 'Check server keys'}
               </Button>
             </div>
@@ -273,7 +273,7 @@ export const CentralSettings: React.FC = () => {
           <Card className="p-6 border border-slate-200/80 shadow-xs bg-white space-y-6">
             <div className="border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <Cpu className="w-4 h-4 text-[#58051E]" />
+                <Cpu className="w-4 h-4 text-[#5A0122]" />
                 <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">
                   Model & Audio Architecture Settings
                 </h2>
@@ -295,7 +295,7 @@ export const CentralSettings: React.FC = () => {
                     ai_config: { ...aiConfig, openai_model: e.target.value }
                   })}
                   placeholder="gpt-realtime-2.1-mini"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                 />
                 <div className="flex flex-wrap gap-1">
                   {['gpt-realtime-2.1-mini', 'gpt-4o-realtime-preview', 'gpt-4o-mini'].map(m => (
@@ -307,7 +307,7 @@ export const CentralSettings: React.FC = () => {
                         ai_config: { ...aiConfig, openai_model: m }
                       })}
                       className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
-                        aiConfig.openai_model === m ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-slate-100 text-slate-600 border-slate-200'
+                        aiConfig.openai_model === m ? 'bg-[#5A0122] text-white border-[#5A0122]' : 'bg-slate-100 text-slate-600 border-slate-200'
                       }`}
                     >
                       {m}
@@ -327,7 +327,7 @@ export const CentralSettings: React.FC = () => {
                     ai_config: { ...aiConfig, transcription_model: e.target.value }
                   })}
                   placeholder="gpt-realtime-whisper"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                 />
                 <p className="text-[10px] text-slate-400">Audio input transcription model.</p>
               </div>
@@ -341,7 +341,7 @@ export const CentralSettings: React.FC = () => {
                     ...config,
                     ai_config: { ...aiConfig, reasoning_effort: e.target.value }
                   })}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                 >
                   <option value="low">Low (Fastest Audio Response)</option>
                   <option value="medium">Medium (Balanced Speed & Reasoning)</option>
@@ -359,7 +359,7 @@ export const CentralSettings: React.FC = () => {
                     ...config,
                     ai_config: { ...aiConfig, realtime_voice: e.target.value }
                   })}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                 >
                   <option value="alloy">Alloy (Clear & Direct)</option>
                   <option value="verse">Verse (Natural & Expressive)</option>
@@ -382,7 +382,7 @@ export const CentralSettings: React.FC = () => {
                     ...config,
                     ai_config: { ...aiConfig, noise_reduction: e.target.value }
                   })}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                 >
                   <option value="far_field">Far Field (Dynamic Ambient & Echo Cancellation)</option>
                   <option value="near_field">Near Field (Headset / Close Mic)</option>
@@ -402,7 +402,7 @@ export const CentralSettings: React.FC = () => {
                     ai_config: { ...aiConfig, max_output_tokens: e.target.value }
                   })}
                   placeholder="inf (Unlimited)"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                 />
                 <p className="text-[10px] text-slate-400">Use 'inf' for unlimited conversational length.</p>
               </div>
@@ -427,7 +427,7 @@ export const CentralSettings: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">
-                    VAD Threshold: <span className="text-[#58051E] font-black">{aiConfig.vad_threshold ?? 0.5}</span>
+                    VAD Threshold: <span className="text-[#5A0122] font-black">{aiConfig.vad_threshold ?? 0.5}</span>
                   </label>
                   <input
                     type="range"
@@ -439,14 +439,14 @@ export const CentralSettings: React.FC = () => {
                       ...config,
                       ai_config: { ...aiConfig, vad_threshold: parseFloat(e.target.value) }
                     })}
-                    className="w-full accent-[#58051E] cursor-pointer"
+                    className="w-full accent-[#5A0122] cursor-pointer"
                   />
                   <span className="text-[10px] text-slate-400">Default: 0.5</span>
                 </div>
 
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">
-                    Prefix Padding: <span className="text-[#58051E] font-black">{aiConfig.vad_prefix_padding_ms ?? 300} ms</span>
+                    Prefix Padding: <span className="text-[#5A0122] font-black">{aiConfig.vad_prefix_padding_ms ?? 300} ms</span>
                   </label>
                   <input
                     type="number"
@@ -462,7 +462,7 @@ export const CentralSettings: React.FC = () => {
 
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">
-                    Silence Duration: <span className="text-[#58051E] font-black">{aiConfig.vad_silence_duration_ms ?? 500} ms</span>
+                    Silence Duration: <span className="text-[#5A0122] font-black">{aiConfig.vad_silence_duration_ms ?? 500} ms</span>
                   </label>
                   <input
                     type="number"
@@ -482,13 +482,13 @@ export const CentralSettings: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70">
                 <span className="font-bold text-slate-800 block mb-0.5">Input & Output Audio Format</span>
-                <span className="font-mono font-bold text-xs text-[#58051E] block">audio/pcm @ 24,000 Hz</span>
+                <span className="font-mono font-bold text-xs text-[#5A0122] block">audio/pcm @ 24,000 Hz</span>
                 <p className="text-[10px] text-slate-400 mt-1">High-fidelity 24kHz PCM mono audio encoding.</p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70">
                 <span className="font-bold text-slate-800 block mb-0.5">Output Modalities</span>
-                <span className="font-mono font-bold text-xs text-[#58051E] block">["audio", "text"]</span>
+                <span className="font-mono font-bold text-xs text-[#5A0122] block">["audio", "text"]</span>
                 <p className="text-[10px] text-slate-400 mt-1">Simultaneous natural voice and text transcript stream.</p>
               </div>
             </div>
@@ -499,7 +499,7 @@ export const CentralSettings: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[#58051E]" />
+                  <Sparkles className="w-4 h-4 text-[#5A0122]" />
                   <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">
                     Realtime Audio Prompt & Multi-Language Instructions
                   </h2>
@@ -514,7 +514,7 @@ export const CentralSettings: React.FC = () => {
                 onClick={handleResetPromptTemplate}
                 className="text-xs font-bold border-slate-200 text-slate-700 bg-slate-50 hover:bg-slate-100 cursor-pointer"
               >
-                <RefreshCw className="w-3.5 h-3.5 mr-1 text-[#58051E]" />
+                <RefreshCw className="w-3.5 h-3.5 mr-1 text-[#5A0122]" />
                 Load Realtime Audio Prompt Template
               </Button>
             </div>
@@ -528,7 +528,7 @@ export const CentralSettings: React.FC = () => {
                   ai_config: { ...aiConfig, system_instructions: e.target.value }
                 })}
                 placeholder="Realtime audio instructions..."
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-medium focus:bg-white focus:outline-none focus:border-[#58051E] text-slate-800"
+                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs font-medium focus:bg-white focus:outline-none focus:border-[#5A0122] text-slate-800"
               />
             </div>
           </Card>
@@ -551,7 +551,7 @@ export const CentralSettings: React.FC = () => {
                 type="text"
                 value={config.branding.org_name}
                 onChange={(e) => setConfig({ ...config, branding: { ...config.branding, org_name: e.target.value } })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-[#58051E]"
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-[#5A0122]"
               />
             </div>
 
@@ -561,7 +561,7 @@ export const CentralSettings: React.FC = () => {
                 type="text"
                 value={config.branding.portal_title}
                 onChange={(e) => setConfig({ ...config, branding: { ...config.branding, portal_title: e.target.value } })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-[#58051E]"
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-[#5A0122]"
               />
             </div>
 
@@ -571,7 +571,7 @@ export const CentralSettings: React.FC = () => {
                 type="text"
                 value={config.branding.tagline}
                 onChange={(e) => setConfig({ ...config, branding: { ...config.branding, tagline: e.target.value } })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-[#58051E]"
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-[#5A0122]"
               />
             </div>
 
@@ -581,7 +581,7 @@ export const CentralSettings: React.FC = () => {
                 type="email"
                 value={config.branding.support_email}
                 onChange={(e) => setConfig({ ...config, branding: { ...config.branding, support_email: e.target.value } })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-[#58051E]"
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-[#5A0122]"
               />
             </div>
 
@@ -591,7 +591,7 @@ export const CentralSettings: React.FC = () => {
                 type="text"
                 value={config.branding.support_phone}
                 onChange={(e) => setConfig({ ...config, branding: { ...config.branding, support_phone: e.target.value } })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-[#58051E]"
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-[#5A0122]"
               />
             </div>
 
@@ -601,7 +601,7 @@ export const CentralSettings: React.FC = () => {
                 type="text"
                 value={config.branding.office_address}
                 onChange={(e) => setConfig({ ...config, branding: { ...config.branding, office_address: e.target.value } })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-[#58051E]"
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:outline-none focus:border-[#5A0122]"
               />
             </div>
           </div>
@@ -623,7 +623,7 @@ export const CentralSettings: React.FC = () => {
               variant="outline"
               className="text-xs font-bold text-slate-700 bg-slate-50 cursor-pointer"
             >
-              <Zap className={`w-3.5 h-3.5 mr-1.5 ${testingDb ? 'animate-spin text-[#58051E]' : ''}`} />
+              <Zap className={`w-3.5 h-3.5 mr-1.5 ${testingDb ? 'animate-spin text-[#5A0122]' : ''}`} />
               {testingDb ? 'Testing Connection...' : 'Ping Database'}
             </Button>
           </div>

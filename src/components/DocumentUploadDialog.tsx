@@ -97,18 +97,18 @@ export const DocumentUploadDialog: React.FC<Props> = ({ open, studentId, forStud
         <div
           onDragOver={e => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)}
           onDrop={e => { e.preventDefault(); setDrag(false); if (!busy) pick(e.dataTransfer.files?.[0]); }}
-          className={`rounded-2xl border-2 border-dashed p-5 text-center transition ${drag ? 'border-[#58051E] bg-[#58051E]/[0.04]' : 'border-slate-300 bg-slate-50'}`}
+          className={`rounded-2xl border-2 border-dashed p-5 text-center transition ${drag ? 'border-[#5A0122] bg-[#5A0122]/[0.04]' : 'border-slate-300 bg-slate-50'}`}
         >
           <input ref={input} type="file" accept={ACCEPT_ATTR} className="hidden" onChange={e => pick(e.target.files?.[0])} />
           {!file ? (
             <button type="button" onClick={() => input.current?.click()} disabled={busy} className="w-full cursor-pointer">
-              <UploadCloud className="w-8 h-8 mx-auto text-[#58051E]" />
+              <UploadCloud className="w-8 h-8 mx-auto text-[#5A0122]" />
               <p className="text-sm font-semibold text-slate-800 mt-2">Choose a file or drop it here</p>
               <p className="text-[11px] text-slate-500 mt-0.5">PDF, JPG, PNG, WebP or Word · up to {MAX_FILE_MB} MB</p>
             </button>
           ) : (
             <div className="flex items-center gap-3 text-left">
-              <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0"><FileText className="w-5 h-5 text-[#58051E]" /></div>
+              <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0"><FileText className="w-5 h-5 text-[#5A0122]" /></div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-slate-900 truncate">{file.name}</p>
                 <p className="text-[11px] text-slate-500">{formatSize(file.size)}</p>
@@ -125,7 +125,7 @@ export const DocumentUploadDialog: React.FC<Props> = ({ open, studentId, forStud
               <span className="tabular-nums">{phase === 'uploading' ? `${percent}%` : '100%'}</span>
             </div>
             <div className="h-2 rounded-full bg-slate-200 overflow-hidden" role="progressbar" aria-valuenow={phase === 'uploading' ? percent : 100} aria-valuemin={0} aria-valuemax={100}>
-              <div className={`h-full rounded-full transition-[width] duration-150 ${phase === 'done' ? 'bg-emerald-500' : 'bg-[#58051E]'}`} style={{ width: `${phase === 'uploading' ? percent : 100}%` }} />
+              <div className={`h-full rounded-full transition-[width] duration-150 ${phase === 'done' ? 'bg-emerald-500' : 'bg-[#5A0122]'}`} style={{ width: `${phase === 'uploading' ? percent : 100}%` }} />
             </div>
           </div>
         )}
@@ -141,7 +141,7 @@ export const DocumentUploadDialog: React.FC<Props> = ({ open, studentId, forStud
 
         <div className="flex justify-end gap-2 pt-1">
           <button type="button" onClick={close} className="h-10 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 cursor-pointer">{phase === 'uploading' ? 'Cancel upload' : 'Close'}</button>
-          <button type="submit" disabled={busy || phase === 'done' || !file} className="h-10 px-5 rounded-xl bg-[#58051E] text-white text-xs font-bold hover:bg-[#430316] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">{label}</button>
+          <button type="submit" disabled={busy || phase === 'done' || !file} className="h-10 px-5 rounded-xl bg-[#5A0122] text-white text-xs font-bold hover:bg-[#68092A] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">{label}</button>
         </div>
       </form>
     </div>

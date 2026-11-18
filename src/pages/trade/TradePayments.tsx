@@ -278,7 +278,7 @@ export const TradePayments: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-[#58051E]" />
+            <CreditCard className="w-5 h-5 text-[#5A0122]" />
             Payments
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">Advances, balances, final payments and letter of credit drawdowns.</p>
@@ -291,7 +291,7 @@ export const TradePayments: React.FC = () => {
             }
             setShowRecordModal(true);
           }}
-          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
+          className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-xs cursor-pointer"
         >
           <Plus className="w-4 h-4 mr-1.5" />
           Record Payment & Issue Receipt
@@ -346,7 +346,7 @@ export const TradePayments: React.FC = () => {
                     <span className="font-mono font-black text-xs text-slate-900">{o.order_no}</span>
                     <div className="text-[11px] font-bold text-slate-700 truncate max-w-[170px]">{o.client_name}</div>
                   </div>
-                  <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-black uppercase text-[#5A0122] bg-[#5A0122]/10 px-2 py-0.5 rounded">
                     {o.currency} {Number(o.total_amount).toLocaleString()}
                   </span>
                 </div>
@@ -387,7 +387,7 @@ export const TradePayments: React.FC = () => {
                       handleOrderSelect(o.order_no);
                       setShowRecordModal(true);
                     }}
-                    className="flex-1 py-1.5 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-[10.5px] font-black transition-all cursor-pointer text-center"
+                    className="flex-1 py-1.5 bg-[#5A0122] hover:bg-[#68092A] text-white rounded-xl text-[10.5px] font-black transition-all cursor-pointer text-center"
                   >
                     + Record Payment
                   </button>
@@ -399,7 +399,7 @@ export const TradePayments: React.FC = () => {
                       className="p-1.5 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl text-slate-700 transition-all cursor-pointer disabled:opacity-50"
                       title="Send Payment Reminder Email"
                     >
-                      <Send className="w-3.5 h-3.5 text-[#58051E]" />
+                      <Send className="w-3.5 h-3.5 text-[#5A0122]" />
                     </button>
                   )}
                 </div>
@@ -419,7 +419,7 @@ export const TradePayments: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search receipts, orders, clients..."
-            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
           />
         </div>
 
@@ -437,7 +437,7 @@ export const TradePayments: React.FC = () => {
               onClick={() => setFilterType(tab.key)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 filterType === tab.key
-                  ? 'bg-[#58051E] text-white shadow-xs'
+                  ? 'bg-[#5A0122] text-white shadow-xs'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
               }`}
             >
@@ -529,7 +529,7 @@ export const TradePayments: React.FC = () => {
               <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
                 <div>
                   <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                    <Receipt className="w-4 h-4 text-[#58051E]" /> Record Trade Payment & Issue Receipt
+                    <Receipt className="w-4 h-4 text-[#5A0122]" /> Record Trade Payment & Issue Receipt
                   </h3>
                   <p className="text-xs text-slate-500 font-semibold">
                     Select payment category: Advance Paid, Settlement, Completed, or LC Drawdown.
@@ -545,7 +545,7 @@ export const TradePayments: React.FC = () => {
                     required
                     value={recordForm.order_no}
                     onChange={(e) => handleOrderSelect(e.target.value)}
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-[#5A0122]"
                   >
                     <option value="">-- Choose order --</option>
                     {orders.map(o => (
@@ -560,8 +560,8 @@ export const TradePayments: React.FC = () => {
                 {selectedOrder && (
                   <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-2.5">
                     <div className="text-[10px] font-extrabold uppercase text-slate-500 flex items-center justify-between">
-                      <span className="flex items-center gap-1"><Calculator className="w-3.5 h-3.5 text-[#58051E]" /> Financial Status for {selectedOrder.order_no}</span>
-                      <span className="font-mono text-[#58051E] font-black">{selectedOrder.currency} {selectedOrder.total_amount.toLocaleString()}</span>
+                      <span className="flex items-center gap-1"><Calculator className="w-3.5 h-3.5 text-[#5A0122]" /> Financial Status for {selectedOrder.order_no}</span>
+                      <span className="font-mono text-[#5A0122] font-black">{selectedOrder.currency} {selectedOrder.total_amount.toLocaleString()}</span>
                     </div>
 
                     <div className="grid grid-cols-3 gap-2 text-center">
@@ -631,7 +631,7 @@ export const TradePayments: React.FC = () => {
                     <select
                       value={recordForm.type}
                       onChange={(e) => setRecordForm({ ...recordForm, type: e.target.value as any })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-[#5A0122]"
                     >
                       <option value="Advance Paid">Advance Paid</option>
                       <option value="Settlement">Settlement</option>
@@ -661,7 +661,7 @@ export const TradePayments: React.FC = () => {
                     required
                     value={recordForm.amount}
                     onChange={(e) => setRecordForm({ ...recordForm, amount: Number(e.target.value) })}
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -672,7 +672,7 @@ export const TradePayments: React.FC = () => {
                     value={recordForm.payment_method}
                     onChange={(e) => setRecordForm({ ...recordForm, payment_method: e.target.value })}
                     placeholder="e.g. SWIFT Wire MT103 / SEPA / Irrevocable LC"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -684,7 +684,7 @@ export const TradePayments: React.FC = () => {
                       value={recordForm.transaction_ref}
                       onChange={(e) => setRecordForm({ ...recordForm, transaction_ref: e.target.value })}
                       placeholder="e.g. SWIFT-WAW-9910"
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -694,7 +694,7 @@ export const TradePayments: React.FC = () => {
                       value={recordForm.lc_reference}
                       onChange={(e) => setRecordForm({ ...recordForm, lc_reference: e.target.value })}
                       placeholder="e.g. LC-BNP-9021"
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -706,13 +706,13 @@ export const TradePayments: React.FC = () => {
                     value={recordForm.notes}
                     onChange={(e) => setRecordForm({ ...recordForm, notes: e.target.value })}
                     placeholder="e.g. Cleared via treasury account, export invoice released"
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowRecordModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Record & Issue Receipt</Button>
+                  <Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-white">Record & Issue Receipt</Button>
                 </div>
               </form>
             </motion.div>

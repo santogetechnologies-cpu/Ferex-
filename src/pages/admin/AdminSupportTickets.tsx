@@ -346,7 +346,7 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 h-9 px-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold rounded-xl transition-all shadow-xs shrink-0 cursor-pointer"
+          className="flex items-center gap-2 h-9 px-4 bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold rounded-xl transition-all shadow-xs shrink-0 cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Create Ticket
         </button>
@@ -365,7 +365,7 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
                 onClick={() => setFilter(label)}
                 className={`h-7 px-2.5 rounded-lg text-[10px] font-black uppercase flex items-center gap-1.5 transition-all whitespace-nowrap border ${
                   filter === label 
-                    ? 'bg-[#58051E] text-white border-[#58051E]' 
+                    ? 'bg-[#5A0122] text-white border-[#5A0122]' 
                     : 'bg-white text-slate-500 hover:bg-slate-100 border-slate-200/80'
                 }`}
               >
@@ -386,7 +386,7 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by student or ticket ID..."
-              className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/30"
+              className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]/30"
             />
           </div>
 
@@ -409,13 +409,13 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
                     onClick={() => setSelectedTicketId(t.id)}
                     className={`p-4 text-left cursor-pointer transition-all hover:bg-slate-50/70 border-l-4 ${
                       isSelected 
-                        ? 'bg-rose-50/15 border-[#58051E]' 
+                        ? 'bg-rose-50/15 border-[#5A0122]' 
                         : 'border-transparent bg-white'
                     }`}
                   >
                     <div className="flex justify-between items-start gap-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-[#58051E]/10 text-[#58051E] flex items-center justify-center text-xs font-extrabold">
+                        <div className="w-7 h-7 rounded-lg bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center text-xs font-extrabold">
                           {t.studentName[0]}
                         </div>
                         <div>
@@ -450,7 +450,7 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
               {/* Thread Header */}
               <div className="p-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#58051E] text-white flex items-center justify-center font-black text-sm shadow-sm">
+                  <div className="w-9 h-9 rounded-xl bg-[#5A0122] text-white flex items-center justify-center font-black text-sm shadow-sm">
                     {activeTicket.studentName[0]}
                   </div>
                   <div>
@@ -494,13 +494,13 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
                     {replies.slice(1).map((msg, idx) => (
                       <div key={idx} className={`flex gap-3 ${msg.self ? 'flex-row-reverse' : ''}`}>
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${
-                          msg.self ? 'bg-[#58051E] text-white' : 'bg-slate-100 text-slate-600 border border-slate-200'
+                          msg.self ? 'bg-[#5A0122] text-white' : 'bg-slate-100 text-slate-600 border border-slate-200'
                         }`}>
                           {msg.sender[0]}
                         </div>
                         <div className={`max-w-[75%] p-3.5 rounded-2xl text-xs space-y-1 ${
                           msg.self 
-                            ? 'bg-[#58051E] text-white rounded-tr-none' 
+                            ? 'bg-[#5A0122] text-white rounded-tr-none' 
                             : 'bg-slate-50 border border-slate-150 text-slate-800 rounded-tl-none'
                         }`}>
                           <div className={`flex items-center justify-between gap-3 border-b pb-1 mb-1 ${
@@ -527,7 +527,7 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
                               <button
                                 key={idx}
                                 onClick={() => applyCannedResponse(r.text)}
-                                className="h-7 px-3 bg-slate-50 border border-slate-200 hover:border-[#58051E]/30 text-slate-600 hover:text-[#58051E] hover:bg-[#58051E]/5 text-[9px] font-black rounded-lg transition-all whitespace-nowrap cursor-pointer"
+                                className="h-7 px-3 bg-slate-50 border border-slate-200 hover:border-[#5A0122]/30 text-slate-600 hover:text-[#5A0122] hover:bg-[#5A0122]/5 text-[9px] font-black rounded-lg transition-all whitespace-nowrap cursor-pointer"
                               >
                                 {r.title}
                               </button>
@@ -540,7 +540,7 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
                           value={replyText} 
                           onChange={(e) => setReplyText(e.target.value)}
                           placeholder="Write your counselor reply here..."
-                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/40 resize-none placeholder-slate-350" 
+                          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]/40 resize-none placeholder-slate-350" 
                         />
                         <div className="flex justify-end gap-2.5">
                           <button 
@@ -552,7 +552,7 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
                           <button 
                             onClick={handleSendReply}
                             disabled={isReplying}
-                            className="h-9 px-5 bg-[#58051E] hover:bg-[#4A101E] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+                            className="h-9 px-5 bg-[#5A0122] hover:bg-[#5A0122] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-colors cursor-pointer disabled:opacity-50"
                           >
                             <Send className="w-3.5 h-3.5" /> Send Reply
                           </button>
@@ -674,7 +674,7 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
             >
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-2xl bg-[#58051E] text-white flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-2xl bg-[#5A0122] text-white flex items-center justify-center">
                     <Plus className="w-5 h-5" />
                   </div>
                   <div>
@@ -704,7 +704,7 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
                     value={newStudentName}
                     onChange={(e) => setNewStudentName(e.target.value)}
                     placeholder="e.g. Sneakha S.R / Rahul Sharma"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -770,7 +770,7 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
                     value={newSubject}
                     onChange={(e) => setNewSubject(e.target.value)}
                     placeholder="Brief headline of student inquiry..."
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -784,7 +784,7 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
                     value={newDesc}
                     onChange={(e) => setNewDesc(e.target.value)}
                     placeholder="Provide details regarding the student's request..."
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E] resize-none leading-relaxed"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122] resize-none leading-relaxed"
                   />
                 </div>
 
@@ -799,7 +799,7 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({ isStaf
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="h-9 px-5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="h-9 px-5 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#68092A] shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     <Plus className="w-4 h-4" />
                     {isSubmitting ? 'Creating Ticket...' : 'Create Ticket'}

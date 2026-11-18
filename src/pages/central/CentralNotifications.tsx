@@ -101,9 +101,9 @@ export const CentralNotifications: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Bell className="w-6 h-6 text-[#58051E]" /> Notifications
+              <Bell className="w-6 h-6 text-[#5A0122]" /> Notifications
             </h1>
-            <span className="text-[10px] font-black bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-black bg-[#5A0122]/10 text-[#5A0122] border border-[#5A0122]/20 px-2.5 py-0.5 rounded-full">
               4-App Broadcast
             </span>
           </div>
@@ -133,7 +133,7 @@ export const CentralNotifications: React.FC = () => {
               onClick={() => setSelectedFilter(tab)}
               className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
                 selectedFilter === tab
-                  ? 'bg-[#58051E] text-white shadow-xs'
+                  ? 'bg-[#5A0122] text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -154,7 +154,7 @@ export const CentralNotifications: React.FC = () => {
             key={alert.id}
             className={`p-5 border transition-all ${
               !alert.read
-                ? 'border-l-4 border-l-[#58051E] border-slate-200/90 bg-white shadow-sm'
+                ? 'border-l-4 border-l-[#5A0122] border-slate-200/90 bg-white shadow-sm'
                 : 'border-slate-200/60 bg-slate-50/50'
             }`}
           >

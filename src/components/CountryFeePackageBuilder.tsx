@@ -15,7 +15,7 @@ import { useDestinations } from '../hooks/useDestinations';
 import { useUniversities } from '../hooks/useUniversities';
 import { CapLoader } from './CapLoader';
 
-const inp = 'w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20 focus:border-[#58051E] transition-all';
+const inp = 'w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5A0122]/20 focus:border-[#5A0122] transition-all';
 const lbl = 'block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1';
 const btn = (cls: string) => `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${cls}`;
 
@@ -266,13 +266,13 @@ export function CountryFeePackageBuilder() {
           <select
             value={newCountry}
             onChange={e => setNewCountry(e.target.value)}
-            className="h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20 focus:border-[#58051E]"
+            className="h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#5A0122]/20 focus:border-[#5A0122]"
           >
             {countries.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           <button
             onClick={handleCreatePackage}
-            className={btn('bg-[#58051E] text-white hover:bg-[#430316] shadow-sm shadow-[#58051E]/30')}
+            className={btn('bg-[#5A0122] text-white hover:bg-[#68092A] shadow-sm shadow-[#5A0122]/30')}
           >
             <Plus className="w-3.5 h-3.5" /> New Package
           </button>
@@ -306,7 +306,7 @@ export function CountryFeePackageBuilder() {
                 {/* Package Header */}
                 <div className="flex items-center gap-3 p-4">
                   {/* Country flag badge */}
-                  <div className="p-2 bg-[#58051E]/8 text-[#58051E] rounded-xl border border-[#58051E]/15 shrink-0">
+                  <div className="p-2 bg-[#5A0122]/8 text-[#5A0122] rounded-xl border border-[#5A0122]/15 shrink-0">
                     <Globe className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -344,7 +344,7 @@ export function CountryFeePackageBuilder() {
                     )}
                     {editing && (
                       <>
-                        <button onClick={handleSavePackage} disabled={saving} className={btn('bg-[#58051E] text-white hover:bg-[#430316] shadow-sm')}>
+                        <button onClick={handleSavePackage} disabled={saving} className={btn('bg-[#5A0122] text-white hover:bg-[#68092A] shadow-sm')}>
                           <Save className="w-3 h-3" /> {saving ? 'Saving…' : 'Save Package'}
                         </button>
                         <button onClick={handleDiscardEdit} className={btn('bg-slate-100 text-slate-600 hover:bg-slate-200')}>
@@ -402,7 +402,7 @@ export function CountryFeePackageBuilder() {
                             {editing ? (
                               <div className="flex gap-2">
                                 <select
-                                  className="h-9 px-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20"
+                                  className="h-9 px-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#5A0122]/20"
                                   value={p.currency}
                                   onChange={e => handleDraftChange({ currency: e.target.value as CountryFeePackage['currency'] })}
                                 >
@@ -416,7 +416,7 @@ export function CountryFeePackageBuilder() {
                                 />
                               </div>
                             ) : (
-                              <p className="text-sm font-black text-[#58051E]">{money(p.total_amount, p.currency)}</p>
+                              <p className="text-sm font-black text-[#5A0122]">{money(p.total_amount, p.currency)}</p>
                             )}
                           </div>
                           <div>
@@ -434,7 +434,7 @@ export function CountryFeePackageBuilder() {
                                     aria-label="Include registration fee"
                                     checked={p.registration_fee.included !== false}
                                     onChange={e => handleDraftChange({ registration_fee: { ...p.registration_fee, included: e.target.checked } })}
-                                    className="w-4 h-4 rounded text-[#58051E] border-slate-300 cursor-pointer"
+                                    className="w-4 h-4 rounded text-[#5A0122] border-slate-300 cursor-pointer"
                                   />
                                   Include the registration fee in this plan
                                 </label>
@@ -454,7 +454,7 @@ export function CountryFeePackageBuilder() {
                                 )}
                               </div>
                             ) : (
-                              <p className="text-sm font-black text-[#58051E]">
+                              <p className="text-sm font-black text-[#5A0122]">
                                 {p.registration_fee.included === false
                                   ? <span className="text-slate-500 font-bold">Not included</span>
                                   : p.registration_fee.enabled && p.registration_fee.amount > 0
@@ -482,7 +482,7 @@ export function CountryFeePackageBuilder() {
                         <div>
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
-                              <List className="w-4 h-4 text-[#58051E]" />
+                              <List className="w-4 h-4 text-[#5A0122]" />
                               <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">Covered Services & Deliverables</h3>
                             </div>
                             {editing && (
@@ -546,7 +546,7 @@ export function CountryFeePackageBuilder() {
                         <div>
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
-                              <DollarSign className="w-4 h-4 text-[#58051E]" />
+                              <DollarSign className="w-4 h-4 text-[#5A0122]" />
                               <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">Payment Installment Milestones</h3>
                             </div>
                             {editing && (
@@ -576,7 +576,7 @@ export function CountryFeePackageBuilder() {
                             {p.installments.map((inst, idx) => (
                               <div key={inst.id} className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
                                 <div className="flex items-center gap-2 mb-3">
-                                  <span className="w-6 h-6 rounded-full bg-[#58051E]/10 text-[#58051E] text-[11px] font-black flex items-center justify-center shrink-0">{idx + 1}</span>
+                                  <span className="w-6 h-6 rounded-full bg-[#5A0122]/10 text-[#5A0122] text-[11px] font-black flex items-center justify-center shrink-0">{idx + 1}</span>
                                   {editing ? (
                                     <input
                                       className={`${inp} flex-1`}
@@ -604,7 +604,7 @@ export function CountryFeePackageBuilder() {
                                         onChange={e => handleInstallmentChange(inst.id, 'amount', parseFloat(e.target.value) || 0)}
                                       />
                                     ) : (
-                                      <p className="text-sm font-black text-[#58051E]">{money(inst.amount, p.currency)}</p>
+                                      <p className="text-sm font-black text-[#5A0122]">{money(inst.amount, p.currency)}</p>
                                     )}
                                   </div>
                                   <div>
@@ -687,7 +687,7 @@ export function CountryFeePackageBuilder() {
                               <Layers className="w-3.5 h-3.5 text-indigo-500" />
                               {p.installments.length} payment milestone{p.installments.length !== 1 ? 's' : ''}
                             </span>
-                            <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-[#58051E]">
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-[#5A0122]">
                               <ArrowRight className="w-3.5 h-3.5" />
                               Total: {money(p.total_amount, p.currency)}
                             </span>

@@ -41,29 +41,29 @@ export function receiptHtml(r: ReceiptPrintData): string {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>PAYMENT_RECEIPT_${esc(r.receipt_no)}</title>
 <style>
 @page{size:A4;margin:12mm}*{box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;margin:0;color:#0f172a;line-height:1.4;font-size:11.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;margin:0;color:#141414;line-height:1.4;font-size:11.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .card{max-width:190mm;margin:0 auto;position:relative}
-.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:12px;border-bottom:2.5px solid #58051E}
+.header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:12px;border-bottom:2.5px solid #5A0122}
 .brand{display:flex;align-items:center;gap:10px}.brand img{width:54px;height:54px;object-fit:contain}
-.brand-title{font-size:24px;font-weight:900;color:#58051E;letter-spacing:.5px;margin:0}
-.brand-sub{font-size:10.5px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.8px}
-.company{text-align:right;font-size:10.5px;color:#334155}.company p{margin:1.5px 0}
+.brand-title{font-size:24px;font-weight:900;color:#5A0122;letter-spacing:.5px;margin:0}
+.brand-sub{font-size:10.5px;font-weight:700;color:#525252;text-transform:uppercase;letter-spacing:.8px}
+.company{text-align:right;font-size:10.5px;color:#404040}.company p{margin:1.5px 0}
 .banner{text-align:center;margin:14px 0 10px}.title{font-size:20px;font-weight:900;letter-spacing:2px;margin:0}
-.tag{font-size:11px;font-weight:800;color:#58051E;margin-top:3px}
-.grid{display:flex;justify-content:space-between;gap:16px;margin:12px 0;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px}
-.col h4{margin:0 0 3px;font-size:9.5px;font-weight:800;text-transform:uppercase;color:#64748b;letter-spacing:.5px}.col p{margin:1.5px 0;font-size:11.5px}
+.tag{font-size:11px;font-weight:800;color:#5A0122;margin-top:3px}
+.grid{display:flex;justify-content:space-between;gap:16px;margin:12px 0;padding:10px 14px;background:#FAFAFA;border:1px solid #E5E5E5;border-radius:8px}
+.col h4{margin:0 0 3px;font-size:9.5px;font-weight:800;text-transform:uppercase;color:#737373;letter-spacing:.5px}.col p{margin:1.5px 0;font-size:11.5px}
 table{width:100%;border-collapse:collapse;margin:12px 0}
-th{background:#58051E!important;color:#fff!important;font-size:10.5px;font-weight:800;text-transform:uppercase;padding:8px 10px;text-align:left}
-td{padding:10px;font-size:11px;border-bottom:1px solid #e2e8f0}.r{text-align:right}.c{text-align:center}
+th{background:#5A0122!important;color:#fff!important;font-size:10.5px;font-weight:800;text-transform:uppercase;padding:8px 10px;text-align:left}
+td{padding:10px;font-size:11px;border-bottom:1px solid #E5E5E5}.r{text-align:right}.c{text-align:center}
 .tax{margin-top:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
-.words{flex:1;font-size:11px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px}
-.sum{width:270px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:11px}
-.row{display:flex;justify-content:space-between;margin-bottom:4px;color:#475569}
-.row.total{border-top:1.5px solid #cbd5e1;padding-top:6px;margin-top:6px;font-size:13px;font-weight:900;color:#58051E}
+.words{flex:1;font-size:11px;padding:10px 12px;background:#FAFAFA;border:1px solid #E5E5E5;border-radius:8px}
+.sum{width:270px;background:#FAFAFA;border:1px solid #E5E5E5;border-radius:8px;padding:10px 12px;font-size:11px}
+.row{display:flex;justify-content:space-between;margin-bottom:4px;color:#525252}
+.row.total{border-top:1.5px solid #D4D4D4;padding-top:6px;margin-top:6px;font-size:13px;font-weight:900;color:#5A0122}
 .paid{margin-top:12px;padding:9px 12px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;display:flex;align-items:center;gap:10px}.paid strong{color:#166534;font-size:11.5px}
-.sign{display:flex;justify-content:space-between;margin-top:34px;font-size:10.5px;color:#475569}.sign div{border-top:1px solid #94a3b8;padding-top:4px;min-width:160px}
-.note{text-align:center;font-size:9.5px;color:#64748b;margin-top:16px;line-height:1.35}
-.bar{height:4px;background:linear-gradient(90deg,#58051E,#80002E);margin-top:8px;border-radius:2px}
+.sign{display:flex;justify-content:space-between;margin-top:34px;font-size:10.5px;color:#525252}.sign div{border-top:1px solid #A3A3A3;padding-top:4px;min-width:160px}
+.note{text-align:center;font-size:9.5px;color:#737373;margin-top:16px;line-height:1.35}
+.bar{height:4px;background:linear-gradient(90deg,#5A0122,#68092A);margin-top:8px;border-radius:2px}
 </style></head><body><div class="card">
 <div class="header"><div class="brand">${logo ? `<img src="${esc(logo)}" alt="">` : ''}<div><div class="brand-title">FEREX</div><div class="brand-sub">European Admissions &amp; Global Operations</div></div></div>
 <div class="company"><p><strong>Tel:</strong> +91 95448 85077, +44 78678 67779</p><p><strong>Email:</strong> ferexventuresoffice@gmail.com</p><p>${esc(address)}</p><p><strong>GSTIN:</strong> ${esc(gstin)} | <strong>PAN:</strong> ${esc(pan)}</p></div></div>

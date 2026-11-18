@@ -35,7 +35,7 @@ const LABEL: Record<Norm | 'Missing', string> = { Approved: 'Approved', 'Under R
 const Pill: React.FC<{ s: Norm | 'Missing' }> = ({ s }) => <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold ring-1 ring-inset whitespace-nowrap ${TONE[s]}`}>{LABEL[s]}</span>;
 const dateOf = (iso?: string) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '');
 
-const btnPrimary = 'h-9 px-4 rounded-xl bg-[#58051E] text-white text-xs font-bold hover:bg-[#430316] inline-flex items-center gap-1.5 cursor-pointer';
+const btnPrimary = 'h-9 px-4 rounded-xl bg-[#5A0122] text-white text-xs font-bold hover:bg-[#68092A] inline-flex items-center gap-1.5 cursor-pointer';
 const btnGhost = 'h-9 px-3.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 inline-flex items-center gap-1.5 cursor-pointer';
 
 export const Documents: React.FC = () => {
@@ -123,18 +123,18 @@ export const Documents: React.FC = () => {
       <section className="rounded-2xl border border-slate-200/80 bg-white p-5 flex flex-col sm:flex-row sm:items-center gap-5">
         <div className="relative w-[84px] h-[84px] shrink-0" aria-label={`${uploadedPct}% of required documents uploaded`}>
           <svg viewBox="0 0 84 84" className="-rotate-90 w-full h-full">
-            <circle cx="42" cy="42" r={ringR} fill="none" stroke="#e2e8f0" strokeWidth="8" />
-            <circle cx="42" cy="42" r={ringR} fill="none" stroke="#58051E" strokeWidth="8" strokeLinecap="round" strokeDasharray={ring} strokeDashoffset={ring * (1 - uploadedPct / 100)} style={{ transition: 'stroke-dashoffset .5s' }} />
+            <circle cx="42" cy="42" r={ringR} fill="none" stroke="#E5E5E5" strokeWidth="8" />
+            <circle cx="42" cy="42" r={ringR} fill="none" stroke="#5A0122" strokeWidth="8" strokeLinecap="round" strokeDasharray={ring} strokeDashoffset={ring * (1 - uploadedPct / 100)} style={{ transition: 'stroke-dashoffset .5s' }} />
           </svg>
           <span className="absolute inset-0 flex items-center justify-center text-lg font-extrabold text-slate-900 tabular-nums">{uploadedPct}%</span>
         </div>
         <div className="flex-1 min-w-0 space-y-1.5">
           <h2 className="text-sm font-bold text-slate-900">{required.length ? `${required.filter(r => r.isSatisfied).length} of ${required.length} required documents uploaded` : 'No required documents set for your destination yet'}</h2>
           <p className="text-xs text-slate-500">{required.length ? `${approvedPct}% already approved by your counselor.` : country ? `Your counselor will add the checklist for ${country}. You can still upload documents.` : 'Choose a university so we can show the checklist for your country.'}</p>
-          {required.length > 0 && <div className="h-2 rounded-full bg-slate-100 overflow-hidden flex"><div className="h-full bg-emerald-500" style={{ width: `${approvedPct}%` }} /><div className="h-full bg-[#58051E]/70" style={{ width: `${Math.max(0, uploadedPct - approvedPct)}%` }} /></div>}
+          {required.length > 0 && <div className="h-2 rounded-full bg-slate-100 overflow-hidden flex"><div className="h-full bg-emerald-500" style={{ width: `${approvedPct}%` }} /><div className="h-full bg-[#5A0122]/70" style={{ width: `${Math.max(0, uploadedPct - approvedPct)}%` }} /></div>}
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-medium text-slate-500">
             <span className="inline-flex items-center gap-1"><i className="w-2 h-2 rounded-full bg-emerald-500" />Approved</span>
-            <span className="inline-flex items-center gap-1"><i className="w-2 h-2 rounded-full bg-[#58051E]/70" />Uploaded, waiting</span>
+            <span className="inline-flex items-center gap-1"><i className="w-2 h-2 rounded-full bg-[#5A0122]/70" />Uploaded, waiting</span>
             {country && <span className="inline-flex items-center gap-1"><Globe className="w-3 h-3" />{country}{workflow?.estimated_processing_days ? ` · legalization about ${workflow.estimated_processing_days}` : ''}</span>}
           </div>
         </div>
@@ -158,7 +158,7 @@ export const Documents: React.FC = () => {
       {/* Tabs */}
       <div className="flex items-center gap-1 border-b border-slate-200">
         {([['checklist', `Required documents${required.length ? ` (${required.length})` : ''}`], ['files', `All my files (${docs.length})`]] as const).map(([k, l]) => (
-          <button key={k} type="button" onClick={() => setTab(k)} className={`px-4 py-2.5 text-xs font-bold border-b-2 -mb-px cursor-pointer ${tab === k ? 'border-[#58051E] text-[#58051E]' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{l}</button>
+          <button key={k} type="button" onClick={() => setTab(k)} className={`px-4 py-2.5 text-xs font-bold border-b-2 -mb-px cursor-pointer ${tab === k ? 'border-[#5A0122] text-[#5A0122]' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{l}</button>
         ))}
       </div>
 
@@ -171,7 +171,7 @@ export const Documents: React.FC = () => {
             const s: Norm | 'Missing' = status === 'Missing' ? 'Missing' : status === 'Rejected' ? 'Needs action' : (status as Norm);
             return (
               <article key={r.id} className="rounded-2xl border border-slate-200/80 bg-white p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${s === 'Approved' ? 'bg-emerald-50 text-emerald-600' : s === 'Missing' ? 'bg-slate-100 text-slate-500' : 'bg-[#58051E]/8 text-[#58051E]'}`}>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${s === 'Approved' ? 'bg-emerald-50 text-emerald-600' : s === 'Missing' ? 'bg-slate-100 text-slate-500' : 'bg-[#5A0122]/8 text-[#5A0122]'}`}>
                   {s === 'Approved' ? <CheckCircle2 className="w-5 h-5" /> : s === 'Missing' ? <FilePlus2 className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -189,7 +189,7 @@ export const Documents: React.FC = () => {
               </article>
             );
           })}
-          {extraDocs.length > 0 && <p className="text-xs text-slate-500 pt-1">{extraDocs.length} more {extraDocs.length === 1 ? 'file is' : 'files are'} under <button type="button" className="font-bold text-[#58051E] underline cursor-pointer" onClick={() => setTab('files')}>All my files</button>.</p>}
+          {extraDocs.length > 0 && <p className="text-xs text-slate-500 pt-1">{extraDocs.length} more {extraDocs.length === 1 ? 'file is' : 'files are'} under <button type="button" className="font-bold text-[#5A0122] underline cursor-pointer" onClick={() => setTab('files')}>All my files</button>.</p>}
         </div>
       ) : (
         <div className="space-y-3">
@@ -203,7 +203,7 @@ export const Documents: React.FC = () => {
             <ul className="rounded-2xl border border-slate-200/80 bg-white divide-y divide-slate-100 overflow-hidden">
               {filtered.map(d => (
                 <li key={d.id} className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#58051E]/8 text-[#58051E] flex items-center justify-center shrink-0"><FileText className="w-5 h-5" /></div>
+                  <div className="w-10 h-10 rounded-xl bg-[#5A0122]/8 text-[#5A0122] flex items-center justify-center shrink-0"><FileText className="w-5 h-5" /></div>
                   <div className="min-w-0 flex-1"><p className="text-sm font-semibold text-slate-900 truncate">{d.file_name}</p><p className="text-[11px] text-slate-500">{[d.requirement_name || d.doc_type, d.file_size, dateOf(d.uploaded_at)].filter(Boolean).join(' · ')}</p>{norm(d.status) === 'Needs action' && d.reviewer_notes && <p className="text-xs text-rose-700 font-medium mt-0.5">{d.reviewer_notes}</p>}</div>
                   <div className="flex items-center gap-2 flex-wrap"><Pill s={norm(d.status)} /><button type="button" className={btnGhost} onClick={() => view(d)}><Eye className="w-3.5 h-3.5" />View</button></div>
                 </li>

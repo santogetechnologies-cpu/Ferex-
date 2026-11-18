@@ -166,7 +166,7 @@ export const CentralStudents: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <GraduationCap className="w-6 h-6 text-[#58051E]" /> Students
+            <GraduationCap className="w-6 h-6 text-[#5A0122]" /> Students
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">Students, their stage, payments, documents and counselor.</p>
         </div>
@@ -174,7 +174,7 @@ export const CentralStudents: React.FC = () => {
           <Button size="sm" variant="outline" className="text-xs font-bold" onClick={loadData}>
             <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh
           </Button>
-          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => setShowAddModal(true)}>
+          <Button size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold" onClick={() => setShowAddModal(true)}>
             Add New Student
           </Button>
         </div>
@@ -189,7 +189,7 @@ export const CentralStudents: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search student name, email, target university, counselor..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
           />
         </div>
         <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto">
@@ -198,7 +198,7 @@ export const CentralStudents: React.FC = () => {
               key={st}
               onClick={() => setStageFilter(st)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                stageFilter === st ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                stageFilter === st ? 'bg-[#5A0122] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
               {st}
@@ -238,7 +238,7 @@ export const CentralStudents: React.FC = () => {
                   <tr key={student.id} className="hover:bg-slate-50/80 transition-colors group">
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-[#58051E] text-white font-black text-xs flex items-center justify-center shadow-xs">
+                        <div className="w-9 h-9 rounded-xl bg-[#5A0122] text-white font-black text-xs flex items-center justify-center shadow-xs">
                           {student.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
@@ -276,7 +276,7 @@ export const CentralStudents: React.FC = () => {
                             setReassignModalStudent(student);
                             setSelectedCounselorName(student.counselor || (counselorsList[0]?.full_name || ''));
                           }}
-                          className="text-[10px] font-bold text-[#58051E] hover:underline cursor-pointer"
+                          className="text-[10px] font-bold text-[#5A0122] hover:underline cursor-pointer"
                         >
                           (Reassign)
                         </button>
@@ -367,7 +367,7 @@ export const CentralStudents: React.FC = () => {
                   <Button
                     type="button"
                     size="sm"
-                    className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
+                    className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]"
                     onClick={handleConfirmReassign}
                   >
                     Confirm Reassignment
@@ -426,7 +426,7 @@ export const CentralStudents: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save & Enroll</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]">Save & Enroll</Button>
                 </div>
               </form>
             </motion.div>
@@ -447,7 +447,7 @@ export const CentralStudents: React.FC = () => {
 
               <div className="space-y-5">
                 <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <div className="w-12 h-12 rounded-xl bg-[#58051E] text-white font-black text-base flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl bg-[#5A0122] text-white font-black text-base flex items-center justify-center">
                     {selectedStudent.name.charAt(0).toUpperCase()}
                   </div>
                   <div>

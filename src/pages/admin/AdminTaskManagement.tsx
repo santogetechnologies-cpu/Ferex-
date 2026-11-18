@@ -318,7 +318,7 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
           
           <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
             {(task.isCentralAdmin || task.createdBy === 'Central Admin') ? (
-              <span className="text-[8.5px] font-bold bg-[#58051E] text-white px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1">
+              <span className="text-[8.5px] font-bold bg-[#5A0122] text-white px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1">
                 <ShieldCheck className="w-2.5 h-2.5" /> Central Directive
               </span>
             ) : isStaff ? (
@@ -336,11 +336,11 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
         <div className="space-y-1">
           <div className="flex items-center justify-between text-[9.5px]">
             <span className="font-black text-slate-400 uppercase tracking-wider">{task.id}</span>
-            <span className="font-extrabold text-[#58051E] bg-[#58051E]/5 px-2 py-0.5 rounded-md border border-[#58051E]/10 shrink-0">
+            <span className="font-extrabold text-[#5A0122] bg-[#5A0122]/5 px-2 py-0.5 rounded-md border border-[#5A0122]/10 shrink-0">
               {task.category}
             </span>
           </div>
-          <h4 className="text-xs font-black text-slate-900 leading-snug line-clamp-2 group-hover:text-[#58051E] transition-colors">
+          <h4 className="text-xs font-black text-slate-900 leading-snug line-clamp-2 group-hover:text-[#5A0122] transition-colors">
             {task.title}
           </h4>
         </div>
@@ -350,7 +350,7 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
       <div className="space-y-2 pt-1.5 border-t border-slate-100/80 min-w-0">
         <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all duration-300 ${task.progress === 100 ? 'bg-emerald-500' : 'bg-[#58051E]'}`}
+            className={`h-full rounded-full transition-all duration-300 ${task.progress === 100 ? 'bg-emerald-500' : 'bg-[#5A0122]'}`}
             style={{ width: `${task.progress}%` }}
           />
         </div>
@@ -381,7 +381,7 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
             <select
               value={task.status}
               onChange={(e) => handleStatusChange(task.id, e.target.value as TaskStatus)}
-              className="h-7 max-w-[90px] px-1.5 text-[9.5px] font-extrabold text-slate-700 bg-slate-100/90 hover:bg-slate-200/90 border border-slate-200/80 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#58051E]/30 cursor-pointer shadow-2xs transition-colors shrink-0 truncate"
+              className="h-7 max-w-[90px] px-1.5 text-[9.5px] font-extrabold text-slate-700 bg-slate-100/90 hover:bg-slate-200/90 border border-slate-200/80 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#5A0122]/30 cursor-pointer shadow-2xs transition-colors shrink-0 truncate"
             >
               {COLUMNS.map(c => <option key={c}>{c}</option>)}
             </select>
@@ -411,7 +411,7 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight">Tasks</h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#5A0122]/10 text-[#5A0122] border border-[#5A0122]/20">
               {isStaff ? 'My Assigned Deliverables' : 'Operational Workflow'}
             </span>
           </div>
@@ -423,12 +423,12 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
         <div className="flex items-center gap-2.5 shrink-0">
           {isStaff ? (
             <span className="flex items-center gap-1.5 h-9 px-3.5 bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold rounded-xl shadow-2xs">
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#58051E]" /> Assigned by Admin
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#5A0122]" /> Assigned by Admin
             </span>
           ) : (
             <button
               onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 h-9 px-4 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] active:scale-98 transition-all shadow-md shadow-[#58051E]/20 shrink-0"
+              className="flex items-center gap-2 h-9 px-4 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#68092A] active:scale-98 transition-all shadow-md shadow-[#5A0122]/20 shrink-0"
             >
               <Plus className="w-4 h-4" /> Create Task
             </button>
@@ -467,7 +467,7 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
               onClick={() => setActiveFilter(f)}
               className={`h-8 px-3 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap active:scale-98 ${
                 activeFilter === f
-                  ? 'bg-[#58051E] text-white shadow-xs'
+                  ? 'bg-[#5A0122] text-white shadow-xs'
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
@@ -485,7 +485,7 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search tasks, students..."
-              className="w-full h-8.5 pl-8 pr-7 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#58051E]/40 transition-all"
+              className="w-full h-8.5 pl-8 pr-7 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#5A0122]/40 transition-all"
             />
             {search && (
               <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -577,7 +577,7 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{task.id}</span>
                         {(task.isCentralAdmin || task.createdBy === 'Central Admin') && (
-                          <span className="text-[8.5px] font-bold bg-[#58051E] text-white px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1">
+                          <span className="text-[8.5px] font-bold bg-[#5A0122] text-white px-1.5 py-0.5 rounded shadow-2xs flex items-center gap-1">
                             <ShieldCheck className="w-2.5 h-2.5" /> Central Directive
                           </span>
                         )}
@@ -589,7 +589,7 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
                       <span className="text-slate-400 text-[10px] block">{task.university}</span>
                     </td>
                     <td className="py-3 px-4">
-                      <span className="text-[10px] font-extrabold text-[#58051E] bg-[#58051E]/5 px-2 py-0.5 rounded border border-[#58051E]/10">{task.category}</span>
+                      <span className="text-[10px] font-extrabold text-[#5A0122] bg-[#5A0122]/5 px-2 py-0.5 rounded border border-[#5A0122]/10">{task.category}</span>
                     </td>
                     <td className="py-3 px-4 font-bold text-slate-700">{task.assignee}</td>
                     <td className="py-3 px-4">
@@ -689,7 +689,7 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
 
                 <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
                   <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl">Cancel</button>
-                  <button type="submit" className="px-4 py-2 text-xs font-bold bg-[#58051E] text-white rounded-xl hover:bg-[#430316]">Create Task</button>
+                  <button type="submit" className="px-4 py-2 text-xs font-bold bg-[#5A0122] text-white rounded-xl hover:bg-[#68092A]">Create Task</button>
                 </div>
               </form>
             </motion.div>
@@ -740,7 +740,7 @@ export const AdminTaskManagement: React.FC<AdminTaskManagementProps> = ({ isStaf
 
                 <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
                   <button type="button" onClick={() => setEditTask(null)} className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl">Cancel</button>
-                  <button type="submit" className="px-4 py-2 text-xs font-bold bg-[#58051E] text-white rounded-xl hover:bg-[#430316]">Save Changes</button>
+                  <button type="submit" className="px-4 py-2 text-xs font-bold bg-[#5A0122] text-white rounded-xl hover:bg-[#68092A]">Save Changes</button>
                 </div>
               </form>
             </motion.div>

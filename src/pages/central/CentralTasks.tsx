@@ -194,7 +194,7 @@ export const CentralTasks: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <CheckSquare className="w-6 h-6 text-[#58051E]" /> Tasks
+            <CheckSquare className="w-6 h-6 text-[#5A0122]" /> Tasks
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">Assign and follow important work across all platforms.</p>
         </div>
@@ -205,7 +205,7 @@ export const CentralTasks: React.FC = () => {
           </Button>
           <Button
             size="sm"
-            className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold"
+            className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold"
             onClick={() => setShowAddModal(true)}
           >
             <Plus className="w-4 h-4 mr-1.5" /> Create New Task
@@ -223,7 +223,7 @@ export const CentralTasks: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search tasks, descriptions, or assigned staff..."
-              className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+              className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
             />
           </div>
 
@@ -233,7 +233,7 @@ export const CentralTasks: React.FC = () => {
                 key={div}
                 onClick={() => setSelectedDivision(div)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                  selectedDivision === div ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  selectedDivision === div ? 'bg-[#5A0122] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
                 {div}
@@ -305,7 +305,7 @@ export const CentralTasks: React.FC = () => {
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-2.5">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-[#58051E] text-white flex items-center gap-1">
+                      <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-[#5A0122] text-white flex items-center gap-1">
                         Central Directive
                       </span>
                       <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-extrabold border ${badge}`}>
@@ -340,7 +340,7 @@ export const CentralTasks: React.FC = () => {
                             setReassigningTask(task);
                             setReassignStaffName(task.assigned_to || (staffList[0]?.name || ''));
                           }}
-                          className="text-[10px] font-bold text-[#58051E] hover:underline cursor-pointer"
+                          className="text-[10px] font-bold text-[#5A0122] hover:underline cursor-pointer"
                         >
                           (Reassign)
                         </button>
@@ -374,7 +374,7 @@ export const CentralTasks: React.FC = () => {
                         setReassigningTask(task);
                         setReassignStaffName(task.assigned_to || (staffList[0]?.name || ''));
                       }}
-                      className="p-1.5 text-slate-400 hover:text-[#58051E] hover:bg-rose-50 rounded-lg transition-colors cursor-pointer text-xs font-bold"
+                      className="p-1.5 text-slate-400 hover:text-[#5A0122] hover:bg-rose-50 rounded-lg transition-colors cursor-pointer text-xs font-bold"
                       title="Reassign Task"
                     >
                       Reassign
@@ -414,7 +414,7 @@ export const CentralTasks: React.FC = () => {
                     value={newTask.title}
                     onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
                     placeholder="e.g. Audit Warsaw Student Wire Receipts"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -425,7 +425,7 @@ export const CentralTasks: React.FC = () => {
                     value={newTask.description}
                     onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
                     placeholder="Provide specific instructions or audit criteria..."
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -487,7 +487,7 @@ export const CentralTasks: React.FC = () => {
 
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Dispatch Task</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]">Dispatch Task</Button>
                 </div>
               </form>
             </motion.div>
@@ -529,7 +529,7 @@ export const CentralTasks: React.FC = () => {
                   <Button
                     type="button"
                     size="sm"
-                    className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
+                    className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]"
                     onClick={handleConfirmReassignment}
                   >
                     Confirm Reassignment

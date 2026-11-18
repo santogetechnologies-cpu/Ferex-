@@ -14,8 +14,8 @@ import { currencyDigits, defaultCommerceSettings, type CommerceSettings } from '
 const DIGITAL_ADMIN_ROLES = ['digital_admin', 'ferex_digital', 'digital', 'central', 'super_admin', 'superadmin'];
 type Tab = 'agency' | 'taxes' | 'terms' | 'lists' | 'security';
 
-const input = 'w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E] disabled:bg-slate-50';
-const area = 'w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]';
+const input = 'w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122] disabled:bg-slate-50';
+const area = 'w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]';
 const label = 'block text-[11px] font-extrabold uppercase tracking-wide text-slate-500 mb-1';
 const uid = (prefix: string) => `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
 
@@ -144,14 +144,14 @@ export const DigitalSettings: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <ToastNotification message={toast} onClose={() => setToast('')} />
       <div>
-        <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2"><Settings className="w-5 h-5 text-[#58051E]" /> Settings</h1>
+        <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2"><Settings className="w-5 h-5 text-[#5A0122]" /> Settings</h1>
         <p className="text-xs font-semibold text-slate-500 mt-1">Agency details, taxes, payment terms and lists used across Ferex Digital.</p>
       </div>
 
       <div role="tablist" className="flex flex-wrap gap-2">
         {tabs.map(t => (
           <button key={t.id} role="tab" aria-selected={tab === t.id} type="button" onClick={() => setTab(t.id)}
-            className={`inline-flex items-center gap-2 h-9 px-4 rounded-full text-xs font-extrabold border cursor-pointer transition-colors ${tab === t.id ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-white text-slate-600 border-slate-200 hover:border-[#58051E]/40'}`}>
+            className={`inline-flex items-center gap-2 h-9 px-4 rounded-full text-xs font-extrabold border cursor-pointer transition-colors ${tab === t.id ? 'bg-[#5A0122] text-white border-[#5A0122]' : 'bg-white text-slate-600 border-slate-200 hover:border-[#5A0122]/40'}`}>
             {t.icon}{t.text}
           </button>
         ))}

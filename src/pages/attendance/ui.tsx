@@ -1,7 +1,7 @@
 import React from 'react';
 import type { AttendanceContext, AttendanceRules, Holiday, DayStatus } from '../../lib/api/attendance';
 
-export const BRAND = '#58051E';
+export const BRAND = '#5A0122';
 
 export interface Shared {
   ctx: AttendanceContext;
@@ -12,12 +12,12 @@ export interface Shared {
   scope?: string;
 }
 
-export const inputCls = 'h-10 px-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 hover:border-slate-300 focus:outline-none focus:border-[#58051E] focus:ring-2 focus:ring-[#58051E]/10 transition';
+export const inputCls = 'h-10 px-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 hover:border-slate-300 focus:outline-none focus:border-[#5A0122] focus:ring-2 focus:ring-[#5A0122]/10 transition';
 export const labelCls = 'block text-xs font-semibold text-slate-600 mb-1.5';
 
 export const Btn: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: 'brand' | 'light' | 'danger' | 'good' }> = ({ tone = 'light', className = '', ...p }) => {
   const tones = {
-    brand: 'bg-[#58051E] text-white hover:bg-[#430316] border-transparent',
+    brand: 'bg-[#5A0122] text-white hover:bg-[#68092A] border-transparent',
     light: 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200',
     danger: 'bg-white text-rose-700 hover:bg-rose-50 border-rose-200',
     good: 'bg-emerald-600 text-white hover:bg-emerald-700 border-transparent',

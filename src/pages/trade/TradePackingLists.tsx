@@ -216,14 +216,14 @@ export const TradePackingLists: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <PackageCheck className="w-5 h-5 text-[#58051E]" />
+            <PackageCheck className="w-5 h-5 text-[#5A0122]" />
             Packing lists
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">Cargo packing details linked to containers and invoices.</p>
         </div>
         <Button
           size="sm"
-          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
+          className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-xs cursor-pointer"
           onClick={() => setShowCreateModal(true)}
         >
           <Plus className="w-4 h-4 mr-1.5" />
@@ -240,7 +240,7 @@ export const TradePackingLists: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by PL #, shipment, consignee, or cargo..."
-            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
           />
         </div>
       </Card>
@@ -257,7 +257,7 @@ export const TradePackingLists: React.FC = () => {
           </p>
           <Button
             size="sm"
-            className="mt-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold cursor-pointer"
+            className="mt-4 bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold cursor-pointer"
             onClick={() => setShowCreateModal(true)}
           >
             <Plus className="w-3.5 h-3.5 mr-1" /> Generate Packing List
@@ -282,7 +282,7 @@ export const TradePackingLists: React.FC = () => {
               <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
                 {filteredLists.map((l) => (
                   <tr key={l.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-4 font-black text-[#58051E] whitespace-nowrap">
+                    <td className="py-3.5 px-4 font-black text-[#5A0122] whitespace-nowrap">
                       {l.id}
                     </td>
                     <td className="py-3.5 px-4 whitespace-nowrap font-bold text-slate-800 font-mono text-[11px]">
@@ -309,7 +309,7 @@ export const TradePackingLists: React.FC = () => {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => setSelectedList(l)}
-                          className="p-1.5 text-slate-400 hover:text-[#58051E] hover:bg-slate-100 rounded-lg cursor-pointer"
+                          className="p-1.5 text-slate-400 hover:text-[#5A0122] hover:bg-slate-100 rounded-lg cursor-pointer"
                           title="View Packing Manifest"
                         >
                           <Eye className="w-4 h-4" />
@@ -346,7 +346,7 @@ export const TradePackingLists: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <PackageCheck className="w-4 h-4 text-[#58051E]" /> Generate Packing List Manifest
+                  <PackageCheck className="w-4 h-4 text-[#5A0122]" /> Generate Packing List Manifest
                 </h3>
                 <button onClick={() => setShowCreateModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
@@ -359,7 +359,7 @@ export const TradePackingLists: React.FC = () => {
                       required
                       value={newPL.shipment_no}
                       onChange={(e) => handleShipmentSelect(e.target.value)}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#5A0122]"
                     >
                       <option value="">Select Booked Shipment...</option>
                       {shipments.map(s => <option key={s.id} value={s.order_no}>{s.order_no} · {s.commodity} · {s.client_name} ({s.currency})</option>)}
@@ -370,7 +370,7 @@ export const TradePackingLists: React.FC = () => {
                     <select
                       value={newPL.invoice_no}
                       onChange={(e) => setNewPL({ ...newPL, invoice_no: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#5A0122]"
                     >
                       <option value="">Select Invoice (Optional)...</option>
                       {invoices.map(i => <option key={i.id} value={i.id}>{i.id} ({i.buyer_name || i.buyer})</option>)}
@@ -392,7 +392,7 @@ export const TradePackingLists: React.FC = () => {
                           setNewPL({ ...newPL, buyer_name: e.target.value });
                         }
                       }}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     >
                       <option value="">-- Select Registered CRM Partner --</option>
                       {crmPartners.map(p => (
@@ -410,7 +410,7 @@ export const TradePackingLists: React.FC = () => {
                         value={newPL.buyer_name}
                         onChange={(e) => setNewPL({ ...newPL, buyer_name: e.target.value })}
                         placeholder="Enter custom buyer company..."
-                        className="flex-1 h-8.5 px-3 bg-white border border-[#58051E] rounded-xl text-xs font-semibold focus:outline-none"
+                        className="flex-1 h-8.5 px-3 bg-white border border-[#5A0122] rounded-xl text-xs font-semibold focus:outline-none"
                       />
                       <button
                         type="button"
@@ -434,7 +434,7 @@ export const TradePackingLists: React.FC = () => {
                     value={newPL.cargo_description}
                     onChange={(e) => setNewPL({ ...newPL, cargo_description: e.target.value })}
                     placeholder="e.g. Agricultural Milling Wheat Grade-A"
-                    className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -446,7 +446,7 @@ export const TradePackingLists: React.FC = () => {
                       value={newPL.package_type}
                       onChange={(e) => setNewPL({ ...newPL, package_type: e.target.value })}
                       placeholder="e.g. Palletised Flexitanks, Wooden Crates"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -456,7 +456,7 @@ export const TradePackingLists: React.FC = () => {
                       value={newPL.total_packages}
                       onChange={(e) => setNewPL({ ...newPL, total_packages: e.target.value })}
                       placeholder="48"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -470,7 +470,7 @@ export const TradePackingLists: React.FC = () => {
                       value={newPL.gross_weight}
                       onChange={(e) => setNewPL({ ...newPL, gross_weight: e.target.value })}
                       placeholder="24500"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -481,7 +481,7 @@ export const TradePackingLists: React.FC = () => {
                       value={newPL.net_weight}
                       onChange={(e) => setNewPL({ ...newPL, net_weight: e.target.value })}
                       placeholder="23800"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -494,7 +494,7 @@ export const TradePackingLists: React.FC = () => {
                       value={newPL.dimensions}
                       onChange={(e) => setNewPL({ ...newPL, dimensions: e.target.value })}
                       placeholder="40ft High Cube ISO Container"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -505,14 +505,14 @@ export const TradePackingLists: React.FC = () => {
                       value={newPL.volume_cbm}
                       onChange={(e) => setNewPL({ ...newPL, volume_cbm: e.target.value })}
                       placeholder="67.5"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowCreateModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Generate Manifest</Button>
+                  <Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-white">Generate Manifest</Button>
                 </div>
               </form>
             </motion.div>
@@ -528,7 +528,7 @@ export const TradePackingLists: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto text-left">
               <div className="flex items-start justify-between pb-4 border-b border-slate-100">
                 <div>
-                  <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-black uppercase text-[#5A0122] bg-[#5A0122]/10 px-2 py-0.5 rounded">
                     {selectedList.id}
                   </span>
                   <h2 className="text-lg font-black text-slate-900 mt-1">Packing Manifest Details</h2>

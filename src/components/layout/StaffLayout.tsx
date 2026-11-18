@@ -71,7 +71,7 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="fx-app min-h-screen bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E] overflow-x-hidden">
+    <div className="fx-app min-h-screen bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#5A0122]/10 selection:text-[#5A0122] overflow-x-hidden">
       {/* Mobile Backdrop */}
       <AnimatePresence>
         {isMobileOpen && (
@@ -119,10 +119,10 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
                 onClick={() => setIsMobileOpen(false)}
                 className={`relative flex items-center gap-2.5 h-9 px-2.5 rounded-xl text-xs font-semibold transition-all duration-150 group
                   ${isActive
-                    ? 'bg-[#58051E]/8 text-[#58051E] font-bold border-l-2 border-[#58051E]'
+                    ? 'bg-[#5A0122]/8 text-[#5A0122] font-bold border-l-2 border-[#5A0122]'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'}`}
               >
-                <Icon className={`w-4 h-4 shrink-0 transition-transform duration-150 ${isActive ? 'text-[#58051E]' : 'text-slate-400 group-hover:text-slate-700'}`} />
+                <Icon className={`w-4 h-4 shrink-0 transition-transform duration-150 ${isActive ? 'text-[#5A0122]' : 'text-slate-400 group-hover:text-slate-700'}`} />
                 <span className="truncate flex-1 flex items-center justify-between">
                   <span className="truncate">{item.name}</span>
                 </span>
@@ -141,7 +141,7 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
         <div className="p-3 border-t border-slate-100 shrink-0 bg-slate-50/50">
           <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white border border-slate-200/60 shadow-2xs">
             <div className="relative">
-              <div className="w-7.5 h-7.5 rounded-lg bg-[#58051E] flex items-center justify-center text-white text-xs font-bold shadow-xs">
+              <div className="w-7.5 h-7.5 rounded-lg bg-[#5A0122] flex items-center justify-center text-white text-xs font-bold shadow-xs">
                 {staffName[0]?.toUpperCase() || 'C'}
               </div>
               <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 border-2 border-white rounded-full" />
@@ -176,7 +176,7 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
           {/* Breadcrumb & Division Identity */}
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-medium text-slate-400 min-w-0">
             <Link to="/staff/dashboard" className="hover:text-slate-700 transition-colors flex items-center gap-1.5 text-slate-700 font-semibold shrink-0">
-              <GraduationCap className="w-4 h-4 text-[#58051E]" />
+              <GraduationCap className="w-4 h-4 text-[#5A0122]" />
               <span className="hidden sm:inline">FEREX Education</span>
             </Link>
             <span className="text-[9.5px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200/80 px-2 py-0.2 rounded hidden md:inline-block">
@@ -197,7 +197,7 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search students, tasks..."
-                className="h-9 w-60 pl-9 pr-8 bg-slate-100/70 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#58051E]/40 focus:ring-4 focus:ring-[#58051E]/5 transition-all"
+                className="h-9 w-60 pl-9 pr-8 bg-slate-100/70 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#5A0122]/40 focus:ring-4 focus:ring-[#5A0122]/5 transition-all"
               />
             </div>
 
@@ -230,7 +230,7 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
                   >
                     <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                       <span className="text-xs font-bold text-slate-900">Notifications</span>
-                      <Link to="/staff/notifications" onClick={() => setShowNotifDropdown(false)} className="text-[10px] font-bold text-[#58051E] hover:underline">
+                      <Link to="/staff/notifications" onClick={() => setShowNotifDropdown(false)} className="text-[10px] font-bold text-[#5A0122] hover:underline">
                         View All
                       </Link>
                     </div>
@@ -253,7 +253,7 @@ export const StaffLayout: React.FC<StaffLayoutProps> = ({ children }) => {
 
             {/* Profile Avatar */}
             <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-              <div className="w-8 h-8 rounded-xl bg-[#58051E] text-white font-bold text-xs flex items-center justify-center shadow-xs">
+              <div className="w-8 h-8 rounded-xl bg-[#5A0122] text-white font-bold text-xs flex items-center justify-center shadow-xs">
                 {staffName.slice(0, 2).toUpperCase()}
               </div>
               <div className="hidden sm:block text-left">

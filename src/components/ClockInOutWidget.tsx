@@ -71,7 +71,7 @@ export const ClockInOutWidget: React.FC<ClockInOutWidgetProps> = () => {
           </>
         )
       ) : (
-        <button type="button" disabled={busy} onClick={() => void run(() => clockIn())} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#58051E] text-white cursor-pointer disabled:opacity-50 inline-flex items-center gap-1"><LogIn className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Clock in</span></button>
+        <button type="button" disabled={busy} onClick={() => void run(() => clockIn())} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#5A0122] text-white cursor-pointer disabled:opacity-50 inline-flex items-center gap-1"><LogIn className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Clock in</span></button>
       )}
       {message && <span role="alert" className="text-[11px] font-semibold text-rose-700">{message}</span>}
     </div>

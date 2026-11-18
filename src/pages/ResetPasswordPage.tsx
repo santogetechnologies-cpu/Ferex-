@@ -53,7 +53,7 @@ export const ResetPasswordPage: React.FC = () => {
       <div className="mb-6 flex items-center justify-between">
         <button
           onClick={() => navigate('/login')}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#58051E] transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#5A0122] transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" /> Back to Sign In
         </button>
@@ -66,7 +66,7 @@ export const ResetPasswordPage: React.FC = () => {
       >
         {/* Header */}
         <div className="text-center sm:text-left mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-bold mb-4 sm:mx-0 mx-auto">
+          <div className="w-12 h-12 rounded-2xl bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center font-bold mb-4 sm:mx-0 mx-auto">
             <KeyRound className="w-6 h-6" />
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-1.5">
@@ -86,7 +86,7 @@ export const ResetPasswordPage: React.FC = () => {
             </p>
             <button
               onClick={() => navigate('/login', { replace: true })}
-              className="mt-4 w-full h-11 bg-[#58051E] text-white rounded-xl text-xs font-black hover:bg-[#430316] transition-colors shadow-md flex items-center justify-center gap-2"
+              className="mt-4 w-full h-11 bg-[#5A0122] text-white rounded-xl text-xs font-black hover:bg-[#68092A] transition-colors shadow-md flex items-center justify-center gap-2"
             >
               Sign In with New Password
             </button>
@@ -131,7 +131,7 @@ export const ResetPasswordPage: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-12 bg-[#58051E] hover:bg-[#430316] text-white font-black text-sm rounded-2xl shadow-xl shadow-[#58051E]/25 transition-all active:scale-98 flex items-center justify-center gap-2.5 disabled:opacity-50 mt-2"
+              className="w-full h-12 bg-[#5A0122] hover:bg-[#68092A] text-white font-black text-sm rounded-2xl shadow-xl shadow-[#5A0122]/25 transition-all active:scale-98 flex items-center justify-center gap-2.5 disabled:opacity-50 mt-2"
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">

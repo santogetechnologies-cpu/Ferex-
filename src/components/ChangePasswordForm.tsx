@@ -142,7 +142,7 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
     <div className="space-y-4">
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center">
             <KeyRound className="w-4 h-4" />
           </div>
           <div>
@@ -194,7 +194,7 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Enter new password (min. 6 chars)"
               required
-              className="w-full h-10 px-3.5 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E] focus:ring-2 focus:ring-[#58051E]/10 transition-all"
+              className="w-full h-10 px-3.5 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122] focus:ring-2 focus:ring-[#5A0122]/10 transition-all"
             />
             <button
               type="button"
@@ -240,7 +240,7 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm new password"
               required
-              className="w-full h-10 px-3.5 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E] focus:ring-2 focus:ring-[#58051E]/10 transition-all"
+              className="w-full h-10 px-3.5 pr-10 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122] focus:ring-2 focus:ring-[#5A0122]/10 transition-all"
             />
             <button
               type="button"
@@ -256,7 +256,7 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
           <Button
             type="submit"
             disabled={loading || !newPassword || !confirmPassword}
-            className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold px-5 h-10 rounded-xl flex items-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
+            className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold px-5 h-10 rounded-xl flex items-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
           >
             {loading ? (
               <CapLoader size="xs" />

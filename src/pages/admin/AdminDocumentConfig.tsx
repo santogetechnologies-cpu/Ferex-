@@ -231,7 +231,7 @@ export const AdminDocumentConfig: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
           <div className="flex items-center gap-2.5 mb-1.5">
-            <div className="w-9 h-9 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-bold">
+            <div className="w-9 h-9 rounded-xl bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center font-bold">
               <ListChecks className="w-5 h-5" />
             </div>
             <div>
@@ -254,7 +254,7 @@ export const AdminDocumentConfig: React.FC = () => {
           </button>
           <button
             onClick={handleOpenAdd}
-            className="px-4 py-2 bg-[#58051E] text-white hover:bg-[#430316] rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+            className="px-4 py-2 bg-[#5A0122] text-white hover:bg-[#68092A] rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Add Requirement
@@ -273,7 +273,7 @@ export const AdminDocumentConfig: React.FC = () => {
             onClick={() => setSelectedCountry('All')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
               selectedCountry === 'All'
-                ? 'bg-[#58051E] text-white shadow-xs'
+                ? 'bg-[#5A0122] text-white shadow-xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
@@ -289,7 +289,7 @@ export const AdminDocumentConfig: React.FC = () => {
                 onClick={() => setSelectedCountry(country)}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
                   isSelected
-                    ? 'bg-[#58051E] text-white shadow-xs'
+                    ? 'bg-[#5A0122] text-white shadow-xs'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
@@ -314,7 +314,7 @@ export const AdminDocumentConfig: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search requirements, document type, processing details..."
-            className="w-full pl-9.5 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20 focus:border-[#58051E]"
+            className="w-full pl-9.5 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5A0122]/20 focus:border-[#5A0122]"
           />
         </div>
 
@@ -322,7 +322,7 @@ export const AdminDocumentConfig: React.FC = () => {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-[#58051E]/20"
+            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-[#5A0122]/20"
           >
             <option value="All">All Types</option>
             {DOC_TYPES.map(t => (
@@ -335,7 +335,7 @@ export const AdminDocumentConfig: React.FC = () => {
           <select
             value={requiredFilter}
             onChange={(e) => setRequiredFilter(e.target.value as any)}
-            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-[#58051E]/20"
+            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-[#5A0122]/20"
           >
             <option value="All">All Priority</option>
             <option value="Required">Required Only</option>
@@ -360,7 +360,7 @@ export const AdminDocumentConfig: React.FC = () => {
             </p>
             <button
               onClick={handleOpenAdd}
-              className="px-4 py-2 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] transition-all"
+              className="px-4 py-2 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#68092A] transition-all"
             >
               + Add First Document Requirement
             </button>
@@ -381,7 +381,7 @@ export const AdminDocumentConfig: React.FC = () => {
                       <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 font-black text-[10px] uppercase tracking-wider border border-slate-200">
                         {doc.country}
                       </span>
-                      <span className="px-2 py-0.5 rounded-md bg-rose-50 text-[#58051E] font-bold text-[10px] border border-rose-200">
+                      <span className="px-2 py-0.5 rounded-md bg-rose-50 text-[#5A0122] font-bold text-[10px] border border-rose-200">
                         {doc.document_type}
                       </span>
                     </div>
@@ -397,7 +397,7 @@ export const AdminDocumentConfig: React.FC = () => {
                     </button>
                   </div>
 
-                  <h3 className="text-sm font-extrabold text-slate-900 group-hover:text-[#58051E] transition-colors mb-1">
+                  <h3 className="text-sm font-extrabold text-slate-900 group-hover:text-[#5A0122] transition-colors mb-1">
                     {doc.document_name}
                   </h3>
                   
@@ -467,7 +467,7 @@ export const AdminDocumentConfig: React.FC = () => {
             >
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-[#58051E]/10 text-[#58051E] flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-lg bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center">
                     <FileText className="w-4 h-4" />
                   </div>
                   <h2 className="text-base font-black text-slate-900">
@@ -489,7 +489,7 @@ export const AdminDocumentConfig: React.FC = () => {
                     <select
                       value={formCountry}
                       onChange={(e) => setFormCountry(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#58051E]/20"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#5A0122]/20"
                     >
                       {availableCountries.map(c => (
                         <option key={c} value={c}>{c}</option>
@@ -502,7 +502,7 @@ export const AdminDocumentConfig: React.FC = () => {
                     <select
                       value={formDocType}
                       onChange={(e) => setFormDocType(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#58051E]/20"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#5A0122]/20"
                     >
                       {DOC_TYPES.map(t => (
                         <option key={t} value={t}>{t}</option>
@@ -519,7 +519,7 @@ export const AdminDocumentConfig: React.FC = () => {
                     value={formDocName}
                     onChange={(e) => setFormDocName(e.target.value)}
                     placeholder="e.g. APS Certificate / Apostille Attestation / Bank Statement"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#58051E]/20"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#5A0122]/20"
                   />
                 </div>
 
@@ -530,7 +530,7 @@ export const AdminDocumentConfig: React.FC = () => {
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
                     placeholder="Clear guidance for students regarding scans, stamps, and validity..."
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#58051E]/20"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#5A0122]/20"
                   />
                 </div>
 
@@ -542,7 +542,7 @@ export const AdminDocumentConfig: React.FC = () => {
                       value={formProcessingTime}
                       onChange={(e) => setFormProcessingTime(e.target.value)}
                       placeholder="e.g. 7 - 14 Days"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#58051E]/20"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#5A0122]/20"
                     />
                   </div>
 
@@ -553,7 +553,7 @@ export const AdminDocumentConfig: React.FC = () => {
                       value={formAuthorityFee}
                       onChange={(e) => setFormAuthorityFee(e.target.value)}
                       placeholder="e.g. €250 / Free / ₹18,000"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#58051E]/20"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#5A0122]/20"
                     />
                   </div>
                 </div>
@@ -564,7 +564,7 @@ export const AdminDocumentConfig: React.FC = () => {
                     id="reqCheckbox"
                     checked={formIsRequired}
                     onChange={(e) => setFormIsRequired(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#58051E] focus:ring-[#58051E]"
+                    className="w-4 h-4 rounded text-[#5A0122] focus:ring-[#5A0122]"
                   />
                   <label htmlFor="reqCheckbox" className="text-xs font-bold text-slate-800 cursor-pointer">
                     Mandatory Requirement (Student cannot proceed to university file submission without this document)
@@ -578,7 +578,7 @@ export const AdminDocumentConfig: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setFormChecklistItems(prev => [...prev, ''])}
-                      className="text-[11px] font-bold text-[#58051E] hover:underline cursor-pointer"
+                      className="text-[11px] font-bold text-[#5A0122] hover:underline cursor-pointer"
                     >
                       + Add Check Item
                     </button>
@@ -623,7 +623,7 @@ export const AdminDocumentConfig: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="px-5 py-2 bg-[#58051E] text-white rounded-xl text-xs font-bold hover:bg-[#430316] transition-all disabled:opacity-50"
+                    className="px-5 py-2 bg-[#5A0122] text-white rounded-xl text-xs font-bold hover:bg-[#68092A] transition-all disabled:opacity-50"
                   >
                     {isSaving ? 'Saving...' : editingDoc ? 'Update Requirement' : 'Create Requirement'}
                   </button>

@@ -69,7 +69,7 @@ export const TradeDashboard: React.FC = () => {
               {TRADE_ORDER_STAGES.map((stage) => {
                 const count = orders.filter(o => o.stage === stage).length;
                 return (
-                  <div key={stage} className={`rounded-xl border p-3 ${count ? 'border-[#58051E]/20 bg-[#58051E]/[0.03]' : 'border-slate-200/80 bg-slate-50/60'}`}>
+                  <div key={stage} className={`rounded-xl border p-3 ${count ? 'border-[#5A0122]/20 bg-[#5A0122]/[0.03]' : 'border-slate-200/80 bg-slate-50/60'}`}>
                     <div className="text-[11px] font-semibold text-slate-500 truncate">{stage}</div>
                     <div className="text-xl font-extrabold text-slate-900 mt-1 tabular-nums">{count}</div>
                   </div>

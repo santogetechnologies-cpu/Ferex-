@@ -166,7 +166,7 @@ export const Meetings: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-1.5 flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-lg bg-[#58051E]/5 text-[#58051E] flex items-center justify-center">
+            <span className="w-8 h-8 rounded-lg bg-[#5A0122]/5 text-[#5A0122] flex items-center justify-center">
               <CalendarIcon className="w-5 h-5" />
             </span>
             Meetings
@@ -176,7 +176,7 @@ export const Meetings: React.FC = () => {
 
         <button
           onClick={() => setShowBookModal(true)}
-          className="flex items-center gap-2 h-9.5 px-4 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] transition-all shadow-sm self-start md:self-auto"
+          className="flex items-center gap-2 h-9.5 px-4 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#68092A] transition-all shadow-sm self-start md:self-auto"
         >
           <Plus className="w-4 h-4" /> Book Advisory Meeting
         </button>
@@ -224,13 +224,13 @@ export const Meetings: React.FC = () => {
                     isToday
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                       : isMeeting
-                      ? 'border-[#58051E] bg-[#58051E]/5 font-bold text-[#58051E] hover:bg-[#58051E]/10'
+                      ? 'border-[#5A0122] bg-[#5A0122]/5 font-bold text-[#5A0122] hover:bg-[#5A0122]/10'
                       : 'border-slate-100 hover:border-slate-300 bg-white'
                   }`}
                 >
                   <span>{day}</span>
                   {isMeeting && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#58051E] absolute bottom-1" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#5A0122] absolute bottom-1" />
                   )}
                 </div>
               );
@@ -250,7 +250,7 @@ export const Meetings: React.FC = () => {
               <p className="text-xs font-bold text-slate-700">No Advisory Sessions Scheduled</p>
               <button
                 onClick={() => setShowBookModal(true)}
-                className="mt-3 inline-flex items-center gap-1.5 text-xs font-extrabold text-[#58051E] hover:underline"
+                className="mt-3 inline-flex items-center gap-1.5 text-xs font-extrabold text-[#5A0122] hover:underline"
               >
                 + Book your first meeting
               </button>
@@ -260,7 +260,7 @@ export const Meetings: React.FC = () => {
               const isCompleted = meet.status === 'Completed';
 
               return (
-                <Card key={meet.id} className={`p-5 flex flex-col justify-between select-none ${meet.active ? 'border-l-4 border-l-[#58051E]' : 'border-slate-100'}`}>
+                <Card key={meet.id} className={`p-5 flex flex-col justify-between select-none ${meet.active ? 'border-l-4 border-l-[#5A0122]' : 'border-slate-100'}`}>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-[9px] font-bold text-slate-400 uppercase">{meet.date}</span>
@@ -352,7 +352,7 @@ export const Meetings: React.FC = () => {
                   <select
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
-                    className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]/40"
+                    className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]/40"
                   >
                     <option value="Visa & Embassy Guidance Session">Visa & Embassy Guidance Session</option>
                     <option value="Document Legalization & Transcripts Review">Document Legalization & Transcripts Review</option>
@@ -369,7 +369,7 @@ export const Meetings: React.FC = () => {
                       value={scheduledDate}
                       min={getLocalDateString()}
                       onChange={(e) => setScheduledDate(e.target.value)}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]/40"
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]/40"
                     />
                   </div>
                   <div>
@@ -377,7 +377,7 @@ export const Meetings: React.FC = () => {
                     <select
                       value={startTime}
                       onChange={(e) => setStartTime(e.target.value)}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]/40"
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]/40"
                     >
                       <option value="10:00 AM">10:00 AM</option>
                       <option value="11:30 AM">11:30 AM</option>
@@ -406,12 +406,12 @@ export const Meetings: React.FC = () => {
                   {hasAssignedCounselor ? (
                     <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-[#58051E] text-amber-300 font-black text-xs flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg bg-[#5A0122] text-amber-300 font-black text-xs flex items-center justify-center">
                           {assignedCounselorName?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'AD'}
                         </div>
                         <div>
                           <div className="text-xs font-black text-slate-900">{assignedCounselorName}</div>
-                          <div className="text-[10px] font-bold text-[#58051E]">Your Designated European Admissions Counselor</div>
+                          <div className="text-[10px] font-bold text-[#5A0122]">Your Designated European Admissions Counselor</div>
                         </div>
                       </div>
                     </div>
@@ -427,7 +427,7 @@ export const Meetings: React.FC = () => {
 
                 <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
                   <button type="button" onClick={() => setShowBookModal(false)} className="h-9 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">Cancel</button>
-                  <button type="submit" disabled={isSubmitting} className="h-9 px-5 bg-[#58051E] text-white rounded-xl text-xs font-bold hover:bg-[#430316] shadow-xs">
+                  <button type="submit" disabled={isSubmitting} className="h-9 px-5 bg-[#5A0122] text-white rounded-xl text-xs font-bold hover:bg-[#68092A] shadow-xs">
                     {isSubmitting ? 'Booking...' : 'Confirm Advisory Meeting'}
                   </button>
                 </div>
@@ -454,7 +454,7 @@ export const Meetings: React.FC = () => {
               <div className="flex-1 p-4 grid grid-cols-1 md:grid-cols-2 gap-4 relative bg-slate-950">
                 <div className="bg-slate-900 rounded-2xl flex items-center justify-center relative border border-slate-800">
                   <div className="text-center">
-                    <div className="w-16 h-16 rounded-2xl bg-[#58051E] text-white font-black text-xl flex items-center justify-center mx-auto mb-2 shadow-lg">
+                    <div className="w-16 h-16 rounded-2xl bg-[#5A0122] text-white font-black text-xl flex items-center justify-center mx-auto mb-2 shadow-lg">
                       {activeCallInfo.advisorName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'ADV'}
                     </div>
                     <span className="text-xs font-extrabold text-white">{activeCallInfo.advisorName || 'Assigned Counselor'}</span>

@@ -444,7 +444,7 @@ export const DigitalProjects: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <FolderKanban className="w-5 h-5 text-[#58051E]" /> Projects
+            <FolderKanban className="w-5 h-5 text-[#5A0122]" /> Projects
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
             Client work from briefing to delivery, with owners, deliverables and billing.
@@ -453,7 +453,7 @@ export const DigitalProjects: React.FC = () => {
         <div className="flex items-center gap-2">
           <Button
             size="sm"
-            className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-sm"
+            className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold shadow-sm"
             onClick={() => setShowAddModal(true)}
           >
             <Plus className="w-4 h-4 mr-1.5" /> New project
@@ -473,7 +473,7 @@ export const DigitalProjects: React.FC = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search title, client, staff or deliverables..."
-              className="w-full h-9 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+              className="w-full h-9 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
             />
           </div>
 
@@ -501,7 +501,7 @@ export const DigitalProjects: React.FC = () => {
                 type="checkbox"
                 checked={myProjectsOnly}
                 onChange={(e) => setMyProjectsOnly(e.target.checked)}
-                className="rounded border-slate-300 text-[#58051E] focus:ring-[#58051E]"
+                className="rounded border-slate-300 text-[#5A0122] focus:ring-[#5A0122]"
               />
               <span>Assigned To Me Only</span>
             </label>
@@ -520,7 +520,7 @@ export const DigitalProjects: React.FC = () => {
             onClick={() => setStageFilter('All')}
             className={`px-2.5 py-1 rounded-lg text-[11px] font-bold shrink-0 transition-colors ${
               stageFilter === 'All'
-                ? 'bg-[#58051E] text-white'
+                ? 'bg-[#5A0122] text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
@@ -532,7 +532,7 @@ export const DigitalProjects: React.FC = () => {
               onClick={() => setStageFilter(st)}
               className={`px-2.5 py-1 rounded-lg text-[11px] font-bold shrink-0 transition-colors ${
                 stageFilter === st
-                  ? 'bg-[#58051E] text-white'
+                  ? 'bg-[#5A0122] text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -560,7 +560,7 @@ export const DigitalProjects: React.FC = () => {
               return (
                 <Card
                   key={p.id}
-                  className="p-5 border border-slate-200/80 shadow-xs hover:border-[#58051E]/40 hover:shadow-md transition-all flex flex-col justify-between space-y-4"
+                  className="p-5 border border-slate-200/80 shadow-xs hover:border-[#5A0122]/40 hover:shadow-md transition-all flex flex-col justify-between space-y-4"
                 >
                   <div className="space-y-3">
                     {/* Client Type & Status Header */}
@@ -617,13 +617,13 @@ export const DigitalProjects: React.FC = () => {
                               setEditingTitleId(null);
                             }
                           }}
-                          className="w-full text-base font-black text-slate-900 border border-[#58051E] rounded px-2 py-0.5 focus:outline-hidden"
+                          className="w-full text-base font-black text-slate-900 border border-[#5A0122] rounded px-2 py-0.5 focus:outline-hidden"
                         />
                       ) : (
                         <div className="flex items-center justify-between group/title gap-1">
                           <h3
                             onClick={() => setSelectedProject(p)}
-                            className="text-base font-black text-slate-900 leading-snug hover:text-[#58051E] cursor-pointer transition-colors line-clamp-2"
+                            className="text-base font-black text-slate-900 leading-snug hover:text-[#5A0122] cursor-pointer transition-colors line-clamp-2"
                             title={p.title}
                           >
                             {p.title}
@@ -655,7 +655,7 @@ export const DigitalProjects: React.FC = () => {
                     <div className="space-y-1 pt-1">
                       <div className="flex justify-between text-[11px] font-bold text-slate-600">
                         <span>Workflow Stage</span>
-                        <span className="text-[#58051E] font-black">{p.status}</span>
+                        <span className="text-[#5A0122] font-black">{p.status}</span>
                       </div>
                       <div className="grid grid-cols-6 gap-1 h-2">
                         {stages.map((st, i) => {
@@ -665,7 +665,7 @@ export const DigitalProjects: React.FC = () => {
                             <div
                               key={st}
                               className={`rounded-full transition-all ${
-                                isReached ? 'bg-[#58051E]' : 'bg-slate-200'
+                                isReached ? 'bg-[#5A0122]' : 'bg-slate-200'
                               }`}
                               title={`${st} (Step ${i + 1})`}
                             />
@@ -701,7 +701,7 @@ export const DigitalProjects: React.FC = () => {
                       </div>
                       <div className="flex justify-between items-center text-[11px] pt-1 border-t border-slate-200/60">
                         <span className="text-slate-400">Deliverables Attached:</span>
-                        <span className="font-extrabold text-[#58051E] flex items-center gap-1">
+                        <span className="font-extrabold text-[#5A0122] flex items-center gap-1">
                           <Paperclip className="w-3 h-3" /> {(p.deliverables || []).length} items
                         </span>
                       </div>
@@ -716,7 +716,7 @@ export const DigitalProjects: React.FC = () => {
                       className="flex-1 text-xs font-bold whitespace-nowrap"
                       onClick={() => setSelectedProject(p)}
                     >
-                      <Layers className="w-3.5 h-3.5 mr-1 text-[#58051E]" /> Deliverables ({ (p.deliverables || []).length })
+                      <Layers className="w-3.5 h-3.5 mr-1 text-[#5A0122]" /> Deliverables ({ (p.deliverables || []).length })
                     </Button>
 
                     {(isAdmin || isCentral) && (
@@ -725,10 +725,10 @@ export const DigitalProjects: React.FC = () => {
                           setReassignProject(p);
                           setReassignStaffName(p.assigned_staff_id || '');
                         }}
-                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-[#58051E]/10 text-slate-700 hover:text-[#58051E] rounded-lg text-xs font-bold border border-slate-200 transition-colors cursor-pointer shrink-0"
+                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-[#5A0122]/10 text-slate-700 hover:text-[#5A0122] rounded-lg text-xs font-bold border border-slate-200 transition-colors cursor-pointer shrink-0"
                         title="Reassign Project Manager / Lead"
                       >
-                        <UserCheck className="w-3.5 h-3.5 inline mr-1 text-[#58051E]" />
+                        <UserCheck className="w-3.5 h-3.5 inline mr-1 text-[#5A0122]" />
                         <span>Reassign PM</span>
                       </button>
                     )}
@@ -743,7 +743,7 @@ export const DigitalProjects: React.FC = () => {
                         <Button
                           size="sm"
                           disabled={!canAdvance}
-                          className={`bg-[#58051E] hover:bg-[#430316] text-xs font-bold px-2.5 ${!canAdvance ? 'opacity-60 cursor-not-allowed' : ''}`}
+                          className={`bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold px-2.5 ${!canAdvance ? 'opacity-60 cursor-not-allowed' : ''}`}
                           onClick={() => {
                             if (canAdvance) handleAdvanceStage(p);
                           }}
@@ -903,7 +903,7 @@ export const DigitalProjects: React.FC = () => {
                         }}
                         className={`p-2 rounded-xl text-left border text-xs transition-all ${
                           isCurrent
-                            ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm'
+                            ? 'bg-[#5A0122] text-white border-[#5A0122] shadow-sm'
                             : isPassed
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                             : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-300'
@@ -935,9 +935,9 @@ export const DigitalProjects: React.FC = () => {
                         setReassignProject(selectedProject);
                         setReassignStaffName(selectedProject.assigned_staff_id || '');
                       }}
-                      className="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 hover:text-[#58051E] rounded-md text-[11px] font-bold cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+                      className="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 hover:text-[#5A0122] rounded-md text-[11px] font-bold cursor-pointer inline-flex items-center gap-1 shadow-2xs"
                     >
-                      <UserCheck className="w-3 h-3 text-[#58051E]" />
+                      <UserCheck className="w-3 h-3 text-[#5A0122]" />
                       <span>Change PM</span>
                     </button>
                   )}
@@ -948,7 +948,7 @@ export const DigitalProjects: React.FC = () => {
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <DollarSign className="w-3.5 h-3.5 text-[#58051E]" /> Commercial Value & Milestone Payments
+                    <DollarSign className="w-3.5 h-3.5 text-[#5A0122]" /> Commercial Value & Milestone Payments
                   </h4>
                   <span className="text-xs font-black text-emerald-700">{formatDigitalCurrency(selectedProject.budget, selectedProject.currency)}</span>
                 </div>
@@ -961,7 +961,7 @@ export const DigitalProjects: React.FC = () => {
                         <span>Collected {money(t.received, cur)} of {money(t.total, cur)} ({t.percent_paid}%)</span>
                         {t.overdue_count > 0 && <span className="text-rose-600">{money(t.overdue_amount, cur)} overdue</span>}
                       </div>
-                      <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden"><div className={`h-full rounded-full ${t.overdue_count ? 'bg-rose-500' : 'bg-[#58051E]'}`} style={{ width: `${Math.min(100, t.percent_paid)}%` }} /></div>
+                      <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden"><div className={`h-full rounded-full ${t.overdue_count ? 'bg-rose-500' : 'bg-[#5A0122]'}`} style={{ width: `${Math.min(100, t.percent_paid)}%` }} /></div>
                       <div className="space-y-1">
                         {t.terms.map(term => (
                           <div key={term.id} className="flex items-center justify-between text-[11px] bg-white rounded-lg px-2.5 py-1.5 border border-slate-100">
@@ -972,12 +972,12 @@ export const DigitalProjects: React.FC = () => {
                           </div>
                         ))}
                       </div>
-                      <Link to={`/digital/billing?project=${selectedProject.id}`} className="inline-block text-[11px] font-bold text-[#58051E] underline">Open billing: record payments, edit milestones, add extra scope</Link>
+                      <Link to={`/digital/billing?project=${selectedProject.id}`} className="inline-block text-[11px] font-bold text-[#5A0122] underline">Open billing: record payments, edit milestones, add extra scope</Link>
                     </div>
                   );
                 })() : (
                   <div className="text-[11px] font-semibold text-slate-500">
-                    {isAdmin ? <>No billing configured for this project yet. <Link to="/digital/billing" className="text-[#58051E] underline font-bold">Configure billing</Link></> : 'Billing is managed by the Digital administrators.'}
+                    {isAdmin ? <>No billing configured for this project yet. <Link to="/digital/billing" className="text-[#5A0122] underline font-bold">Configure billing</Link></> : 'Billing is managed by the Digital administrators.'}
                   </div>
                 )}
               </div>
@@ -986,11 +986,11 @@ export const DigitalProjects: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
-                    <Paperclip className="w-4 h-4 text-[#58051E]" /> Deliverables & Assets ({ (selectedProject.deliverables || []).length })
+                    <Paperclip className="w-4 h-4 text-[#5A0122]" /> Deliverables & Assets ({ (selectedProject.deliverables || []).length })
                   </h4>
                   <Button
                     size="sm"
-                    className="bg-[#58051E] hover:bg-[#430316] text-[11px] font-bold h-7 px-2.5"
+                    className="bg-[#5A0122] hover:bg-[#68092A] text-[11px] font-bold h-7 px-2.5"
                     onClick={() => setShowDeliverableModal(true)}
                   >
                     <Plus className="w-3.5 h-3.5 mr-1" /> Attach Deliverable
@@ -1024,7 +1024,7 @@ export const DigitalProjects: React.FC = () => {
                             href={d.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-1.5 text-[#58051E] hover:bg-[#58051E]/10 rounded-lg text-xs font-bold flex items-center gap-1"
+                            className="p-1.5 text-[#5A0122] hover:bg-[#5A0122]/10 rounded-lg text-xs font-bold flex items-center gap-1"
                           >
                             <ExternalLink className="w-3.5 h-3.5" /> Open
                           </a>
@@ -1107,7 +1107,7 @@ export const DigitalProjects: React.FC = () => {
                     value={newProj.title}
                     onChange={(e) => setNewProj({ ...newProj, title: e.target.value })}
                     placeholder="e.g. Q4 Regional Brand Campaign & Media Kit"
-                    className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -1129,7 +1129,7 @@ export const DigitalProjects: React.FC = () => {
                           client_type: sel?.client_type || (sel?.company_name?.toLowerCase().includes('ferex') ? 'Internal' : 'External')
                         });
                       }}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     >
                       <option value="">-- Select Client / Division --</option>
                       <optgroup label="Internal Ferex Subsidiaries">
@@ -1156,7 +1156,7 @@ export const DigitalProjects: React.FC = () => {
                     <select
                       value={newProj.service_category}
                       onChange={(e) => setNewProj({ ...newProj, service_category: e.target.value })}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     >
                       <option value="Web & App Development">Web Application Development (Full Stack)</option>
                       <option value="Mobile App Development">Mobile App (iOS / Android / Flutter)</option>
@@ -1184,15 +1184,15 @@ export const DigitalProjects: React.FC = () => {
                     value={newProj.scope}
                     onChange={(e) => setNewProj({ ...newProj, scope: e.target.value })}
                     placeholder="Key campaign deliverables, milestones, visual specifications..."
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
                 {/* ── COMMERCIAL VALUE & PAYMENT TERMS CONFIGURATION ── */}
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#58051E] flex items-center gap-1.5">
-                      <DollarSign className="w-3.5 h-3.5 text-[#58051E]" /> Commercial & Payment Terms Configuration
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#5A0122] flex items-center gap-1.5">
+                      <DollarSign className="w-3.5 h-3.5 text-[#5A0122]" /> Commercial & Payment Terms Configuration
                     </span>
                     <span className="text-[10px] text-slate-400 font-semibold">Single Source of Truth</span>
                   </div>
@@ -1210,7 +1210,7 @@ export const DigitalProjects: React.FC = () => {
                         placeholder="IN, US, AE…"
                         value={newProj.country}
                         onChange={(e) => setNewProj({ ...newProj, country: e.target.value.toUpperCase() })}
-                        className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
                     <div>
@@ -1220,7 +1220,7 @@ export const DigitalProjects: React.FC = () => {
                       <select
                         value={newProj.currency}
                         onChange={(e) => setNewProj({ ...newProj, currency: e.target.value })}
-                        className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                       >
                         {DIGITAL_CURRENCIES.map(c => (
                           <option key={c.code} value={c.code}>
@@ -1240,7 +1240,7 @@ export const DigitalProjects: React.FC = () => {
                         min={1}
                         value={newProj.budget}
                         onChange={(e) => setNewProj({ ...newProj, budget: Number(e.target.value) })}
-                        className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-emerald-700 focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-emerald-700 focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
 
@@ -1258,7 +1258,7 @@ export const DigitalProjects: React.FC = () => {
                           else if (val.includes('3-Stage') || val.includes('Milestone')) splitType = 'three_milestones';
                           setNewProj({ ...newProj, payment_terms: val, payment_split_type: splitType });
                         }}
-                        className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                       >
                         <option value="Advance Payment (30% Upfront)">Advance Payment (30% Upfront)</option>
                         <option value="Advance Payment (50% Upfront)">Advance Payment (50% Upfront)</option>
@@ -1299,7 +1299,7 @@ export const DigitalProjects: React.FC = () => {
                           }}
                           className={`p-2 rounded-xl text-left border transition-all ${
                             newProj.payment_split_type === opt.id
-                              ? 'bg-[#58051E] text-white border-[#58051E] shadow-xs'
+                              ? 'bg-[#5A0122] text-white border-[#5A0122] shadow-xs'
                               : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
                           }`}
                         >
@@ -1523,7 +1523,7 @@ export const DigitalProjects: React.FC = () => {
                       type="date"
                       value={newProj.start_date}
                       onChange={(e) => setNewProj({ ...newProj, start_date: e.target.value })}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -1534,7 +1534,7 @@ export const DigitalProjects: React.FC = () => {
                       type="date"
                       value={newProj.deadline}
                       onChange={(e) => setNewProj({ ...newProj, deadline: e.target.value })}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -1547,7 +1547,7 @@ export const DigitalProjects: React.FC = () => {
                     required
                     value={newProj.assigned_staff_id}
                     onChange={(e) => setNewProj({ ...newProj, assigned_staff_id: e.target.value })}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   >
                     <option value="">-- Choose team member --</option>
                     {staffList.map((s: any) => (
@@ -1571,7 +1571,7 @@ export const DigitalProjects: React.FC = () => {
                   <Button
                     type="submit"
                     size="sm"
-                    className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
+                    className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]"
                   >
                     Initiate Project
                   </Button>
@@ -1696,7 +1696,7 @@ export const DigitalProjects: React.FC = () => {
                   <Button
                     type="submit"
                     size="sm"
-                    className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
+                    className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]"
                   >
                     Attach Deliverable
                   </Button>
@@ -1727,7 +1727,7 @@ export const DigitalProjects: React.FC = () => {
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div>
                   <h3 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
-                    <UserCheck className="w-4 h-4 text-[#58051E]" />
+                    <UserCheck className="w-4 h-4 text-[#5A0122]" />
                     <span>Reassign Project Lead / PM</span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5 truncate max-w-xs">{reassignProject.title}</p>
@@ -1752,7 +1752,7 @@ export const DigitalProjects: React.FC = () => {
                   <select
                     value={reassignStaffName}
                     onChange={(e) => setReassignStaffName(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   >
                     <option value="">-- Choose Staff Member --</option>
                     {staffList.map((s: any) => (
@@ -1778,7 +1778,7 @@ export const DigitalProjects: React.FC = () => {
                   type="button"
                   size="sm"
                   disabled={!reassignStaffName}
-                  className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
+                  className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]"
                   onClick={handleConfirmReassign}
                 >
                   Confirm Reassign

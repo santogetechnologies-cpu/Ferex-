@@ -393,7 +393,7 @@ export const RimiSalesOrders: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5 text-[#58051E]" /> Sales orders
+            <ShoppingCart className="w-5 h-5 text-[#5A0122]" /> Sales orders
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">Orders from customer to batch, delivery and payment.</p>
         </div>
@@ -401,7 +401,7 @@ export const RimiSalesOrders: React.FC = () => {
         <Button
           size="sm"
           onClick={handleOpenCreateModal}
-          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
+          className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
         >
           <Plus className="w-4 h-4" /> Create Sales Order
         </Button>
@@ -506,7 +506,7 @@ export const RimiSalesOrders: React.FC = () => {
                     onClick={() => setSelectedOrder(ord)}
                     className="text-xs font-bold h-8 border-slate-200 hover:border-slate-300"
                   >
-                    <Eye className="w-3 h-3 mr-1 text-[#58051E]" /> Details
+                    <Eye className="w-3 h-3 mr-1 text-[#5A0122]" /> Details
                   </Button>
                   {Number(ord.balance_amount) > 0 && (
                   <Button
@@ -554,7 +554,7 @@ export const RimiSalesOrders: React.FC = () => {
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="text-base font-black text-slate-900">Edit Sales Order</h3>
-                  <p className="text-[10px] font-bold text-[#58051E]">{editingOrder.order_no} • {editingOrder.customer_name}</p>
+                  <p className="text-[10px] font-bold text-[#5A0122]">{editingOrder.order_no} • {editingOrder.customer_name}</p>
                 </div>
                 <button onClick={() => setEditingOrder(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
@@ -624,7 +624,7 @@ export const RimiSalesOrders: React.FC = () => {
 
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setEditingOrder(null)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Order Updates</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]">Save Order Updates</Button>
                 </div>
               </form>
             </motion.div>
@@ -707,7 +707,7 @@ export const RimiSalesOrders: React.FC = () => {
                 {/* Total Summary */}
                 <div className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between border border-slate-200/80">
                   <span className="text-xs font-black text-slate-700">Calculated Total Payable:</span>
-                  <span className="text-lg font-black text-[#58051E]">₹{calculatedTotal.toLocaleString('en-IN')}</span>
+                  <span className="text-lg font-black text-[#5A0122]">₹{calculatedTotal.toLocaleString('en-IN')}</span>
                 </div>
 
                 <div className="pt-2 flex gap-2">
@@ -726,7 +726,7 @@ export const RimiSalesOrders: React.FC = () => {
                     size="sm"
                     disabled={isSubmittingOrder || !selectedCustomer || orderItems.length === 0}
                     style={{ pointerEvents: isSubmittingOrder ? "none" : "auto" }}
-                    className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSubmittingOrder ? (
                       <span className="flex items-center justify-center gap-1.5">
@@ -752,7 +752,7 @@ export const RimiSalesOrders: React.FC = () => {
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="text-sm font-black text-slate-900">Record Payment Collection</h3>
-                  <span className="text-[10px] font-bold text-[#58051E]">{selectedOrder.order_no} • {selectedOrder.customer_name}</span>
+                  <span className="text-[10px] font-bold text-[#5A0122]">{selectedOrder.order_no} • {selectedOrder.customer_name}</span>
                 </div>
                 <button onClick={() => setShowPaymentModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
@@ -830,7 +830,7 @@ export const RimiSalesOrders: React.FC = () => {
                       {selectedOrder.order_status}
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold text-[#58051E] uppercase">{selectedOrder.customer_name}</span>
+                  <span className="text-[10px] font-bold text-[#5A0122] uppercase">{selectedOrder.customer_name}</span>
                 </div>
                 <button onClick={() => setSelectedOrder(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
@@ -846,7 +846,7 @@ export const RimiSalesOrders: React.FC = () => {
                         onClick={() => handleUpdateStatus(selectedOrder.id, st)}
                         className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                           selectedOrder.order_status === st
-                            ? 'bg-[#58051E] text-white shadow-xs'
+                            ? 'bg-[#5A0122] text-white shadow-xs'
                             : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
                         }`}
                       >
@@ -875,7 +875,7 @@ export const RimiSalesOrders: React.FC = () => {
                 {/* Items in Order */}
                 <div className="space-y-2">
                   <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <Package className="w-3.5 h-3.5 text-[#58051E]" /> Allocated Order SKUs ({selectedOrder.items?.length || 0})
+                    <Package className="w-3.5 h-3.5 text-[#5A0122]" /> Allocated Order SKUs ({selectedOrder.items?.length || 0})
                   </h4>
 
                   <div className="space-y-1.5">
@@ -894,7 +894,7 @@ export const RimiSalesOrders: React.FC = () => {
                   </div>
                 </div>
 
-                <Button size="sm" className="w-full text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => setSelectedOrder(null)}>
+                <Button size="sm" className="w-full text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]" onClick={() => setSelectedOrder(null)}>
                   Close Order Details
                 </Button>
               </div>

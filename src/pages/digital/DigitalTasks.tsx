@@ -231,7 +231,7 @@ export const DigitalTasks: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <CheckSquare className="w-5 h-5 text-[#58051E]" />
+            <CheckSquare className="w-5 h-5 text-[#5A0122]" />
             {isStaff ? 'My Assigned Sprint Tasks' : 'Tasks'}
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
@@ -240,7 +240,7 @@ export const DigitalTasks: React.FC = () => {
               : 'Ferex Digital ERP • Multi-project sprint backlogs, staff assignments, due dates, and real-time execution tracking.'}
           </p>
         </div>
-        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-sm" onClick={() => setShowAddModal(true)}>
+        <Button size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold shadow-sm" onClick={() => setShowAddModal(true)}>
           <Plus className="w-4 h-4 mr-1.5" /> Create Sprint Task
         </Button>
       </div>
@@ -257,7 +257,7 @@ export const DigitalTasks: React.FC = () => {
               value={search}
               onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
               placeholder={isStaff ? "Search my tasks..." : "Search task, project, staff member..."}
-              className="w-full h-9 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+              className="w-full h-9 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
             />
           </div>
 
@@ -268,7 +268,7 @@ export const DigitalTasks: React.FC = () => {
               <select
                 value={staffFilter}
                 onChange={(e) => { setStaffFilter(e.target.value); setCurrentPage(1); }}
-                className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#5A0122]"
               >
                 <option value="All">All Assigned Staff</option>
                 <option value="ME">Assigned to Me</option>
@@ -282,7 +282,7 @@ export const DigitalTasks: React.FC = () => {
             <select
               value={priorityFilter}
               onChange={(e) => { setPriorityFilter(e.target.value); setCurrentPage(1); }}
-              className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#58051E]"
+              className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#5A0122]"
             >
               <option value="All">All Priorities</option>
               {taskPriorities.map(p => (
@@ -294,7 +294,7 @@ export const DigitalTasks: React.FC = () => {
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#58051E]"
+              className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#5A0122]"
             >
               <option value="All">All Statuses</option>
               <option value="To Do">To Do</option>
@@ -332,7 +332,7 @@ export const DigitalTasks: React.FC = () => {
                   className={`p-5 border shadow-xs transition-all flex flex-col justify-between space-y-4 ${
                     isDone
                       ? 'border-emerald-200 bg-emerald-50/20'
-                      : 'border-slate-200/80 hover:border-[#58051E]/40 hover:shadow-md'
+                      : 'border-slate-200/80 hover:border-[#5A0122]/40 hover:shadow-md'
                   }`}
                 >
                   <div className="space-y-3">
@@ -376,7 +376,7 @@ export const DigitalTasks: React.FC = () => {
                         {t.title}
                       </h3>
                       <p className="text-xs font-bold text-slate-500 mt-1 flex items-center gap-1.5 truncate">
-                        <FolderKanban className="w-3.5 h-3.5 text-[#58051E] shrink-0" />
+                        <FolderKanban className="w-3.5 h-3.5 text-[#5A0122] shrink-0" />
                         <span className="truncate">{t.project?.title || t.project_title || 'General Engineering Sprint'}</span>
                       </p>
                       {t.notes && (
@@ -393,7 +393,7 @@ export const DigitalTasks: React.FC = () => {
                           <User className="w-3.5 h-3.5" /> Assigned To:
                         </span>
                         <div className="flex items-center gap-1.5">
-                          <div className="w-5 h-5 rounded-full bg-[#58051E] text-white text-[9px] font-black flex items-center justify-center">
+                          <div className="w-5 h-5 rounded-full bg-[#5A0122] text-white text-[9px] font-black flex items-center justify-center">
                             {initials}
                           </div>
                           <span className="text-xs font-bold text-slate-800">{assigneeName}</span>
@@ -422,7 +422,7 @@ export const DigitalTasks: React.FC = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-xs font-bold text-slate-700 hover:text-[#58051E] hover:border-[#58051E]"
+                      className="text-xs font-bold text-slate-700 hover:text-[#5A0122] hover:border-[#5A0122]"
                       onClick={() => {
                         setReassignTask(t);
                         setReassignStaffName(t.assigned_staff_id || '');
@@ -517,7 +517,7 @@ export const DigitalTasks: React.FC = () => {
                     value={newTask.title}
                     onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
                     placeholder="e.g. Implement Webhook Handlers for Payment Gateway"
-                    className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -530,7 +530,7 @@ export const DigitalTasks: React.FC = () => {
                       required
                       value={newTask.project_id}
                       onChange={(e) => setNewTask({ ...newTask, project_id: e.target.value })}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     >
                       <option value="">-- Select Project (Required) --</option>
                       {projects.map(p => (
@@ -552,7 +552,7 @@ export const DigitalTasks: React.FC = () => {
                     <select
                       value={newTask.priority}
                       onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     >
                       {taskPriorities.map(p => (
                         <option key={p} value={p}>{p}</option>
@@ -568,7 +568,7 @@ export const DigitalTasks: React.FC = () => {
                       type="date"
                       value={newTask.due_date}
                       onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -589,7 +589,7 @@ export const DigitalTasks: React.FC = () => {
                       required
                       value={newTask.assigned_staff_id}
                       onChange={(e) => setNewTask({ ...newTask, assigned_staff_id: e.target.value })}
-                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     >
                       <option value="">-- Choose team member --</option>
                       {staffList.map((s: any) => (
@@ -610,7 +610,7 @@ export const DigitalTasks: React.FC = () => {
                     value={newTask.notes}
                     onChange={(e) => setNewTask({ ...newTask, notes: e.target.value })}
                     placeholder="Provide execution details, dependencies, or links..."
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -618,7 +618,7 @@ export const DigitalTasks: React.FC = () => {
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>
                     Cancel
                   </Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]">
                     Save Task
                   </Button>
                 </div>
@@ -644,8 +644,8 @@ export const DigitalTasks: React.FC = () => {
             >
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#58051E]/10 flex items-center justify-center">
-                    <User className="w-4 h-4 text-[#58051E]" />
+                  <div className="w-8 h-8 rounded-lg bg-[#5A0122]/10 flex items-center justify-center">
+                    <User className="w-4 h-4 text-[#5A0122]" />
                   </div>
                   <div>
                     <h3 className="text-base font-black text-slate-900">Reassign Sprint Task</h3>
@@ -672,7 +672,7 @@ export const DigitalTasks: React.FC = () => {
                   <select
                     value={reassignStaffName}
                     onChange={(e) => setReassignStaffName(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   >
                     <option value="">-- Choose Staff Member --</option>
                     {staffList.map((s: any) => (
@@ -697,7 +697,7 @@ export const DigitalTasks: React.FC = () => {
                     type="button"
                     size="sm"
                     disabled={!reassignStaffName}
-                    className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
+                    className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]"
                     onClick={async () => {
                       const matched = staffList.find(m => m.id === reassignStaffName);
                       if (!matched) { showToast('Choose a team member from the list.'); return; }

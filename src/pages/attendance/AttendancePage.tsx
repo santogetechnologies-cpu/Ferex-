@@ -67,7 +67,7 @@ export const AttendancePage: React.FC<{ platform?: string }> = ({ platform }) =>
       <nav className="flex flex-wrap gap-1 border-b border-slate-200" aria-label="Attendance sections">
         {tabs.map(t => (
           <button key={t.id} type="button" onClick={() => setParams({ tab: t.id }, { replace: true })}
-            className={`px-3.5 py-2.5 text-sm font-semibold border-b-2 -mb-px cursor-pointer transition ${active === t.id ? 'border-[#58051E] text-[#58051E]' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{t.label}</button>))}
+            className={`px-3.5 py-2.5 text-sm font-semibold border-b-2 -mb-px cursor-pointer transition ${active === t.id ? 'border-[#5A0122] text-[#5A0122]' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{t.label}</button>))}
       </nav>
       {active === 'mine' && <MyAttendance {...shared} />}
       {active === 'team' && <TeamAttendance {...shared} />}

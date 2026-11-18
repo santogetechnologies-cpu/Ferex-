@@ -9,14 +9,14 @@ const PRESETS: Exclude<RangeKey, 'custom'>[] = ['all', 'today', 'week', 'month']
  * Pair it with `inRange(row.date, range)` from lib/dateRange.
  */
 export const DateRangeFilter: React.FC<{ value: DateRange; onChange: (r: DateRange) => void; label?: string; className?: string; compact?: boolean }> = ({ value, onChange, label = 'Date', className = '', compact = false }) => {
-  const chip = (active: boolean) => `h-8 px-3 rounded-full text-xs font-bold border transition-colors cursor-pointer whitespace-nowrap ${active ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-white text-slate-600 border-slate-200 hover:border-[#58051E]/40'}`;
-  const input = 'h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#58051E]';
+  const chip = (active: boolean) => `h-8 px-3 rounded-full text-xs font-bold border transition-colors cursor-pointer whitespace-nowrap ${active ? 'bg-[#5A0122] text-white border-[#5A0122]' : 'bg-white text-slate-600 border-slate-200 hover:border-[#5A0122]/40'}`;
+  const input = 'h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#5A0122]';
   if (compact) {
     // One dropdown that fits in a crowded toolbar; the From / To dates appear only for Custom.
     return (
       <div role="group" aria-label={`${label} filter`} className={`inline-flex flex-wrap items-center gap-1.5 ${className}`}>
         <span className="inline-flex items-center gap-1 h-10 sm:h-9 px-3 bg-white border border-slate-200 rounded-xl">
-          <CalendarDays className="w-3.5 h-3.5 text-[#58051E] shrink-0" />
+          <CalendarDays className="w-3.5 h-3.5 text-[#5A0122] shrink-0" />
           <select aria-label={label} value={value.key} onChange={e => { const k = e.target.value as RangeKey; onChange(k === 'all' ? ALL_TIME : k === 'custom' ? { key: 'custom', from: value.from, to: value.to } : { key: k }); }} className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none cursor-pointer pr-1">
             {PRESETS.map(k => <option key={k} value={k}>{k === 'all' ? `${label}: ${RANGE_LABELS[k]}` : RANGE_LABELS[k]}</option>)}
             <option value="custom">Custom range…</option>
