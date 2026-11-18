@@ -38,14 +38,12 @@ export const RimiProducts: React.FC = () => {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [prodData, catData, whData] = await Promise.all([
-        getRimiProducts(),
-        getRimiProductCategories(),
-        getRimiWarehouses()
-      ]);
-
-      setCategories(catData || []);
-      setWarehouses(whData || []);
+      // Loaded independently: a failing categories or hubs lookup must never leave the product list stale or empty.
+      const [prodR, catR, whR] = await Promise.allSettled([getRimiProducts(), getRimiProductCategories(), getRimiWarehouses()]);
+      if (prodR.status === 'rejected') throw prodR.reason;
+      const prodData = prodR.value;
+      if (catR.status === 'fulfilled') setCategories(catR.value || []);
+      if (whR.status === 'fulfilled') setWarehouses(whR.value || []);
 
       if (Array.isArray(prodData)) {
         const formatted = prodData.map((d: any) => ({
@@ -67,6 +65,9 @@ export const RimiProducts: React.FC = () => {
       } else {
         setProducts([]);
       }
+    } catch (err: any) {
+      console.warn('[RimiProducts] load failed:', err);
+      setToast(`Could not refresh the product list: ${err?.message || 'please retry'}`);
     } finally {
       setLoading(false);
     }
@@ -173,6 +174,9 @@ export const RimiProducts: React.FC = () => {
 
       clearAddOpen();
       clearNewProd();
+      // Show the new product straight away: clear any search or category filter that would hide it.
+      setFilterCategory('All');
+      setSearchQuery('');
       showToastMsg(`Added frozen SKU ${created?.sku || newSku} (Opening Stock: ${newProd.quantity} ${newProd.unit})`);
       await loadData();
     } catch (err: any) {

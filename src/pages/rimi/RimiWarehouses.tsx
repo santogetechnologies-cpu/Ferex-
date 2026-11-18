@@ -17,6 +17,7 @@ import {
   getRimiStockMovements,
   type RimiWarehouseRecord,
   type RimiInventoryBatchRecord,
+  palletsForUnits,
   type RimiStockMovementRecord
 } from '../../lib/api/rimi';
 import { useRimiAccess } from '../../lib/rimiAccess';
@@ -400,6 +401,7 @@ export const RimiWarehouses: React.FC = () => {
                 const hubMovements = movements.filter(m => m.warehouse_id === selectedFacility.id);
                 const nameOf = (id?: string) => hubBatches.find(b => b.product_id === id)?.product_name || 'Product';
                 const totalUnits = hubBatches.reduce((acc, b) => acc + Number(b.quantity || 0), 0);
+                const usedPallets = palletsForUnits(totalUnits);
                 const uniqueSkus = new Set(hubBatches.map(b => b.product_name || b.product_id)).size;
 
                 const filteredStock = hubBatches.filter(b => {
@@ -424,7 +426,7 @@ export const RimiWarehouses: React.FC = () => {
                       </div>
                       <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                         <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Pallet Utilization</span>
-                        <span className="text-base font-black text-cyan-800 mt-0.5 block">{live.utilized_pallets} / {live.total_capacity_pallets} ({fmtPct(Number(live.utilized_pallets) || 0, Number(live.total_capacity_pallets) || 0)}%)</span>
+                        <span className="text-base font-black text-cyan-800 mt-0.5 block">{usedPallets} / {live.total_capacity_pallets} ({fmtPct(usedPallets, Number(live.total_capacity_pallets) || 0)}%)</span>
                       </div>
                     </div>
 

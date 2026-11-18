@@ -15,6 +15,7 @@ import {
   createRimiSalesOrder,
   updateRimiSalesOrderStatus,
   updateRimiSalesOrderDetails,
+  updateRimiSalesOrderItems,
   deleteRimiSalesOrder,
   getRimiCustomers,
   getRimiProducts,
@@ -32,6 +33,63 @@ import { DateRangeFilter } from '../../components/DateRangeFilter';
 import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 const ORDER_STATUSES = ['Received', 'Confirmed', 'Cold Storage Picking', 'Dispatched', 'Delivered', 'Cancelled'] as const;
+
+
+const fmtExp = (d?: string) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+type OrderLine = { product_id: string; product_name: string; batch_id: string; batch_no?: string; quantity: number; unit_price: number };
+
+/** Available quantity and expiry dates of a product's sellable (in-date, in-stock) batches. */
+function stockInfo(batches: RimiInventoryBatchRecord[], productId: string) {
+  const today = new Date().toISOString().slice(0, 10);
+  const live = batches.filter(b => b.product_id === productId && Number(b.quantity) > 0 && (!b.expiry_date || b.expiry_date > today));
+  const dates = live.map(b => b.expiry_date).filter(Boolean).sort();
+  return { available: live.reduce((a, b) => a + Number(b.quantity), 0), earliest: dates[0], latest: dates[dates.length - 1] };
+}
+
+/** Product rows for an order: product, batch, quantity, with the stock and expiry date shown before a product is added. */
+const OrderLineEditor: React.FC<{ lines: OrderLine[]; products: RimiProductRecord[]; batches: RimiInventoryBatchRecord[]; onChange: (l: OrderLine[]) => void }> = ({ lines, products, batches, onChange }) => {
+  const set = (i: number, patch: Partial<OrderLine>) => onChange(lines.map((l, idx) => idx === i ? { ...l, ...patch } : l));
+  const pick = (i: number, id: string) => { const p = products.find(x => x.id === id); set(i, { product_id: id, product_name: p?.name || '', unit_price: p ? Number(p.unit_price) : 0, batch_id: '', batch_no: '' }); };
+  return (
+    <div className="space-y-2">
+      {lines.map((item, idx) => {
+        const prod = products.find(p => p.id === item.product_id);
+        const info = item.product_id ? stockInfo(batches, item.product_id) : null;
+        return (
+          <div key={idx} className="p-3 bg-slate-50 rounded-2xl border border-slate-200/70 grid grid-cols-1 sm:grid-cols-4 gap-2 items-center text-xs">
+            <div className="sm:col-span-2">
+              <label className="block text-[9px] font-bold text-slate-400 uppercase">Product SKU</label>
+              <select value={item.product_id} onChange={(e) => pick(idx, e.target.value)} aria-label="Product" className="w-full h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold">
+                <option value="">Select product…</option>
+                {products.map(p => { const si = stockInfo(batches, p.id); return (
+                  <option key={p.id} value={p.id}>[{p.sku || 'SKU'}] {p.name} • ₹{p.unit_price}/{p.unit || 'KG'} • {si.available} {p.unit || 'KG'} in stock{si.latest ? ` • expiry ${fmtExp(si.earliest)}${si.latest !== si.earliest ? ` – ${fmtExp(si.latest)}` : ''}` : ''}</option>
+                ); })}
+              </select>
+              {info && <p className={`mt-1 text-[10px] font-bold ${info.available > 0 ? 'text-slate-500' : 'text-rose-600'}`}>
+                {info.available > 0 ? `Available: ${info.available.toLocaleString('en-IN')} ${prod?.unit || 'KG'} · Expiry: ${fmtExp(info.earliest)}${info.latest && info.latest !== info.earliest ? ` (last ${fmtExp(info.latest)})` : ''}` : 'No sellable stock for this product'}
+              </p>}
+            </div>
+            <div>
+              <label className="block text-[9px] font-bold text-slate-400 uppercase">Batch Lot</label>
+              <select value={item.batch_id} onChange={(e) => { const b = batches.find(bt => bt.id === e.target.value); set(idx, { batch_id: e.target.value, batch_no: b?.batch_no || '' }); }} aria-label="Batch" className="w-full h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold">
+                <option value="">Auto-Allocate Oldest Batch</option>
+                {batches.filter(b => b.product_id === item.product_id && Number(b.quantity) > 0).map(b => <option key={b.id} value={b.id}>{b.batch_no} (Stock: {b.quantity} · exp {fmtExp(b.expiry_date)})</option>)}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <label className="block text-[9px] font-bold text-slate-400 uppercase">Quantity ({prod?.unit || 'KG'})</label>
+                <input type="number" min={0} value={item.quantity || ''} onChange={(e) => set(idx, { quantity: Number(e.target.value) })} aria-label="Quantity" className="w-full h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold" />
+              </div>
+              {lines.length > 1 && <button type="button" aria-label="Remove product" onClick={() => onChange(lines.filter((_, i) => i !== idx))} className="p-1 text-slate-400 hover:text-rose-600 mt-3 cursor-pointer"><Trash2 className="w-4 h-4" /></button>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 export const RimiSalesOrders: React.FC = () => {
   const { profile } = useAuth();
@@ -56,6 +114,15 @@ export const RimiSalesOrders: React.FC = () => {
   const isSubmittingRef = useRef(false);
   const [selectedOrder, setSelectedOrder] = useState<RimiSalesOrderRecord | null>(null);
   const [editingOrder, setEditingOrder] = useState<RimiSalesOrderRecord | null>(null);
+  const [editLines, setEditLines] = useState<OrderLine[]>([]);
+  const [editLinesDirty, setEditLinesDirty] = useState(false);
+  const EDITABLE_LINES = ['Received', 'Confirmed', 'Cold Storage Picking'];
+  const openEdit = (ord: RimiSalesOrderRecord) => {
+    // One row per product (an order can be split across batches); the system re-allocates batches on save.
+    const byProduct = new Map<string, OrderLine>();
+    (ord.items || []).forEach(it => { const cur = byProduct.get(it.product_id); if (cur) cur.quantity += Number(it.quantity); else byProduct.set(it.product_id, { product_id: it.product_id, product_name: it.product_name, batch_id: '', batch_no: '', quantity: Number(it.quantity), unit_price: Number(it.unit_price) }); });
+    setEditLines([...byProduct.values()]); setEditLinesDirty(false); setEditingOrder({ ...ord });
+  };
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<string>('Bank Transfer');
@@ -289,6 +356,10 @@ export const RimiSalesOrders: React.FC = () => {
     e.preventDefault();
     if (!editingOrder) return;
     try {
+      if (editLinesDirty && EDITABLE_LINES.includes(editingOrder.order_status)) {
+        if (editLines.some(l => !l.product_id || !(Number(l.quantity) > 0))) { showToast('Choose a product and a quantity above zero for every row.'); return; }
+        await updateRimiSalesOrderItems(editingOrder.id, editLines);
+      }
       await updateRimiSalesOrderDetails(editingOrder.id, {
         delivery_date: editingOrder.delivery_date,
         delivery_address: editingOrder.delivery_address,
@@ -454,7 +525,7 @@ export const RimiSalesOrders: React.FC = () => {
 
                 <div className="flex items-center justify-between pt-1">
                   <button
-                    onClick={() => setEditingOrder({ ...ord })}
+                    onClick={() => openEdit(ord)}
                     className="text-[11px] text-slate-500 hover:text-slate-800 font-bold flex items-center gap-1 cursor-pointer"
                   >
                     <Edit3 className="w-3 h-3 text-slate-400" /> Edit Order
@@ -479,7 +550,7 @@ export const RimiSalesOrders: React.FC = () => {
         {editingOrder && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50" onClick={() => setEditingOrder(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 space-y-4">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl max-h-[92vh] overflow-y-auto bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="text-base font-black text-slate-900">Edit Sales Order</h3>
@@ -522,6 +593,19 @@ export const RimiSalesOrders: React.FC = () => {
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
                   />
                 </div>
+
+                {EDITABLE_LINES.includes(editingOrder.order_status) ? (
+                  <div className="space-y-2 pt-1 border-t border-slate-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-slate-900 uppercase tracking-wider">Products on this order</span>
+                      <Button type="button" size="sm" variant="outline" className="text-[11px] font-bold h-7" onClick={() => { setEditLines([...editLines, blankItem()]); setEditLinesDirty(true); }}><Plus className="w-3 h-3 mr-1" /> Add Product</Button>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto pr-1">
+                      <OrderLineEditor lines={editLines} products={products} batches={batches} onChange={l => { setEditLines(l); setEditLinesDirty(true); }} />
+                    </div>
+                    <p className="text-[10px] font-semibold text-slate-500">Stock from the old lines is returned and the new lines are taken from the earliest-expiring batches. New total: <b className="text-slate-900">₹{editLines.reduce((a, l) => a + Number(l.quantity) * Number(l.unit_price), 0).toLocaleString('en-IN')}</b>{editLinesDirty ? ' (applied when you save)' : ''}</p>
+                  </div>
+                ) : <p className="text-[11px] font-semibold text-slate-500">Products can only be changed before the order is dispatched.</p>}
 
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-semibold text-slate-600">
                   Payment status: <span className="font-black text-slate-900">{editingOrder.payment_status}</span> · Paid ₹{Number(editingOrder.paid_amount || 0).toLocaleString('en-IN')} of ₹{Number(editingOrder.total_amount || 0).toLocaleString('en-IN')}.
@@ -617,63 +701,7 @@ export const RimiSalesOrders: React.FC = () => {
                     </Button>
                   </div>
 
-                  <div className="space-y-2">
-                    {orderItems.map((item, idx) => (
-                      <div key={idx} className="p-3 bg-slate-50 rounded-2xl border border-slate-200/70 grid grid-cols-1 sm:grid-cols-4 gap-2 items-center text-xs">
-                        <div className="sm:col-span-2">
-                          <label className="block text-[9px] font-bold text-slate-400 uppercase">Product SKU</label>
-                          <select
-                            value={item.product_id}
-                            onChange={(e) => handleItemChange(idx, 'product_id', e.target.value)}
-                            className="w-full h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold"
-                          >
-                            <option value="">Select product…</option>
-                            {products.map(p => (
-                              <option key={p.id} value={p.id}>
-                                [{p.sku || 'SKU'}] {p.name} • {p.category || 'Frozen'} • ₹{p.unit_price} / {p.unit || 'KG'}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="block text-[9px] font-bold text-slate-400 uppercase">Batch Lot</label>
-                          <select
-                            value={item.batch_id}
-                            onChange={(e) => handleItemChange(idx, 'batch_id', e.target.value)}
-                            className="w-full h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold"
-                          >
-                            <option value="">Auto-Allocate Oldest Batch</option>
-                            {batches.filter(b => b.product_id === item.product_id).map(b => (
-                              <option key={b.id} value={b.id}>{b.batch_no} (Stock: {b.quantity})</option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1">
-                            <label className="block text-[9px] font-bold text-slate-400 uppercase">Quantity ({products.find(p => p.id === item.product_id)?.unit || 'KG'}){item.product_id ? ` · ${Number(products.find(p => p.id === item.product_id)?.available_stock || 0)} available` : ''}</label>
-                            <input
-                              type="number"
-                              min={0}
-                              value={item.quantity || ''}
-                              onChange={(e) => handleItemChange(idx, 'quantity', Number(e.target.value))}
-                              className="w-full h-8 px-2 bg-white border border-slate-200 rounded-lg text-xs font-bold"
-                            />
-                          </div>
-                          {orderItems.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveItemRow(idx)}
-                              className="p-1 text-slate-400 hover:text-rose-600 mt-3 cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <OrderLineEditor lines={orderItems} products={products} batches={batches} onChange={setOrderItems} />
                 </div>
 
                 {/* Total Summary */}

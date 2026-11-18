@@ -5,7 +5,7 @@ import {
   Snowflake, LayoutDashboard, Users, ShoppingCart,
   Package, Boxes, Warehouse, Truck, DollarSign,
   BarChart3, Mail,
-  Bell, User, LogOut, Search, Menu, ChevronRight, ChevronDown, X, Plus, CheckCircle2, Shield, Sparkles, Clock
+  Bell, User, LogOut, Search, Menu, ChevronRight, ChevronDown, X, Plus, CheckCircle2, Shield, Sparkles, Clock, MapPin
 } from 'lucide-react';
 
 import { Logo } from '../components/Logo';
@@ -136,6 +136,14 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
         { label: 'Products', path: '/rimi/products', icon: Package },
         { label: 'Inventory', path: '/rimi/inventory', icon: Boxes },
         { label: 'Warehouses', path: '/rimi/warehouses', icon: Warehouse }
+      ]
+    },
+    {
+      title: 'Dispatch',
+      items: [
+        { label: 'Dispatch Reefer Truck', path: '/rimi/deliveries', icon: Truck },
+        { label: 'Reefer Fleet', path: '/rimi/vehicles', icon: Truck },
+        { label: 'Delivery Routes', path: '/rimi/delivery-routes', icon: MapPin }
       ]
     },
     {

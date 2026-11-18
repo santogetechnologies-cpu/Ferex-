@@ -562,10 +562,10 @@ export async function getTradeOrders(staffEmail?: string): Promise<TradeOrder[]>
       advance_percentage: tnum(o.advance_percentage),
       advance_amount: advanceAmount,
       advance_paid: advancePaid,
-      advance_status: advanceAmount > 0 && advancePaid >= advanceAmount ? 'Paid' : 'Pending',
+      advance_status: (advanceAmount > 0 && advancePaid >= advanceAmount) || (tnum(o.total_amount) > 0 && advancePaid + balancePaid >= tnum(o.total_amount) - 0.005) ? 'Paid' : 'Pending',
       balance_amount: balanceAmount,
       balance_paid: balancePaid,
-      balance_status: balanceAmount > 0 && balancePaid >= balanceAmount ? 'Paid' : 'Pending',
+      balance_status: (balanceAmount > 0 && balancePaid >= balanceAmount) || (tnum(o.total_amount) > 0 && advancePaid + balancePaid >= tnum(o.total_amount) - 0.005) ? 'Paid' : 'Pending',
       stage_history: Array.isArray(o.stage_history) ? o.stage_history : [],
     } as TradeOrder;
   });
@@ -1155,9 +1155,13 @@ export async function createTradePayment(payment: Partial<TradePaymentRecord>): 
   if (currency !== order.currency) {
     throw new Error(`This order is in ${order.currency}. Record the payment in ${order.currency} (convert it first if it was received in ${currency}).`);
   }
-  const outstanding = isAdvance ? order.advance_amount - order.advance_paid : order.balance_amount - order.balance_paid;
+  // A settlement, full or completed payment clears whatever is still owed on the whole order, so it is checked against the
+  // order total less everything already paid (not just the balance instalment, which can be zero when the advance is 100%).
+  const isSettlement = /settle|full|complet|drawdown/i.test(String(type));
+  const owedOnOrder = Math.max(0, order.total_amount - order.advance_paid - order.balance_paid);
+  const outstanding = isAdvance ? order.advance_amount - order.advance_paid : isSettlement ? owedOnOrder : order.balance_amount - order.balance_paid;
   if (amt > outstanding + 0.005) {
-    throw new Error(`Amount exceeds the ${isAdvance ? 'advance' : 'balance'} still due on this order (${order.currency} ${outstanding.toLocaleString('en-IN')}).`);
+    throw new Error(`Amount exceeds the ${isAdvance ? 'advance' : isSettlement ? 'amount' : 'balance'} still due on this order (${order.currency} ${outstanding.toLocaleString('en-IN')}).`);
   }
 
   const data = tok(

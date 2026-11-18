@@ -62,7 +62,7 @@ export const TeamAttendance: React.FC<Shared> = ({ ctx, rules, holidays, toast, 
         </div>}>
         <p className="text-[11px] font-semibold text-slate-500 mb-3">
           Everyone is expected to clock in and out. Anyone who did not is marked absent when you verify, unless leave covers the day. Marking a day yourself also verifies it.
-          {ctx.level === 'admin' && ' Your own days are verified by the superadmin.'}
+          {ctx.level === 'admin' && ' You verify your staff only; your own days are verified by the superadmin.'}{ctx.level === 'superadmin' && ' You verify admins (and staff of a platform that has no admin); platform admins verify their own staff.'}
         </p>
         {members.length === 0 ? <Empty>No team members to show.</Empty> : mode === 'day' ? (
           <div className="overflow-x-auto"><table className="w-full text-xs"><thead><tr className="text-left text-slate-500"><th className="py-1.5">Person</th><th>Status</th><th>In</th><th>Out</th><th>Hours</th><th>Review</th><th>Mark</th></tr></thead><tbody>
@@ -74,10 +74,10 @@ export const TeamAttendance: React.FC<Shared> = ({ ctx, rules, holidays, toast, 
                   <td>{off && !d ? <span className="text-slate-500 font-semibold">{off}</span> : d ? <><Chip value={d.status} />{d.late && <span className="ml-1 text-[10px] font-bold text-amber-700">late</span>}</> : <span className="text-slate-400">No record</span>}</td>
                   <td>{d ? timeOf(d.clock_in, ctx.rules.timezone) : '—'}</td><td>{d ? timeOf(d.clock_out, ctx.rules.timezone) : '—'}</td><td>{d ? hoursText(Number(d.hours)) : '—'}</td>
                   <td>{d ? <Chip value={d.review} /> : '—'}{d?.source === 'auto' && <div className="text-[10px] text-amber-700">auto-closed</div>}</td>
-                  <td><div className="flex flex-wrap gap-1">
-                    {(['Present', 'Half Day', 'Absent'] as const).map(s => <Btn key={s} disabled={busy || d?.review === 'Verified' && ctx.level !== 'superadmin' && m.is_me} onClick={() => void quick(m, anchor, s)}>{s === 'Half Day' ? '½' : s[0]}</Btn>)}
+                  <td>{m.can_decide ? <div className="flex flex-wrap gap-1">
+                    {(['Present', 'Half Day', 'Absent'] as const).map(s => <Btn key={s} disabled={busy} onClick={() => void quick(m, anchor, s)}>{s === 'Half Day' ? '½' : s[0]}</Btn>)}
                     <Btn onClick={() => setEdit({ member: m, date: anchor, day: d })}>Edit</Btn>
-                  </div></td>
+                  </div> : <span className="text-[11px] font-semibold text-slate-500">{m.is_me ? 'Verified by the superadmin' : 'Managed by their platform admin'}</span>}</td>
                 </tr>);
             })}
           </tbody></table></div>
@@ -92,7 +92,7 @@ export const TeamAttendance: React.FC<Shared> = ({ ctx, rules, holidays, toast, 
                     const d = dayOf(m.user_id, date); const off = offReason({ rules, holidays }, m.division, date);
                     return (
                       <td key={date} className="text-center">
-                        <button type="button" disabled={date > ctx.today} onClick={() => setEdit({ member: m, date, day: d })} className="w-full min-w-[64px] py-1 rounded-md hover:bg-slate-50 cursor-pointer disabled:cursor-default disabled:opacity-40">
+                        <button type="button" disabled={date > ctx.today || !m.can_decide} onClick={() => setEdit({ member: m, date, day: d })} className="w-full min-w-[64px] py-1 rounded-md hover:bg-slate-50 cursor-pointer disabled:cursor-default disabled:opacity-40">
                           {d ? <><Chip value={d.status} />{d.review === 'Verified' ? <span className="ml-0.5 text-emerald-600 font-black">✓</span> : <span className="ml-0.5 text-amber-600 font-black">•</span>}</> : off ? <span className="text-slate-400">{off === 'Weekly off' ? 'Off' : 'Holiday'}</span> : date > ctx.today ? '' : <span className="text-slate-400">—</span>}
                         </button>
                       </td>);

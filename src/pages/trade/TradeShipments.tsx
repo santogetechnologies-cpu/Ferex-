@@ -7,7 +7,7 @@ import {
   PackageCheck, Search, Plus, Filter, CheckCircle2,
   Clock, ArrowRight, Eye, Trash2, X, Send,
   Ship, ShieldCheck, DollarSign, Calendar, MapPin,
-  Building2, UserCheck, AlertCircle, RefreshCw
+  Building2, UserCheck, AlertCircle, RefreshCw, ChevronDown
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -47,6 +47,8 @@ export const TradeShipments: React.FC = () => {
   const [toast, setToast] = useState('');
   const [advancingId, setAdvancingId] = useState<string | null>(null);
 
+  const [partnerOpen, setPartnerOpen] = useState(false);
+  const [partnerTyped, setPartnerTyped] = useState(false);
   const staffList = useTradeStaff();
   const userName = profile?.full_name || 'Trade Officer';
 
@@ -320,7 +322,7 @@ export const TradeShipments: React.FC = () => {
               filterStage === 'All' ? 'bg-slate-900 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
             }`}
           >
-            All
+            All <span className="opacity-70 tabular-nums">({orders.length})</span>
           </button>
           {TRADE_ORDER_STAGES.map(st => (
             <button
@@ -330,7 +332,7 @@ export const TradeShipments: React.FC = () => {
                 filterStage === st ? 'bg-[#58051E] text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
               }`}
             >
-              {st}
+              {st} <span className="opacity-70 tabular-nums">({orders.filter(o => o.stage === st).length})</span>
             </button>
           ))}
         </div>
@@ -523,20 +525,33 @@ export const TradeShipments: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Select Registered Partner / Buyer *</label>
-                    <input
-                      type="text"
-                      list="partner-options"
-                      required
-                      value={formData.client_name}
-                      onChange={(e) => handlePartnerSelect(e.target.value)}
-                      placeholder="e.g. Baltic Grain Sp. z o.o."
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
-                    />
-                    <datalist id="partner-options">
-                      {partners.map(p => (
-                        <option key={p.id} value={p.company_name}>{p.company_name} ({p.country})</option>
-                      ))}
-                    </datalist>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        autoComplete="off"
+                        value={formData.client_name}
+                        onFocus={() => { setPartnerTyped(false); setPartnerOpen(true); }}
+                        onBlur={() => setTimeout(() => setPartnerOpen(false), 150)}
+                        onChange={(e) => { setPartnerTyped(true); setPartnerOpen(true); handlePartnerSelect(e.target.value); }}
+                        placeholder="Choose a registered partner or type a name"
+                        className="w-full h-8.5 pl-3 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      />
+                      <button type="button" tabIndex={-1} aria-label="Show all partners" onMouseDown={e => e.preventDefault()} onClick={() => { setPartnerTyped(false); setPartnerOpen(o => !o); }} className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700 cursor-pointer"><ChevronDown className="w-3.5 h-3.5" /></button>
+                      {partnerOpen && (
+                        <ul role="listbox" aria-label="Registered partners" className="absolute z-30 mt-1 w-full max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg py-1">
+                          {/* Every partner is listed whenever the list opens; typing narrows it, picking one never hides the others. */}
+                          {partners.filter(p => !partnerTyped || p.company_name.toLowerCase().includes(formData.client_name.trim().toLowerCase())).map(p => (
+                            <li key={p.id} role="option" aria-selected={p.company_name === formData.client_name}>
+                              <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => { handlePartnerSelect(p.company_name); setPartnerOpen(false); setPartnerTyped(false); }} className={`w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 cursor-pointer ${p.company_name === formData.client_name ? 'font-black text-[#58051E]' : 'font-semibold text-slate-800'}`}>
+                                {p.company_name} <span className="text-slate-400">({p.country})</span>
+                              </button>
+                            </li>
+                          ))}
+                          {partners.length === 0 && <li className="px-3 py-2 text-xs text-slate-500">No registered partners yet. Type a name to continue.</li>}
+                        </ul>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Client Contact Email</label>

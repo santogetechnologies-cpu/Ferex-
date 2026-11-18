@@ -51,7 +51,7 @@ export const Incentives: React.FC<Shared> = ({ ctx, toast, scope }) => {
             {rows.map(r => (
               <tr key={r.id} className="border-t border-slate-100"><td className="py-2 font-bold">{r.user_name}</td><td>{r.kind}</td><td>{r.reference || '—'}{r.notes && <div className="text-[10px] text-slate-500">{r.notes}</div>}</td><td className="text-right font-bold">{money(r.amount, r.currency)}</td><td><Chip value={r.status} /></td><td>{r.logged_by_name}</td>
                 <td><div className="flex gap-1">
-                  {r.status === 'Pending' && r.user_id !== ctx.user_id && <><Btn tone="good" onClick={() => void run(() => decideIncentive(r.id, true), 'Approved')}>Approve</Btn><Btn tone="danger" onClick={() => void run(() => decideIncentive(r.id, false), 'Rejected')}>Reject</Btn></>}
+                  {r.status === 'Pending' && r.user_id !== ctx.user_id && team.find(t => t.user_id === r.user_id)?.can_decide && <><Btn tone="good" onClick={() => void run(() => decideIncentive(r.id, true), 'Approved')}>Approve</Btn><Btn tone="danger" onClick={() => void run(() => decideIncentive(r.id, false), 'Rejected')}>Reject</Btn></>}
                   {(r.status !== 'Approved' || ctx.level === 'superadmin' || r.user_id !== ctx.user_id) && <Btn onClick={() => { if (confirm('Remove this entry?')) void run(() => removeIncentive(r.id), 'Removed'); }}>Remove</Btn>}
                 </div></td></tr>))}
           </tbody></table></div>)}

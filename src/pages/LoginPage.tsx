@@ -269,11 +269,8 @@ export const LoginPage: React.FC = () => {
     }
 
 
-    if (mustChangePassword) {
-      setIsLoading(false);
-      setShowFirstTimeModal(true);
-      return;
-    }
+    // A first sign-in goes straight to the portal; the password can be changed any time from Profile.
+    void mustChangePassword;
 
     try {
       localStorage.setItem('ferex_user', JSON.stringify({

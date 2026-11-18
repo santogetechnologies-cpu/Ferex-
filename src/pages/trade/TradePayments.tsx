@@ -104,7 +104,7 @@ export const TradePayments: React.FC = () => {
         order_no: orderNo,
         client_name: ord.client_name,
         type: isAdvPending ? 'Advance Paid' : 'Settlement',
-        amount: isAdvPending ? ord.advance_amount : (balDue > 0 ? balDue : ord.total_amount),
+        amount: isAdvPending && ord.advance_amount > 0 ? ord.advance_amount : (balDue > 0 ? balDue : Math.max(0, ord.total_amount - (ord.advance_paid || 0) - (ord.balance_paid || 0))),
         currency: ord.currency,
         lc_reference: ord.lc_reference || ''
       }));
@@ -115,6 +115,7 @@ export const TradePayments: React.FC = () => {
     if (!selectedOrder) return;
     const isAdvPending = selectedOrder.advance_status === 'Pending';
     const balDue = Math.max(0, selectedOrder.balance_amount - (selectedOrder.balance_paid || 0));
+    const owed = Math.max(0, selectedOrder.total_amount - (selectedOrder.advance_paid || 0) - (selectedOrder.balance_paid || 0));
 
     if (preset === 'advance') {
       setRecordForm(prev => ({
@@ -127,21 +128,21 @@ export const TradePayments: React.FC = () => {
       setRecordForm(prev => ({
         ...prev,
         type: 'Settlement',
-        amount: balDue > 0 ? balDue : Math.round(selectedOrder.total_amount * 0.7),
+        amount: balDue > 0 ? balDue : owed,
         notes: `Balance settlement against BL / Shipping release for order ${selectedOrder.order_no}`
       }));
     } else if (preset === 'completed') {
       setRecordForm(prev => ({
         ...prev,
         type: 'Completed',
-        amount: balDue > 0 ? balDue : selectedOrder.total_amount,
+        amount: owed,
         notes: `Full order settlement completed for order ${selectedOrder.order_no}`
       }));
     } else if (preset === 'lc') {
       setRecordForm(prev => ({
         ...prev,
         type: 'LC Drawdown',
-        amount: selectedOrder.total_amount,
+        amount: owed,
         lc_reference: selectedOrder.lc_reference || '',
         payment_method: 'Irrevocable LC at Sight (Bank Drawdown)',
         notes: `LC drawdown negotiation verified for order ${selectedOrder.order_no}`

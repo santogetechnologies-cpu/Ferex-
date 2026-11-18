@@ -403,22 +403,20 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
                       <div>
                         <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Departure Date</label>
                         <input
-                          type="text"
+                          type="date"
                           value={newPacket.departure_date}
                           onChange={(e) => setNewPacket({ ...newPacket, departure_date: e.target.value })}
                           className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg font-bold"
-                          placeholder="e.g. Oct 1, 2026"
-                        />
+                                                  />
                       </div>
                       <div>
                         <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Arrival Date</label>
                         <input
-                          type="text"
+                          type="date"
                           value={newPacket.arrival_date}
                           onChange={(e) => setNewPacket({ ...newPacket, arrival_date: e.target.value })}
                           className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg font-bold"
-                          placeholder="e.g. Oct 2, 2026"
-                        />
+                            />
                       </div>
                     </div>
 
@@ -563,8 +561,8 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Departure Date</label>
                     <input
-                      type="text"
-                      value={selectedStudent.departure_date}
+                      type="date"
+                      value={(selectedStudent.departure_date || '').slice(0, 10)}
                       onChange={(e) => setSelectedStudent({ ...selectedStudent, departure_date: e.target.value })}
                       className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg font-bold"
                     />
@@ -572,11 +570,10 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Arrival Date</label>
                     <input
-                      type="text"
-                      value={selectedStudent.arrival_date || ''}
+                      type="date"
+                      value={(selectedStudent.arrival_date || '').slice(0, 10)}
                       onChange={(e) => setSelectedStudent({ ...selectedStudent, arrival_date: e.target.value })}
                       className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg font-bold"
-                      placeholder="e.g. Oct 2, 2026"
                     />
                   </div>
                 </div>

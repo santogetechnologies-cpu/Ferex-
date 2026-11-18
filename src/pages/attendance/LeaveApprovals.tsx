@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { decideLeave, getLeaves, platformName, type LeaveRequest } from '../../lib/api/attendance';
+import { decideLeave, getLeaves, getTeam, platformName, type LeaveRequest } from '../../lib/api/attendance';
 import { Btn, Chip, Empty, Panel, inputCls, type Shared } from './ui';
 
 export const LeaveApprovals: React.FC<Shared> = ({ ctx, toast, scope }) => {
@@ -7,7 +7,8 @@ export const LeaveApprovals: React.FC<Shared> = ({ ctx, toast, scope }) => {
   const [error, setError] = useState('');
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState('');
-  const load = useCallback(async () => { try { setRows((await getLeaves()).filter(l => !scope || l.division === scope)); setError(''); } catch (e: any) { setError(e.message); } }, [scope]);
+  const [decidable, setDecidable] = useState<Set<string>>(new Set());
+  const load = useCallback(async () => { try { const [lv, tm] = await Promise.all([getLeaves(), getTeam()]); setRows(lv.filter(l => !scope || l.division === scope)); setDecidable(new Set(tm.filter(m => m.can_decide).map(m => m.user_id))); setError(''); } catch (e: any) { setError(e.message); } }, [scope]);
   useEffect(() => { void load(); const h = () => void load(); window.addEventListener('ferex-attendance-updated', h); return () => window.removeEventListener('ferex-attendance-updated', h); }, [load]);
 
   const decide = async (l: LeaveRequest, approve: boolean) => {
@@ -26,7 +27,7 @@ export const LeaveApprovals: React.FC<Shared> = ({ ctx, toast, scope }) => {
             <div className="flex flex-wrap items-center justify-between gap-2"><div><b>{l.user_name}</b> <span className="text-slate-500">· {l.user_role.replace(/_/g, ' ')}{ctx.level === 'superadmin' ? ` · ${platformName(l.division)}` : ''}</span></div><Chip value={l.type_name} /></div>
             <div className="font-semibold">{l.start_date}{l.end_date !== l.start_date ? ` → ${l.end_date}` : ''} · {l.kind === 'hourly' ? `${l.hours}h` : `${l.total_days} day(s)`}{l.kind !== 'hourly' && l.lop_days > 0 ? <span className="text-rose-700"> · {l.paid_days} paid, {l.lop_days} loss of pay</span> : null}</div>
             <p className="text-slate-600">{l.reason}</p>
-            {mine(l) ? <p className="text-[11px] font-semibold text-amber-700">Your own request is decided by the superadmin.</p> : (
+            {mine(l) && ctx.level !== 'superadmin' ? <p className="text-[11px] font-semibold text-amber-700">Your own request is decided by the superadmin.</p> : !decidable.has(l.user_id) ? <p className="text-[11px] font-semibold text-slate-500">{ctx.level === 'superadmin' ? 'This request is decided by their platform admin.' : 'You cannot decide this request.'}</p> : (
               <div className="flex flex-wrap items-center gap-2"><input className={`${inputCls} flex-1 min-w-[160px]`} placeholder="Note (optional)" value={notes[l.id] || ''} onChange={e => setNotes({ ...notes, [l.id]: e.target.value })} />
                 <Btn tone="good" disabled={busy === l.id} onClick={() => void decide(l, true)}>Approve</Btn><Btn tone="danger" disabled={busy === l.id} onClick={() => void decide(l, false)}>Reject</Btn></div>)}
           </div>))}

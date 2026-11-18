@@ -932,6 +932,20 @@ export async function createRimiSalesOrder(order: {
   return full.find(o => o.id === created.id) || created;
 }
 
+/** Replaces the products on a sales order that has not been dispatched: stock is returned and re-allocated in one transaction. */
+export async function updateRimiSalesOrderItems(orderId: string, items: Array<{ product_id: string; batch_id?: string; quantity: number; unit_price?: number }>): Promise<void> {
+  const lines = items.filter(i => i.product_id);
+  if (!lines.length) throw new Error('An order needs at least one product');
+  assertOk(await supabase.rpc('rimi_update_sales_order_items', {
+    p_order: orderId,
+    p: { items: lines.map(i => ({ product_id: i.product_id, batch_id: isUuid(i.batch_id) ? i.batch_id : null, quantity: Number(i.quantity), unit_price: Number.isFinite(Number(i.unit_price)) ? Number(i.unit_price) : null })) },
+  }), 'Could not update the order products');
+  triggerLocalSync('ferex_rimi_orders_change');
+  triggerLocalSync('ferex_rimi_batches_change');
+  triggerLocalSync('ferex_rimi_products_change');
+  triggerLocalSync('ferex_rimi_warehouses_change');
+}
+
 export async function updateRimiSalesOrderStatus(
   orderId: string,
   status: RimiSalesOrderRecord['order_status'],
@@ -1223,7 +1237,9 @@ export async function deleteRimiDeliveryRoute(id: string): Promise<boolean> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** One pallet holds about 500 units; a hub's occupancy is derived from the batches stored in it. */
-const UNITS_PER_PALLET = 500;
+export const UNITS_PER_PALLET = 500;
+/** One rule for pallet use everywhere: all the units stored in a hub, packed 500 to a pallet, rounded up once (not once per batch). */
+export const palletsForUnits = (units: number) => (units > 0 ? Math.ceil(units / UNITS_PER_PALLET) : 0);
 
 export async function getRimiWarehouses(): Promise<RimiWarehouseRecord[]> {
   const [whRes, batchRes] = await Promise.all([
@@ -1231,11 +1247,11 @@ export async function getRimiWarehouses(): Promise<RimiWarehouseRecord[]> {
     supabase.from('rimi_inventory_batches').select('warehouse_id, product_id, quantity'),
   ]);
   const hubs = (assertOk(whRes) || []) as any[];
-  const usage = new Map<string, { pallets: number; products: Set<string>; batches: number }>();
+  const usage = new Map<string, { units: number; products: Set<string>; batches: number }>();
   for (const b of (batchRes.data || []) as any[]) {
     if (!b.warehouse_id || num(b.quantity) <= 0) continue;
-    const u = usage.get(b.warehouse_id) || { pallets: 0, products: new Set<string>(), batches: 0 };
-    u.pallets += Math.ceil(num(b.quantity) / UNITS_PER_PALLET);
+    const u = usage.get(b.warehouse_id) || { units: 0, products: new Set<string>(), batches: 0 };
+    u.units += num(b.quantity);
     if (b.product_id) u.products.add(b.product_id);
     u.batches += 1;
     usage.set(b.warehouse_id, u);
@@ -1246,7 +1262,7 @@ export async function getRimiWarehouses(): Promise<RimiWarehouseRecord[]> {
       ...w,
       cold_room_temp_celsius: num(w.cold_room_temp_celsius),
       total_capacity_pallets: num(w.total_capacity_pallets),
-      utilized_pallets: u?.pallets || 0,
+      utilized_pallets: palletsForUnits(u?.units || 0),
       product_count: u?.products.size || 0,
       batch_count: u?.batches || 0,
     } as RimiWarehouseRecord;
