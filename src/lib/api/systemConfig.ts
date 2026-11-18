@@ -17,7 +17,7 @@ export const DEFAULT_SYSTEM_CONFIG: SystemCustomizationConfig = {
     office_address: 'FEREX Ventures Tower, Infopark Expressway, Kochi, Kerala 682042',
     operating_hours: 'Mon – Sat: 09:00 AM – 07:00 PM IST',
     primary_color: '#5A0122',
-    accent_gold: '#E3BFCB'
+    accent_gold: '#E6CA9E'
   },
   broadcast: {
     id: 'bcast-intake-2026',

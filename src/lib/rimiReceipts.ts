@@ -14,7 +14,7 @@ export function orderPaymentLabel(order?: RimiSalesOrderRecord | null): 'Paid in
 const CSS = `body{font:13px/1.45 system-ui,Segoe UI,Arial,sans-serif;color:#141414;margin:0;padding:24px}
 .r{max-width:720px;margin:0 auto 28px;border:2px solid #262626;border-radius:14px;padding:22px;page-break-after:always}.r:last-child{page-break-after:auto}
 .h{display:flex;justify-content:space-between;border-bottom:2px solid #262626;padding-bottom:12px;margin-bottom:14px}h1{margin:0;font-size:22px;color:#5A0122}
-.m{color:#525252;font-size:11px}.badge{display:inline-block;padding:3px 10px;background:#d1fae5;border:1px solid #E3BFCB;border-radius:6px;font-weight:800;font-size:11px;text-transform:uppercase}
+.m{color:#525252;font-size:11px}.badge{display:inline-block;padding:3px 10px;background:#d1fae5;border:1px solid #6ee7b7;border-radius:6px;font-weight:800;font-size:11px;text-transform:uppercase}
 .g{display:grid;grid-template-columns:1fr 1fr;gap:12px;background:#FAFAFA;border:1px solid #E5E5E5;border-radius:10px;padding:12px;margin-bottom:14px}.l{font-size:10px;text-transform:uppercase;font-weight:700;color:#737373}
 table{width:100%;border-collapse:collapse;margin:8px 0}th,td{border:1px solid #D4D4D4;padding:6px 8px;text-align:left}th{background:#f1f5f9;font-size:11px;text-transform:uppercase}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .t td{font-weight:800;background:#FAFAFA}.sig{display:flex;justify-content:space-between;margin-top:30px;padding-top:10px;font-size:11px}.sig div{border-top:1px solid #A3A3A3;padding-top:4px;min-width:170px}

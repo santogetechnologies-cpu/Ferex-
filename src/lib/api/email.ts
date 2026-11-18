@@ -425,13 +425,13 @@ export async function sendRimiCustomerWelcomeEmail(params: {
   const subject = `Welcome to RIMI Frozen Distribution — Account Onboarded [${businessName}]`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
-      ${getBrandedHeader('RIMI FROZEN DISTRIBUTION', 'Cold Chain & FMCG Wholesale Network', '#68092A')}
+      ${getBrandedHeader('RIMI FROZEN DISTRIBUTION', 'Cold Chain & FMCG Wholesale Network', '#0284c7')}
       <div style="padding: 32px;">
         <h2 style="color: #141414; font-size: 20px; margin-top: 0;">Welcome to Rimi Frozen, ${customerName}!</h2>
         <p style="color: #404040; font-size: 14px; line-height: 1.6;">
           Your wholesale enterprise account for <strong>${businessName}</strong> has been configured in our distribution management system.
         </p>
-        <div style="background: #f0f9ff; border-left: 4px solid #68092A; padding: 18px 20px; border-radius: 6px; margin: 20px 0;">
+        <div style="background: #f0f9ff; border-left: 4px solid #0284c7; padding: 18px 20px; border-radius: 6px; margin: 20px 0;">
           <p style="margin: 0 0 6px 0; font-size: 13px;"><strong>Partner Account:</strong> ${businessName}</p>
           <p style="margin: 0 0 6px 0; font-size: 13px;"><strong>Account Type:</strong> ${accountType}</p>
           <p style="margin: 0; font-size: 13px;"><strong>Contact Email:</strong> ${customerEmail}</p>
@@ -460,13 +460,13 @@ export async function sendRimiSalesOrderEmail(params: {
   const subject = `Sales Order [${orderNumber}] Status: ${status} — Rimi Frozen (${formattedAmount})`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
-      ${getBrandedHeader('RIMI FROZEN DISTRIBUTION', 'Cold Chain Consignment & Sales Order Desk', '#68092A')}
+      ${getBrandedHeader('RIMI FROZEN DISTRIBUTION', 'Cold Chain Consignment & Sales Order Desk', '#0284c7')}
       <div style="padding: 32px;">
         <h2 style="color: #141414; font-size: 20px; margin-top: 0;">Sales Order Update: ${status}</h2>
         <p style="color: #404040; font-size: 14px; line-height: 1.6;">Dear <strong>${customerName}</strong>, order <strong>${orderNumber}</strong> has been updated to <strong>${status}</strong>.</p>
         <div style="background: #FAFAFA; border: 1px solid #E5E5E5; border-radius: 8px; padding: 20px; margin: 20px 0;">
           <p style="margin: 0 0 8px 0;"><strong>Order Number:</strong> ${orderNumber}</p>
-          <p style="margin: 0 0 8px 0;"><strong>Order Total:</strong> <span style="color: #68092A; font-weight: bold; font-size: 16px;">${formattedAmount}</span></p>
+          <p style="margin: 0 0 8px 0;"><strong>Order Total:</strong> <span style="color: #0284c7; font-weight: bold; font-size: 16px;">${formattedAmount}</span></p>
           <p style="margin: 0 0 8px 0;"><strong>Status:</strong> <span style="color: #059669; font-weight: 600;">${status}</span></p>
           ${deliveryDate ? `<p style="margin: 0 0 8px 0;"><strong>Expected Delivery:</strong> ${deliveryDate}</p>` : ''}
           ${itemsSummary ? `<p style="margin: 0;"><strong>Products:</strong> ${itemsSummary}</p>` : ''}
@@ -492,14 +492,14 @@ export async function sendRimiDeliveryDispatchedEmail(params: {
   const subject = `Reefer Fleet Dispatched: [${deliveryNumber}] — Reefer ${vehicleNumber} En Route`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
-      ${getBrandedHeader('RIMI FROZEN DISTRIBUTION', 'Reefer Fleet Telemetry & Dispatch', '#68092A')}
+      ${getBrandedHeader('RIMI FROZEN DISTRIBUTION', 'Reefer Fleet Telemetry & Dispatch', '#0284c7')}
       <div style="padding: 32px;">
         <h2 style="color: #141414; font-size: 20px; margin-top: 0;">Reefer Vehicle Dispatched</h2>
         <p style="color: #404040; font-size: 14px;">Dear <strong>${customerName}</strong>, your frozen batch consignment is en route in temperature-controlled reefer truck <strong>${vehicleNumber}</strong>.</p>
         <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 20px; margin: 20px 0;">
           <p style="margin: 0 0 8px 0;"><strong>Delivery Consignment:</strong> ${deliveryNumber}</p>
           <p style="margin: 0 0 8px 0;"><strong>Vehicle Number:</strong> ${vehicleNumber}</p>
-          <p style="margin: 0 0 8px 0;"><strong>Compartment Temperature:</strong> <span style="color: #68092A; font-weight: bold;">${coldRoomTemp}</span></p>
+          <p style="margin: 0 0 8px 0;"><strong>Compartment Temperature:</strong> <span style="color: #0284c7; font-weight: bold;">${coldRoomTemp}</span></p>
           ${driverName ? `<p style="margin: 0 0 8px 0;"><strong>Driver:</strong> ${driverName} ${driverPhone ? `(${driverPhone})` : ''}</p>` : ''}
           <p style="margin: 0;"><strong>Destination:</strong> ${destination}</p>
         </div>
@@ -523,7 +523,7 @@ export async function sendRimiPaymentCollectionEmail(params: {
   const subject = `Payment Collection Confirmed: [${collectionNumber}] — Rimi Frozen (${formattedAmount})`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
-      ${getBrandedHeader('RIMI FROZEN DISTRIBUTION', 'Payment Settlement & Accounting Desk', '#68092A')}
+      ${getBrandedHeader('RIMI FROZEN DISTRIBUTION', 'Payment Settlement & Accounting Desk', '#0284c7')}
       <div style="padding: 32px;">
         <h2 style="color: #141414; font-size: 20px; margin-top: 0;">Payment Receipt Recorded</h2>
         <p style="color: #404040; font-size: 14px;">Dear <strong>${customerName}</strong>, we have received payment settlement of <strong>${formattedAmount}</strong>.</p>
@@ -559,13 +559,13 @@ export async function sendTradeShipmentStageEmail(params: {
   const subject = `Trade Consignment [${shipmentNumber}] Milestone: ${stage} — Ferex Global Trade`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
-      ${getBrandedHeader('FEREX GLOBAL TRADE', 'International Trade Logistics & Cargo Desk', '#5A0122')}
+      ${getBrandedHeader('FEREX GLOBAL TRADE', 'International Trade Logistics & Cargo Desk', '#0f766e')}
       <div style="padding: 32px;">
         <h2 style="color: #141414; font-size: 20px; margin-top: 0;">Shipment Status: ${stage}</h2>
         <p style="color: #404040; font-size: 14px;">Dear <strong>${clientName}</strong>, commercial consignment <strong>${shipmentNumber}</strong> has reached stage <strong>${stage}</strong>.</p>
         <div style="background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 20px; margin: 20px 0;">
           <p style="margin: 0 0 8px 0;"><strong>Consignment No:</strong> ${shipmentNumber}</p>
-          <p style="margin: 0 0 8px 0;"><strong>Current Stage:</strong> <span style="color: #5A0122; font-weight: bold;">${stage}</span></p>
+          <p style="margin: 0 0 8px 0;"><strong>Current Stage:</strong> <span style="color: #0f766e; font-weight: bold;">${stage}</span></p>
           <p style="margin: 0 0 8px 0;"><strong>Trade Route:</strong> ${origin} ➔ ${destination}</p>
           ${vesselName ? `<p style="margin: 0 0 8px 0;"><strong>Carrier / Vessel:</strong> ${vesselName}</p>` : ''}
           ${containerNumber ? `<p style="margin: 0 0 8px 0;"><strong>Container / BL:</strong> ${containerNumber}</p>` : ''}
@@ -592,13 +592,13 @@ export async function sendTradeInvoiceEmail(params: {
   const subject = `Commercial Invoice [${invoiceNumber}] Issued — Ferex Global Trade (${formattedAmount})`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
-      ${getBrandedHeader('FEREX GLOBAL TRADE', 'Commercial Invoicing & Letter of Credit Desk', '#5A0122')}
+      ${getBrandedHeader('FEREX GLOBAL TRADE', 'Commercial Invoicing & Letter of Credit Desk', '#0f766e')}
       <div style="padding: 32px;">
         <h2 style="color: #141414; font-size: 20px; margin-top: 0;">Commercial Invoice Issued</h2>
         <p style="color: #404040; font-size: 14px;">Dear <strong>${clientName}</strong>, commercial invoice <strong>${invoiceNumber}</strong> has been generated for your trade account.</p>
         <div style="background: #FAFAFA; border: 1px solid #E5E5E5; border-radius: 8px; padding: 20px; margin: 20px 0;">
           <p style="margin: 0 0 8px 0;"><strong>Invoice Number:</strong> ${invoiceNumber}</p>
-          <p style="margin: 0 0 8px 0;"><strong>Invoice Total:</strong> <span style="color: #5A0122; font-weight: bold; font-size: 16px;">${formattedAmount}</span></p>
+          <p style="margin: 0 0 8px 0;"><strong>Invoice Total:</strong> <span style="color: #0f766e; font-weight: bold; font-size: 16px;">${formattedAmount}</span></p>
           ${dueDate ? `<p style="margin: 0 0 8px 0;"><strong>Payment Due Date:</strong> ${dueDate}</p>` : ''}
           ${shipmentNumber ? `<p style="margin: 0;"><strong>Linked Consignment:</strong> ${shipmentNumber}</p>` : ''}
         </div>
@@ -621,7 +621,7 @@ export async function sendTradeDocumentReadyEmail(params: {
   const subject = `Trade Document Verified: ${documentType} [${documentName}] — Ferex Global Trade`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
-      ${getBrandedHeader('FEREX GLOBAL TRADE', 'Customs Clearance & Trade Document Desk', '#5A0122')}
+      ${getBrandedHeader('FEREX GLOBAL TRADE', 'Customs Clearance & Trade Document Desk', '#0f766e')}
       <div style="padding: 32px;">
         <h2 style="color: #141414; font-size: 20px; margin-top: 0;">Trade Document Ready</h2>
         <p style="color: #404040; font-size: 14px;">Dear <strong>${clientName}</strong>, verified shipping compliance document <strong>${documentName}</strong> (${documentType}) is ready.</p>
@@ -629,7 +629,7 @@ export async function sendTradeDocumentReadyEmail(params: {
           <p style="margin: 0 0 8px 0;"><strong>Document:</strong> ${documentName}</p>
           <p style="margin: 0 0 8px 0;"><strong>Type:</strong> ${documentType}</p>
           ${orderNumber ? `<p style="margin: 0 0 8px 0;"><strong>Consignment No:</strong> ${orderNumber}</p>` : ''}
-          ${downloadUrl ? `<p style="margin: 0;"><strong>Access Document:</strong> <a href="${downloadUrl}" style="color: #5A0122; font-weight: bold;">Download Dossier</a></p>` : ''}
+          ${downloadUrl ? `<p style="margin: 0;"><strong>Access Document:</strong> <a href="${downloadUrl}" style="color: #0f766e; font-weight: bold;">Download Dossier</a></p>` : ''}
         </div>
       </div>
       ${EMAIL_FOOTER_HTML}

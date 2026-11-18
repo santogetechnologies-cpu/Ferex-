@@ -71,7 +71,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
       <div className="sticky top-0 z-20 bg-gradient-to-r from-[#24020B] to-[#5A0122] rounded-2xl p-4 sm:p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-[#5A0122]/40 shadow-sm backdrop-blur-md">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#E3BFCB]/20 text-[#E3BFCB] text-[10px] font-black uppercase tracking-wider border border-[#E3BFCB]/30">
+            <span className="px-2.5 py-0.5 rounded-full bg-[#E6CA9E]/20 text-[#E6CA9E] text-[10px] font-black uppercase tracking-wider border border-[#E6CA9E]/30">
               Live Portal Sync Engine
             </span>
             <span className="text-[11px] font-bold text-slate-300">
@@ -79,7 +79,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
             </span>
           </div>
           <h2 className="text-base font-black text-white flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[#E3BFCB]" />
+            <Sparkles className="w-4 h-4 text-[#E6CA9E]" />
             FEREX Customization & System Policy Center
           </h2>
           <p className="text-xs text-slate-300 mt-1 max-w-xl">
@@ -100,7 +100,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
             type="button"
             onClick={() => handleSave()}
             disabled={isSaving || loading}
-            className="h-9 px-4 rounded-xl text-xs font-black text-[#24020B] bg-[#E3BFCB] hover:bg-[#d8b988] transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            className="h-9 px-4 rounded-xl text-xs font-black text-[#24020B] bg-[#E6CA9E] hover:bg-[#d8b988] transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
           >
             <Save className="w-3.5 h-3.5" /> {isSaving ? 'Syncing...' : 'Save & Publish'}
           </button>

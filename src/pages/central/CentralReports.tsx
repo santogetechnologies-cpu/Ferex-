@@ -243,7 +243,7 @@ export const CentralReports: React.FC = () => {
           name: 'Direct Bank Wire & RTGS / NEFT',
           code: 'WIRE',
           type: 'Direct Interbank Settlement',
-          color: '#68092A',
+          color: '#0284c7',
           match: (m: string) => /bank|wire|neft|rtgs|transfer|netbanking|net banking|direct/i.test(m),
           volume: 0,
           count: 0,

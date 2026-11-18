@@ -1444,15 +1444,15 @@ export async function triggerTradeAutomatedEmail(payload: {
           subject: triggerInfo.subject,
           htmlContent: `
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #E5E5E5; border-radius: 8px; overflow: hidden;">
-              <div style="background: linear-gradient(135deg, #5A0122 0%, #134e4a 100%); padding: 24px; color: #ffffff;">
+              <div style="background: linear-gradient(135deg, #0f766e 0%, #134e4a 100%); padding: 24px; color: #ffffff;">
                 <h1 style="margin: 0; font-size: 18px; font-weight: 700;">FEREX GLOBAL TRADE</h1>
                 <p style="margin: 4px 0 0; font-size: 12px; color: #99f6e4;">International Trade Logistics & Compliance Desk</p>
               </div>
               <div style="padding: 24px; color: #262626;">
-                <h2 style="margin-top: 0; font-size: 16px; color: #5A0122;">${triggerInfo.label}</h2>
+                <h2 style="margin-top: 0; font-size: 16px; color: #0f766e;">${triggerInfo.label}</h2>
                 <p style="font-size: 14px; line-height: 1.5;">Dear <strong>${payload.recipient_name}</strong>,</p>
                 <p style="font-size: 14px; line-height: 1.5;">${triggerInfo.preview}</p>
-                <div style="background: #f0fdfa; border-left: 4px solid #5A0122; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+                <div style="background: #f0fdfa; border-left: 4px solid #0f766e; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
                   <p style="margin: 0; font-size: 13px;"><strong>Consignment No:</strong> ${payload.order_no}</p>
                 </div>
               </div>
