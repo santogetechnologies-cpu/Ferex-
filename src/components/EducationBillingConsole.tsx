@@ -12,6 +12,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useFeeConfig } from '../hooks/useFeeConfig';
+import { openReceiptWindow } from '../lib/receiptPrint';
 import { useUniversities } from '../hooks/useUniversities';
 import { useDestinations } from '../hooks/useDestinations';
 import { getApplications, isRealApplication } from '../lib/api/applications';
@@ -484,16 +485,22 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
 
   const handleDownloadReceipt = (payment: any) => {
     const student = studentMap.get(payment.student_id);
-    const blob = createReceiptPdfBlob({
+    const data = {
       receipt_no: payment.ref_no || `REC-${payment.id?.slice(0, 8)}`,
       student_name: payment.student_name || student?.full_name || studentName,
+      student_email: student?.email || payment.student_email || '',
       amount: Number(payment.amount) || 0,
       currency: payment.currency || 'INR',
       payment_method: normalizeMethod(payment.payment_method) || 'UPI',
       description: payment.title || payment.description || 'Education Payment',
       issued_at: payment.paid_at || payment.created_at || new Date().toISOString(),
       tax_rate_percent: payment.tax_rate_percent,
-    });
+      reference: payment.transaction_id || payment.utr_number || '',
+      invoice_settings: config.invoice_settings,
+    };
+    // The branded receipt opens in a print window (Print → Save as PDF); the plain PDF is only a fallback if pop-ups are blocked.
+    if (openReceiptWindow(data)) return;
+    const blob = createReceiptPdfBlob(data);
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

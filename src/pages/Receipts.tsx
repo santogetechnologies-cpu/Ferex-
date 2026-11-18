@@ -9,12 +9,15 @@ import { useAuth } from '../contexts/AuthContext';
 import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { usePayments } from '../hooks/usePayments';
 import { createReceiptPdfBlob, gstBreakdown } from '../lib/api/payments';
+import { openReceiptWindow } from '../lib/receiptPrint';
+import { useFeeConfig } from '../hooks/useFeeConfig';
 import type { Receipt } from '../lib/types';
 
 export const Receipts: React.FC = () => {
   const { user, profile } = useAuth();
   const { activeStudentId, activeStudentName } = useActiveStudentScope();
   const { payments, receipts: dbReceipts, error: billingError } = usePayments(activeStudentId);
+  const { config } = useFeeConfig();
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState('');
 
@@ -48,7 +51,7 @@ export const Receipts: React.FC = () => {
   };
 
   const handleDownload = (rec: any) => {
-    const blob = createReceiptPdfBlob({
+    const data = {
       receipt_no: rec.receipt_no || rec.id,
       student_name: rec.student_name || studentName,
       amount: Number(rec.amount) || 0,
@@ -57,14 +60,17 @@ export const Receipts: React.FC = () => {
       description: rec.description,
       issued_at: rec.issued_at,
       tax_rate_percent: rec.tax_rate_percent,
-    });
+      reference: rec.transaction_id || rec.utr_number || '',
+      invoice_settings: config.invoice_settings,
+    };
+    if (openReceiptWindow(data)) return;
+    const blob = createReceiptPdfBlob(data);
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `${rec.receipt_no || rec.id}.pdf`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast(`Downloaded Receipt: ${rec.receipt_no || rec.id}.pdf`);
   };
 
   const filtered = receipts.filter(r => {
