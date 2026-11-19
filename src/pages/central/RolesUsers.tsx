@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShieldCheck, Plus, Search, Trash2, X, CheckCircle2,
   GraduationCap, Globe, Snowflake, Monitor, Crown, Copy, RefreshCw,
-  Users, Briefcase, Truck, Box, UserCheck, Shield, Lock
+  Users, Briefcase, Truck, Box, UserCheck, Shield, Lock, KeyRound
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -361,6 +361,13 @@ export const RolesUsers: React.FC = () => {
     showToastMsg('Login details copied to clipboard!');
   };
 
+  // The person gets an email with a one-time link and chooses their own password; Central never sees or sets it again.
+  const sendResetEmail = async (adm: AdminAccount) => {
+    if (!window.confirm(`Email ${adm.email} a link to set a new password?`)) return;
+    const { error } = await supabase.auth.resetPasswordForEmail(adm.email.trim(), { redirectTo: `${window.location.origin}/reset-password` });
+    showToastMsg(error ? `Could not send the email: ${error.message}` : `Password reset email sent to ${adm.email}.`);
+  };
+
   const handleToggleStatus = async (adm: AdminAccount) => {
     const isSelf =
       (user && (user.id === adm.id || user.email?.toLowerCase() === adm.email.toLowerCase())) ||
@@ -640,6 +647,13 @@ export const RolesUsers: React.FC = () => {
 
                           <td className="py-3.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => void sendResetEmail(adm)}
+                                title="Email a password reset link"
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-[#5A0122] hover:bg-slate-100 transition-colors cursor-pointer"
+                              >
+                                <KeyRound className="w-4 h-4" />
+                              </button>
                               <button
                                 onClick={() => copyCredentials(adm)}
                                 title="Copy Login Credentials"

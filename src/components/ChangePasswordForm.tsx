@@ -4,7 +4,7 @@ import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ShieldCheck, KeyRound } f
 import { Button } from './Button';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { getAdminSupabaseClient } from '../lib/adminAuthClient';
+import { changeMyPassword, passwordProblem } from '../lib/api/password';
 import { CapLoader } from './CapLoader';
 
 interface ChangePasswordFormProps {
@@ -40,7 +40,6 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
   const getStrength = (pwd: string) => {
     if (!pwd) return 0;
     let score = 0;
-    if (pwd.length >= 6) score += 1;
     if (pwd.length >= 8) score += 1;
     if (/[A-Z]/.test(pwd)) score += 1;
     if (/[0-9]/.test(pwd)) score += 1;
@@ -57,11 +56,8 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
     setError('');
     setSuccess('');
 
-    if (!newPassword || newPassword.length < 6) {
-      setError('Password must be at least 6 characters long.');
-      return;
-    }
-
+    const problem = passwordProblem(newPassword);
+    if (problem) { setError(problem); return; }
     if (newPassword !== confirmPassword) {
       setError('New password and confirmation password do not match.');
       return;
@@ -70,60 +66,10 @@ export const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
     setLoading(true);
 
     try {
-      // 1. Try Supabase Auth client update
-      let authSuccess = false;
-      const res = await updatePassword(newPassword);
-      if (!res.error) {
-        authSuccess = true;
-      } else {
-        // Direct Supabase updateUser fallback
-        const { error: directErr } = await supabase.auth.updateUser({ password: newPassword });
-        if (!directErr) {
-          authSuccess = true;
-        } else {
-          // 2. Admin API fallback if available
-          const admin = await getAdminSupabaseClient();
-          const targetId = user?.id || profile?.id;
-          if (admin && targetId) {
-            const { error: adminErr } = await admin.auth.admin.updateUserById(targetId, { password: newPassword });
-            if (!adminErr) {
-              authSuccess = true;
-            } else {
-              throw new Error(adminErr.message || directErr.message || res.error);
-            }
-          } else {
-            throw new Error(directErr.message || res.error);
-          }
-        }
-      }
+      // Checks the current password, changes it, signs other devices out and emails the owner.
+      await changeMyPassword(currentPassword, newPassword);
 
-      // 3. Update local credential cache if user was provisioned via staff registry
-      const userEmail = profile?.email || user?.email;
-      if (userEmail) {
-        const localKey = `ferex_admin_cred_${userEmail.toLowerCase()}`;
-        const localCred = localStorage.getItem(localKey);
-        if (localCred) {
-          try {
-            const parsed = JSON.parse(localCred);
-            parsed.password = newPassword;
-            parsed.require_password_reset = false;
-            parsed.updated_at = new Date().toISOString();
-            localStorage.setItem(localKey, JSON.stringify(parsed));
-          } catch {}
-        }
-      }
-
-      // 4. Update public.users record timestamp if logged in
-      if (user?.id) {
-        try {
-          await supabase
-            .from('users')
-            .update({ must_change_password: false, updated_at: new Date().toISOString() })
-            .eq('id', user.id);
-        } catch {}
-      }
-
-      setSuccess('Password changed successfully! Your new password is now active.');
+      setSuccess('Password changed. A confirmation email has been sent, and your other devices were signed out.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');

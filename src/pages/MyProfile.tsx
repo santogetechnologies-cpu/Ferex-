@@ -1,3 +1,4 @@
+import { changeMyPassword } from '../lib/api/password';
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -106,7 +107,7 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
   const [tempEmergency, setTempEmergency] = useState<EmergencyInfo>({ ...emergency });
 
   // Password Change State
-  const [passwordForm, setPasswordForm] = useState({ newPwd: '', confirmPwd: '' });
+  const [passwordForm, setPasswordForm] = useState({ currentPwd: '', newPwd: '', confirmPwd: '' });
   const [passwordMsg, setPasswordMsg] = useState({ text: '', isError: false });
   const [isUpdatingPwd, setIsUpdatingPwd] = useState(false);
 
@@ -287,10 +288,6 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
       return;
     }
 
-    if (!passwordForm.newPwd || passwordForm.newPwd.length < 6) {
-      setPasswordMsg({ text: 'Password must be at least 6 characters long.', isError: true });
-      return;
-    }
     if (passwordForm.newPwd !== passwordForm.confirmPwd) {
       setPasswordMsg({ text: 'Passwords do not match.', isError: true });
       return;
@@ -300,9 +297,8 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
     setPasswordMsg({ text: '', isError: false });
 
     try {
-      const { error } = await supabase.auth.updateUser({ password: passwordForm.newPwd });
-      if (error) throw error;
-      setPasswordForm({ newPwd: '', confirmPwd: '' });
+      await changeMyPassword(passwordForm.currentPwd, passwordForm.newPwd);
+      setPasswordForm({ currentPwd: '', newPwd: '', confirmPwd: '' });
       setPasswordMsg({ text: 'Password successfully updated!', isError: false });
       showToastMsg('Password changed successfully.');
     } catch (err: any) {
@@ -997,12 +993,22 @@ export const MyProfile: React.FC<{ defaultTab?: string }> = ({ defaultTab }) => 
 
               <form onSubmit={handleUpdatePassword} className="space-y-4">
                 <div>
+                  <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Current Password</label>
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    value={passwordForm.currentPwd}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, currentPwd: e.target.value })}
+                    className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]"
+                  />
+                </div>
+                <div>
                   <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">New Password</label>
                   <input
                     type="password"
                     value={passwordForm.newPwd}
                     onChange={(e) => setPasswordForm({ ...passwordForm, newPwd: e.target.value })}
-                    placeholder="Minimum 6 characters"
+                    placeholder="8+ characters, upper, lower, number"
                     className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>

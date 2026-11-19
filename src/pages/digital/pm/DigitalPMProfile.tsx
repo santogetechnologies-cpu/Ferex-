@@ -1,3 +1,4 @@
+import { changeMyPassword } from '../../../lib/api/password';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
@@ -20,6 +21,7 @@ export const DigitalPMProfile: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   // Password update
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordMsg, setPasswordMsg] = useState('');
@@ -62,13 +64,12 @@ export const DigitalPMProfile: React.FC = () => {
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordMsg('');
-    if (newPassword.length < 8) { setPasswordMsg('Use at least 8 characters.'); return; }
     if (newPassword !== confirmPassword) { setPasswordMsg('The two passwords do not match.'); return; }
 
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
-      showToastMsg('Password changed successfully!');
+      await changeMyPassword(currentPassword, newPassword);
+      showToastMsg('Password changed. A confirmation email was sent and other devices were signed out.');
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
@@ -189,6 +190,18 @@ export const DigitalPMProfile: React.FC = () => {
           )}
 
           <form onSubmit={handleUpdatePassword} className="space-y-3.5">
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Current Password</label>
+              <input
+                type="password"
+                required
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white"
+              />
+            </div>
+
             <div>
               <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">New Password</label>
               <input

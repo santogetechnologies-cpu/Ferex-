@@ -2,13 +2,22 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, AlertCircle, KeyRound, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import { completePasswordReset, passwordProblem } from '../lib/api/password';
 import { Input } from '../components/Input';
 import { useAuth } from '../contexts/AuthContext';
 import { CapLoader } from '../components/CapLoader';
 
 export const ResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
-  const { updatePassword } = useAuth();
+  // The page only works from the link in the reset email. Opening it any other way (or an expired link) shows a clear message.
+  const [linkState, setLinkState] = useState<'checking' | 'valid' | 'invalid'>('checking');
+  React.useEffect(() => {
+    const fromEmail = /type=recovery|access_token|[?&]code=/.test(window.location.hash + window.location.search);
+    const { data } = supabase.auth.onAuthStateChange((event) => { if (event === 'PASSWORD_RECOVERY') setLinkState('valid'); });
+    const t = setTimeout(() => setLinkState(cur => cur === 'checking' ? (fromEmail ? 'valid' : 'invalid') : cur), 1800);
+    return () => { data.subscription.unsubscribe(); clearTimeout(t); };
+  }, []);
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -25,10 +34,8 @@ export const ResetPasswordPage: React.FC = () => {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setErrorMsg('Password must be at least 6 characters long.');
-      return;
-    }
+    const problem = passwordProblem(newPassword);
+    if (problem) { setErrorMsg(problem); return; }
 
     if (newPassword !== confirmPassword) {
       setErrorMsg('Passwords do not match. Please verify and try again.');
@@ -36,15 +43,14 @@ export const ResetPasswordPage: React.FC = () => {
     }
 
     setIsLoading(true);
-    const { error } = await updatePassword(newPassword);
-    setIsLoading(false);
-
-    if (error) {
-      setErrorMsg(typeof error === 'string' ? error : 'Failed to update password.');
-      return;
+    try {
+      await completePasswordReset(newPassword);
+      setIsSuccess(true);
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Failed to update password.');
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsSuccess(true);
   };
 
   return (
@@ -73,16 +79,24 @@ export const ResetPasswordPage: React.FC = () => {
             Set New Password
           </h2>
           <p className="text-xs sm:text-sm font-semibold text-slate-500">
-            Please choose a strong password with at least 6 characters.
+            Use at least 8 characters with upper-case, lower-case and a number.
           </p>
         </div>
 
-        {isSuccess ? (
+        {linkState === 'checking' && !isSuccess ? (
+          <p className="text-sm font-semibold text-slate-500 py-6">Checking your reset link…</p>
+        ) : linkState === 'invalid' && !isSuccess ? (
+          <div className="p-6 rounded-2xl bg-amber-50 border border-amber-200 space-y-3" role="alert">
+            <h3 className="text-base font-black text-slate-900">This reset link is not valid</h3>
+            <p className="text-xs font-semibold text-amber-800">Open the link from the password reset email you received. Links expire after a short time and work once. You can ask for a new one from the sign-in page.</p>
+            <button onClick={() => navigate('/login', { replace: true })} className="w-full h-11 bg-[#5A0122] text-white rounded-xl text-xs font-black hover:bg-[#68092A] transition-colors">Back to sign in</button>
+          </div>
+        ) : isSuccess ? (
           <div className="p-6 rounded-2xl bg-emerald-50/90 border border-emerald-200/80 text-center space-y-4">
             <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
             <h3 className="text-base font-black text-slate-900">Password Updated Successfully!</h3>
             <p className="text-xs font-semibold text-emerald-700">
-              Your password has been changed. You can now sign in with your new credentials.
+              Your password has been changed and a confirmation email is on its way. All devices were signed out, so sign in again with the new password.
             </p>
             <button
               onClick={() => navigate('/login', { replace: true })}
@@ -112,7 +126,7 @@ export const ResetPasswordPage: React.FC = () => {
               label="New Password"
               type="password"
               showPasswordToggle={true}
-              placeholder="Enter new password (min 6 chars)"
+              placeholder="Enter new password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               disabled={isLoading}

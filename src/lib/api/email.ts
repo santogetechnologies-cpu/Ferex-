@@ -791,3 +791,19 @@ export async function sendDigitalMeetingEmail(params: {
   `;
   return sendStudentEmail({ studentEmail: clientEmail, studentName: clientName, subject, htmlContent, templateType: 'digital_meeting_scheduled', division: 'digital', referenceId: title, metadata: params });
 }
+
+/** Tells the account owner that their password was changed or reset, so an unexpected change is noticed straight away. */
+export async function sendPasswordChangedEmail(email: string, name = ''): Promise<SendEmailResult> {
+  const when = new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 'short' });
+  const htmlContent = `
+    <div style="${EMAIL_WRAPPER_STYLE}">
+      ${getBrandedHeader('FEREX', 'Account security', '#5A0122')}
+      <div style="padding: 32px;">
+        <h2 style="color: #141414; font-size: 20px; margin-top: 0; margin-bottom: 16px;">Your password was changed</h2>
+        <p style="color: #404040; font-size: 14px; line-height: 1.6;">Hello ${name || email.split('@')[0]}, the password for your FEREX account (${email}) was changed on <strong>${when}</strong>.</p>
+        <p style="color: #404040; font-size: 14px; line-height: 1.6;">If this was you, no action is needed. If it was not, reset your password straight away from the sign-in page ("Forgot password") and contact your administrator.</p>
+      </div>
+      ${EMAIL_FOOTER_HTML}
+    </div>`;
+  return sendStudentEmail({ studentEmail: email, studentName: name, subject: 'Your FEREX password was changed', htmlContent, templateType: 'password_changed', division: 'education' });
+}

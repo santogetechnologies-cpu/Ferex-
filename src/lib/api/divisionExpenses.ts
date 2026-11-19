@@ -10,7 +10,7 @@ export interface DivisionExpense {
 export const EXPENSE_CATEGORIES: Record<ExpenseDivision, string[]> = {
   education: ['Marketing & Ads', 'Salaries & Commissions', 'Office & Rent', 'Software & Subscriptions', 'Travel', 'Agent Payouts', 'Courier & Documents', 'Legal & Compliance', 'Other'],
   rimi: ['Fuel & Reefer Running', 'Truck Maintenance', 'Cold Storage & Electricity', 'Packaging', 'Driver & Warehouse Wages', 'Insurance', 'Tolls & Permits', 'Other'],
-  trade: ['Freight & Shipping', 'Customs & Duties', 'Port & Handling', 'Inspection & Certificates', 'Insurance', 'Bank & LC Charges', 'Storage', 'Other'],
+  trade: ['Salaries & Wages', 'Freight & Shipping', 'Customs & Duties', 'Port & Handling', 'Inspection & Certificates', 'Insurance', 'Bank & LC Charges', 'Storage', 'Other'],
 };
 export const EXPENSE_METHODS = ['Bank Transfer', 'UPI', 'Cash', 'Card', 'Cheque'];
 

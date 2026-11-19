@@ -34,11 +34,11 @@ export const AttendancePage: React.FC<{ platform?: string }> = ({ platform }) =>
 
   useEffect(() => {
     const ch = supabase.channel('attendance_live');
-    ['attendance_days', 'attendance_leaves', 'attendance_incentives', 'attendance_payroll'].forEach(table =>
-      ch.on('postgres_changes', { event: '*', schema: 'public', table }, () => window.dispatchEvent(new Event('ferex-attendance-updated'))));
+    ['attendance_days', 'attendance_leaves', 'attendance_incentives', 'attendance_payroll', 'attendance_holidays', 'attendance_rules', 'attendance_leave_types'].forEach(table =>
+      ch.on('postgres_changes', { event: '*', schema: 'public', table }, () => { window.dispatchEvent(new Event('ferex-attendance-updated')); if (table === 'attendance_holidays' || table === 'attendance_rules') void load(); }));
     ch.subscribe();
     return () => { void supabase.removeChannel(ch); };
-  }, []);
+  }, [load]);
 
   const toast = useCallback((m: string) => { setToastMsg(m); setTimeout(() => setToastMsg(''), 4000); }, []);
 

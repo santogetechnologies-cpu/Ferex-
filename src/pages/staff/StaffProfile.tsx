@@ -1,3 +1,4 @@
+import { changeMyPassword } from '../../lib/api/password';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -16,6 +17,7 @@ export const StaffProfile: React.FC = () => {
   const [toast, setToast] = useState('');
 
   // Password update state
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
@@ -42,10 +44,6 @@ export const StaffProfile: React.FC = () => {
     setPasswordError('');
     setPasswordSuccess('');
 
-    if (!newPassword || newPassword.length < 6) {
-      setPasswordError('Password must be at least 6 characters long.');
-      return;
-    }
     if (newPassword !== confirmPassword) {
       setPasswordError('Passwords do not match.');
       return;
@@ -53,19 +51,9 @@ export const StaffProfile: React.FC = () => {
 
     try {
       setIsUpdatingPassword(true);
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) {
-        // Direct admin auth fallback
-        const admin = await getAdminSupabaseClient();
-        if (user?.id) {
-          const res = await admin.auth.admin.updateUserById(user.id, { password: newPassword });
-          if (res.error) throw res.error;
-        } else {
-          throw error;
-        }
-      }
-
-      setPasswordSuccess('Password updated.');
+      await changeMyPassword(currentPassword, newPassword);
+      setPasswordSuccess('Password updated. A confirmation email was sent and other devices were signed out.');
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       showToast('Security credentials updated successfully.');
@@ -169,6 +157,20 @@ export const StaffProfile: React.FC = () => {
           <form onSubmit={handlePasswordUpdate} className="space-y-3">
             <div>
               <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
+                Current Password
+              </label>
+              <input
+                type="password"
+                required
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={e => setCurrentPassword(e.target.value)}
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#5A0122]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
                 New Password
               </label>
               <input
@@ -176,7 +178,7 @@ export const StaffProfile: React.FC = () => {
                 required
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
-                placeholder="At least 6 characters"
+                placeholder="8+ characters, upper, lower, number"
                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#5A0122]"
               />
             </div>
