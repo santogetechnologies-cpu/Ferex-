@@ -105,6 +105,13 @@ export const DigitalMeetings: React.FC = () => {
   const handleCreateMeeting = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMtg.title.trim()) return;
+    // The chosen time is kept (it used to be replaced by 12:00 UTC for every meeting).
+    const tm = /^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i.exec((newMtg.time_display || '').trim());
+    let hh = tm ? Number(tm[1]) : 10; const mm = tm ? Number(tm[2]) : 0;
+    if (tm?.[3]) { const pm = tm[3].toUpperCase() === 'PM'; hh = (hh % 12) + (pm ? 12 : 0); }
+    const when = new Date(`${newMtg.date_display}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:00`);
+    if (Number.isNaN(when.getTime())) { showToast('Choose a valid date and time for the meeting.'); return; }
+    if (when.getTime() < Date.now() - 60000) { showToast('The meeting cannot be scheduled in the past.'); return; }
 
     try {
       const selectedClient = clients.find(c => c.id === newMtg.client_id);
@@ -118,7 +125,7 @@ export const DigitalMeetings: React.FC = () => {
         host_staff_email: newMtg.host_staff_email || profile?.email || '',
         time_display: newMtg.time_display,
         date_display: newMtg.date_display,
-        scheduled_at: `${newMtg.date_display}T12:00:00.000Z`,
+        scheduled_at: when.toISOString(),
         platform: newMtg.platform,
         meeting_type: newMtg.meeting_type,
         meeting_url: newMtg.meeting_url,
@@ -308,7 +315,7 @@ export const DigitalMeetings: React.FC = () => {
                 <div className="space-y-1 text-[11px] text-slate-500">
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{m.date_display || 'Scheduled Date'} • {m.time_display || '11:00 AM'}</span>
+                    <span>{m.date_display || 'Date not set'} • {m.time_display || 'Time not set'}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-slate-400" />

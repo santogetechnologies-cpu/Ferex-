@@ -112,6 +112,9 @@ const RimiDeliveries = lazy(() => import('./pages/rimi/RimiDeliveries').then(m =
 const RimiCollections = lazy(() => import('./pages/rimi/RimiCollections').then(m => ({ default: m.RimiCollections })));
 const RimiVehicles = lazy(() => import('./pages/rimi/RimiVehicles').then(m => ({ default: m.RimiVehicles })));
 const RimiDeliveryRoutes = lazy(() => import('./pages/rimi/RimiDeliveryRoutes').then(m => ({ default: m.RimiDeliveryRoutes })));
+const RimiFinance = lazy(() => import('./pages/rimi/RimiFinance').then(m => ({ default: m.RimiFinance })));
+const TradeBilling = lazy(() => import('./pages/trade/TradeBilling').then(m => ({ default: m.TradeBilling })));
+const DivisionExpenses = lazy(() => import('./components/finance/DivisionExpenses').then(m => ({ default: m.DivisionExpenses })));
 const RimiAnalytics = lazy(() => import('./pages/rimi/RimiAnalytics').then(m => ({ default: m.RimiAnalytics })));
 const RimiNotifications = lazy(() => import('./pages/rimi/RimiNotifications').then(m => ({ default: m.RimiNotifications })));
 const RimiProfile = lazy(() => import('./pages/rimi/RimiProfile').then(m => ({ default: m.RimiProfile })));
@@ -179,6 +182,8 @@ const AppInitializer: React.FC = () => {
 const ADMIN_ROLES = ['admin', 'education_admin', 'education'];
 const CENTRAL_ROLES = ['central', 'super_admin', 'superadmin'];
 const TRADE_ROLES = ['trade', 'trade_admin', 'global_trade', 'logistics_officer'];
+const RIMI_ADMIN_ROLES = ['rimi', 'rimi_admin', 'rimi_frozen'];
+const TRADE_ADMIN_ROLES = ['trade', 'trade_admin', 'global_trade'];
 const RIMI_ROLES = ['rimi', 'rimi_admin', 'rimi_frozen', 'operations_manager', 'rimi_staff'];
 const DIGITAL_ROLES = ['digital', 'digital_admin', 'ferex_digital', 'digital_director', 'digital_manager', 'project_manager', 'digimanager', 'pm', 'account_manager', 'accountmanager', 'digital_account_manager', 'account_executive', 'client_manager', 'digital_staff', 'designer', 'developer'];
 const PM_ROLES = ['project_manager', 'digital_manager', 'digimanager', 'pm', 'digital_pm', 'account_manager', 'accountmanager', 'digital_account_manager', 'account_executive', 'client_manager', 'digital_admin', 'digital'];
@@ -405,6 +410,9 @@ function App() {
           <Route path="/trade/certificates" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeCertificates /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/documents" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeDocuments /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/letters-of-credit" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeLettersOfCredit /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/billing" element={<ProtectedRoute allowedRoles={TRADE_ADMIN_ROLES}><TradeLayout><TradeBilling /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/expenses" element={<ProtectedRoute allowedRoles={TRADE_ADMIN_ROLES}><TradeLayout><DivisionExpenses division="trade" eyebrow="Global Trade" defaultCurrency="USD" /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/finance" element={<Navigate to="/trade/billing" replace />} />
           <Route path="/trade/payments" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradePayments /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/reports" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeReports /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/shipment-analytics" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeShipmentAnalytics /></TradeLayout></ProtectedRoute>} />
@@ -441,7 +449,11 @@ function App() {
           <Route path="/rimi/vehicles" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiVehicles /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/delivery-routes" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiDeliveryRoutes /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/analytics" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiAnalytics /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/finance" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiAnalytics /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/finance" element={<Navigate to="/rimi/finance/billing" replace />} />
+          <Route path="/rimi/finance/billing" element={<ProtectedRoute allowedRoles={RIMI_ADMIN_ROLES}><RimiLayout><RimiFinance view="billing" /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/finance/invoices" element={<ProtectedRoute allowedRoles={RIMI_ADMIN_ROLES}><RimiLayout><RimiFinance view="invoices" /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/finance/payments" element={<Navigate to="/rimi/collections" replace />} />
+          <Route path="/rimi/finance/expenses" element={<ProtectedRoute allowedRoles={RIMI_ADMIN_ROLES}><RimiLayout><DivisionExpenses division="rimi" eyebrow="Rimi Frozen" /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/sales-reports" element={<Navigate to="/rimi/analytics" replace />} />
           <Route path="/rimi/inventory-analytics" element={<Navigate to="/rimi/analytics" replace />} />
           <Route path="/rimi/revenue-analytics" element={<Navigate to="/rimi/analytics" replace />} />

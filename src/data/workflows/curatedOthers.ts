@@ -63,7 +63,7 @@ export const rimi: AppCurated = {
         { id: 'tasks', label: 'Work the task list', lane: 'sales', col: 1, desc: 'Assigned tasks with priority and due date.', screens: ['/rimi/tasks'], tables: ['rimi_tasks'] },
         { id: 'notes', label: 'Notifications and emails', lane: 'ops', col: 2, desc: 'Alerts for orders, stock and payments; email delivery setup.', screens: ['/rimi/notifications', '/rimi/emails'], tables: ['rimi_notifications', 'email_logs'] },
         { id: 'ai', label: 'Ask the AI assistant', lane: 'ops', col: 3, desc: 'Questions about customers, orders and stock.', screens: ['/rimi/ai-copilot'] },
-        { id: 'rep', label: 'Reports and finance', lane: 'system', col: 4, kind: 'end', desc: 'Sales, collections and stock summaries.', screens: ['/rimi/analytics', '/rimi/finance'] },
+        { id: 'rep', label: 'Reports and finance', lane: 'system', col: 4, kind: 'end', desc: 'Sales, collections and stock summaries.', screens: ['/rimi/analytics', '/rimi/finance/billing'] },
       ],
       edges: [{ from: 'clock', to: 'tasks' }, { from: 'tasks', to: 'notes' }, { from: 'notes', to: 'ai' }, { from: 'ai', to: 'rep' }],
     },

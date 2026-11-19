@@ -52,7 +52,7 @@ export const ClockInOutWidget: React.FC<ClockInOutWidgetProps> = () => {
 
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true); setMessage('');
-    try { await fn(); setAsking(false); setSummary(''); await load(); } catch (e: any) { setMessage(e.message); } finally { setBusy(false); }
+    try { await fn(); setAsking(false); setSummary(''); await load(); } catch (e: any) { setMessage(e.message); setAsking(false); await load().catch(() => undefined); } finally { setBusy(false); }
   };
 
   return (

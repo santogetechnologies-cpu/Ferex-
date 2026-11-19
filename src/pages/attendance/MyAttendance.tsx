@@ -39,7 +39,7 @@ export const MyAttendance: React.FC<Shared> = ({ ctx, rules, holidays, toast }) 
 
   const act = async (fn: () => Promise<unknown>, ok: string) => {
     setBusy(true);
-    try { await fn(); toast(ok); setAsking(false); setSummary(''); await load(); } catch (e: any) { toast(e.message); } finally { setBusy(false); }
+    try { await fn(); toast(ok); setAsking(false); setSummary(''); await load(); } catch (e: any) { toast(e.message); setAsking(false); await load().catch(() => undefined); } finally { setBusy(false); }
   };
 
   const totals = useMemo(() => days.reduce((a, d) => { if (d.status === 'Present') a.p++; else if (d.status === 'Half Day') a.h++; else if (d.status === 'Absent') a.a++; else if (d.status === 'Leave') a.l++; a.hours += Number(d.hours) || 0; return a; }, { p: 0, h: 0, a: 0, l: 0, hours: 0 }), [days]);

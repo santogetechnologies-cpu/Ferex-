@@ -5,7 +5,7 @@ import {
   Snowflake, LayoutDashboard, Users, ShoppingCart,
   Package, Boxes, Warehouse, Truck, DollarSign,
   BarChart3, Mail,
-  Bell, User, LogOut, Search, Menu, ChevronRight, ChevronDown, X, Plus, CheckCircle2, Shield, Sparkles, Clock, MapPin
+  Bell, User, LogOut, Search, Menu, ChevronRight, ChevronDown, X, Plus, CheckCircle2, Shield, Sparkles, Clock, MapPin, Receipt, FileText, Wallet
 } from 'lucide-react';
 
 import { Logo } from '../components/Logo';
@@ -127,9 +127,18 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
       items: [
         { label: 'Customers', path: '/rimi/customers', icon: Users },
         { label: 'Sales Orders', path: '/rimi/sales-orders', icon: ShoppingCart },
-        { label: 'Collections', path: '/rimi/collections', icon: DollarSign }
+        ...(isAdmin ? [] : [{ label: 'Collections', path: '/rimi/collections', icon: DollarSign }])
       ]
     },
+    ...(isAdmin ? [{
+      title: 'Finance',
+      items: [
+        { label: 'Billing', path: '/rimi/finance/billing', icon: Receipt },
+        { label: 'Invoices', path: '/rimi/finance/invoices', icon: FileText },
+        { label: 'Payments', path: '/rimi/collections', icon: DollarSign },
+        { label: 'Expenses', path: '/rimi/finance/expenses', icon: Wallet }
+      ]
+    }] : []),
     {
       title: 'Stock',
       items: [

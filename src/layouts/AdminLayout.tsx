@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Users, ClipboardList, FileCheck, FolderOpen,
   CreditCard, Headphones, BarChart3, Crown, GraduationCap,
   Bell, Settings, LogOut, Menu, X, ChevronDown, ChevronRight, Search, Building2, ShieldCheck, Calendar, Plane, FileText, Home, Sparkles, Mail, Award, MessageSquare, Sliders
-  , Wallet, Layers
+  , Wallet, Layers, Receipt
 } from 'lucide-react';
 
 import { Logo } from '../components/Logo';
@@ -27,7 +27,8 @@ const pageLabelFromPath = (path: string) => {
 
 interface AdminLayoutProps { children: React.ReactNode; }
 
-const baseMenuItems = [
+type MenuItem = { name: string; path: string; icon: any; badge: string | null; hasUpdate: boolean; group?: string };
+const baseMenuItems: MenuItem[] = [
   { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard, badge: null, hasUpdate: false },
   { name: 'Enquiries', path: '/admin/enquiries', icon: Users, badge: null, hasUpdate: false },
   { name: 'Students', path: '/admin/students', icon: GraduationCap, badge: null, hasUpdate: false },
@@ -40,7 +41,11 @@ const baseMenuItems = [
   { name: 'Payments', path: '/admin/payment-control', icon: CreditCard, badge: null, hasUpdate: false },
   { name: 'Payment plans', path: '/admin/payment-plans', icon: Layers, badge: null, hasUpdate: false },
   { name: 'Fees', path: '/admin/fee-config', icon: Sliders, badge: null, hasUpdate: false },
-  { name: 'Finance', path: '/admin/finance', icon: Wallet, badge: null, hasUpdate: false },
+  { name: 'Overview', path: '/admin/finance', icon: Wallet, badge: null, hasUpdate: false, group: 'Finance' },
+  { name: 'Billing', path: '/admin/finance/billing', icon: Receipt, badge: null, hasUpdate: false, group: 'Finance' },
+  { name: 'Invoices', path: '/admin/finance/invoices', icon: FileText, badge: null, hasUpdate: false, group: 'Finance' },
+  { name: 'Payments', path: '/admin/finance/payments', icon: CreditCard, badge: null, hasUpdate: false, group: 'Finance' },
+  { name: 'Expenses', path: '/admin/finance/expenses', icon: Sliders, badge: null, hasUpdate: false, group: 'Finance' },
   { name: 'Visa', path: '/admin/visa-tracker', icon: ShieldCheck, badge: null, hasUpdate: false },
   { name: 'Pre-Departure', path: '/admin/pre-departure', icon: Plane, badge: null, hasUpdate: false },
   { name: 'Tasks', path: '/admin/tasks', icon: ClipboardList, badge: null, hasUpdate: false },
@@ -110,7 +115,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const hasUnreadVisa = hasUnreadCategory('Visa') || hasUnreadCategory('VFS') || hasUnreadCategory('Embassy');
   const hasUnreadLegalization = hasUnreadCategory('Legalization') || hasUnreadCategory('Apostille');
 
-  const active = baseMenuItems.find(m => location.pathname === m.path || (m.path === '/admin/payment-control' && location.pathname === '/admin/payments'))?.name || pageLabelFromPath(location.pathname);
+  // The page whose path best matches the address bar (two items can share a name, e.g. Payments under Finance).
+  const activeItemPath = (() => {
+    const p = location.pathname === '/admin/payments' ? '/admin/payment-control' : location.pathname;
+    return baseMenuItems.find(m => m.path === p)?.path || baseMenuItems.filter(m => p.startsWith(m.path + '/')).sort((a, b) => b.path.length - a.path.length)[0]?.path || '';
+  })();
+  const active = baseMenuItems.find(m => m.path === activeItemPath)?.name || pageLabelFromPath(location.pathname);
   const localSavedUser = (() => {
     try {
       const r = localStorage.getItem('ferex_user');
@@ -136,11 +146,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     .filter(item => {
       const normalizedPath = item.path.toLowerCase();
       const normalizedName = item.name.toLowerCase();
-      if (seenPaths.has(normalizedPath) || seenNames.has(normalizedName)) {
+      if (seenPaths.has(normalizedPath) || (!item.group && seenNames.has(normalizedName))) {
         return false;
       }
       seenPaths.add(normalizedPath);
-      seenNames.add(normalizedName);
+      if (!item.group) seenNames.add(normalizedName);
       return true;
     })
     .map(item => {
@@ -193,13 +203,15 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         {/* Navigation Items */}
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5 scrollbar-thin">
           <div className="px-2.5 pb-1.5 text-[9.5px] font-bold uppercase tracking-wider text-slate-400">Navigation</div>
-          {menuItems.map((item) => {
-            const isActive = item.name === active;
+          {menuItems.map((item, idx) => {
+            const isActive = item.path === activeItemPath;
+            const startsGroup = Boolean(item.group) && menuItems[idx - 1]?.group !== item.group;
             const Icon = item.icon;
             const badgeValue = item.badge;
 
             return (
-              <React.Fragment key={item.name}>
+              <React.Fragment key={item.path}>
+                {startsGroup && <div className="px-2.5 pt-3 pb-1 text-[9.5px] font-bold uppercase tracking-wider text-slate-400">{item.group}</div>}
                 <Link
                   to={item.path}
                   onClick={() => setIsMobileOpen(false)}

@@ -16,10 +16,13 @@ import { PageHeader, EmptyState } from '../../components/Kit';
 import { BlockCap } from '../../components/CapLoader';
 import { DateRangeFilter } from '../../components/DateRangeFilter';
 import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
+import { DivisionExpenses } from '../../components/finance/DivisionExpenses';
 
-type Tab = 'overview' | 'collections' | 'receivables' | 'documents';
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'overview', label: 'Overview' }, { id: 'collections', label: 'Collections' }, { id: 'receivables', label: 'Receivables' }, { id: 'documents', label: 'Invoices & receipts' },
+type Tab = 'overview' | 'collections' | 'receivables' | 'documents' | 'expenses';
+// The address uses the Finance names (billing, invoices, payments, expenses); the old addresses still open the same pages.
+const TABS: { id: Tab; slug: string; label: string }[] = [
+  { id: 'overview', slug: '', label: 'Overview' }, { id: 'receivables', slug: 'billing', label: 'Billing' }, { id: 'documents', slug: 'invoices', label: 'Invoices' },
+  { id: 'collections', slug: 'payments', label: 'Payments' }, { id: 'expenses', slug: 'expenses', label: 'Expenses' },
 ];
 const SETTLED = ['Paid', 'Verified'];
 const toInr = (p: Payment) => Number(p.amount || 0) * (p.currency && p.currency !== 'INR' ? Number(p.exchange_rate_to_inr || 0) || 0 : 1);
@@ -38,7 +41,7 @@ interface DocRow { id: string; kind: 'Invoice' | 'Receipt'; no: string; student_
 export const AdminFinance: React.FC = () => {
   const { tab: tabParam } = useParams();
   const navigate = useNavigate();
-  const tab: Tab = (TABS.find(t => t.id === tabParam)?.id) || 'overview';
+  const tab: Tab = (TABS.find(t => t.slug === tabParam || t.id === tabParam)?.id) || 'overview';
   const { config, ready } = useFeeConfig();
   const { profile } = useAuth();
 
@@ -138,16 +141,17 @@ export const AdminFinance: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left">
-      <PageHeader eyebrow="Ferex Education" title="Finance" subtitle={`Money in, money owed, and every invoice and receipt${profile?.full_name ? '' : ''}.`} />
+      {tab !== 'expenses' && <PageHeader eyebrow="Ferex Education" title={TABS.find(t => t.id === tab)?.label === 'Overview' ? 'Finance' : `Finance · ${TABS.find(t => t.id === tab)?.label}`} subtitle={`Money in, money owed, and every invoice and receipt${profile?.full_name ? '' : ''}.`} />}
       {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700">{error}</p>}
 
       <div className="flex gap-1 border-b border-slate-200 overflow-x-auto">
-        {TABS.map(t => <button key={t.id} type="button" onClick={() => navigate(t.id === 'overview' ? '/admin/finance' : `/admin/finance/${t.id}`)} className={`px-4 py-2.5 text-sm font-bold whitespace-nowrap border-b-2 -mb-px cursor-pointer ${tab === t.id ? 'border-[#5A0122] text-[#5A0122]' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{t.label}</button>)}
+        {TABS.map(t => <button key={t.id} type="button" onClick={() => navigate(t.slug ? `/admin/finance/${t.slug}` : '/admin/finance')} className={`px-4 py-2.5 text-sm font-bold whitespace-nowrap border-b-2 -mb-px cursor-pointer ${tab === t.id ? 'border-[#5A0122] text-[#5A0122]' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{t.label}</button>)}
       </div>
 
-      <DateRangeFilter value={range} onChange={setRange} label={tab === 'receivables' ? 'Plan started' : tab === 'documents' ? 'Issued' : 'Paid'} />
+      {tab === 'expenses' && <DivisionExpenses division="education" eyebrow="Ferex Education" />}
+      {tab !== 'expenses' && <DateRangeFilter value={range} onChange={setRange} label={tab === 'receivables' ? 'Plan started' : tab === 'documents' ? 'Issued' : 'Paid'} />}
 
-      {loading ? <BlockCap /> : tab === 'overview' ? (
+      {tab === 'expenses' ? null : loading ? <BlockCap /> : tab === 'overview' ? (
         <div className="space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
             {range.key === 'all' ? card(<Wallet className="w-4 h-4" />, 'Collected this month', inr(collectedMonth), `${inr(collectedAll)} all time`, 'text-emerald-700') : card(<Wallet className="w-4 h-4" />, 'Collected in this period', inr(collectedRange), `${inr(collectedAll)} all time`, 'text-emerald-700')}

@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Users, PackageCheck, FolderArchive,
   CreditCard, MessageSquare, Bell, User, Settings, LogOut,
   Search, Menu, X, ArrowUpRight, ListTodo, LifeBuoy, Mail,
-  Ship, ShieldCheck, DollarSign, Sparkles, Clock
+  Ship, ShieldCheck, DollarSign, Sparkles, Clock, Receipt, FileText, Wallet
 } from 'lucide-react';
 
 import { Logo } from '../components/Logo';
@@ -129,7 +129,15 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
         { name: 'Documents', path: '/trade/documents', icon: FolderArchive },
         { name: 'Tasks', path: '/trade/tasks', icon: ListTodo },
         { name: 'Support', path: '/trade/tickets', icon: LifeBuoy },
+      ]
+    },
+    {
+      title: 'Finance',
+      items: [
+        { name: 'Billing', path: '/trade/billing', icon: Receipt },
+        { name: 'Invoices', path: '/trade/invoices', icon: FileText },
         { name: 'Payments', path: '/trade/payments', icon: CreditCard },
+        { name: 'Expenses', path: '/trade/expenses', icon: Wallet },
       ]
     },
     {

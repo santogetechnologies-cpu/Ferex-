@@ -72,3 +72,26 @@ export function exportCollectionsCsv(payments: RimiPaymentRecord[], orders: Rimi
       (o?.items || []).map(i => `${i.product_name} x${i.quantity} @${i.unit_price}`).join('; '), p.collected_by_name || '', p.notes || ''].map(q).join(','); });
   save(`collections-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv', '﻿' + [head.map(q).join(','), ...rows].join('\n'));
 }
+
+/** A printable sales invoice for one order: customer, product lines, totals, paid and balance. */
+export function invoiceHtml(order: RimiSalesOrderRecord): string {
+  const items = order.items || [];
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Invoice ${esc(order.order_no)}</title><style>${CSS}</style></head><body><section class="r">
+<div class="h"><div><h1>Tax Invoice</h1><div class="m">Cold Chain Distribution &amp; Logistics</div></div>
+<div style="text-align:right"><span class="badge">${esc(orderPaymentLabel(order))}</span><div style="font-family:monospace;font-weight:700;margin-top:6px">Invoice # ${esc(order.order_no)}</div><div class="m">Date: ${esc(String(order.created_at || '').slice(0, 10))}</div></div></div>
+<div class="g"><div><div class="l">Billed to</div><b style="font-size:15px">${esc(order.customer_name)}</b><div class="m">${esc(order.delivery_address || '')}</div></div>
+<div style="text-align:right"><div class="l">Delivery</div><b>${esc(order.delivery_date || '—')}</b><div class="m">Status: ${esc(order.order_status)}</div></div></div>
+<table><thead><tr><th>#</th><th>Product</th><th class="n">Qty</th><th class="n">Rate</th><th class="n">Amount</th></tr></thead><tbody>
+${items.map((i, n) => `<tr><td>${n + 1}</td><td>${esc(i.product_name)}${i.batch_no ? ` <span class="m">(batch ${esc(i.batch_no)})</span>` : ''}</td><td class="n">${Number(i.quantity).toLocaleString('en-IN')} ${esc(i.unit || '')}</td><td class="n">${inr(i.unit_price)}</td><td class="n">${inr(i.total_price)}</td></tr>`).join('')}
+<tr class="t"><td colspan="4" class="n">Grand total</td><td class="n">${inr(order.total_amount)}</td></tr>
+<tr><td colspan="4" class="n">Paid</td><td class="n">${inr(order.paid_amount)}</td></tr>
+<tr class="t"><td colspan="4" class="n">Balance due</td><td class="n">${inr(order.balance_amount)}</td></tr></tbody></table>
+<div class="sig"><div>Authorised signatory</div><div style="text-align:right">Customer acknowledgment</div></div></section></body></html>`;
+}
+
+export function printInvoice(order: RimiSalesOrderRecord): boolean {
+  const w = window.open('', '_blank', 'width=900,height=700');
+  if (!w) return false;
+  w.document.open(); w.document.write(invoiceHtml(order)); w.document.close(); w.focus(); setTimeout(() => w.print(), 300);
+  return true;
+}
