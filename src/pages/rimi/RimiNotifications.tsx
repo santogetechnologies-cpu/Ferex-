@@ -110,6 +110,7 @@ export const RimiNotifications: React.FC = () => {
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!window.confirm('Delete this notification?')) return;
     await deleteRimiNotification(id);
     setNotifications(prev => prev.filter(n => n.id !== id));
     showToastMsg('Notification dismissed');

@@ -401,6 +401,13 @@ export async function getRimiCustomerById(id: string): Promise<RimiCustomerRecor
 export async function createRimiCustomer(customer: Partial<RimiCustomerRecord>): Promise<RimiCustomerRecord> {
   if (!customer.business_name?.trim()) throw new Error('Business name is required');
   if (!customer.phone?.trim()) throw new Error('Phone number is required');
+  if (customer.phone.replace(/\D/g, '').length < 10) throw new Error('Enter a valid phone number (at least 10 digits)');
+  if (customer.email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email.trim())) throw new Error('Enter a valid email address');
+  if (customer.gst_no?.trim() && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(customer.gst_no.trim())) throw new Error('GST number must be 15 characters in the standard format, for example 27AAACF8921M1Z4');
+  {
+    const { data: dup } = await supabase.from('rimi_customers').select('id, business_name').or(`phone.eq.${customer.phone.trim()},business_name.ilike.${customer.business_name.trim().replace(/[,()]/g, ' ')}`).limit(1);
+    if (dup?.length) throw new Error(`A customer with this phone number or business name already exists (${dup[0].business_name}).`);
+  }
   const payload = {
     business_name: customer.business_name.trim(),
     customer_type: customer.customer_type || 'Shop / Retailer',
@@ -1144,6 +1151,12 @@ export async function updateRimiDeliveryStatus(deliveryId: string, status: RimiD
         destination: del.destination_city || del.destination_address || 'Customer Hub'
       }).catch(() => {});
     }
+  }
+  // The truck is on the road while the delivery is in transit and free again once it ends.
+  if (isUuid(del.vehicle_id)) {
+    const truck = status === 'In Transit' ? 'On Route' : ['Delivered', 'Returned', 'Failed'].includes(status) ? 'Stationed' : null;
+    if (truck) await supabase.from('rimi_vehicles').update({ status: truck }).eq('id', del.vehicle_id);
+    triggerLocalSync('ferex_rimi_vehicles_change');
   }
   triggerLocalSync('ferex_rimi_deliveries_change');
   triggerLocalSync('ferex_rimi_orders_change');

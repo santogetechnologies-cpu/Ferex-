@@ -17,11 +17,11 @@ export const RimiProfile: React.FC = () => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   const [userData, setUserData] = useState({
-    fullName: 'RIMI Admin',
-    email: 'rimi@ferex.com',
-    phone: '+91 98765 88123',
-    title: 'RIMI Administrator',
-    role: 'Admin'
+    fullName: '',
+    email: '',
+    phone: '',
+    title: '',
+    role: ''
   });
 
   const showToastMsg = (msg: string) => {

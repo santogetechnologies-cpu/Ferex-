@@ -40,7 +40,7 @@ export const RimiDeliveries: React.FC = () => {
     driver_name: '',
     driver_phone: '',
     departure_temp: '-18.5°C',
-    destination_city: 'Mumbai',
+    destination_city: '',
     destination_address: '',
     route_name: 'Western Cold Corridor'
   });
@@ -62,14 +62,6 @@ export const RimiDeliveries: React.FC = () => {
       setOrders(orderData);
       setVehicles(vehData);
 
-      if (orderData.length > 0 && !newDel.order_id) {
-        setNewDel(prev => ({
-          ...prev,
-          order_id: orderData[0].id,
-          destination_city: orderData[0].territory || 'Mumbai',
-          destination_address: orderData[0].delivery_address || ''
-        }));
-      }
     } finally {
       setLoading(false);
     }
@@ -94,15 +86,18 @@ export const RimiDeliveries: React.FC = () => {
 
   const handleAddDelivery = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newDel.order_id || !newDel.driver_name) return;
+    if (!newDel.order_id) { showToastMsg('Choose the sales order to dispatch.'); return; }
+    if (!newDel.vehicle_no) { showToastMsg('Choose the reefer truck.'); return; }
+    if (!newDel.driver_name.trim()) { showToastMsg('Enter the driver name.'); return; }
 
     try {
       const ord = orders.find(o => o.id === newDel.order_id);
       await createRimiDelivery({
         order_id: newDel.order_id,
-        order_no: ord?.order_no || 'SO-2026-001',
-        customer_name: ord?.customer_name || 'Customer Hub',
-        destination_city: newDel.destination_city || ord?.territory || 'Mumbai',
+        order_no: ord?.order_no || '',
+        customer_name: ord?.customer_name || '',
+        vehicle_id: vehicles.find(v => v.vehicle_no === newDel.vehicle_no)?.id,
+        destination_city: newDel.destination_city || ord?.territory || '',
         destination_address: newDel.destination_address || ord?.delivery_address || '',
         vehicle_no: newDel.vehicle_no,
         driver_name: newDel.driver_name,
@@ -128,6 +123,10 @@ export const RimiDeliveries: React.FC = () => {
       showToastMsg(`Error updating status: ${err.message || 'Database error'}`);
     }
   };
+
+  // Only orders that can still go out and are not already on a live delivery, and trucks that are free.
+  const dispatchable = orders.filter(o => !['Cancelled', 'Delivered'].includes(o.order_status) && !deliveries.some(d => d.order_id === o.id && !['Delivered', 'Returned', 'Failed'].includes(d.delivery_status)));
+  const freeTrucks = vehicles.filter(v => ['Stationed', 'Available'].includes(v.status));
 
   const filteredDeliveries = deliveries.filter(d => inRange(d.created_at, range)).filter(d => {
     const s = searchQuery.toLowerCase();
@@ -273,13 +272,14 @@ export const RimiDeliveries: React.FC = () => {
                       setNewDel({
                         ...newDel,
                         order_id: e.target.value,
-                        destination_city: ord?.territory || 'Mumbai',
+                        destination_city: ord?.territory || '',
                         destination_address: ord?.delivery_address || ''
                       });
                     }}
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                   >
-                    {orders.map(o => (
+                    <option value="">Select a sales order…</option>
+                    {dispatchable.map(o => (
                       <option key={o.id} value={o.id}>[{o.order_no}] {o.customer_name} (₹{Number(o.total_amount).toLocaleString('en-IN')})</option>
                     ))}
                   </select>
@@ -301,7 +301,8 @@ export const RimiDeliveries: React.FC = () => {
                       }}
                       className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
                     >
-                      {vehicles.map(v => (
+                      <option value="">Select a truck…</option>
+                      {freeTrucks.map(v => (
                         <option key={v.id} value={v.vehicle_no}>{v.vehicle_no} ({v.model})</option>
                       ))}
                     </select>

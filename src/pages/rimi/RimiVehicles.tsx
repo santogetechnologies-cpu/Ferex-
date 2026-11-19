@@ -33,12 +33,12 @@ export const RimiVehicles: React.FC = () => {
         const formatted = data.map((d: any) => ({
           id: d.id ? `TRK-${d.id.slice(0, 4).toUpperCase()}` : 'TRK-101',
           rawId: d.id,
-          regNo: d.vehicle_number || d.vehicle_no || 'MH-12-AZ-0000',
-          model: `${d.capacity_tonnes || d.capacity_metric_tons || 14}-Ton Ultra Cold Reefer`,
-          temp: `${d.current_temp_celsius || -18.0}°C`,
-          tempNum: Number(d.current_temp_celsius) || -18.0,
-          driver: d.driver_name || 'Assigned Driver',
-          phone: d.driver_phone || '+91 98765 43210',
+          regNo: d.vehicle_number || d.vehicle_no || '—',
+          model: `${d.capacity_tonnes || d.capacity_metric_tons || '—'}-Ton Reefer`,
+          temp: d.current_temp_celsius == null ? '—' : `${d.current_temp_celsius}°C`,
+          tempNum: d.current_temp_celsius == null ? -18 : Number(d.current_temp_celsius),
+          driver: d.driver_name || 'Not assigned',
+          phone: d.driver_phone || '—',
           route: d.status === 'On Route' ? 'Active Delivery Route' : 'Stationed Cold Logistics Depot',
           status: d.status || 'Stationed',
         }));
@@ -83,7 +83,7 @@ export const RimiVehicles: React.FC = () => {
         vehicle_number: newVehicle.regNo.trim(),
         vehicle_no: newVehicle.regNo.trim(),
         driver_name: newVehicle.driver.trim() || 'Assigned Driver',
-        driver_phone: newVehicle.driver_phone.trim() || '+91 98765 43210',
+        driver_phone: newVehicle.driver_phone.trim(),
         capacity_tonnes: Number(newVehicle.capacity_tonnes) || 14,
         capacity_metric_tons: Number(newVehicle.capacity_tonnes) || 14,
         current_temp_celsius: Number(newVehicle.temp) || -18.0,
@@ -111,6 +111,9 @@ export const RimiVehicles: React.FC = () => {
   };
 
   const handleDeleteVehicle = async (rawId: string) => {
+    const v = vehicles.find(x => x.rawId === rawId || x.id === rawId);
+    if (v?.status === 'On Route') { showToastMsg('This truck is on a live delivery. Finish or cancel the delivery first.'); return; }
+    if (!window.confirm(`Remove truck ${v?.regNo || v?.id || ''} from the fleet?`)) return;
     try {
       const success = await deleteRimiVehicle(rawId);
       if (success) {
