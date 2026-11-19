@@ -22,6 +22,7 @@ import { BlockCap } from '../../components/CapLoader';
 
 type DateFilterType = 'All' | 'Daily' | 'Weekly' | 'Monthly' | 'Yearly' | 'Custom';
 
+import { PAYMENT_METHODS } from '../../lib/paymentMethods';
 import { orderPaymentLabel, printReceipts, downloadReceipts, exportCollectionsCsv } from '../../lib/rimiReceipts';
 import { Download, Users, History } from 'lucide-react';
 
@@ -615,10 +616,7 @@ export const RimiCollections: React.FC = () => {
                       onChange={(e) => setNewPayment({ ...newPayment, payment_method: e.target.value })}
                       className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
                     >
-                      <option value="Bank Transfer">Bank Transfer (NEFT/RTGS)</option>
-                      <option value="UPI">UPI / QR Payment</option>
-                      <option value="Cheque">Commercial Cheque</option>
-                      <option value="Cash">Cash Receipt</option>
+                      {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m === 'Bank Transfer' ? 'Bank Transfer (NEFT/RTGS)' : m === 'Cash' ? 'Cash Receipt' : m}</option>)}
                     </select>
                   </div>
                   <div>
@@ -676,10 +674,7 @@ export const RimiCollections: React.FC = () => {
                       onChange={(e) => setEditingPayment({ ...editingPayment, payment_method: e.target.value })}
                       className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
                     >
-                      <option value="Bank Transfer">Bank Transfer (NEFT/RTGS)</option>
-                      <option value="UPI">UPI / QR Payment</option>
-                      <option value="Cheque">Commercial Cheque</option>
-                      <option value="Cash">Cash Receipt</option>
+                      {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m === 'Bank Transfer' ? 'Bank Transfer (NEFT/RTGS)' : m === 'Cash' ? 'Cash Receipt' : m}</option>)}
                     </select>
                   </div>
                   <div>

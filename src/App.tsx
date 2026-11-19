@@ -185,7 +185,7 @@ const TRADE_ROLES = ['trade', 'trade_admin', 'global_trade', 'logistics_officer'
 const RIMI_ADMIN_ROLES = ['rimi', 'rimi_admin', 'rimi_frozen'];
 const TRADE_ADMIN_ROLES = ['trade', 'trade_admin', 'global_trade'];
 const RIMI_ROLES = ['rimi', 'rimi_admin', 'rimi_frozen', 'operations_manager', 'rimi_staff'];
-const DIGITAL_ROLES = ['digital', 'digital_admin', 'ferex_digital', 'digital_director', 'digital_manager', 'project_manager', 'digimanager', 'pm', 'account_manager', 'accountmanager', 'digital_account_manager', 'account_executive', 'client_manager', 'digital_staff', 'designer', 'developer'];
+const DIGITAL_ROLES = ['digital', 'digital_admin', 'ferex_digital', 'digital_director', 'digital_manager', 'project_manager', 'digimanager', 'pm', 'account_manager', 'accountmanager', 'digital_account_manager', 'account_executive', 'client_manager', 'digital_staff', 'designer', 'developer', 'lead_developer', 'creative'];
 const PM_ROLES = ['project_manager', 'digital_manager', 'digimanager', 'pm', 'digital_pm', 'account_manager', 'accountmanager', 'digital_account_manager', 'account_executive', 'client_manager', 'digital_admin', 'digital'];
 const STAFF_ROLES = ['staff', 'counselor', 'admin', 'education_admin'];
 

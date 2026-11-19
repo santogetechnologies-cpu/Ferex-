@@ -56,11 +56,11 @@
 }
 .dark .fx-topbar input { background: var(--sh-glass) !important; }
 .fx-topbar input:focus { border-color: #68092A !important; box-shadow: 0 0 0 4px rgba(104, 9, 42, 0.12) !important; }
-.fx-topbar button:not([class*='bg-[#5A0122]']), .fx-topbar a[class*='border'] {
+.fx-topbar button:not([class*='bg-[#5A0122]']):not([class*='bg-rose-']):not([class*='bg-emerald-']):not([class*='bg-red-']), .fx-topbar a[class*='border'] {
   background: #FFFFFF; border: 1px solid var(--sh-line) !important; border-radius: 0.8rem; box-shadow: none; transition: background-color 0.2s, border-color 0.2s;
 }
-.dark .fx-topbar button:not([class*='bg-[#5A0122]']) { background: var(--sh-glass); }
-.fx-topbar button:not([class*='bg-[#5A0122]']):hover { border-color: rgba(90, 1, 34, 0.3) !important; background: var(--sh-chip); }
+.dark .fx-topbar button:not([class*='bg-[#5A0122]']):not([class*='bg-rose-']):not([class*='bg-emerald-']):not([class*='bg-red-']) { background: var(--sh-glass); }
+.fx-topbar button:not([class*='bg-[#5A0122]']):not([class*='bg-rose-']):not([class*='bg-emerald-']):not([class*='bg-red-']):hover { border-color: rgba(90, 1, 34, 0.3) !important; background: var(--sh-chip); }
 .fx-topbar span[class*='bg-slate-100'] { background: var(--sh-chip) !important; border-color: transparent !important; color: var(--sh-chip-text) !important; border-radius: 999px !important; }
 
 /* ── Primary buttons: the two-tone burgundy gradient ───────── */

@@ -1173,7 +1173,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                       aria-label="Target country"
                       required
                       value={addTargetCountry}
-                      onChange={(e) => { setAddTargetCountry(e.target.value); setAddUniversityId(''); }}
+                      onChange={(e) => { setAddTargetCountry(e.target.value); setAddUniversityId(''); setAddCourse(''); }}
                       className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
                     >
                       <option value="">Select destination…</option>
@@ -1202,7 +1202,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                   <select
                     aria-label="Target university"
                     value={addUniversityId}
-                    onChange={(e) => setAddUniversityId(e.target.value)}
+                    onChange={(e) => { setAddUniversityId(e.target.value); setAddCourse(''); }}
                     className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
                   >
                     <option value="">Student will choose later</option>
@@ -1214,13 +1214,17 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
 
                 <div>
                   <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Program / Course</label>
-                  <input
-                    type="text"
-                    value={addCourse}
-                    onChange={(e) => setAddCourse(e.target.value)}
-                    placeholder="B.Sc Computer Science"
-                    className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
-                  />
+                  {(() => {
+                    // Only what the chosen university offers: its course list, else its programme names. Until a university is picked there is nothing to choose.
+                    const uni: any = allUniversities.find(u => u.id === addUniversityId);
+                    const names: string[] = uni ? Array.from(new Set<string>([...((uni.course_programs || []) as any[]).map(c => c.name), ...((uni.programs || []) as string[])].filter(Boolean))) : [];
+                    return (
+                      <select aria-label="Program or course" value={addCourse} disabled={!uni} onChange={(e) => setAddCourse(e.target.value)} className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none disabled:opacity-60">
+                        <option value="">{!uni ? 'Choose a university first' : names.length ? 'Select a course…' : 'This university has no courses listed yet'}</option>
+                        {names.map(n => <option key={n} value={n}>{n}</option>)}
+                      </select>
+                    );
+                  })()}
                 </div>
 
                 <div>

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { LogIn, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { clockIn, clockOut, getContext, getOpenSession, type AttendanceDay } from '../lib/api/attendance';
+import { clockIn, clockOut, getContext, getDays, getOpenSession, type AttendanceDay } from '../lib/api/attendance';
 
 interface ClockInOutWidgetProps {
   // Kept so every layout can render the same widget; the platform now comes from the signed-in person's account.
@@ -16,6 +16,7 @@ export const ClockInOutWidget: React.FC<ClockInOutWidgetProps> = () => {
   const { user } = useAuth();
   const [open, setOpen] = useState<AttendanceDay | null>(null);
   const [eligible, setEligible] = useState(false);
+  const [verifiedToday, setVerifiedToday] = useState(false);
   const [elapsed, setElapsed] = useState('00:00:00');
   const [asking, setAsking] = useState(false);
   const [summary, setSummary] = useState('');
@@ -28,7 +29,11 @@ export const ClockInOutWidget: React.FC<ClockInOutWidgetProps> = () => {
       const ctx = await getContext();
       if (ctx.level === 'superadmin') { setEligible(false); return; }
       setEligible(true);
-      setOpen(await getOpenSession(ctx.user_id));
+      const session = await getOpenSession(ctx.user_id);
+      setOpen(session);
+      // Once today is verified there is nothing left to clock, so the button gives way to a clear message.
+      const mine = (await getDays(ctx.today, ctx.today).catch(() => [])).find(d => d.user_id === ctx.user_id);
+      setVerifiedToday(!session && mine?.review === 'Verified');
     } catch { setEligible(false); }
   }, [user?.id]);
 
@@ -70,6 +75,8 @@ export const ClockInOutWidget: React.FC<ClockInOutWidgetProps> = () => {
             <button type="button" onClick={() => setAsking(true)} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 cursor-pointer inline-flex items-center gap-1"><LogOut className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Clock out</span></button>
           </>
         )
+      ) : verifiedToday ? (
+        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5">Today's attendance is verified</span>
       ) : (
         <button type="button" disabled={busy} onClick={() => void run(() => clockIn())} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#5A0122] text-white cursor-pointer disabled:opacity-50 inline-flex items-center gap-1"><LogIn className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Clock in</span></button>
       )}

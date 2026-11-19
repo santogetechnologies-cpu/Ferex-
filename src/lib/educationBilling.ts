@@ -173,7 +173,7 @@ export function feeBalance(fee: EducationFee, payments: Payment[]) {
   return { paid, pending, remaining: Math.max(0, cents(fee.amount) - cents(paid)) / 100, payable: Math.max(0, cents(fee.amount) - cents(paid) - cents(pending)) / 100 };
 }
 
-export interface PaymentPart { method: 'Bank Transfer' | 'Cash' | 'UPI' | 'Cheque' | 'Card'; amount: number; reference: string; date: string }
+export interface PaymentPart { method: import('./paymentMethods').PaymentMethod | 'Card'; amount: number; reference: string; date: string }
 export function validatePaymentParts(parts: PaymentPart[], expected: number) {
   if (!Number.isFinite(expected) || expected <= 0 || !parts.length) throw new Error('Enter a positive total and at least one payment entry.');
   if (parts.some(p => !Number.isFinite(p.amount) || p.amount <= 0 || !p.reference.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(p.date))) throw new Error('Every entry needs a positive amount, reference or cash receipt number, and date.');

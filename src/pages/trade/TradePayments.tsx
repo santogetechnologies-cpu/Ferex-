@@ -15,6 +15,7 @@ import {
   sendPaymentReminder,
   getTradeOrders,
   TRADE_CURRENCIES,
+  TRADE_MASTER_PAYMENT_METHODS,
   type TradePaymentRecord,
   type TradeOrder
 } from '../../lib/api/trade';
@@ -337,7 +338,7 @@ export const TradePayments: React.FC = () => {
           {orders.map((o) => {
             const isAdvPaid = o.advance_status === 'Paid';
             const balDue = Math.max(0, o.balance_amount - (o.balance_paid || 0));
-            const isBalPaid = balDue === 0;
+            const isBalPaid = balDue === 0 || Number(o.advance_paid || 0) + Number(o.balance_paid || 0) >= Number(o.total_amount) - 0.005;
 
             return (
               <div key={o.id} className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2.5">
@@ -382,15 +383,19 @@ export const TradePayments: React.FC = () => {
                 </div>
 
                 <div className="pt-1 flex gap-2">
-                  <button
-                    onClick={() => {
-                      handleOrderSelect(o.order_no);
-                      setShowRecordModal(true);
-                    }}
-                    className="flex-1 py-1.5 bg-[#5A0122] hover:bg-[#68092A] text-white rounded-xl text-[10.5px] font-black transition-all cursor-pointer text-center"
-                  >
-                    + Record Payment
-                  </button>
+                  {Number(o.total_amount) - Number(o.advance_paid || 0) - Number(o.balance_paid || 0) > 0.005 ? (
+                    <button
+                      onClick={() => {
+                        handleOrderSelect(o.order_no);
+                        setShowRecordModal(true);
+                      }}
+                      className="flex-1 py-1.5 bg-[#5A0122] hover:bg-[#68092A] text-white rounded-xl text-[10.5px] font-black transition-all cursor-pointer text-center"
+                    >
+                      + Record Payment
+                    </button>
+                  ) : (
+                    <div className="flex-1 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-[10.5px] font-black text-center">Settled in full</div>
+                  )}
 
                   {!isBalPaid && (
                     <button
@@ -548,7 +553,7 @@ export const TradePayments: React.FC = () => {
                     className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-[#5A0122]"
                   >
                     <option value="">-- Choose order --</option>
-                    {orders.map(o => (
+                    {orders.filter(o => Number(o.total_amount) - Number(o.advance_paid || 0) - Number(o.balance_paid || 0) > 0.005 || o.order_no === recordForm.order_no).map(o => (
                       <option key={o.id} value={o.order_no}>
                         {o.order_no} — {o.client_name} ({o.currency} {o.total_amount.toLocaleString()})
                       </option>
@@ -667,13 +672,14 @@ export const TradePayments: React.FC = () => {
 
                 <div>
                   <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Payment Method</label>
-                  <input
-                    type="text"
+                  <select
+                    aria-label="Payment method"
                     value={recordForm.payment_method}
                     onChange={(e) => setRecordForm({ ...recordForm, payment_method: e.target.value })}
-                    placeholder="e.g. SWIFT Wire MT103 / SEPA / Irrevocable LC"
                     className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
-                  />
+                  ><option value="">Select a method…</option>
+                    {[...new Set([recordForm.payment_method, 'SWIFT Wire Transfer (MT103)', 'Irrevocable LC at Sight (Bank Drawdown)', ...TRADE_MASTER_PAYMENT_METHODS, 'SEPA Transfer', 'Credit Card', 'Debit Card', 'Net Banking', 'Cash'])].filter(Boolean).map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">

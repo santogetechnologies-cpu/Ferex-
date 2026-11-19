@@ -40,6 +40,9 @@ export const TradeDashboard: React.FC = () => {
 
   const first = (profile?.full_name || '').split(' ')[0];
   const orders: TradeOrder[] = summary?.orders || [];
+  const by: Record<string, { total: number; owed: number }> = summary?.byCurrency || {};
+  const others = Object.entries(by).filter(([c]) => c !== 'USD');
+  const money = (n: number, c: string) => `${({ USD: '$', EUR: '€', GBP: '£', INR: '₹' } as Record<string, string>)[c] ?? `${c} `}${Math.round(n).toLocaleString()}`;
 
   return (
     <div className="space-y-6 text-left antialiased">
@@ -58,10 +61,10 @@ export const TradeDashboard: React.FC = () => {
       {loading ? <PageSkeleton /> : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatTile label="Total order value" value={`$${Math.round(summary?.totalOrderValueUSD || 0).toLocaleString()}`} hint="All orders, in USD" icon={DollarSign} tone="green" to="/trade/shipments" />
-            <StatTile label="Balance to collect" value={`$${Math.round(summary?.pendingPaymentsUSD || 0).toLocaleString()}`} hint="Unpaid across orders" icon={CreditCard} tone="amber" to="/trade/payments" />
-            <StatTile label="In transit" value={summary?.inTransitCount || 0} hint="Shipments on the way" icon={Ship} tone="blue" to="/trade/shipments" />
-            <StatTile label="Open work" value={(summary?.pendingTasksCount || 0) + (summary?.openTicketsCount || 0)} hint="Tasks and tickets" icon={ListTodo} tone="brand" to="/trade/tasks" />
+            <StatTile label="Total order value" value={money(by.USD?.total || 0, 'USD')} hint={others.length ? `All orders in USD · plus ${others.map(([c, v]) => money(v.total, c)).join(', ')}` : 'All orders, in USD'} icon={DollarSign} tone="green" to="/trade/shipments" />
+            <StatTile label="Balance to collect" value={money(by.USD?.owed || 0, 'USD')} hint={others.some(([, v]) => v.owed > 0) ? `Unpaid in USD · plus ${others.filter(([, v]) => v.owed > 0).map(([c, v]) => money(v.owed, c)).join(', ')}` : 'Unpaid across orders'} icon={CreditCard} tone="amber" to="/trade/payments" />
+            <StatTile label="In transit" value={summary?.activeShipmentsCount || 0} hint="Shipments on the way" icon={Ship} tone="blue" to="/trade/shipments" />
+            <StatTile label="Open work" value={summary?.openTasksCount || 0} hint="Tasks still open" icon={ListTodo} tone="brand" to="/trade/tasks" />
           </div>
 
           <Section title="Orders by stage" hint="Where every active order stands" action={{ label: 'All orders', to: '/trade/shipments' }}>

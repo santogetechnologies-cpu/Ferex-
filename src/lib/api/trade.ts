@@ -1506,6 +1506,12 @@ export interface CentralTradeSummary {
   openTicketsCount: number;
   totalClientsCount: number;
   stageBreakdown: Record<TradeOrderStage, number>;
+  /** Order value and money still owed, per currency, so nothing in euros is ever counted as dollars. */
+  byCurrency: Record<string, { total: number; owed: number }>;
+  /** Latest records, for the dashboard lists. */
+  orders?: TradeOrder[];
+  tasks?: TradeTask[];
+  tickets?: TradeTicket[];
 }
 
 export async function getCentralTradeSummary(staffEmail?: string): Promise<CentralTradeSummary> {
@@ -1523,6 +1529,7 @@ export async function getCentralTradeSummary(staffEmail?: string): Promise<Centr
     let balOut = 0;
     let activeShip = 0;
     let delivered = 0;
+    const byCurrency: Record<string, { total: number; owed: number }> = {};
 
     const stageMap: Record<TradeOrderStage, number> = {
       'Inquiry': 0,
@@ -1537,6 +1544,10 @@ export async function getCentralTradeSummary(staffEmail?: string): Promise<Centr
     for (const ord of orders) {
       totalVal += Number(ord.total_amount || 0);
       advPaid += Number(ord.advance_paid || 0);
+      const cur = ord.currency || 'USD';
+      const row = (byCurrency[cur] ||= { total: 0, owed: 0 });
+      row.total += Number(ord.total_amount || 0);
+      row.owed += Math.max(0, Number(ord.total_amount || 0) - Number(ord.advance_paid || 0) - Number(ord.balance_paid || 0));
       balOut += (Number(ord.total_amount || 0) - Number(ord.advance_paid || 0) - Number(ord.balance_paid || 0));
 
       if (ord.stage === 'Shipped' || ord.stage === 'Customs Clearance') {
@@ -1569,11 +1580,16 @@ export async function getCentralTradeSummary(staffEmail?: string): Promise<Centr
       urgentTasksCount: urgentTasks,
       openTicketsCount: openTickets,
       totalClientsCount: clients.length,
-      stageBreakdown: stageMap
+      stageBreakdown: stageMap,
+      byCurrency,
+      orders: orders.slice(0, 8),
+      tasks: tasks.filter(t => t.status !== 'Completed').slice(0, 8),
+      tickets: tickets.filter(t => t.status === 'Open' || t.status === 'In Progress').slice(0, 8)
     };
   } catch (err) {
     console.error('[TradeAPI] Error calculating trade summary:', err);
     return {
+      byCurrency: {},
       totalOrdersCount: 0,
       totalOrderBookValueUSD: 0,
       totalAdvancePaidUSD: 0,

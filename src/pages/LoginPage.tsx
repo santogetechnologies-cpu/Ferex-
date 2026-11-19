@@ -284,6 +284,13 @@ export const LoginPage: React.FC = () => {
 
     const portalLabel = getPortalLabel(role, cleanEmail);
     const targetRoute = getDashboardRoute(role, cleanEmail);
+    if (targetRoute === '/login') {
+      // A role with no portal must say so; it used to show "Welcome back" and then sit on this page.
+      await supabase.auth.signOut().catch(() => {});
+      setIsLoading(false);
+      setErrorMsg(`Your account role (${role}) is not linked to a portal yet. Please contact the Central Admin.`);
+      return;
+    }
     setSuccessMsg(`Welcome back.`);
     setIsLoading(false);
 

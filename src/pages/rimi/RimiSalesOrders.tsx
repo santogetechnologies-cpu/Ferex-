@@ -27,6 +27,7 @@ import {
   type RimiInventoryBatchRecord
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
+import { PAYMENT_METHODS } from '../../lib/paymentMethods';
 import { useRimiAccess } from '../../lib/rimiAccess';
 import { BlockCap, CapLoader } from '../../components/CapLoader';
 import { DateRangeFilter } from '../../components/DateRangeFilter';
@@ -776,10 +777,7 @@ export const RimiSalesOrders: React.FC = () => {
                     onChange={(e) => setPaymentMethod(e.target.value)}
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900"
                   >
-                    <option value="Bank Transfer">Bank Transfer (NEFT/RTGS)</option>
-                    <option value="UPI">UPI / QR Code</option>
-                    <option value="Cheque">Commercial Cheque</option>
-                    <option value="Cash">Cash on Delivery (COD)</option>
+                    {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m === 'Bank Transfer' ? 'Bank Transfer (NEFT/RTGS)' : m === 'Cash' ? 'Cash on Delivery (COD)' : m}</option>)}
                   </select>
                 </div>
 

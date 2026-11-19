@@ -64,8 +64,10 @@ export const MyAttendance: React.FC<Shared> = ({ ctx, rules, holidays, toast }) 
               </>
             ) : <p className="text-sm font-semibold text-slate-600">{todayOff ? `${todayOff} today — no attendance needed.` : 'You have not clocked in yet.'}</p>}
           </div>
-          {!open ? (
-            <Btn tone="brand" disabled={busy || today?.review === 'Verified'} onClick={() => void act(() => clockIn(), 'Clocked in')}>{today?.clock_out ? 'Clock in again' : 'Clock in'}</Btn>
+          {!open && today?.review === 'Verified' ? (
+            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">Today's attendance is verified. Nothing more to clock; ask your administrator if it needs to be reopened.</span>
+          ) : !open ? (
+            <Btn tone="brand" disabled={busy} onClick={() => void act(() => clockIn(), 'Clocked in')}>{today?.clock_out ? 'Clock in again' : 'Clock in'}</Btn>
           ) : asking ? (
             <div className="flex flex-wrap items-center gap-2">
               <input className={`${inputCls} w-64`} placeholder="What did you work on? (optional)" value={summary} onChange={e => setSummary(e.target.value)} aria-label="Work summary" />

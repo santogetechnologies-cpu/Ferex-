@@ -12,6 +12,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useFeeConfig } from '../hooks/useFeeConfig';
+import { PAYMENT_METHODS, methodLabel } from '../lib/paymentMethods';
 import { openReceiptWindow } from '../lib/receiptPrint';
 import { useUniversities } from '../hooks/useUniversities';
 import { useDestinations } from '../hooks/useDestinations';
@@ -71,7 +72,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Paid' | 'Pending' | 'Failed' | 'Partially Paid' | 'Refunded'>('All');
-  const [methodFilter, setMethodFilter] = useState<'All' | 'Cash' | 'UPI' | 'Direct Bank Transfer'>('All');
+  const [methodFilter, setMethodFilter] = useState<string>('All');
   const [dateFilter, setDateFilter] = useState<'All' | 'Today' | 'This Week' | 'This Month' | 'Custom'>('All');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -299,7 +300,14 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   const normalizeMethod = (method?: string): string => {
     const m = (method || '').toLowerCase().trim();
     if (m === 'cash') return 'Cash';
-    if (m === 'upi' || m.includes('upi') || m.includes('phonepe')) return 'UPI';
+    if (m === 'upi' || m.includes('upi')) return 'UPI';
+    if (m.includes('google') || m.includes('gpay')) return 'Google Pay (GPay)';
+    if (m.includes('phonepe')) return 'PhonePe';
+    if (m.includes('paytm')) return 'Paytm';
+    if (m.includes('credit')) return 'Credit Card';
+    if (m.includes('debit') || m === 'card') return m === 'card' ? 'Card' : 'Debit Card';
+    if (m.includes('net banking') || m === 'net_banking' || m.includes('netbanking')) return 'Net Banking';
+    if (m.includes('cheque') || m.includes('check')) return 'Cheque';
     if (m.includes('bank') || m.includes('transfer') || m === 'net_banking' || m === 'wire' || m === 'swift') return 'Direct Bank Transfer';
     return method || 'Direct Bank Transfer';
   };
@@ -973,6 +981,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                             <option value="Cash">Cash</option>
                             <option value="UPI">UPI</option>
                             <option value="Direct Bank Transfer">Direct Bank Transfer</option>
+                            {PAYMENT_METHODS.filter(m => !['Cash', 'UPI', 'Bank Transfer'].includes(m)).map(m => <option key={m} value={m}>{m}</option>)}
                           </select>
                         </div>
 
@@ -1319,8 +1328,8 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                           value={part.method}
                           onChange={e => setParts(parts.map((p, n) => n === i ? { ...p, method: e.target.value as PaymentPart['method'] } : p))}
                         >
-                          {['Bank Transfer', 'Cash', 'UPI', 'Card', 'Cheque'].map(m => (
-                            <option key={m} value={m}>{m === 'Bank Transfer' ? 'Direct Bank Transfer' : m}</option>
+                          {PAYMENT_METHODS.map(m => (
+                            <option key={m} value={m}>{methodLabel(m)}</option>
                           ))}
                         </select>
                       </div>
