@@ -104,7 +104,8 @@ export const DigitalPMDashboard: React.FC = () => {
   }, [user?.id, profile?.email]);
 
   const handleQuickStatusChange = async (task: DigitalPMTask) => {
-    const nextStatus = task.status === 'Done' ? 'To Do' : task.status === 'To Do' ? 'In Progress' : 'Done';
+    if (task.status === 'Done') return; // a Done task stays Done
+    const nextStatus = task.status === 'To Do' ? 'In Progress' : 'Done';
     try {
       await updateDigitalTaskStatusDirect(task.id, nextStatus);
       setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: nextStatus } : t));
@@ -283,12 +284,13 @@ export const DigitalPMDashboard: React.FC = () => {
                     <div className="flex items-center gap-3 min-w-0">
                       <button
                         onClick={() => handleQuickStatusChange(t)}
-                        className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
+                        disabled={t.status === 'Done'}
+                        className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${t.status === 'Done' ? 'cursor-default' : 'cursor-pointer'} shrink-0 ${
                           t.status === 'Done'
                             ? 'bg-emerald-600 border-emerald-600 text-white'
                             : 'border-slate-300 hover:border-[#5A0122] bg-white'
                         }`}
-                        title="Click to toggle status"
+                        title={t.status === 'Done' ? 'Completed' : 'Advance status'}
                       >
                         {t.status === 'Done' && <CheckCircle2 className="w-3.5 h-3.5" />}
                       </button>
@@ -297,7 +299,7 @@ export const DigitalPMDashboard: React.FC = () => {
                           {t.title}
                         </p>
                         <p className="text-[10px] text-slate-400 mt-0.5 truncate">
-                          {t.project_title || 'General Task'} • Due: {t.due_date || 'No deadline'}
+                          {t.project_title || 'General Task'} • Assigned: {new Date((t as any).assigned_at || t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} • Due: {t.due_date || 'No deadline'}
                         </p>
                       </div>
                     </div>

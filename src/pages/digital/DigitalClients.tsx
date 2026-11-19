@@ -173,7 +173,10 @@ export const DigitalClients: React.FC = () => {
         city: newClient.city.trim(),
         client_type: newClient.client_type,
         status: newClient.status,
-        notes: newClient.notes.trim() ? `${newClient.notes} | Website: ${newClient.website} | Tax ID: ${newClient.tax_id} | Initial Est Budget: ₹${newClient.estimated_budget} | Contract: ₹${newClient.contract_value}` : ''
+        website: newClient.website.trim() || undefined,
+        estimated_budget: Number(newClient.estimated_budget) || 0,
+        // Details that have no column of their own are kept as readable lines, and only when they were entered.
+        notes: [newClient.notes.trim(), newClient.tax_id.trim() && `Tax ID: ${newClient.tax_id.trim()}`, Number(newClient.contract_value) > 0 && `Contract value: ${Number(newClient.contract_value).toLocaleString('en-IN')}`].filter(Boolean).join('\n')
       });
 
       setShowAddModal(false);

@@ -290,31 +290,16 @@ function matchDivision(staff: DivisionStaffMember, division: string): boolean {
     return (r.includes('rimi') || r.includes('operations') || r.includes('warehouse') || dept.includes('rimi') || dept.includes('frozen') || email.includes('rimi')) && !r.includes('digital') && !r.includes('trade') && !r.includes('education');
   }
   if (division === 'digital') {
+    // Only Digital staff. Central/superadmin, the Education "admin" role and other divisions' managers are never Digital team members.
+    if (/(^|_)(client|customer|partner|student)$/.test(r) || ['central', 'superadmin', 'super_admin', 'admin', 'education_admin', 'education', 'counselor', 'operations_manager', 'logistics_officer'].includes(r)) return false;
+    if (r.includes('rimi') || r.includes('trade') || r.includes('education')) return false;
     const digitalRoles = [
       'digital', 'digital_admin', 'ferex_digital', 'digital_director',
       'project_manager', 'digital_manager', 'pm', 'digimanager',
       'account_manager', 'accountmanager', 'digital_account_manager', 'account_executive', 'client_manager',
-      'digital_staff', 'designer', 'developer', 'lead_developer', 'creative',
-      'central', 'superadmin', 'super_admin', 'admin'
+      'digital_staff', 'designer', 'developer', 'lead_developer', 'creative'
     ];
-    return (
-      digitalRoles.includes(r) ||
-      r.includes('digital') ||
-      r.includes('project_manager') ||
-      r.includes('account_manager') ||
-      r.includes('accountmanager') ||
-      r.includes('account') ||
-      r.includes('manager') ||
-      dept.includes('digital') ||
-      dept.includes('creative') ||
-      dept.includes('tech') ||
-      email.includes('digital') ||
-      email.includes('pm@') ||
-      email.includes('accounts@') ||
-      email.includes('account') ||
-      email.includes('creative@') ||
-      email.includes('manager')
-    ) && !r.includes('rimi') && !r.includes('trade') && !r.includes('education');
+    return digitalRoles.includes(r) || r.includes('digital') || dept.includes('digital') || dept.includes('creative');
   }
   if (division === 'education') {
     return (r.includes('education') || r.includes('counselor') || r.includes('admissions') || dept.includes('education') || email.includes('edu') || email.includes('counselor')) && !r.includes('rimi') && !r.includes('digital') && !r.includes('trade');
@@ -322,6 +307,9 @@ function matchDivision(staff: DivisionStaffMember, division: string): boolean {
   return false;
 }
 
+/** Roles that can own a Digital project as its Account Manager or Project Lead. */
+export const DIGITAL_LEAD_ROLES = ['account_manager', 'accountmanager', 'digital_account_manager', 'account_executive', 'client_manager', 'project_manager', 'pm', 'digital_manager', 'digimanager'];
+export const isDigitalLead = (m: { role?: string }) => DIGITAL_LEAD_ROLES.includes((m.role || '').toLowerCase().trim());
 export const getTradeStaff = () => getDivisionStaff('trade');
 export const getRimiStaff = () => getDivisionStaff('rimi');
 export const getDigitalStaff = () => getDivisionStaff('digital');

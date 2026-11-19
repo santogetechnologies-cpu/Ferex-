@@ -461,10 +461,10 @@ export const DigitalPMSprints: React.FC = () => {
 
                             {/* Bottom Controls */}
                             <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
-                              <span>{t.due_date ? `Due: ${t.due_date}` : 'No deadline'}</span>
+                              <span>Assigned {new Date((t as any).assigned_at || t.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} · {t.due_date ? `Due ${t.due_date}` : 'No deadline'}</span>
 
-                              {/* Quick Move Trigger */}
-                              <select
+                              {/* Quick Move Trigger: a Done task stays Done */}
+                              {t.status === 'Done' ? <span className="text-[9.5px] font-bold text-emerald-700">Done</span> : <select
                                 value={t.status}
                                 onChange={(e) => handleMoveTask(t, e.target.value as any)}
                                 className="text-[9.5px] font-bold bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 cursor-pointer text-slate-700"
@@ -473,7 +473,7 @@ export const DigitalPMSprints: React.FC = () => {
                                 <option value="In Progress">In Progress</option>
                                 <option value="In Review">QA Review</option>
                                 <option value="Done">Done</option>
-                              </select>
+                              </select>}
                             </div>
                           </div>
                         );

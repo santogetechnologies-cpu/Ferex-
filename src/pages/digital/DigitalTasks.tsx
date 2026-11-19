@@ -23,6 +23,8 @@ import { BlockCap } from '../../components/CapLoader';
 import { DateRangeFilter } from '../../components/DateRangeFilter';
 import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
+const fmtDay = (d?: string) => { if (!d) return '—'; const x = new Date(d); return Number.isNaN(x.getTime()) ? String(d) : x.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
+
 export const DigitalTasks: React.FC = () => {
   const { profile } = useAuth();
   const { isAdmin, isStaff, isCentral, canDelete } = useDigitalPermissions();
@@ -123,6 +125,9 @@ export const DigitalTasks: React.FC = () => {
     }
 
     const selectedProj = projects.find(p => p.id === newTask.project_id);
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (newTask.due_date && newTask.due_date < todayStr) { setFormError('The target date cannot be in the past.'); return; }
+    if (newTask.due_date && selectedProj?.deadline && newTask.due_date > String(selectedProj.deadline).slice(0, 10)) { setFormError(`The target date is after the project deadline (${String(selectedProj.deadline).slice(0, 10)}). Choose an earlier date or extend the project deadline first.`); return; }
     const assignedId = isStaff ? (profile?.id || '') : newTask.assigned_staff_id;
     const matchedStaff = staffList.find(m => m.id === assignedId);
     if (!matchedStaff) {
@@ -159,7 +164,9 @@ export const DigitalTasks: React.FC = () => {
 
   const handleToggleStatus = async (task: any) => {
     try {
-      const nextStatus = task.status === 'Done' ? 'To Do' : task.status === 'To Do' ? 'In Progress' : task.status === 'In Progress' ? 'In Review' : 'Done';
+      // A task marked Done stays Done; it cannot be reopened from the card.
+      if (task.status === 'Done') return;
+      const nextStatus = task.status === 'To Do' ? 'In Progress' : task.status === 'In Progress' ? 'In Review' : 'Done';
       await updateDigitalTaskStatus(task.id, nextStatus);
       setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: nextStatus } : t));
       showToast(`Task status updated to ${nextStatus}`);
@@ -170,6 +177,7 @@ export const DigitalTasks: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (!canDelete) return;
+    if (!window.confirm('Delete this task? This cannot be undone.')) return;
     try {
       await deleteDigitalTask(id);
       setTasks(prev => prev.filter(t => t.id !== id));
@@ -358,7 +366,8 @@ export const DigitalTasks: React.FC = () => {
                       </div>
                       <button
                         onClick={() => handleToggleStatus(t)}
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border cursor-pointer transition-colors ${
+                        disabled={t.status === 'Done'}
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border transition-colors ${t.status === 'Done' ? 'cursor-default' : 'cursor-pointer'} ${
                           t.status === 'Done'
                             ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                             : t.status === 'In Progress'
@@ -402,7 +411,13 @@ export const DigitalTasks: React.FC = () => {
 
                       <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[11px]">
                         <span className="text-slate-400 font-semibold flex items-center gap-1">
-                          <Calendar className="w-3.5 h-3.5" /> Target Date:
+                          <Calendar className="w-3.5 h-3.5" /> Assigned Date:
+                        </span>
+                        <span className="font-mono font-bold text-slate-700">{fmtDay(t.assigned_at || t.created_at)}</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[11px]">
+                        <span className="text-slate-400 font-semibold flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5" /> Target / Due Date:
                         </span>
                         <span className="font-mono font-bold text-slate-700">{t.due_date || 'Ongoing'}</span>
                       </div>
@@ -411,14 +426,18 @@ export const DigitalTasks: React.FC = () => {
 
                   {/* Card Action Footer */}
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 text-xs font-bold"
-                      onClick={() => handleToggleStatus(t)}
-                    >
-                      {isDone ? 'Reopen Task' : t.status === 'In Progress' ? 'Send for review' : t.status === 'In Review' ? 'Mark Done' : 'Start Task'}
-                    </Button>
+                    {isDone ? (
+                      <div className="flex-1 h-8 inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold"><CheckCircle2 className="w-3.5 h-3.5" /> Completed</div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 text-xs font-bold"
+                        onClick={() => handleToggleStatus(t)}
+                      >
+                        {t.status === 'In Progress' ? 'Send for review' : t.status === 'In Review' ? 'Mark Done' : 'Start Task'}
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"

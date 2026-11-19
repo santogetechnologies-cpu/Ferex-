@@ -207,6 +207,7 @@ export const DigitalLeads: React.FC = () => {
   const handleConvertLead = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!convertLead) return;
+    if (convertForm.startDate && convertForm.deadline && convertForm.deadline < convertForm.startDate) { showToast('The deadline cannot be before the start date.'); return; }
 
     try {
       await convertDigitalLead(convertLead.id, {

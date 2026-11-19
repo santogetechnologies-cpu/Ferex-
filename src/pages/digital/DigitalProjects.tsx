@@ -26,6 +26,8 @@ import {
   type DigitalProjectStage,
   type DigitalDeliverable
 } from '../../lib/api/digital';
+import { isDigitalLead } from '../../lib/api/staff';
+import { ProjectMilestones } from './ProjectMilestones';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDigitalPermissions } from '../../hooks/usePermissions';
 import { getMasters } from '../../lib/api/masters';
@@ -47,6 +49,8 @@ export const DigitalProjects: React.FC = () => {
   const [projects, setProjects] = useState<DigitalProjectRecord[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [staffList, setStaffList] = useState<any[]>([]);
+  // Only Account Managers and Project Leads can own a project.
+  const [leadList, setLeadList] = useState<any[]>([]);
   const [stages, setStages] = useState<string[]>(DEFAULT_STAGES);
   const [serviceCategories, setServiceCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,6 +141,7 @@ export const DigitalProjects: React.FC = () => {
       // Only real team members with a login can be assigned work.
       const staff = (realStaff || []).filter((m: any) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m.id || ''));
       setStaffList(staff);
+      setLeadList(staff.filter(isDigitalLead));
 
       if (masterStages && masterStages.length > 0) setStages(masterStages);
       if (categories && categories.length > 0) setServiceCategories(categories);
@@ -243,8 +248,9 @@ export const DigitalProjects: React.FC = () => {
     if (!newProj.title.trim()) { showToast('Enter the project title.'); return; }
     const selectedClient = clients.find(c => c.id === newProj.client_id);
     if (!selectedClient) { showToast('Select the client this project is for.'); return; }
-    const staff = staffList.find(s => s.id === newProj.assigned_staff_id);
+    const staff = leadList.find(s => s.id === newProj.assigned_staff_id);
     if (!staff) { showToast('Choose the team member who will lead this project.'); return; }
+    if (newProj.start_date && newProj.deadline && newProj.deadline < newProj.start_date) { showToast('The deadline cannot be before the start date.'); return; }
     const budgetVal = Number(newProj.budget);
     if (!(budgetVal > 0)) { showToast('Enter the project budget.'); return; }
     if (!/^[A-Za-z]{2}$/.test(newProj.country)) { showToast('Enter the 2-letter country code used for billing (for example IN, US, AE).'); return; }
@@ -375,7 +381,7 @@ export const DigitalProjects: React.FC = () => {
   const handleConfirmReassign = async () => {
     if (!reassignProject || !reassignStaffName) return;
     try {
-      const staffMember = staffList.find(s => s.id === reassignStaffName);
+      const staffMember = leadList.find(s => s.id === reassignStaffName);
       if (!staffMember) { showToast('Choose a team member from the list.'); return; }
       await reassignDigitalProject(reassignProject.id, staffMember.name, staffMember.email, staffMember.id);
       showToast(`Reassigned "${reassignProject.title}" to ${staffMember.name}`);
@@ -982,6 +988,8 @@ export const DigitalProjects: React.FC = () => {
                 )}
               </div>
 
+              <ProjectMilestones projectId={selectedProject.id} projectTitle={selectedProject.title} canEdit={Boolean(isAdmin || isCentral)} toast={showToast} />
+
               {/* Attached Deliverables Hub */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -1550,7 +1558,7 @@ export const DigitalProjects: React.FC = () => {
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   >
                     <option value="">-- Choose team member --</option>
-                    {staffList.map((s: any) => (
+                    {leadList.map((s: any) => (
                       <option key={s.id} value={s.id}>
                         {s.name} ({s.roleLabel || s.role || 'Account Manager'}) · {s.email}
                       </option>
@@ -1755,7 +1763,7 @@ export const DigitalProjects: React.FC = () => {
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   >
                     <option value="">-- Choose Staff Member --</option>
-                    {staffList.map((s: any) => (
+                    {leadList.map((s: any) => (
                       <option key={s.id} value={s.id}>
                         {s.name} ({s.roleLabel || s.role || 'Project Lead'}) - {s.email}
                       </option>

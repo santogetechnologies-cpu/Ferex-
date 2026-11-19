@@ -143,6 +143,7 @@ export const DigitalExpenses: React.FC = () => {
   };
 
   const handleDeleteExpense = async (id: string) => {
+    if (!window.confirm('Remove this expense entry? This cannot be undone.')) return;
     try {
       await deleteDigitalExpense(id);
       setExpenses(prev => prev.filter(e => e.id !== id));
@@ -153,6 +154,7 @@ export const DigitalExpenses: React.FC = () => {
   };
 
   const handleDeleteAsset = async (id: string) => {
+    if (!window.confirm('Remove this asset or licence? This cannot be undone.')) return;
     try {
       await deleteDigitalAsset(id);
       setAssets(prev => prev.filter(a => a.id !== id));

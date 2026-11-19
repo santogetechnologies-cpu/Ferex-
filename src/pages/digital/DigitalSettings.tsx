@@ -46,6 +46,7 @@ function ListEditor({ type, title, hint, onError, onDone }: { type: string; titl
   };
   const remove = async (v: string) => {
     if (values.length <= 1) { onError('Keep at least one value in the list'); return; }
+    if (!window.confirm(`Remove "${v}" from ${title}? Existing records keep it; new records cannot use it.`)) return;
     setBusy(true);
     try { setValues(await deleteMaster('digital', type, v)); onDone(`${title}: removed "${v}"`); }
     catch (err: any) { onError(err.message || 'Could not save'); } finally { setBusy(false); }
