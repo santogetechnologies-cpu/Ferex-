@@ -4,7 +4,8 @@ import {
 } from 'lucide-react';
 import { useDocuments } from '../../hooks/useDocuments';
 import { useApplications } from '../../hooks/useApplications';
-import { createNawaRecord } from '../../lib/api/nawa';
+import { ensureLegalizationFile } from '../../lib/api/legalization';
+import { getWorkflowForCountry } from '../../lib/api/countryWorkflows';
 import { getStudents } from '../../lib/api/students';
 import { getAllDocumentRequirements, calculateDossierStatus, type DocumentRequirement } from '../../lib/api/documentRequirements';
 import { ToastNotification } from '../../components/ToastNotification';
@@ -122,7 +123,17 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
       await changeStatus(d.id, 'Approved', '', user?.id);
       const sid = d.student_id;
       try {
-        await createNawaRecord({ student_id: sid, student_name: students[sid]?.full_name || 'Student', document_type: d.doc_type || d.file_name, notes: 'Document verified. Legalization and admission can start.' });
+        // One legalization file per student, for the country they applied to (not one per approved document, and not always Poland).
+        const country = countryOf(sid);
+        if (country) {
+          const wf = getWorkflowForCountry(country);
+          await ensureLegalizationFile({
+            student_id: sid, student_name: students[sid]?.full_name || 'Student', student_email: students[sid]?.email,
+            country, authority: wf?.authority_name, authority_acronym: wf?.authority_acronym,
+            document_type: `${country} - Academic Diploma & Transcripts${wf?.authority_acronym ? ` (${wf.authority_acronym})` : ''}`,
+            notes: 'Documents verified. Legalization and admission can start.',
+          });
+        }
         const { setStudentStageStatus } = await import('../../lib/api/journey');
         await setStudentStageStatus(sid, 4, 'Completed');
         await setStudentStageStatus(sid, 5, 'In Progress');

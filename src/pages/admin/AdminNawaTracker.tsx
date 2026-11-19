@@ -7,6 +7,7 @@ import {
   FileText, Stamp, Globe, Edit2, ArrowRight, GraduationCap, XCircle
 } from 'lucide-react';
 import { getStudents } from '../../lib/api/students';
+import { getApplications } from '../../lib/api/applications';
 import {
   getNawaRecords, createNawaRecord, updateNawaStep, deleteNawaRecord
 } from '../../lib/api/nawa';
@@ -53,6 +54,8 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
   const [records, setRecords] = useState<NawaRecord[]>([]);
   const [students, setStudents] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [apps, setApps] = useState<any[]>([]);
+  const [starting, setStarting] = useState('');
   const [search, setSearch] = useState('');
   const [countryFilter, setCountryFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -121,9 +124,10 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
   const loadData = async () => {
     setLoading(true);
     try {
-      const [recs, stds] = await Promise.all([getNawaRecords(), getStudents()]);
+      const [recs, stds, appList] = await Promise.all([getNawaRecords(), getStudents(), getApplications().catch(() => [])]);
       setRecords(recs);
       setStudents(stds);
+      setApps(appList || []);
     } catch (e) {
       console.warn('Load Legalization data error:', e);
     } finally {
@@ -138,8 +142,10 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
   }, []);
 
   const handleOpenAddModal = () => {
-    setSelectedStudentId(students[0]?.id || '');
-    setSelectedTargetCountry(workflows.find(w => w.is_active && w.stages.length > 0)?.country || '');
+    const first = (waiting[0]?.s.id) || scopedStudents[0]?.id || students[0]?.id || '';
+    setSelectedStudentId(first);
+    const applied = first ? appliedCountry(first) : '';
+    setSelectedTargetCountry((applied && findWorkflow(applied)?.country) || workflows.find(w => w.is_active && w.stages.length > 0)?.country || '');
     setNawaRefNo('');
     setDocumentType('Academic Diploma & Transcripts');
     setNotes('');
@@ -166,6 +172,9 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
         student_name: studentObj?.full_name || studentObj?.email?.split('@')[0] || 'Student',
         student_email: studentObj?.email,
         nawa_ref_no: autoRef,
+        country: selectedTargetCountry,
+        authority: targetWorkflow?.authority_name,
+        authority_acronym: targetWorkflow?.authority_acronym,
         document_type: `${selectedTargetCountry} - ${documentType} (${targetWorkflow?.authority_acronym || 'Legalization'})`,
         notes: notes.trim() || `Initiated ${targetWorkflow?.authority_name || 'Legalization'} legalization and document audit.`,
       });
@@ -387,15 +396,6 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
   };
 
   // Helper to extract student country
-  const resolveStudentCountry = (record: NawaRecord): string => {
-    for (const wf of workflows) {
-      if (record.document_type.toLowerCase().includes(wf.country.toLowerCase()) || record.document_type.toLowerCase().includes(wf.authority_acronym.toLowerCase())) {
-        return wf.country;
-      }
-    }
-    return 'Poland';
-  };
-
   const scopedStudents = React.useMemo(() => {
     if (!isStaff) return students;
     return students.filter(s => {
@@ -403,6 +403,47 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
       return Boolean(ac && ((counselorEmail && ac.includes(counselorEmail)) || (counselorName && ac.includes(counselorName))));
     });
   }, [students, isStaff, counselorEmail, counselorName]);
+
+  // A file belongs to the country it was opened for. Older files without one fall back to the wording on the file.
+  const resolveStudentCountry = (record: NawaRecord): string => {
+    const own = (record.country || '').trim();
+    if (own && workflows.some(w => w.country.toLowerCase() === own.toLowerCase())) return workflows.find(w => w.country.toLowerCase() === own.toLowerCase())!.country;
+    for (const wf of workflows) {
+      if (record.document_type.toLowerCase().includes(wf.country.toLowerCase()) || record.document_type.toLowerCase().includes(wf.authority_acronym.toLowerCase())) {
+        return wf.country;
+      }
+    }
+    return own || 'Poland';
+  };
+
+  /** The country a student applied to: their chosen destination, else the country of their university application. */
+  const appliedCountry = (studentId: string): string => {
+    const s: any = students.find(x => x.id === studentId);
+    const saved = String(s?.target_country || s?.destination_country || '').trim();
+    if (saved && saved.toLowerCase() !== 'not set') return saved;
+    const a: any = apps.find(x => x.student_id === studentId);
+    return String(a?.universities?.country || a?.country || '').trim();
+  };
+  const findWorkflow = (country: string) => savedWorkflows.find(w => w.is_active && w.stages.length > 0 && w.country.toLowerCase() === country.toLowerCase());
+
+  // Students who applied to a country that has a legalization process but have no file for it yet.
+  const waiting = React.useMemo(() => scopedStudents.map(s => ({ s, country: appliedCountry(s.id) }))
+    .filter(x => x.country && findWorkflow(x.country) && !records.some(r => r.student_id === x.s.id && resolveStudentCountry(r).toLowerCase() === x.country.toLowerCase())),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [scopedStudents, apps, records, savedWorkflows]);
+
+  const startFor = async (studentId: string, country: string) => {
+    const s: any = students.find(x => x.id === studentId); const wf = findWorkflow(country);
+    if (!s || !wf) return;
+    setStarting(studentId);
+    try {
+      const rec = await createNawaRecord({ student_id: studentId, student_name: s.full_name || s.email?.split('@')[0] || 'Student', student_email: s.email, country, authority: wf.authority_name, authority_acronym: wf.authority_acronym,
+        document_type: `${country} - Academic Diploma & Transcripts (${wf.authority_acronym})`, notes: `Initiated ${wf.authority_name} legalization for the ${country} application.` });
+      setRecords(prev => [rec, ...prev]);
+      showToast(`${rec.student_name}: ${wf.authority_acronym} legalization started for ${country}.`);
+    } catch (e: any) { showToast(e.message || 'Could not start legalization.'); } finally { setStarting(''); }
+  };
+
 
   const scopedRecords = React.useMemo(() => {
     if (!isStaff) return records;
@@ -527,6 +568,19 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
               </button>
             </div>
           </div>
+
+          {waiting.length > 0 && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 space-y-2" role="region" aria-label="Applied, not in the legalization queue yet">
+              <p className="text-xs font-black text-amber-900">Applied to a country with legalization, not started yet ({waiting.length})</p>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {waiting.map(({ s, country }) => (
+                  <div key={`${s.id}-${country}`} className="bg-white border border-amber-100 rounded-xl px-3 py-2 flex items-center justify-between gap-2">
+                    <div className="min-w-0"><p className="text-xs font-bold text-slate-900 truncate">{s.full_name || s.email}</p><p className="text-[11px] font-semibold text-slate-500">{country} · {findWorkflow(country)?.authority_acronym}</p></div>
+                    <button type="button" disabled={starting === s.id} onClick={() => void startFor(s.id, country)} className="shrink-0 px-2.5 py-1 rounded-lg bg-[#5A0122] text-white text-[11px] font-bold cursor-pointer disabled:opacity-50">Start</button>
+                  </div>))}
+              </div>
+            </div>
+          )}
 
           {/* Records Table / Cards */}
           {loading ? (
@@ -809,11 +863,11 @@ export const AdminNawaTracker: React.FC<{ isStaff?: boolean }> = ({ isStaff = fa
                   <select
                     required
                     value={selectedStudentId}
-                    onChange={(e) => setSelectedStudentId(e.target.value)}
+                    onChange={(e) => { setSelectedStudentId(e.target.value); const applied = appliedCountry(e.target.value); const wf = applied ? findWorkflow(applied) : undefined; if (wf) setSelectedTargetCountry(wf.country); }}
                     className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer"
                   >
-                    {students.map(s => (
-                      <option key={s.id} value={s.id}>{s.full_name || s.email} ({s.email})</option>
+                    {scopedStudents.map(s => (
+                      <option key={s.id} value={s.id}>{s.full_name || s.email} ({s.email}){appliedCountry(s.id) ? ` · applied: ${appliedCountry(s.id)}` : ''}</option>
                     ))}
                   </select>
                 </div>
