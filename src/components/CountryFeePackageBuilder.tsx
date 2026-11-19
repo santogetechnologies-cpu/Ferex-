@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { GstField } from './GstField';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Trash2, Globe, Save, Edit2, CheckCircle2, XCircle,
@@ -420,9 +419,28 @@ export function CountryFeePackageBuilder() {
                             )}
                           </div>
                           <div>
+                            <label className={lbl}>GST</label>
+                            {editing ? (() => { const g = p.gst ?? { enabled: (p.tax_rate_percent ?? 0) > 0, rate: p.tax_rate_percent || 18, mode: 'inclusive' as const };
+                              const set = (u: Partial<typeof g>) => { const n = { ...g, ...u }; handleDraftChange({ gst: n, tax_rate_percent: n.enabled ? n.rate : 0 }); };
+                              return (
+                              <div className="space-y-2">
+                                <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer select-none">
+                                  <input type="checkbox" aria-label="Enable GST" checked={g.enabled} onChange={e => set({ enabled: e.target.checked })} className="w-4 h-4 rounded text-[#5A0122] border-slate-300 cursor-pointer" /> Charge GST on this package
+                                </label>
+                                {g.enabled && <div className="flex gap-2">
+                                  <input type="number" min="0" max="100" aria-label="GST percentage" className={`${inp} w-20`} value={g.rate} onChange={e => set({ rate: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)) })} />
+                                  <select aria-label="GST mode" className={inp} value={g.mode} onChange={e => set({ mode: e.target.value as 'inclusive' | 'exclusive' })}>
+                                    <option value="inclusive">Inclusive (in the price)</option><option value="exclusive">Exclusive (added on top)</option>
+                                  </select>
+                                </div>}
+                              </div>); })()
+                              : <p className="text-xs font-bold text-slate-700">{p.gst ? (p.gst.enabled ? `${p.gst.rate}% ${p.gst.mode}` : 'Disabled') : (p.tax_rate_percent ?? 0) > 0 ? `${p.tax_rate_percent}% included` : 'Disabled'}</p>}
+                          </div>
+                          <div>
+                            <label className={lbl}>Specialization</label>
                             {editing
-                              ? <GstField label="GST included in this package" value={p.tax_rate_percent ?? 0} onChange={rate => handleDraftChange({ tax_rate_percent: rate })} />
-                              : <><label className={lbl}>GST</label><p className="text-xs font-bold text-slate-700">{(p.tax_rate_percent ?? 0) > 0 ? `${p.tax_rate_percent}% (CGST ${(p.tax_rate_percent ?? 0) / 2}% + SGST ${(p.tax_rate_percent ?? 0) / 2}%)` : 'No GST'}</p></>}
+                              ? <input className={inp} aria-label="Specialization" value={p.specialization || ''} onChange={e => handleDraftChange({ specialization: e.target.value })} placeholder="e.g. Engineering, Concierge" />
+                              : <p className="text-xs font-bold text-slate-800">{p.specialization || '—'}</p>}
                           </div>
                           <div>
                             <label className={lbl}>Registration fee for this plan</label>
@@ -475,6 +493,28 @@ export function CountryFeePackageBuilder() {
                             ) : (
                               <p className="text-xs text-slate-600">{p.description}</p>
                             )}
+                          </div>
+                        </div>
+
+                        {/* ── Benefits, deliverables, milestones ── */}
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          {([['benefits', 'Benefits'], ['deliverables', 'Deliverables']] as const).map(([key, label]) => (
+                            <div key={key}>
+                              <label className={lbl}>{label} (one per line)</label>
+                              {editing
+                                ? <textarea className={`${inp} h-auto py-2`} rows={4} aria-label={label} value={(p[key] || []).join('\n')} onChange={e => handleDraftChange({ [key]: e.target.value.split('\n') } as Partial<CountryFeePackage>)} />
+                                : <ul className="text-xs text-slate-700 list-disc pl-4 space-y-0.5">{(p[key] || []).filter(Boolean).map((x, i) => <li key={i}>{x}</li>)}{!(p[key] || []).filter(Boolean).length && <li className="list-none -ml-4 text-slate-400">—</li>}</ul>}
+                            </div>
+                          ))}
+                          <div className="sm:col-span-2">
+                            <label className={lbl}>Journey milestones</label>
+                            <div className="flex flex-wrap gap-1.5">
+                              {JOURNEY_STAGES.map((st, i) => { const on = (p.milestones || []).some(m => m.stage === i + 1);
+                                return editing
+                                  ? <button type="button" key={st} aria-pressed={on} onClick={() => handleDraftChange({ milestones: on ? (p.milestones || []).filter(m => m.stage !== i + 1) : [...(p.milestones || []), { id: `m${i + 1}`, title: st, stage: i + 1 }].sort((x, y) => x.stage - y.stage) })} className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${on ? 'bg-[#5A0122] text-white border-[#5A0122]' : 'bg-white text-slate-500 border-slate-200'}`}>{st}</button>
+                                  : on ? <span key={st} className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#5A0122]/10 text-[#5A0122]">{st}</span> : null; })}
+                              {!editing && !(p.milestones || []).length && <span className="text-xs text-slate-400">—</span>}
+                            </div>
                           </div>
                         </div>
 
@@ -560,11 +600,12 @@ export function CountryFeePackageBuilder() {
                           {editing && draft && (
                             (() => {
                               const instTotal = draft.installments.reduce((s, i) => s + (i.amount || 0), 0);
-                              const diff = draft.total_amount - instTotal;
+                              const regSeparate = draft.registration_fee.included !== false && draft.registration_fee.enabled && draft.registration_fee.amount > 0 ? draft.registration_fee.amount : 0;
+                              const diff = draft.total_amount - regSeparate - instTotal;
                               return (
                                 <div className={`mb-3 p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 ${Math.abs(diff) < 1 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200'}`}>
                                   {Math.abs(diff) < 1
-                                    ? <><CheckCircle2 className="w-3.5 h-3.5" /> Installments balance matches total package price ({money(draft.total_amount, draft.currency)})</>
+                                    ? <><CheckCircle2 className="w-3.5 h-3.5" /> Installments balance matches the package price{regSeparate ? ` after the ${money(regSeparate, draft.currency)} registration` : ''} ({money(draft.total_amount - regSeparate, draft.currency)})</>
                                     : <><AlertCircle className="w-3.5 h-3.5" /> Installment totals ({money(instTotal, draft.currency)}) {diff > 0 ? `under` : `over`} by {money(Math.abs(diff), draft.currency)} vs package price</>
                                   }
                                 </div>
@@ -637,6 +678,12 @@ export function CountryFeePackageBuilder() {
                                     ) : (
                                       <p className="text-xs font-bold text-slate-700">{inst.timing === 'before' ? 'Before' : 'After'} Stage</p>
                                     )}
+                                  </div>
+                                  <div>
+                                    <label className={lbl}>Due Date</label>
+                                    {editing
+                                      ? <input type="date" aria-label="Instalment due date" className={inp} value={inst.due_date || ''} onChange={e => handleInstallmentChange(inst.id, 'due_date', e.target.value)} />
+                                      : <p className="text-[11px] text-slate-500">{inst.due_date || '—'}</p>}
                                   </div>
                                   <div>
                                     <label className={lbl}>Due Description</label>

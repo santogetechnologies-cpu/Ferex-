@@ -78,3 +78,28 @@ test('installments with no amount are not billed', () => {
   const withBlank = { ...pkg({ enabled: false, amount: 0 }), installments: [{ id: 'i1', title: 'Deposit', amount: 20000, timing: 'after', stage_trigger: 2 }, { id: 'i2', title: 'New Payment Milestone', amount: 0, timing: 'before', stage_trigger: 3 }] } as any;
   assert.deepEqual(packageFees(withBlank, base).map(f => f.id), ['registration', 'pkg:p1:i1', 'vfs']);
 });
+
+import { packagePaymentStatus, payableAmount } from '../src/lib/educationBilling.ts';
+
+const polandPlus = (mode: 'inclusive' | 'exclusive', enabled = true) => ({ id: 'pp', currency: 'INR', name: 'Poland Plus', registration_fee: { enabled: true, amount: 10000, included: true }, gst: { enabled, rate: 18, mode },
+  installments: [{ id: 'i1', title: 'One', amount: 22500, stage_trigger: 5, timing: 'before' }, { id: 'i2', title: 'Two', amount: 22499, stage_trigger: 9, timing: 'before' }] }) as any;
+
+test('GST: inclusive keeps the price, exclusive adds tax on top, disabled adds nothing', () => {
+  assert.deepEqual(packageFees(polandPlus('inclusive'), base).map(f => f.amount).slice(0, 3), [10000, 22500, 22499]);
+  assert.deepEqual(packageFees(polandPlus('exclusive'), base).map(f => f.amount).slice(0, 3), [11800, 26550, 26548.82]);
+  assert.equal(packageFees(polandPlus('exclusive', false), base)[0].amount, 10000);
+  assert.equal(packageFees(polandPlus('inclusive'), base)[1].tax_rate_percent, 18);
+  assert.equal(packageFees(polandPlus('inclusive', false), base)[1].tax_rate_percent, 0);
+  assert.equal(payableAmount({ gst: { enabled: true, rate: 18, mode: 'exclusive' } }, 100), 118);
+});
+
+test('payment status runs from registration pending to completed and refunds', () => {
+  const fees = packageFees(polandPlus('inclusive'), base).filter(f => f.recipient === 'ferex');
+  const pay = (f: any, status = 'Paid') => ({ id: f.id + status, payment_type: `education:${f.id}`, title: f.title, amount: f.amount, currency: 'INR', status }) as any;
+  assert.equal(packagePaymentStatus(fees, []), 'Registration Pending');
+  assert.equal(packagePaymentStatus(fees, [pay(fees[0])]), 'Registration Paid');
+  assert.equal(packagePaymentStatus(fees, [pay(fees[0]), pay(fees[1])]), 'Partially Paid');
+  assert.equal(packagePaymentStatus(fees, fees.map(f => pay(f))), 'Payment Completed');
+  assert.equal(packagePaymentStatus(fees, [pay(fees[0], 'Refund Initiated')]), 'Refund Initiated');
+  assert.equal(packagePaymentStatus(fees, [pay(fees[0], 'Refunded')]), 'Refunded');
+});

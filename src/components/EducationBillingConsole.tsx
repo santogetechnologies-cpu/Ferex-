@@ -1,3 +1,5 @@
+import { PackageTags } from './PackageTags';
+import { packagePaymentStatus, payableAmount } from '../lib/educationBilling';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -666,6 +668,10 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                       <p className="text-xs text-slate-600 mt-1">
                         {activePackage.description}
                       </p>
+                      <div className="mt-2"><PackageTags country={activePackage.country} pkg={activePackage} status={packagePaymentStatus(fees.filter(f => f.recipient === 'ferex'), payments)} /></div>
+                      {!!activePackage.benefits?.filter(Boolean).length && <p className="text-[11px] text-slate-600 mt-2"><b>Benefits:</b> {activePackage.benefits.filter(Boolean).join(' · ')}</p>}
+                      {!!activePackage.deliverables?.filter(Boolean).length && <p className="text-[11px] text-slate-600 mt-1"><b>Deliverables:</b> {activePackage.deliverables.filter(Boolean).join(' · ')}</p>}
+                      {activePackage.gst && <p className="text-[11px] text-slate-500 mt-1">{activePackage.gst.enabled ? `GST ${activePackage.gst.rate}% ${activePackage.gst.mode === 'exclusive' ? 'added on top of the amounts below' : 'included in the price'}` : 'GST not applicable'}</p>}
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-xl font-black text-[#5A0122]">
@@ -720,12 +726,12 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                                 Installment {idx + 1}
                               </span>
                               <span className="text-sm font-black text-slate-900">
-                                {pkgMoney(inst.amount, activePackage.currency)}
+                                {pkgMoney(payableAmount(activePackage, inst.amount), activePackage.currency)}
                               </span>
                             </div>
                             <p className="text-xs font-extrabold text-slate-800">{inst.title}</p>
                             <p className="text-[11px] text-slate-500 font-semibold">
-                              {inst.due_description || `${inst.timing === 'before' ? 'Before' : 'After'} Stage ${inst.stage_trigger}`}
+                              {inst.due_date ? `Due ${new Date(inst.due_date).toLocaleDateString('en-GB')} · ` : ''}{inst.due_description || `${inst.timing === 'before' ? 'Before' : 'After'} Stage ${inst.stage_trigger}`}
                             </p>
                           </div>
                         ))}

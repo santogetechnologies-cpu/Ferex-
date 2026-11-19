@@ -18,7 +18,12 @@ export interface FeePackageInstallment {
   due_description?: string;
   /** GST (or other tax) included in this instalment. Falls back to the package rate. */
   tax_rate_percent?: number;
+  /** ISO date (YYYY-MM-DD) the instalment is due, if fixed. */
+  due_date?: string;
 }
+
+export interface FeePackageGst { enabled: boolean; rate: number; mode: 'inclusive' | 'exclusive' }
+export interface FeePackageMilestone { id: string; title: string; stage: number; description?: string }
 
 export interface CountryFeePackage {
   id: string;
@@ -38,6 +43,14 @@ export interface CountryFeePackage {
   /** Tax included in the package prices, e.g. 18 = CGST 9% + SGST 9%. */
   tax_rate_percent?: number;
   terms_note?: string;
+  /** Short label such as "End-to-End Concierge", shown as a tag next to the package. */
+  specialization?: string;
+  benefits?: string[];
+  deliverables?: string[];
+  /** GST setting. Absent on older packages, which keep using `tax_rate_percent` as tax included in the price. */
+  gst?: FeePackageGst;
+  /** Journey milestones the package promises, shown to the student. */
+  milestones?: FeePackageMilestone[];
   created_at: string;
   updated_at: string;
 }
@@ -203,8 +216,13 @@ export function createBlankPackage(country: string): CountryFeePackage {
     currency: ['Germany', 'France', 'Poland', 'Hungary'].includes(country) ? 'INR' : 'INR',
     covered_services: getDefaultServices(country),
     installments: getDefaultInstallments(50000, 'INR'),
-    registration_fee: { enabled: false, amount: 0, included: true },
+    registration_fee: { enabled: true, amount: 0, included: true },
     tax_rate_percent: 18,
+    specialization: '',
+    benefits: [],
+    deliverables: [],
+    gst: { enabled: true, rate: 18, mode: 'inclusive' },
+    milestones: [],
     terms_note: 'Package fees are non-refundable once legalization or visa processes are initiated. FEREX acts as the authorized admissions representative for all services listed.',
     created_at: now,
     updated_at: now,

@@ -8,8 +8,9 @@ import { getStudents } from '../lib/api/students';
 import { getApplications, isRealApplication } from '../lib/api/applications';
 import { listEducationPayments, recordEducationPayment, reviewEducationPayment } from '../lib/api/educationBilling';
 import { getCountryFeePackages, getBillingAssignments, getStudentFeeCountry, type CountryFeePackage, type StudentBillingAssignment } from '../lib/api/feePackages';
-import { getStudentFeeOverrides, type StudentFeeOverride } from '../lib/api/payments';
-import { studentFees, feeBalance, resolveStudentPackage, isDirectFee, directFeeMessage, educationStages, money, type EducationFee, type PaymentPart } from '../lib/educationBilling';
+import { getStudentFeeOverrides, initiateRefund, issueRefund, type StudentFeeOverride } from '../lib/api/payments';
+import { PackageTags } from './PackageTags';
+import { studentFees, feeBalance, packagePaymentStatus, resolveStudentPackage, isDirectFee, directFeeMessage, educationStages, money, type EducationFee, type PaymentPart } from '../lib/educationBilling';
 import type { Application, Payment, UserProfile } from '../lib/types';
 import { PageHeader, EmptyState, Skeleton } from './Kit';
 import { supabase } from '../lib/supabase';
@@ -71,7 +72,7 @@ export function EducationPaymentsAdmin() {
     const regPaid = reg ? feeBalance(reg, mine).remaining === 0 : true;
     const toVerify = mine.filter(p => p.status === 'Pending Verification').length;
     const lastPay = mine.reduce((m, p) => { const d = p.paid_at || p.created_at || ''; return d > m ? d : m; }, '');
-    return { s, flow, pkg, country: countryOf(s), left, regPaid, toVerify, lastPay, hasDue: Object.keys(left).length > 0 };
+    return { s, flow, pkg, status: flow === 'pending' ? undefined : packagePaymentStatus(fees, mine), country: countryOf(s), left, regPaid, toVerify, lastPay, hasDue: Object.keys(left).length > 0 };
   }), [students, plans, payments, packages, config, countryOf]);
 
   const counts = useMemo(() => ({ all: rows.length, unconfirmed: rows.filter(r => r.flow === 'pending').length, verify: rows.filter(r => r.toVerify > 0).length, due: rows.filter(r => r.hasDue).length }), [rows]);
@@ -113,11 +114,7 @@ export function EducationPaymentsAdmin() {
                     <span className="text-sm font-semibold text-slate-900 truncate">{r.s.full_name || r.s.email}</span>
                     {r.toVerify > 0 && <span className="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">{r.toVerify} to verify</span>}
                   </span>
-                  <span className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
-                    <span className="truncate">{r.country || 'No country'}</span>
-                    <span aria-hidden>·</span>
-                    <span className={r.flow === 'pending' ? 'text-amber-700 font-medium' : ''}>{r.flow === 'pending' ? 'Plan not confirmed' : r.flow === 'normal' ? 'Normal flow' : r.pkg?.name || 'Package'}</span>
-                  </span>
+                  <span className="mt-1 block"><PackageTags country={r.country || undefined} pkg={r.pkg} flow={r.flow === 'package' ? undefined : r.flow} status={r.status} /></span>
                   <span className="mt-0.5 block text-xs text-slate-500">
                     {r.regPaid ? 'Registration paid' : 'Registration not paid'}{Object.entries(r.left).map(([c, v]) => ` · ${money(v, c)} left`).join('')}
                   </span>
@@ -169,6 +166,14 @@ function StudentPanel({ student, country, flow, pkg, payments, application, conf
   const toVerify = payments.filter(p => p.status === 'Pending Verification');
   const history = payments.filter(p => p.status !== 'Pending Verification');
 
+  const refund = async (p: Payment, step: 'start' | 'complete') => {
+    const reason = step === 'start' ? (window.prompt('Why is this payment being refunded?') || '').trim() : String(p.reviewer_notes || '').replace('[REFUND INITIATED]', '').trim() || 'Refund';
+    if (!reason) return;
+    if (step === 'complete' && !window.confirm(`Complete the refund of ${money(Number(p.amount), p.currency || 'INR')}? A credit note is issued.`)) return;
+    setBusy(p.id); setErr('');
+    try { if (step === 'start') await initiateRefund(p.id, reason); else await issueRefund(p.id, Number(p.amount), reason); onChanged(step === 'start' ? 'Refund initiated' : 'Refund completed'); await onReload(); } catch (e: any) { setErr(e.message); } finally { setBusy(''); }
+  };
+
   const review = async (p: Payment, approve: boolean) => {
     let notes = '';
     if (!approve) { notes = window.prompt('Why is this payment being rejected? The student will see this.') || ''; if (!notes.trim()) return; }
@@ -188,6 +193,7 @@ function StudentPanel({ student, country, flow, pkg, payments, application, conf
       <section className="rounded-2xl border border-slate-200/80 bg-white px-5 py-3.5 flex flex-wrap items-center justify-between gap-3" aria-label="Payment plan">
         <div className="min-w-0">
           <p className="text-sm font-bold text-slate-900">{flow === 'pending' ? 'Payment plan not confirmed' : flow === 'normal' ? 'Normal flow' : pkg?.name || 'Country package'}</p>
+          <div className="mt-1"><PackageTags country={destination || undefined} pkg={pkg} status={flow === 'pending' ? undefined : packagePaymentStatus(all.filter(f => !isDirectFee(f)), payments)} /></div>
           <p className="text-[11px] text-slate-500">{flow === 'pending' ? 'The student sees only the registration fee. Confirm a plan under Payment plans.' : `Discounts: ${Object.values(overrides).filter(o => (o.discount_percent ?? 0) > 0 || o.discount_amount > 0).length ? 'applied, already included in the amounts below' : 'none'}.`}</p>
         </div>
         <Link to={`/admin/payment-plans?student=${student.id}`} className="h-9 px-4 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 inline-flex items-center">Manage plan and discounts</Link>
@@ -278,7 +284,9 @@ function StudentPanel({ student, country, flow, pkg, payments, application, conf
             {history.map(p => (
               <li key={p.id} className="py-3 flex flex-wrap items-center justify-between gap-2 text-sm">
                 <div><span className="font-semibold text-slate-900">{p.title}</span><div className="text-xs text-slate-500">{p.payment_method} · ref {p.utr_number} · {new Date(p.created_at).toLocaleDateString('en-GB')}</div></div>
-                <div className="text-right"><div className="font-semibold tabular-nums">{money(Number(p.amount), p.currency || 'INR')}</div><div className={`text-xs font-medium ${['Paid', 'Verified'].includes(p.status) ? 'text-emerald-700' : 'text-rose-700'}`}>{p.status}</div></div>
+                <div className="text-right"><div className="font-semibold tabular-nums">{money(Number(p.amount), p.currency || 'INR')}</div><div className={`text-xs font-medium ${['Paid', 'Verified'].includes(p.status) ? 'text-emerald-700' : p.status === 'Refund Initiated' ? 'text-orange-700' : 'text-rose-700'}`}>{p.status}</div>
+                  {['Paid', 'Verified'].includes(p.status) && <button type="button" onClick={() => refund(p, 'start')} disabled={busy === p.id} className="mt-1 text-[11px] font-bold text-orange-700 hover:underline cursor-pointer">Initiate refund</button>}
+                  {p.status === 'Refund Initiated' && <button type="button" onClick={() => refund(p, 'complete')} disabled={busy === p.id} className="mt-1 text-[11px] font-bold text-slate-700 hover:underline cursor-pointer">Complete refund</button>}</div>
               </li>
             ))}
           </ul>

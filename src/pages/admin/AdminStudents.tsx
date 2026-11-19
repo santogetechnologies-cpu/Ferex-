@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { PackageTags } from '../../components/PackageTags';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, ShieldCheck, AlertCircle, Clock, FileText, Receipt, ExternalLink, Package, Layers , MapPin } from 'lucide-react';
@@ -261,6 +262,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
   // Billing Flow & Country Package State for View Drawer
   const [availableCountryPackages, setAvailableCountryPackages] = useState<CountryFeePackage[]>([]);
   const [studentBillingAssignment, setStudentBillingAssignment] = useState<StudentBillingAssignment | null>(null);
+  const [allPackages, setAllPackages] = useState<CountryFeePackage[]>([]);
   const [isUpdatingBillingFlow, setIsUpdatingBillingFlow] = useState(false);
 
   useEffect(() => {
@@ -270,6 +272,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
     }
     getStudentBillingAssignment(viewStudent.id).then(setStudentBillingAssignment);
     getCountryFeePackages().then(pkgs => {
+      setAllPackages(pkgs);
       const activeForCountry = pkgs.filter(p => p.is_active && p.country.toLowerCase().trim() === (viewStudent.targetCountry || '').toLowerCase().trim());
       setAvailableCountryPackages(activeForCountry.length > 0 ? activeForCountry : pkgs.filter(p => p.is_active));
     });
@@ -833,6 +836,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                   <div>
                     <h3 className="text-base font-extrabold text-slate-900">{viewStudent.name}</h3>
                     <p className="text-xs font-semibold text-slate-400">{viewStudent.email}</p>
+                    <div className="mt-1.5"><PackageTags country={viewStudent.targetCountry || undefined} flow={studentBillingAssignment?.flow_mode === 'package' ? undefined : (studentBillingAssignment?.flow_mode ?? 'pending')} pkg={studentBillingAssignment?.flow_mode === 'package' ? allPackages.find(x => x.id === studentBillingAssignment.package_id) : null} /></div>
                   </div>
                 </div>
                 <button onClick={() => setViewStudent(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>

@@ -462,6 +462,13 @@ export async function issueRefund(paymentId: string, refundAmount: number, reaso
   return creditNoteRow as unknown as CreditNote;
 }
 
+/** Starts a refund: the payment stays on record but no longer counts as paid until the refund is completed with issueRefund. */
+export async function initiateRefund(paymentId: string, reason: string): Promise<void> {
+  if (!reason.trim()) throw new Error('Enter the reason for the refund.');
+  const { error } = await supabase.from('payments').update({ status: 'Refund Initiated', reviewer_notes: `[REFUND INITIATED] ${reason.trim()}` }).eq('id', paymentId).in('status', ['Paid', 'Verified']);
+  if (error) throw new Error(`Could not start the refund: ${error.message}`);
+}
+
 // ─── ADMIN — mark partial payment ────────────────────────────────────────────
 export async function markPartialPayment(paymentId: string, partialAmount: number): Promise<void> {
   const { error } = await supabase.from('payments').update({
