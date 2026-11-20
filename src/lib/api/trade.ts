@@ -116,6 +116,8 @@ export interface TradeOrder {
   advance_percentage: number;
   advance_amount: number;
   advance_paid: number;
+  /** Payments recorded beyond the order value (0 when none). */
+  overpaid_by?: number;
   advance_status: 'Pending' | 'Paid';
   balance_amount: number;
   balance_paid: number;
@@ -556,8 +558,13 @@ export async function getTradeOrders(staffEmail?: string): Promise<TradeOrder[]>
     const mine = totals.get(o.order_no)?.get(o.currency || '') || { advance: 0, balance: 0 };
     // Paid amounts come from the recorded payments in the order's own currency, so a deleted or foreign-currency
     // payment can never leave the order showing the wrong balance.
-    const advancePaid = mine.advance;
-    const balancePaid = mine.balance;
+    // Payments beyond the order value (old duplicate entries) are never counted as collected: the paid amounts are capped
+    // at the order total and the excess is reported separately so it can be corrected or refunded.
+    const orderTotal = tnum(o.total_amount);
+    const received = mine.advance + mine.balance;
+    const advancePaid = Math.min(mine.advance, orderTotal);
+    const balancePaid = Math.min(mine.balance, Math.max(0, orderTotal - advancePaid));
+    const overpaidBy = Math.max(0, Math.round((received - orderTotal) * 100) / 100);
     const advanceAmount = tnum(o.advance_amount);
     const balanceAmount = tnum(o.balance_amount);
     return {
@@ -570,6 +577,7 @@ export async function getTradeOrders(staffEmail?: string): Promise<TradeOrder[]>
       balance_amount: balanceAmount,
       balance_paid: balancePaid,
       balance_status: (balanceAmount > 0 && balancePaid >= balanceAmount) || (tnum(o.total_amount) > 0 && advancePaid + balancePaid >= tnum(o.total_amount) - 0.005) ? 'Paid' : 'Pending',
+      overpaid_by: overpaidBy,
       stage_history: Array.isArray(o.stage_history) ? o.stage_history : [],
     } as TradeOrder;
   });

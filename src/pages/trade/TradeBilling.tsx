@@ -53,7 +53,7 @@ export const TradeBilling: React.FC = () => {
                   <td className="p-3 text-right tabular-nums">{money(o.advance_paid, o.currency)} / {money(o.advance_amount, o.currency)}</td>
                   <td className="p-3 text-right tabular-nums">{money(o.balance_paid, o.currency)} / {money(o.balance_amount, o.currency)}</td>
                   <td className="p-3 text-right tabular-nums font-black text-slate-900">{money(owed, o.currency)}</td>
-                  <td className="p-3"><span className={`px-2 py-0.5 rounded-full border text-[10px] font-extrabold ${tone(s)}`}>{s}</span></td>
+                  <td className="p-3"><span className={`px-2 py-0.5 rounded-full border text-[10px] font-extrabold ${tone(s)}`}>{s}</span>{!!o.overpaid_by && <span title="More was recorded than the order value. Review the duplicate payment entries under Payments." className="ml-1.5 px-2 py-0.5 rounded-full border border-rose-200 bg-rose-50 text-rose-700 text-[10px] font-extrabold">Over-recorded {money(o.overpaid_by, o.currency)}</span>}</td>
                   <td className="p-3 text-right whitespace-nowrap"><Link to="/trade/invoices" className="text-[11px] font-bold text-[#5A0122] hover:underline mr-3">Invoices</Link>{owed > 0 && <Link to="/trade/payments" className="text-[11px] font-bold text-[#5A0122] hover:underline">Record payment</Link>}</td></tr>); })}
             </tbody>
           </table>
