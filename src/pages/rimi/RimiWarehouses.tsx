@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { Warehouse, Search, Thermometer, MapPin, Plus, Trash2, Edit3, X, CheckCircle2, Phone, Shield, Package, Calendar, Clock, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '../../components/Card';
@@ -17,7 +18,7 @@ import {
   getRimiStockMovements,
   type RimiWarehouseRecord,
   type RimiInventoryBatchRecord,
-  palletsForUnits,
+  palletsForBatches,
   type RimiStockMovementRecord
 } from '../../lib/api/rimi';
 import { useRimiAccess } from '../../lib/rimiAccess';
@@ -78,6 +79,9 @@ export const RimiWarehouses: React.FC = () => {
       setLoading(false);
     }
   }, []);
+
+  useRealtimeTable('rimi_inventory_batches', loadData);
+  useRealtimeTable('rimi_warehouses', loadData);
 
   useEffect(() => {
     loadData();
@@ -299,6 +303,9 @@ export const RimiWarehouses: React.FC = () => {
                       <span>Pallet Occupancy:</span>
                       <span>{effectivePallets} / {totalCap} Pallets ({fmtPct(effectivePallets, totalCap)}%)</span>
                     </div>
+                    <div className="flex justify-between text-[11px] font-semibold text-slate-500">
+                      <span>Available pallets</span><span>{Math.max(0, totalCap - effectivePallets)}</span>
+                    </div>
                     <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all ${utilPct > 85 ? 'bg-rose-600' : 'bg-[#5A0122]'}`}
@@ -401,7 +408,7 @@ export const RimiWarehouses: React.FC = () => {
                 const hubMovements = movements.filter(m => m.warehouse_id === selectedFacility.id);
                 const nameOf = (id?: string) => hubBatches.find(b => b.product_id === id)?.product_name || 'Product';
                 const totalUnits = hubBatches.reduce((acc, b) => acc + Number(b.quantity || 0), 0);
-                const usedPallets = palletsForUnits(totalUnits);
+                const usedPallets = palletsForBatches(hubBatches.map(b => Number(b.quantity || 0)));
                 const uniqueSkus = new Set(hubBatches.map(b => b.product_name || b.product_id)).size;
 
                 const filteredStock = hubBatches.filter(b => {

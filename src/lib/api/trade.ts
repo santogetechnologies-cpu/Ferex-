@@ -1520,13 +1520,13 @@ export interface CentralTradeSummary {
 
 export async function getCentralTradeSummary(staffEmail?: string): Promise<CentralTradeSummary> {
   try {
-    const [orders, docs, tasks, tickets, clients] = await Promise.all([
-      getTradeOrders(staffEmail),
-      getTradeDocuments(),
-      getTradeTasks(staffEmail),
-      getTradeTickets(staffEmail),
-      getTradeClients()
+    // Each source loads on its own: a problem with documents or tickets must not blank the order and payment cards.
+    const results = await Promise.allSettled([
+      getTradeOrders(staffEmail), getTradeDocuments(), getTradeTasks(staffEmail), getTradeTickets(staffEmail), getTradeClients()
     ]);
+    const pick = <T,>(i: number): T[] => results[i].status === 'fulfilled' ? ((results[i] as PromiseFulfilledResult<T[]>).value || []) : [];
+    if (results[0].status === 'rejected') throw results[0].reason;
+    const orders = pick<TradeOrder>(0), docs = pick<any>(1), tasks = pick<TradeTask>(2), tickets = pick<any>(3), clients = pick<any>(4);
 
     let totalVal = 0;
     let advPaid = 0;
@@ -1567,7 +1567,8 @@ export async function getCentralTradeSummary(staffEmail?: string): Promise<Centr
 
     const pendingDocs = docs.filter(d => d.status === 'Pending' || d.status === 'Submitted').length;
     const verifiedDocs = docs.filter(d => d.status === 'Verified').length;
-    const openTasks = tasks.filter(t => t.status !== 'Completed').length;
+    const isOpenTask = (t: any) => t.status !== 'Completed' && t.status !== 'Cancelled';
+    const openTasks = tasks.filter(isOpenTask).length;
     const urgentTasks = tasks.filter(t => t.status !== 'Completed' && (t.priority === 'Urgent' || t.priority === 'High')).length;
     const openTickets = tickets.filter(t => t.status === 'Open' || t.status === 'In Progress').length;
 
@@ -1587,11 +1588,13 @@ export async function getCentralTradeSummary(staffEmail?: string): Promise<Centr
       stageBreakdown: stageMap,
       byCurrency,
       orders: orders.slice(0, 8),
-      tasks: tasks.filter(t => t.status !== 'Completed').slice(0, 8),
+      tasks: tasks.filter(isOpenTask).slice(0, 8),
       tickets: tickets.filter(t => t.status === 'Open' || t.status === 'In Progress').slice(0, 8)
     };
   } catch (err) {
     console.error('[TradeAPI] Error calculating trade summary:', err);
+    throw new Error('Could not load the Trade dashboard. Check your connection and try again.');
+    // eslint-disable-next-line no-unreachable
     return {
       byCurrency: {},
       totalOrdersCount: 0,

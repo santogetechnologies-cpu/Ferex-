@@ -271,6 +271,15 @@ export interface RimiDeliveryRecord {
   route_name?: string;
   challan_url?: string;
   notes?: string;
+  customer_id?: string;
+  contact_person?: string;
+  contact_phone?: string;
+  pincode?: string;
+  map_url?: string;
+  order_summary?: string;
+  scheduled_date?: string;
+  delivery_instructions?: string;
+  driver_user_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -1099,17 +1108,50 @@ export async function getRimiDeliveries(): Promise<RimiDeliveryRecord[]> {
   return (assertOk(await supabase.from('rimi_deliveries').select('*').order('created_at', { ascending: false })) || []) as RimiDeliveryRecord[];
 }
 
+/** A Google Maps search link for a delivery address (opens the map or navigation on the driver's phone). */
+export const mapLinkFor = (address: string, city = '', pincode = '') => {
+  const q = [address, city, pincode].map(x => (x || '').trim()).filter(Boolean).join(', ');
+  return q ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}` : '';
+};
+
 export async function createRimiDelivery(delivery: Partial<RimiDeliveryRecord>): Promise<RimiDeliveryRecord> {
   if (!isUuid(delivery.order_id)) throw new Error('A delivery must belong to a sales order');
   const deliveryNo = `DEL-${Date.now().toString().slice(-7)}`;
+
+  // Everything the dispatch team and the driver need comes from the order and the customer record, so nobody retypes it.
+  let order: any = null, customer: any = null;
+  try { order = (await supabase.from('rimi_sales_orders').select('*, items:rimi_order_items(*)').eq('id', delivery.order_id).maybeSingle()).data; } catch { /* the delivery can still be created */ }
+  const customerId = delivery.customer_id || order?.customer_id;
+  if (isUuid(customerId)) { try { customer = (await supabase.from('rimi_customers').select('*').eq('id', customerId).maybeSingle()).data; } catch { /* optional */ } }
+  const address = delivery.destination_address || order?.delivery_address || customer?.address || '';
+  const city = delivery.destination_city || customer?.city || order?.territory || '';
+  const pincode = delivery.pincode || customer?.pincode || '';
+  const summary = delivery.order_summary || (Array.isArray(order?.items) ? order.items.map((i: any) => `${i.product_name || 'Item'} × ${num(i.quantity)} ${i.unit || 'KG'}`).join(', ') : '');
+
+  // If the driver also has a login (matched by phone, then name), the delivery shows up in their own account.
+  let driverUserId: string | null = null;
+  try {
+    if (delivery.driver_phone) { const { data } = await supabase.from('users').select('id').eq('phone', delivery.driver_phone).limit(1); driverUserId = data?.[0]?.id || null; }
+    if (!driverUserId && delivery.driver_name) { const { data } = await supabase.from('users').select('id').ilike('full_name', delivery.driver_name.trim()).limit(2); if (data?.length === 1) driverUserId = data[0].id; }
+  } catch { /* drivers without a login are matched by name on the screen */ }
+
   const data = assertOk(
     await supabase.from('rimi_deliveries').insert({
       delivery_no: deliveryNo,
       order_id: delivery.order_id,
-      order_no: delivery.order_no || '',
-      customer_name: delivery.customer_name || '',
-      destination_city: delivery.destination_city || '',
-      destination_address: delivery.destination_address || '',
+      order_no: delivery.order_no || order?.order_no || '',
+      customer_name: delivery.customer_name || order?.customer_name || customer?.business_name || '',
+      customer_id: isUuid(customerId) ? customerId : null,
+      contact_person: delivery.contact_person || customer?.contact_person || null,
+      contact_phone: delivery.contact_phone || customer?.phone || null,
+      pincode: pincode || null,
+      destination_city: city,
+      destination_address: address,
+      map_url: delivery.map_url || mapLinkFor(address, city, pincode) || null,
+      order_summary: summary || null,
+      scheduled_date: delivery.scheduled_date || order?.delivery_date || null,
+      delivery_instructions: delivery.delivery_instructions || order?.notes || null,
+      driver_user_id: driverUserId,
       vehicle_id: isUuid(delivery.vehicle_id) ? delivery.vehicle_id : null,
       vehicle_no: delivery.vehicle_no || null,
       driver_name: delivery.driver_name || null,
@@ -1251,8 +1293,10 @@ export async function deleteRimiDeliveryRoute(id: string): Promise<boolean> {
 
 /** One pallet holds about 500 units; a hub's occupancy is derived from the batches stored in it. */
 export const UNITS_PER_PALLET = 500;
-/** One rule for pallet use everywhere: all the units stored in a hub, packed 500 to a pallet, rounded up once (not once per batch). */
+/** Pallets for one batch: 500 units to a pallet, rounded up. */
 export const palletsForUnits = (units: number) => (units > 0 ? Math.ceil(units / UNITS_PER_PALLET) : 0);
+/** One rule for pallet use everywhere: every batch takes its own pallets (products and batches are never mixed on a pallet), so a hub's use is the sum over its batches. A batch with no stock left frees its pallets. */
+export const palletsForBatches = (quantities: number[]) => quantities.reduce((sum, q) => sum + palletsForUnits(Number(q) || 0), 0);
 
 export async function getRimiWarehouses(): Promise<RimiWarehouseRecord[]> {
   const [whRes, batchRes] = await Promise.all([
@@ -1260,11 +1304,12 @@ export async function getRimiWarehouses(): Promise<RimiWarehouseRecord[]> {
     supabase.from('rimi_inventory_batches').select('warehouse_id, product_id, quantity'),
   ]);
   const hubs = (assertOk(whRes) || []) as any[];
-  const usage = new Map<string, { units: number; products: Set<string>; batches: number }>();
+  const usage = new Map<string, { units: number; pallets: number; products: Set<string>; batches: number }>();
   for (const b of (batchRes.data || []) as any[]) {
     if (!b.warehouse_id || num(b.quantity) <= 0) continue;
-    const u = usage.get(b.warehouse_id) || { units: 0, products: new Set<string>(), batches: 0 };
+    const u = usage.get(b.warehouse_id) || { units: 0, pallets: 0, products: new Set<string>(), batches: 0 };
     u.units += num(b.quantity);
+    u.pallets += palletsForUnits(num(b.quantity));
     if (b.product_id) u.products.add(b.product_id);
     u.batches += 1;
     usage.set(b.warehouse_id, u);
@@ -1275,7 +1320,7 @@ export async function getRimiWarehouses(): Promise<RimiWarehouseRecord[]> {
       ...w,
       cold_room_temp_celsius: num(w.cold_room_temp_celsius),
       total_capacity_pallets: num(w.total_capacity_pallets),
-      utilized_pallets: palletsForUnits(u?.units || 0),
+      utilized_pallets: u?.pallets || 0,
       product_count: u?.products.size || 0,
       batch_count: u?.batches || 0,
     } as RimiWarehouseRecord;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { Link } from 'react-router-dom';
 import { DollarSign, PackageCheck, CreditCard, ListTodo, LifeBuoy, ArrowRight, Ship } from 'lucide-react';
 import { Button } from '../../components/Button';
@@ -31,6 +32,10 @@ export const TradeDashboard: React.FC = () => {
     }
   }, []);
 
+  useRealtimeTable('trade_orders', loadSummary);
+  useRealtimeTable('trade_payments', loadSummary);
+  useRealtimeTable('trade_tasks', loadSummary);
+
   useEffect(() => {
     void loadSummary();
     const handleUpdate = () => void loadSummary();
@@ -62,7 +67,7 @@ export const TradeDashboard: React.FC = () => {
         </>}
       />
 
-      {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</p>}
+      {error && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 flex items-center justify-between gap-3"><span>{error}</span><button type="button" onClick={() => { setLoading(true); void loadSummary(); }} className="px-3 py-1 rounded-lg bg-white border border-rose-200 text-xs font-bold cursor-pointer">Try again</button></div>}
 
       {loading ? <PageSkeleton /> : (
         <>

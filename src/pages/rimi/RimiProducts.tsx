@@ -19,6 +19,7 @@ import {
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 import { BlockCap } from '../../components/CapLoader';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 
 export const RimiProducts: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,6 +73,9 @@ export const RimiProducts: React.FC = () => {
       setLoading(false);
     }
   }, []);
+
+  useRealtimeTable('rimi_inventory_batches', loadData);
+  useRealtimeTable('rimi_sales_orders', loadData);
 
   useEffect(() => {
     loadData();
@@ -776,6 +780,12 @@ export const RimiProducts: React.FC = () => {
                   <h4 className="text-base font-black text-slate-900">{selectedProduct.name}</h4>
                   <p className="text-xs font-semibold text-slate-500">Category: {selectedProduct.category}</p>
                 </div>
+
+                {(() => { const live = products.find(x => x.rawId === selectedProduct.rawId || x.sku === selectedProduct.sku) || selectedProduct; const q = Number(live.stock || 0); return (
+                <div className="p-4 rounded-2xl border border-slate-200 bg-white flex items-center justify-between">
+                  <div><span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">Available stock</span><span className="text-2xl font-black text-slate-900 tabular-nums">{q.toLocaleString('en-IN')} <span className="text-sm font-bold text-slate-500">{live.unit}</span></span></div>
+                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${live.status === 'In Stock' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : live.status === 'Low Stock' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>{live.status}</span>
+                </div>); })()}
 
                 <div className="p-4 bg-slate-50 rounded-xl space-y-2 text-xs font-semibold text-slate-700">
                   <div className="flex justify-between">

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Download, Search, Wallet, Clock, AlertCircle, Receipt, Percent, BadgePercent } from 'lucide-react';
+import { Printer, Download, Search, Wallet, Clock, AlertCircle, Receipt, Percent, BadgePercent } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useFeeConfig } from '../../hooks/useFeeConfig';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
@@ -16,6 +16,7 @@ import { PageHeader, EmptyState } from '../../components/Kit';
 import { BlockCap } from '../../components/CapLoader';
 import { DateRangeFilter } from '../../components/DateRangeFilter';
 import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
+import { openReceiptWindow } from '../../lib/receiptPrint';
 import { DivisionExpenses } from '../../components/finance/DivisionExpenses';
 
 type Tab = 'overview' | 'collections' | 'receivables' | 'documents' | 'expenses';
@@ -247,7 +248,7 @@ export const AdminFinance: React.FC = () => {
           {shownDocs.length === 0 ? <EmptyState icon={Receipt} title="No invoices or receipts yet" hint="They are created automatically when a payment is paid or verified." /> : (
             <div className="rounded-2xl border border-slate-200/80 bg-white overflow-hidden">
               <table className="w-full text-sm table-fixed">
-                <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500"><tr><th className="p-3 text-left w-[14%]">Type</th><th className="p-3 text-left w-[20%]">Number</th><th className="p-3 text-left">Student · Description</th><th className="p-3 text-right w-[16%]">Amount</th><th className="p-3 text-right w-[12%] hidden md:table-cell">GST</th></tr></thead>
+                <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500"><tr><th className="p-3 text-left w-[14%]">Type</th><th className="p-3 text-left w-[20%]">Number</th><th className="p-3 text-left">Student · Description</th><th className="p-3 text-right w-[16%]">Amount</th><th className="p-3 text-right w-[12%] hidden md:table-cell">GST</th><th className="p-3 w-20"><span className="sr-only">Print</span></th></tr></thead>
                 <tbody className="divide-y divide-slate-100">
                   {shownDocs.slice(0, 300).map(d => (
                     <tr key={d.kind + d.id} className="align-top">
@@ -256,6 +257,7 @@ export const AdminFinance: React.FC = () => {
                       <td className="p-3 min-w-0"><b className="text-slate-900 truncate block">{nameOf(d.student_id)}</b><span className="block text-xs text-slate-500 truncate">{d.description}</span></td>
                       <td className="p-3 text-right font-semibold tabular-nums">{money(d.amount, d.currency)}</td>
                       <td className="p-3 text-right text-xs text-slate-500 hidden md:table-cell">{d.tax > 0 ? `${d.tax}%` : '—'}</td>
+                      <td className="p-3 text-right"><button type="button" aria-label={`Print ${d.kind} ${d.no}`} onClick={() => { if (!openReceiptWindow({ receipt_no: d.no, student_name: nameOf(d.student_id), student_email: students.find(x => x.id === d.student_id)?.email, amount: d.amount, currency: d.currency, description: d.description, issued_at: d.at, tax_rate_percent: d.tax })) alert('Allow pop-ups to print.'); }} className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"><Printer className="w-3 h-3" />Print</button></td>
                     </tr>
                   ))}
                 </tbody>

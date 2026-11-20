@@ -451,7 +451,7 @@ function App() {
           <Route path="/rimi/analytics" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiAnalytics /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/finance" element={<Navigate to="/rimi/finance/billing" replace />} />
           <Route path="/rimi/finance/billing" element={<ProtectedRoute allowedRoles={RIMI_ADMIN_ROLES}><RimiLayout><RimiFinance view="billing" /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/finance/invoices" element={<ProtectedRoute allowedRoles={RIMI_ADMIN_ROLES}><RimiLayout><RimiFinance view="invoices" /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/finance/invoices" element={<Navigate to="/rimi/finance/billing" replace />} />
           <Route path="/rimi/finance/payments" element={<Navigate to="/rimi/collections" replace />} />
           <Route path="/rimi/finance/expenses" element={<ProtectedRoute allowedRoles={RIMI_ADMIN_ROLES}><RimiLayout><DivisionExpenses division="rimi" eyebrow="Rimi Frozen" /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/sales-reports" element={<Navigate to="/rimi/analytics" replace />} />

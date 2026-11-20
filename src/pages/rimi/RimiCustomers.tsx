@@ -638,6 +638,18 @@ export const RimiCustomers: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Delivery details used by Dispatch Reefer Truck */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Delivery Address *</label>
+                    <textarea rows={2} aria-label="Delivery address" value={formData.address || ''} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Shop no., street, area, landmark" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">PIN Code</label>
+                    <input type="text" inputMode="numeric" maxLength={6} aria-label="PIN code" value={formData.pincode || ''} onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '') })} placeholder="400001" className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none" />
+                  </div>
+                </div>
+
                 {/* Address, City, Territory & GST */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
@@ -861,6 +873,18 @@ export const RimiCustomers: React.FC = () => {
                 </div>
 
                 {/* Address, City, Territory & GST */}
+                {/* Delivery details used by Dispatch Reefer Truck */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Delivery Address *</label>
+                    <textarea rows={2} aria-label="Delivery address" value={editingCustomer.address || ''} onChange={(e) => setEditingCustomer({ ...editingCustomer, address: e.target.value })} placeholder="Shop no., street, area, landmark" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">PIN Code</label>
+                    <input type="text" inputMode="numeric" maxLength={6} aria-label="PIN code" value={editingCustomer.pincode || ''} onChange={(e) => setEditingCustomer({ ...editingCustomer, pincode: e.target.value.replace(/\D/g, '') })} placeholder="400001" className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none" />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">City / District</label>

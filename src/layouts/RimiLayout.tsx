@@ -134,7 +134,6 @@ export const RimiLayout: React.FC<RimiLayoutProps> = ({ children }) => {
       title: 'Finance',
       items: [
         { label: 'Billing', path: '/rimi/finance/billing', icon: Receipt },
-        { label: 'Invoices', path: '/rimi/finance/invoices', icon: FileText },
         { label: 'Payments', path: '/rimi/collections', icon: DollarSign },
         { label: 'Expenses', path: '/rimi/finance/expenses', icon: Wallet }
       ]

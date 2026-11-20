@@ -229,7 +229,8 @@ export const RimiInventory: React.FC = () => {
       b.warehouse_name.toLowerCase().includes(s);
 
     return matchExpiry && matchWarehouse && matchCategory && matchSearch;
-  });
+  // Shelf life, smallest first: expired batches on top, then the ones closest to expiry, then the longest-lasting.
+  }).sort((a, b) => (a.days_to_expiry ?? Number.MAX_SAFE_INTEGER) - (b.days_to_expiry ?? Number.MAX_SAFE_INTEGER) || String(a.batch_no).localeCompare(String(b.batch_no)));
 
   return (
     <div className="space-y-6 text-left antialiased">
