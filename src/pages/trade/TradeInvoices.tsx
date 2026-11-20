@@ -138,7 +138,7 @@ export const TradeInvoices: React.FC = () => {
   // Form State for Record Payment Modal
   const [paymentForm, setPaymentForm] = useState({
     amount: '',
-    payment_type: 'SWIFT Wire Transfer',
+    payment_type: 'Bank Wire (T/T)',
     bank_name: '',
     account_no: '',
     settlement_date: new Date().toISOString().split('T')[0],
@@ -228,7 +228,7 @@ export const TradeInvoices: React.FC = () => {
     setPayingInvoice(inv);
     setPaymentForm({
       amount: String(inv.outstandingAmount > 0 ? inv.outstandingAmount : inv.rawAmount),
-      payment_type: 'SWIFT Wire Transfer',
+      payment_type: 'Bank Wire (T/T)',
       bank_name: 'HSBC London Trade Banking',
       account_no: 'GB29HSBC40051512345678',
       settlement_date: new Date().toISOString().split('T')[0],

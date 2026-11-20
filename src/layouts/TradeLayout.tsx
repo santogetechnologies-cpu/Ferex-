@@ -13,6 +13,7 @@ import { AppSwitcher } from '../components/AppSwitcher';
 import { ClockInOutWidget } from '../components/ClockInOutWidget';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
+import { useTradeBadges } from '../hooks/useTradeBadges';
 import { getTradeNotifications, globalSearchTrade } from '../lib/api/trade';
 
 
@@ -45,6 +46,9 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [liveNotifs, setLiveNotifs] = useState<any[]>([]);
+  const badges = useTradeBadges({ isAdmin, userId: profile?.id, email: profile?.email, name: profile?.full_name });
+  useEffect(() => { if (!isAdmin && location.pathname.startsWith('/trade/tasks')) badges.markTasksSeen(); }, [isAdmin, location.pathname, badges.newTaskCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  const menuBadge = (path: string) => path === '/trade/tasks' && !isAdmin ? badges.newTaskCount : path === '/trade/attendance' && isAdmin ? badges.leaveCount : 0;
 
   // Global Search Omnibar (⌘K)
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -265,6 +269,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                           {item.name}
                         </span>
                       )}
+                      {menuBadge(item.path) > 0 && <span aria-label={`${menuBadge(item.path)} waiting`} className={`${isCollapsed ? 'absolute top-0.5 right-0.5' : ''} min-w-4 h-4 px-1 rounded-full bg-[#5A0122] text-white text-[10px] font-black flex items-center justify-center`}>{menuBadge(item.path)}</span>}
                     </Link>
                   </React.Fragment>
                 );
@@ -327,8 +332,10 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                 className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors relative cursor-pointer"
               >
                 <Bell size={18} />
-                {liveNotifs.length > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#5A0122] rounded-full" />
+                {(badges.count > 0 || liveNotifs.length > 0) && (
+                  badges.count > 0
+                    ? <span aria-label={`${badges.count} new`} className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-[#5A0122] text-white text-[10px] font-black flex items-center justify-center">{badges.count}</span>
+                    : <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#5A0122] rounded-full" />
                 )}
               </button>
 
@@ -347,6 +354,13 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                       </Link>
                     </div>
                     <div className="py-2 space-y-2 max-h-64 overflow-y-auto">
+                      {badges.items.length > 0 && <div className="text-[10px] font-black uppercase tracking-wider text-[#5A0122]">{isAdmin ? 'Requests waiting for you' : 'Newly assigned to you'}</div>}
+                      {badges.items.map(b => (
+                        <Link key={b.id} to={b.to} onClick={() => setShowNotifications(false)} className="block p-2 bg-[#5A0122]/5 hover:bg-[#5A0122]/10 rounded-xl text-xs space-y-0.5">
+                          <div className="font-bold text-slate-900 text-[11px] truncate">{b.title}</div>
+                          <div className="text-[10px] text-slate-500 truncate">{b.description}</div>
+                        </Link>
+                      ))}
                       {liveNotifs.map((n) => (
                         <div key={n.id} className="p-2 bg-slate-50 rounded-xl text-xs space-y-0.5">
                           <div className="font-bold text-slate-900 text-[11px] truncate">{n.title}</div>

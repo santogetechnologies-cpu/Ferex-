@@ -237,7 +237,11 @@ export const TRADE_INVOICE_STATUSES: string[] = [
   'Cancelled'
 ];
 
+/** Domestic methods, offered next to the international trade methods when settling an invoice or recording a payment. */
+export const TRADE_DOMESTIC_PAYMENT_METHODS: string[] = ['UPI', 'Google Pay (GPay)', 'PhonePe', 'Debit Card', 'Credit Card', 'Cash', 'Net Banking'];
+
 export const TRADE_MASTER_PAYMENT_METHODS: string[] = [
+  ...TRADE_DOMESTIC_PAYMENT_METHODS,
   'Bank Wire (T/T)',
   'Irrevocable Letter of Credit (LC)',
   'Documents Against Payment (DP)',
