@@ -853,7 +853,9 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
                         className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                       >
                         <option value="">Select the counselor for this student…</option>
-                        {counselors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        {counselors
+                          .filter(c => (c.role || '').toLowerCase().trim() === 'counselor')
+                          .map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
                     </div>
                   )}
