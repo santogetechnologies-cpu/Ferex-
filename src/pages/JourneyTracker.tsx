@@ -436,21 +436,38 @@ export const JourneyTracker: React.FC = () => {
           <Compass className="w-80 h-80 text-white" />
         </div>
         <div className="relative z-10 max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-xs font-semibold text-slate-200 border border-white/10 mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#5A0122]" />
+          <div
+            style={{ display: 'inline-flex', color: '#e2e8f0' }}
+            className="!inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-xs font-semibold !text-slate-200 border border-white/10 mb-3"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
             Admissions & Mobility Lifecycle
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
+          <h1
+            style={{ color: '#ffffff' }}
+            className="text-2xl md:text-3xl font-bold tracking-tight !text-white text-white"
+          >
             My journey
           </h1>
-          <p className="text-xs md:text-sm text-slate-300 mt-2 leading-relaxed">Your progress from application to arrival, step by step.</p>
+          <p
+            style={{ color: '#e2e8f0' }}
+            className="text-xs md:text-sm !text-slate-200 text-slate-200 mt-2 leading-relaxed"
+          >
+            Your progress from application to arrival, step by step.
+          </p>
 
-          <div className="mt-5 flex items-center gap-3 flex-wrap text-xs font-medium text-slate-300">
-            <span className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-1.5">
-              <Building className="w-3.5 h-3.5 text-slate-300" /> {targetUniversity}{targetCountry ? ` (${targetCountry})` : ''}
+          <div className="mt-5 flex items-center gap-3 flex-wrap text-xs font-medium !text-slate-200" style={{ color: '#e2e8f0' }}>
+            <span
+              style={{ color: '#e2e8f0' }}
+              className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-1.5 !text-slate-200"
+            >
+              <Building className="w-3.5 h-3.5 !text-slate-300 text-slate-300" /> {targetUniversity}{targetCountry ? ` (${targetCountry})` : ''}
             </span>
-            <span className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-slate-300" /> Student: {studentName}
+            <span
+              style={{ color: '#e2e8f0' }}
+              className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-1.5 !text-slate-200"
+            >
+              <User className="w-3.5 h-3.5 !text-slate-300 text-slate-300" /> Student: {studentName}
             </span>
           </div>
         </div>

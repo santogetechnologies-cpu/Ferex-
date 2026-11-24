@@ -258,7 +258,7 @@
   background-color: rgba(104, 9, 42, 0.18);
 }
 
-.fx-app .app-main h1 {
+.fx-app .app-main h1:not([class*='text-white']):not(.text-white) {
   color: var(--sh-text);
 }
 
