@@ -34,11 +34,11 @@ export const AttendancePage: React.FC<{ platform?: string }> = ({ platform }) =>
 
   useEffect(() => {
     const ch = supabase.channel('attendance_live');
-    ['attendance_days', 'attendance_leaves', 'attendance_incentives', 'attendance_payroll'].forEach(table =>
-      ch.on('postgres_changes', { event: '*', schema: 'public', table }, () => window.dispatchEvent(new Event('ferex-attendance-updated'))));
+    ['attendance_days', 'attendance_leaves', 'attendance_incentives', 'attendance_payroll', 'attendance_holidays', 'attendance_rules', 'attendance_leave_types'].forEach(table =>
+      ch.on('postgres_changes', { event: '*', schema: 'public', table }, () => { window.dispatchEvent(new Event('ferex-attendance-updated')); if (table === 'attendance_holidays' || table === 'attendance_rules') void load(); }));
     ch.subscribe();
     return () => { void supabase.removeChannel(ch); };
-  }, []);
+  }, [load]);
 
   const toast = useCallback((m: string) => { setToastMsg(m); setTimeout(() => setToastMsg(''), 4000); }, []);
 
@@ -67,7 +67,7 @@ export const AttendancePage: React.FC<{ platform?: string }> = ({ platform }) =>
       <nav className="flex flex-wrap gap-1 border-b border-slate-200" aria-label="Attendance sections">
         {tabs.map(t => (
           <button key={t.id} type="button" onClick={() => setParams({ tab: t.id }, { replace: true })}
-            className={`px-3.5 py-2.5 text-sm font-semibold border-b-2 -mb-px cursor-pointer transition ${active === t.id ? 'border-[#58051E] text-[#58051E]' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{t.label}</button>))}
+            className={`px-3.5 py-2.5 text-sm font-semibold border-b-2 -mb-px cursor-pointer transition ${active === t.id ? 'border-[#5A0122] text-[#5A0122]' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>{t.label}</button>))}
       </nav>
       {active === 'mine' && <MyAttendance {...shared} />}
       {active === 'team' && <TeamAttendance {...shared} />}

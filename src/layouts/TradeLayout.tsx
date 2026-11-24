@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Users, PackageCheck, FolderArchive,
   CreditCard, MessageSquare, Bell, User, Settings, LogOut,
   Search, Menu, X, ArrowUpRight, ListTodo, LifeBuoy, Mail,
-  Ship, ShieldCheck, DollarSign, Sparkles, Clock
+  Ship, ShieldCheck, DollarSign, Sparkles, Clock, Receipt, FileText, Wallet
 } from 'lucide-react';
 
 import { Logo } from '../components/Logo';
@@ -13,6 +13,7 @@ import { AppSwitcher } from '../components/AppSwitcher';
 import { ClockInOutWidget } from '../components/ClockInOutWidget';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
+import { useTradeBadges } from '../hooks/useTradeBadges';
 import { getTradeNotifications, globalSearchTrade } from '../lib/api/trade';
 
 
@@ -45,6 +46,9 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [liveNotifs, setLiveNotifs] = useState<any[]>([]);
+  const badges = useTradeBadges({ isAdmin, userId: profile?.id, email: profile?.email, name: profile?.full_name });
+  useEffect(() => { if (!isAdmin && location.pathname.startsWith('/trade/tasks')) badges.markTasksSeen(); }, [isAdmin, location.pathname, badges.newTaskCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  const menuBadge = (path: string) => path === '/trade/tasks' && !isAdmin ? badges.newTaskCount : path === '/trade/attendance' && isAdmin ? badges.leaveCount : 0;
 
   // Global Search Omnibar (⌘K)
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -129,7 +133,15 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
         { name: 'Documents', path: '/trade/documents', icon: FolderArchive },
         { name: 'Tasks', path: '/trade/tasks', icon: ListTodo },
         { name: 'Support', path: '/trade/tickets', icon: LifeBuoy },
+      ]
+    },
+    {
+      title: 'Finance',
+      items: [
+        { name: 'Billing', path: '/trade/billing', icon: Receipt },
+        { name: 'Invoices', path: '/trade/invoices', icon: FileText },
         { name: 'Payments', path: '/trade/payments', icon: CreditCard },
+        { name: 'Expenses', path: '/trade/expenses', icon: Wallet },
       ]
     },
     {
@@ -187,7 +199,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="fx-app h-screen overflow-hidden bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
+    <div className="fx-app h-screen overflow-hidden bg-slate-50/80 flex text-slate-800 antialiased selection:bg-[#5A0122]/10 selection:text-[#5A0122]">
       
       {/* Mobile Backdrop */}
       <AnimatePresence>
@@ -246,17 +258,18 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                       onClick={() => setIsMobileOpen(false)}
                       className={`relative flex items-center rounded-xl h-8.5 px-2.5 transition-all duration-150 text-xs font-semibold group
                         ${isActive 
-                          ? 'bg-[#58051E]/8 text-[#58051E] font-bold border-l-2 border-[#58051E]' 
+                          ? 'bg-[#5A0122]/8 text-[#5A0122] font-bold border-l-2 border-[#5A0122]' 
                           : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'}`}
                       title={isCollapsed ? item.name : undefined}
                     >
-                      <Icon className={`w-4 h-4 shrink-0 transition-transform duration-150 ${isCollapsed ? 'mx-auto' : 'mr-2.5'} ${isActive ? 'text-[#58051E]' : 'text-slate-400 group-hover:text-slate-700'}`} />
+                      <Icon className={`w-4 h-4 shrink-0 transition-transform duration-150 ${isCollapsed ? 'mx-auto' : 'mr-2.5'} ${isActive ? 'text-[#5A0122]' : 'text-slate-400 group-hover:text-slate-700'}`} />
 
                       {!isCollapsed && (
                         <span className="truncate flex-1">
                           {item.name}
                         </span>
                       )}
+                      {menuBadge(item.path) > 0 && <span aria-label={`${menuBadge(item.path)} waiting`} className={`${isCollapsed ? 'absolute top-0.5 right-0.5' : ''} min-w-4 h-4 px-1 rounded-full bg-[#5A0122] text-white text-[10px] font-black flex items-center justify-center`}>{menuBadge(item.path)}</span>}
                     </Link>
                   </React.Fragment>
                 );
@@ -319,8 +332,10 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                 className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors relative cursor-pointer"
               >
                 <Bell size={18} />
-                {liveNotifs.length > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#58051E] rounded-full" />
+                {(badges.count > 0 || liveNotifs.length > 0) && (
+                  badges.count > 0
+                    ? <span aria-label={`${badges.count} new`} className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-[#5A0122] text-white text-[10px] font-black flex items-center justify-center">{badges.count}</span>
+                    : <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#5A0122] rounded-full" />
                 )}
               </button>
 
@@ -334,11 +349,18 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                   >
                     <div className="flex items-center justify-between pb-2 border-b border-slate-100 text-xs font-black text-slate-900">
                       <span>Automated Email Triggers</span>
-                      <Link to="/trade/notifications" onClick={() => setShowNotifications(false)} className="text-[10px] text-[#58051E] hover:underline">
+                      <Link to="/trade/notifications" onClick={() => setShowNotifications(false)} className="text-[10px] text-[#5A0122] hover:underline">
                         View Audit Log
                       </Link>
                     </div>
                     <div className="py-2 space-y-2 max-h-64 overflow-y-auto">
+                      {badges.items.length > 0 && <div className="text-[10px] font-black uppercase tracking-wider text-[#5A0122]">{isAdmin ? 'Requests waiting for you' : 'Newly assigned to you'}</div>}
+                      {badges.items.map(b => (
+                        <Link key={b.id} to={b.to} onClick={() => setShowNotifications(false)} className="block p-2 bg-[#5A0122]/5 hover:bg-[#5A0122]/10 rounded-xl text-xs space-y-0.5">
+                          <div className="font-bold text-slate-900 text-[11px] truncate">{b.title}</div>
+                          <div className="text-[10px] text-slate-500 truncate">{b.description}</div>
+                        </Link>
+                      ))}
                       {liveNotifs.map((n) => (
                         <div key={n.id} className="p-2 bg-slate-50 rounded-xl text-xs space-y-0.5">
                           <div className="font-bold text-slate-900 text-[11px] truncate">{n.title}</div>
@@ -353,12 +375,12 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
 
             {/* User Profile Pill */}
             <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-              <div className="w-8 h-8 rounded-xl bg-[#58051E] text-white flex items-center justify-center text-xs font-black">
+              <div className="w-8 h-8 rounded-xl bg-[#5A0122] text-white flex items-center justify-center text-xs font-black">
                 {initials}
               </div>
               <div className="hidden sm:block text-left">
                 <div className="text-xs font-black text-slate-900 leading-tight">{userName || (isAdmin ? 'Trade Admin' : 'Trade Officer')}</div>
-                <div className="text-[10px] font-bold text-[#58051E] leading-tight">{isAdmin ? 'Trade Director' : 'Logistics Officer'}</div>
+                <div className="text-[10px] font-bold text-[#5A0122] leading-tight">{isAdmin ? 'Trade Director' : 'Logistics Officer'}</div>
               </div>
               <button
                 onClick={handleSignOut}
@@ -393,7 +415,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search trade orders, commodities, consignees..."
-                  className="w-full h-11 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-11 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
 
@@ -409,7 +431,7 @@ export const TradeLayout: React.FC<TradeLayoutProps> = ({ children }) => {
                       <div className="font-extrabold text-slate-900">{r.title}</div>
                       <div className="text-[10px] text-slate-400">{r.subtitle}</div>
                     </div>
-                    <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded">
+                    <span className="text-[10px] font-black uppercase text-[#5A0122] bg-[#5A0122]/10 px-2 py-0.5 rounded">
                       {r.category}
                     </span>
                   </Link>

@@ -157,7 +157,7 @@ export function ChatPanel({ mode, studentId }: { mode: 'student' | 'staff'; stud
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search chat threads..."
-              className="w-full h-9 pl-8 pr-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#58051E]/40" />
+              className="w-full h-9 pl-8 pr-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#5A0122]/40" />
           </div>
           {!asStudent && (
             <select aria-label="Start a chat with a student" value="" onChange={e => startWith(e.target.value)}
@@ -176,8 +176,8 @@ export function ChatPanel({ mode, studentId }: { mode: 'student' | 'staff'; stud
             const title = titleOf(t);
             return (
               <div key={t.id} onClick={() => setActiveId(t.id)}
-                className={`p-3.5 flex items-center gap-3 cursor-pointer transition-colors ${activeId === t.id ? 'bg-[#58051E]/5 border-l-4 border-l-[#58051E]' : 'hover:bg-slate-50'}`}>
-                <div className="w-9 h-9 rounded-xl bg-[#58051E] text-white flex items-center justify-center text-xs font-black shrink-0">{avatar(title)}</div>
+                className={`p-3.5 flex items-center gap-3 cursor-pointer transition-colors ${activeId === t.id ? 'bg-[#5A0122]/5 border-l-4 border-l-[#5A0122]' : 'hover:bg-slate-50'}`}>
+                <div className="w-9 h-9 rounded-xl bg-[#5A0122] text-white flex items-center justify-center text-xs font-black shrink-0">{avatar(title)}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
                     <h4 className="text-xs font-black text-slate-900 truncate">{title}</h4>
@@ -185,7 +185,7 @@ export function ChatPanel({ mode, studentId }: { mode: 'student' | 'staff'; stud
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[11px] font-semibold text-slate-500 truncate">{t.last_message || 'No messages yet'}</p>
-                    {unread(t) > 0 && <span className="text-[9px] font-black bg-[#58051E] text-white rounded-full px-1.5 py-0.5">{unread(t)}</span>}
+                    {unread(t) > 0 && <span className="text-[9px] font-black bg-[#5A0122] text-white rounded-full px-1.5 py-0.5">{unread(t)}</span>}
                   </div>
                 </div>
               </div>
@@ -199,7 +199,7 @@ export function ChatPanel({ mode, studentId }: { mode: 'student' | 'staff'; stud
         {active ? (
           <>
             <div className="px-6 py-3.5 bg-white border-b border-slate-100 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-[#58051E] text-white flex items-center justify-center text-xs font-black">{avatar(titleOf(active))}</div>
+              <div className="w-8 h-8 rounded-xl bg-[#5A0122] text-white flex items-center justify-center text-xs font-black">{avatar(titleOf(active))}</div>
               <div>
                 <h3 className="text-xs font-black text-slate-900">{titleOf(active)}</h3>
                 <p className="text-[10px] font-semibold text-slate-400">{asStudent ? 'Education Support Advisor' : 'Student Candidate'}</p>
@@ -251,7 +251,7 @@ export function ChatPanel({ mode, studentId }: { mode: 'student' | 'staff'; stud
 
                 return (
                   <div key={m.id} className={`flex ${alignRight ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`min-w-[190px] max-w-[70%] p-3.5 rounded-2xl text-xs leading-relaxed font-semibold shadow-xs ${alignRight ? 'bg-[#58051E] text-white rounded-br-xs' : 'bg-white border border-slate-200/80 text-slate-800 rounded-bl-xs'}`}>
+                    <div className={`min-w-[190px] max-w-[70%] p-3.5 rounded-2xl text-xs leading-relaxed font-semibold shadow-xs ${alignRight ? 'bg-[#5A0122] text-white rounded-br-xs' : 'bg-white border border-slate-200/80 text-slate-800 rounded-bl-xs'}`}>
                       {/* Sender Name, Role Label & Timestamp */}
                       <div className={`flex items-center justify-between gap-3 pb-1 mb-1.5 border-b text-[11px] ${alignRight ? 'border-white/15' : 'border-slate-100'}`}>
                         <div className="flex items-center gap-1.5 min-w-0">
@@ -278,8 +278,8 @@ export function ChatPanel({ mode, studentId }: { mode: 'student' | 'staff'; stud
             <form onSubmit={send} className="p-4 bg-white border-t border-slate-100 flex items-center gap-3">
               <input value={text} onChange={e => setText(e.target.value)} aria-label="Message"
                 placeholder={asStudent ? 'Type your message to your counselor...' : 'Type your reply here...'}
-                className="flex-1 h-10 px-4 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#58051E]/40" />
-              <button type="submit" className="h-10 px-5 bg-[#58051E] text-white rounded-xl text-xs font-bold hover:bg-[#430316] transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer">
+                className="flex-1 h-10 px-4 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#5A0122]/40" />
+              <button type="submit" className="h-10 px-5 bg-[#5A0122] text-white rounded-xl text-xs font-bold hover:bg-[#68092A] transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer">
                 Send <Send className="w-3.5 h-3.5" />
               </button>
             </form>

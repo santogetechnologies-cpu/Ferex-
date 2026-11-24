@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileSpreadsheet, Search, Download, Eye, Plus, X, CheckCircle2,
@@ -21,9 +22,13 @@ import {
 } from '../../lib/api/trade';
 import { supabase } from '../../lib/supabase';
 import { BlockCap } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 export const TradeInvoices: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [orderParam] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(orderParam.get('order') || '');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [filterStatus, setFilterStatus] = useState('All');
   const [selectedInv, setSelectedInv] = useState<any>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -135,7 +140,7 @@ export const TradeInvoices: React.FC = () => {
   // Form State for Record Payment Modal
   const [paymentForm, setPaymentForm] = useState({
     amount: '',
-    payment_type: 'SWIFT Wire Transfer',
+    payment_type: 'Bank Wire (T/T)',
     bank_name: '',
     account_no: '',
     settlement_date: new Date().toISOString().split('T')[0],
@@ -225,7 +230,7 @@ export const TradeInvoices: React.FC = () => {
     setPayingInvoice(inv);
     setPaymentForm({
       amount: String(inv.outstandingAmount > 0 ? inv.outstandingAmount : inv.rawAmount),
-      payment_type: 'SWIFT Wire Transfer',
+      payment_type: 'Bank Wire (T/T)',
       bank_name: 'HSBC London Trade Banking',
       account_no: 'GB29HSBC40051512345678',
       settlement_date: new Date().toISOString().split('T')[0],
@@ -296,7 +301,7 @@ export const TradeInvoices: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  const filteredInvoices = invoices.filter((i) => {
+  const filteredInvoices = invoices.filter(i => inRange(i.issueDate, range)).filter((i) => {
     const matchesSearch =
       i.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       i.buyer.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -313,14 +318,14 @@ export const TradeInvoices: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5 text-[#58051E]" />
+            <FileSpreadsheet className="w-5 h-5 text-[#5A0122]" />
             Invoices
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">Create invoices with line items, freight and insurance, and track payment.</p>
         </div>
         <Button
           size="sm"
-          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
+          className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-xs cursor-pointer"
           onClick={() => setShowCreateModal(true)}
         >
           <Plus className="w-4 h-4 mr-1.5" />
@@ -331,6 +336,7 @@ export const TradeInvoices: React.FC = () => {
       {/* Search & Status Filter */}
       <Card className="p-3 border border-slate-200/80 shadow-xs">
         <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <DateRangeFilter compact label="Issued" value={range} onChange={setRange} />
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
@@ -338,7 +344,7 @@ export const TradeInvoices: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by invoice #, buyer, or shipment..."
-              className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+              className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
             />
           </div>
 
@@ -347,7 +353,7 @@ export const TradeInvoices: React.FC = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+              className="h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#5A0122]"
             >
               <option value="All">All Invoices ({invoices.length})</option>
               {TRADE_INVOICE_STATUSES.map(st => (
@@ -370,7 +376,7 @@ export const TradeInvoices: React.FC = () => {
           </p>
           <Button
             size="sm"
-            className="mt-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold cursor-pointer"
+            className="mt-4 bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold cursor-pointer"
             onClick={() => setShowCreateModal(true)}
           >
             <Plus className="w-3.5 h-3.5 mr-1" /> Create Commercial Invoice
@@ -395,7 +401,7 @@ export const TradeInvoices: React.FC = () => {
               <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
                 {filteredInvoices.map((inv) => (
                   <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-4 font-black text-[#58051E] whitespace-nowrap">
+                    <td className="py-3.5 px-4 font-black text-[#5A0122] whitespace-nowrap">
                       {inv.id}
                     </td>
                     <td className="py-3.5 px-4 whitespace-nowrap font-bold text-slate-600">
@@ -444,7 +450,7 @@ export const TradeInvoices: React.FC = () => {
                         )}
                         <button
                           onClick={() => setSelectedInv(inv)}
-                          className="p-1.5 text-slate-400 hover:text-[#58051E] hover:bg-slate-100 rounded-lg cursor-pointer"
+                          className="p-1.5 text-slate-400 hover:text-[#5A0122] hover:bg-slate-100 rounded-lg cursor-pointer"
                           title="View Invoice Details"
                         >
                           <Eye className="w-4 h-4" />
@@ -481,7 +487,7 @@ export const TradeInvoices: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <FileSpreadsheet className="w-4 h-4 text-[#58051E]" /> Create Commercial Export Invoice
+                  <FileSpreadsheet className="w-4 h-4 text-[#5A0122]" /> Create Commercial Export Invoice
                 </h3>
                 <button onClick={() => setShowCreateModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
               </div>
@@ -502,7 +508,7 @@ export const TradeInvoices: React.FC = () => {
                             setNewInv({ ...newInv, buyer: e.target.value });
                           }
                         }}
-                        className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                       >
                         <option value="">-- Select Registered CRM Partner --</option>
                         {crmPartners.map(p => (
@@ -520,7 +526,7 @@ export const TradeInvoices: React.FC = () => {
                           value={newInv.buyer}
                           onChange={(e) => setNewInv({ ...newInv, buyer: e.target.value })}
                           placeholder="Enter custom buyer company..."
-                          className="flex-1 h-8.5 px-3 bg-white border border-[#58051E] rounded-xl text-xs font-semibold focus:outline-none"
+                          className="flex-1 h-8.5 px-3 bg-white border border-[#5A0122] rounded-xl text-xs font-semibold focus:outline-none"
                         />
                         <button
                           type="button"
@@ -543,7 +549,7 @@ export const TradeInvoices: React.FC = () => {
                         const ord = shipments.find(s => s.order_no === e.target.value);
                         setNewInv({ ...newInv, shipment_no: e.target.value, incoterms: ord ? String(ord.incoterm || '') : newInv.incoterms, buyer: newInv.buyer || ord?.client_name || '' });
                       }}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#5A0122]"
                     >
                       <option value="">Select shipment / order *</option>
                       {shipments.map(s => <option key={s.id} value={s.order_no}>{s.order_no} · {s.commodity} · {s.client_name} ({s.currency})</option>)}
@@ -560,7 +566,7 @@ export const TradeInvoices: React.FC = () => {
                       required
                       value={newInv.item_desc}
                       onChange={(e) => setNewInv({ ...newInv, item_desc: e.target.value })}
-                      className="w-full h-8 px-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8 px-3 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
 
@@ -571,7 +577,7 @@ export const TradeInvoices: React.FC = () => {
                         type="text"
                         value={newInv.item_hs}
                         onChange={(e) => setNewInv({ ...newInv, item_hs: e.target.value })}
-                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
                     <div>
@@ -581,7 +587,7 @@ export const TradeInvoices: React.FC = () => {
                         required
                         value={newInv.item_qty}
                         onChange={(e) => setNewInv({ ...newInv, item_qty: e.target.value })}
-                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
                     <div>
@@ -591,7 +597,7 @@ export const TradeInvoices: React.FC = () => {
                         required
                         value={newInv.item_price}
                         onChange={(e) => setNewInv({ ...newInv, item_price: e.target.value })}
-                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
                   </div>
@@ -604,7 +610,7 @@ export const TradeInvoices: React.FC = () => {
                       type="number"
                       value={newInv.freight_charges}
                       onChange={(e) => setNewInv({ ...newInv, freight_charges: e.target.value })}
-                      className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -613,7 +619,7 @@ export const TradeInvoices: React.FC = () => {
                       type="number"
                       value={newInv.insurance_charges}
                       onChange={(e) => setNewInv({ ...newInv, insurance_charges: e.target.value })}
-                      className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -622,7 +628,7 @@ export const TradeInvoices: React.FC = () => {
                       type="number"
                       value={newInv.tax_charges}
                       onChange={(e) => setNewInv({ ...newInv, tax_charges: e.target.value })}
-                      className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -639,7 +645,7 @@ export const TradeInvoices: React.FC = () => {
                     <select
                       value={newInv.incoterms}
                       onChange={(e) => setNewInv({ ...newInv, incoterms: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#5A0122]"
                     >
                       {TRADE_MASTER_INCOTERMS.map(i => <option key={i} value={i}>{i}</option>)}
                     </select>
@@ -650,14 +656,14 @@ export const TradeInvoices: React.FC = () => {
                       type="date"
                       value={newInv.dueDate}
                       onChange={(e) => setNewInv({ ...newInv, dueDate: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowCreateModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Generate Invoice</Button>
+                  <Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-white">Generate Invoice</Button>
                 </div>
               </form>
             </motion.div>
@@ -691,7 +697,7 @@ export const TradeInvoices: React.FC = () => {
                     required
                     value={paymentForm.amount}
                     onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                    className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -700,7 +706,7 @@ export const TradeInvoices: React.FC = () => {
                   <select
                     value={paymentForm.payment_type}
                     onChange={(e) => setPaymentForm({ ...paymentForm, payment_type: e.target.value })}
-                    className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#5A0122]"
                   >
                     {TRADE_MASTER_PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
@@ -713,7 +719,7 @@ export const TradeInvoices: React.FC = () => {
                       type="text"
                       value={paymentForm.bank_name}
                       onChange={(e) => setPaymentForm({ ...paymentForm, bank_name: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -722,7 +728,7 @@ export const TradeInvoices: React.FC = () => {
                       type="date"
                       value={paymentForm.settlement_date}
                       onChange={(e) => setPaymentForm({ ...paymentForm, settlement_date: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -745,7 +751,7 @@ export const TradeInvoices: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto text-left">
               <div className="flex items-start justify-between pb-4 border-b border-slate-100">
                 <div>
-                  <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-black uppercase text-[#5A0122] bg-[#5A0122]/10 px-2 py-0.5 rounded">
                     {selectedInv.id}
                   </span>
                   <h2 className="text-lg font-black text-slate-900 mt-1">Commercial Invoice Details</h2>

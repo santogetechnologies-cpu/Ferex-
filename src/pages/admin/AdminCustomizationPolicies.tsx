@@ -68,7 +68,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
   return (
     <div className="space-y-6 text-left">
       {/* Top Banner (Sticky & Prominent) */}
-      <div className="sticky top-0 z-20 bg-gradient-to-r from-[#24020B] to-[#58051E] rounded-2xl p-4 sm:p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-[#58051E]/40 shadow-sm backdrop-blur-md">
+      <div className="sticky top-0 z-20 bg-gradient-to-r from-[#24020B] to-[#5A0122] rounded-2xl p-4 sm:p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-[#5A0122]/40 shadow-sm backdrop-blur-md">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 rounded-full bg-[#E6CA9E]/20 text-[#E6CA9E] text-[10px] font-black uppercase tracking-wider border border-[#E6CA9E]/30">
@@ -119,7 +119,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
               onClick={() => setActiveSection(sec.id)}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-[#58051E] text-white shadow-xs font-black'
+                  ? 'bg-[#5A0122] text-white shadow-xs font-black'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'
               }`}
             >
@@ -150,7 +150,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     branding: { ...form.branding, org_name: e.target.value }
                   })}
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
 
@@ -165,7 +165,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     branding: { ...form.branding, portal_title: e.target.value }
                   })}
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
 
@@ -180,7 +180,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     branding: { ...form.branding, division_name: e.target.value }
                   })}
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
 
@@ -195,7 +195,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     branding: { ...form.branding, tagline: e.target.value }
                   })}
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
 
@@ -210,7 +210,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     branding: { ...form.branding, support_email: e.target.value }
                   })}
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
 
@@ -225,7 +225,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     branding: { ...form.branding, support_phone: e.target.value }
                   })}
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
 
@@ -240,7 +240,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     branding: { ...form.branding, whatsapp_number: e.target.value }
                   })}
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
 
@@ -255,7 +255,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     branding: { ...form.branding, emergency_helpline: e.target.value }
                   })}
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
 
@@ -270,7 +270,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     branding: { ...form.branding, office_address: e.target.value }
                   })}
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
 
@@ -285,7 +285,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     branding: { ...form.branding, operating_hours: e.target.value }
                   })}
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
             </div>
@@ -298,7 +298,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-black text-slate-900 flex items-center gap-1.5">
-                  <Megaphone className="w-4 h-4 text-[#58051E]" />
+                  <Megaphone className="w-4 h-4 text-[#5A0122]" />
                   Live System Broadcast Banner
                 </p>
                 <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
@@ -333,7 +333,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     broadcast: { ...form.broadcast, message: e.target.value }
                   })}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
 
@@ -347,7 +347,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     broadcast: { ...form.broadcast, urgency: e.target.value as any }
                   })}
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 >
                   <option value="info">Info (Blue Notice)</option>
                   <option value="warning">Warning (Amber Alert)</option>
@@ -366,7 +366,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     broadcast: { ...form.broadcast, target_audience: e.target.value as any }
                   })}
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 >
                   <option value="all">All Portals (Students & Education Admins)</option>
                   <option value="students">Students Only</option>
@@ -386,7 +386,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     broadcast: { ...form.broadcast, link_url: e.target.value }
                   })}
                   placeholder="/student/select-university or https://..."
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
 
@@ -402,7 +402,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     broadcast: { ...form.broadcast, link_label: e.target.value }
                   })}
                   placeholder="e.g. View Details"
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
             </div>
@@ -535,7 +535,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     installments: { ...form.installments, tax_percentage: Number(e.target.value) }
                   })}
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
 
@@ -550,7 +550,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     installments: { ...form.installments, refund_policy_days: Number(e.target.value) }
                   })}
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
             </div>
@@ -572,7 +572,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     document_policy: { ...form.document_policy, min_passport_validity_months: Number(e.target.value) }
                   })}
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
 
@@ -587,7 +587,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     document_policy: { ...form.document_policy, max_file_size_mb: Number(e.target.value) }
                   })}
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
             </div>
@@ -613,7 +613,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                       }
                     })}
                     className={`w-10 h-5 rounded-full transition-all relative flex items-center px-0.5 shrink-0 mt-0.5 ${
-                      form.document_policy[item.key] ? 'bg-[#58051E]' : 'bg-slate-300'
+                      form.document_policy[item.key] ? 'bg-[#5A0122]' : 'bg-slate-300'
                     }`}
                   >
                     <span className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${
@@ -641,7 +641,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     visa_mock: { ...form.visa_mock, mock_sessions_included: Number(e.target.value) }
                   })}
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
 
@@ -656,7 +656,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     visa_mock: { ...form.visa_mock, booking_lead_time_days: Number(e.target.value) }
                   })}
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
 
@@ -671,7 +671,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     ...form,
                     visa_mock: { ...form.visa_mock, emergency_visa_helpline: e.target.value }
                   })}
-                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
             </div>
@@ -703,7 +703,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
                     }
                   })}
                   className={`w-11 h-6 rounded-full transition-all relative flex items-center px-0.5 shrink-0 mt-0.5 ${
-                    form.features[feature.key] ? 'bg-[#58051E]' : 'bg-slate-300'
+                    form.features[feature.key] ? 'bg-[#5A0122]' : 'bg-slate-300'
                   }`}
                 >
                   <span className={`w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
@@ -864,7 +864,7 @@ export const AdminCustomizationPolicies: React.FC<Props> = ({ onNotify }) => {
           <button
             type="submit"
             disabled={isSaving || loading}
-            className="flex items-center gap-2 h-10 px-6 bg-[#58051E] text-white text-xs font-extrabold rounded-xl hover:bg-[#430316] transition-all shadow-sm active:scale-98"
+            className="flex items-center gap-2 h-10 px-6 bg-[#5A0122] text-white text-xs font-extrabold rounded-xl hover:bg-[#68092A] transition-all shadow-sm active:scale-98"
           >
             <Save className="w-4 h-4" /> {isSaving ? 'Publishing Changes...' : 'Save & Publish All Customizations'}
           </button>

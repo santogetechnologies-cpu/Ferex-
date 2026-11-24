@@ -45,7 +45,7 @@ export async function payEducationFeeOnline(input: { paymentType: string; amount
 
     const rzp = new Razorpay({
       key: order.key_id, amount: order.amount, currency: order.currency, order_id: order.order_id,
-      name: 'FEREX Education', description: input.description, theme: { color: '#6B0F36' },
+      name: 'FEREX Education', description: input.description, theme: { color: '#68092A' },
       prefill: { name: order.name, email: order.email, contact: order.contact },
       retry: { enabled: true },
       // UPI always leads the list of ways to pay; cards and net banking stay available below it.
@@ -63,4 +63,14 @@ export async function payEducationFeeOnline(input: { paymentType: string; amount
     });
     rzp.open();
   });
+}
+
+/** Asks Razorpay what really happened to online payments that are not settled here (closed checkout, late UPI confirmation) and syncs the stored status. Returns true when anything changed. */
+export async function reconcileOnlinePayments(orderIds: string[]): Promise<boolean> {
+  const ids = [...new Set(orderIds.filter(id => /^order_\w+$/.test(id)))].slice(0, 25);
+  if (!ids.length) return false;
+  try {
+    const r = await call<{ reconciled: { order_id: string; status: string }[] }>('razorpay-verify', { reconcile: true, order_ids: ids });
+    return (r.reconciled || []).some(x => x.status === 'Paid');
+  } catch { return false; }
 }

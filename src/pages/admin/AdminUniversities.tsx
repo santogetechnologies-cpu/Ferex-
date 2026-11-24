@@ -673,7 +673,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#58051E] mb-1.5">Ferex Education</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#5A0122] mb-1.5">Ferex Education</p>
           <h1 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-slate-900 leading-tight">Universities</h1>
           <p className="mt-1.5 text-sm font-medium text-slate-500 max-w-2xl">
             {isStaff ? 'Partner universities, tuition, intakes and legalization authorities by country.' : 'Manage partner universities, destination countries, programs and fees.'}
@@ -702,7 +702,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
               </button>
               <button
                 onClick={() => handleOpenAddModal()}
-                className="flex items-center gap-1.5 h-9.5 px-4 bg-[#58051E] rounded-xl text-xs font-bold text-white hover:bg-[#430316] active:scale-98 transition-all shadow-md shadow-[#58051E]/20 cursor-pointer"
+                className="flex items-center gap-1.5 h-9.5 px-4 bg-[#5A0122] rounded-xl text-xs font-bold text-white hover:bg-[#68092A] active:scale-98 transition-all shadow-md shadow-[#5A0122]/20 cursor-pointer"
               >
                 <Plus className="w-4 h-4" /> Add University
               </button>
@@ -717,7 +717,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
           onClick={() => setActiveMainTab('universities')}
           className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all flex items-center gap-2 ${
             activeMainTab === 'universities'
-              ? 'bg-[#58051E] text-white shadow-xs'
+              ? 'bg-[#5A0122] text-white shadow-xs'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
@@ -727,7 +727,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
           onClick={() => setActiveMainTab('countries')}
           className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all flex items-center gap-2 ${
             activeMainTab === 'countries'
-              ? 'bg-[#58051E] text-white shadow-xs'
+              ? 'bg-[#5A0122] text-white shadow-xs'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
           }`}
         >
@@ -748,7 +748,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by university name, city, or country..."
-                className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/40"
+                className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]/40"
               />
             </div>
 
@@ -784,7 +784,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
               </p>
               <button
                 onClick={() => handleOpenAddModal(countryFilter !== 'All' ? countryFilter : undefined)}
-                className="px-4 py-2 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316]"
+                className="px-4 py-2 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#68092A]"
               >
                 + Add University to {countryFilter !== 'All' ? countryFilter : 'Catalog'}
               </button>
@@ -807,7 +807,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                         <UniversityImage src={u.banner_image_url || u.image_url} name={u.name} country={u.country} className="group-hover:scale-105 transition-transform duration-500" />
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/10 to-transparent" />
                         
-                        {u.badge && <span className="absolute top-2.5 right-2.5 text-[10px] font-bold bg-white/95 text-[#58051E] px-2.5 py-0.5 rounded-full shadow-xs">
+                        {u.badge && <span className="absolute top-2.5 right-2.5 text-[10px] font-bold bg-white/95 text-[#5A0122] px-2.5 py-0.5 rounded-full shadow-xs">
                           {u.badge}
                         </span>}
 
@@ -827,7 +827,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                       <div className="p-4 space-y-3">
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <h3 className="text-sm font-black text-slate-900 leading-snug group-hover:text-[#58051E] transition-colors">
+                            <h3 className="text-sm font-black text-slate-900 leading-snug group-hover:text-[#5A0122] transition-colors">
                               {u.name}
                             </h3>
                             <p className="text-[11px] font-semibold text-slate-400 flex items-center gap-1 mt-0.5">
@@ -869,7 +869,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                         <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-1">
                           <div className="flex justify-between items-center">
                             <span className="text-slate-400 font-medium">Tuition Fee:</span>
-                            <span className="font-extrabold text-[#58051E]">
+                            <span className="font-extrabold text-[#5A0122]">
                               {formatFeeEURandINR(u.tuition_range || u.university_fee)}
                             </span>
                           </div>
@@ -898,7 +898,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                       </span>
                       <button
                         onClick={() => handleOpenEditModal(u)}
-                        className="font-extrabold text-[#58051E] hover:underline flex items-center gap-1"
+                        className="font-extrabold text-[#5A0122] hover:underline flex items-center gap-1"
                       >
                         Manage Programs & Fees →
                       </button>
@@ -928,7 +928,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
             </div>
             <button
               onClick={handleOpenAddCountry}
-              className="h-9 px-4 bg-[#58051E] text-white rounded-xl text-xs font-bold hover:bg-[#430316] flex items-center gap-1.5 shadow-xs cursor-pointer"
+              className="h-9 px-4 bg-[#5A0122] text-white rounded-xl text-xs font-bold hover:bg-[#68092A] flex items-center gap-1.5 shadow-xs cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Add New Country
             </button>
@@ -943,7 +943,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
               </p>
               <button
                 onClick={handleOpenAddCountry}
-                className="px-4 py-2 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] cursor-pointer"
+                className="px-4 py-2 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#68092A] cursor-pointer"
               >
                 + Register First Destination Country
               </button>
@@ -965,7 +965,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                           </div>
                         </div>
 
-                        <span className="px-2 py-0.5 bg-[#58051E]/10 text-[#58051E] rounded-md text-[10px] font-extrabold border border-[#58051E]/20">
+                        <span className="px-2 py-0.5 bg-[#5A0122]/10 text-[#5A0122] rounded-md text-[10px] font-extrabold border border-[#5A0122]/20">
                           {c.acronym}
                         </span>
                       </div>
@@ -1004,7 +1004,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                           <>
                             <button
                               onClick={() => handleOpenAddModal(c.name)}
-                              className="px-2.5 py-1 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                              className="px-2.5 py-1 bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
                             >
                               + Add Uni
                             </button>
@@ -1042,7 +1042,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 z-10 text-left space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-[#58051E]" />
+                  <Globe className="w-5 h-5 text-[#5A0122]" />
                   <h3 className="text-base font-black text-slate-900">
                     {editingCountryId ? 'Edit Destination Country' : 'Register New Destination Country'}
                   </h3>
@@ -1142,7 +1142,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
 
                 <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                   <button type="button" onClick={() => setShowAddCountryModal(false)} className="h-9 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
-                  <button type="submit" className="h-9 px-5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] shadow-xs cursor-pointer">
+                  <button type="submit" className="h-9 px-5 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#68092A] shadow-xs cursor-pointer">
                     {editingCountryId ? 'Save Country Changes' : 'Register Country'}
                   </button>
                 </div>
@@ -1179,7 +1179,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                     type="button"
                     onClick={() => setActiveFormTab(t.id as any)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
-                      activeFormTab === t.id ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                      activeFormTab === t.id ? 'bg-[#5A0122] text-white shadow-xs' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
                     {t.label}
@@ -1209,7 +1209,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                           <button
                             type="button"
                             onClick={() => setIsCustomCountry(!isCustomCountry)}
-                            className="text-[10px] font-bold text-[#58051E] hover:underline cursor-pointer"
+                            className="text-[10px] font-bold text-[#5A0122] hover:underline cursor-pointer"
                           >
                             {isCustomCountry ? '← Choose Existing' : '+ Type Custom Country'}
                           </button>
@@ -1280,7 +1280,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                         <button
                           type="button"
                           onClick={() => setShowUrlInput(!showUrlInput)}
-                          className="text-[10px] font-bold text-[#58051E] hover:underline"
+                          className="text-[10px] font-bold text-[#5A0122] hover:underline"
                         >
                           {showUrlInput ? 'Hide URL input' : 'Paste custom image URL'}
                         </button>
@@ -1318,7 +1318,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                                 disabled={uploadingImage}
                                 className="px-3 py-1.5 bg-white/90 hover:bg-white text-slate-900 rounded-xl text-xs font-bold shadow-md flex items-center gap-1 cursor-pointer transition-colors"
                               >
-                                <Upload className="w-3.5 h-3.5 text-[#58051E]" />
+                                <Upload className="w-3.5 h-3.5 text-[#5A0122]" />
                                 {uploadingImage ? 'Uploading...' : 'Change Picture'}
                               </button>
                               <button
@@ -1335,9 +1335,9 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                       ) : (
                         <div
                           onClick={() => fileInputRef.current?.click()}
-                          className="border-2 border-dashed border-slate-300 hover:border-[#58051E] bg-slate-50/70 hover:bg-slate-50 rounded-2xl p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 group"
+                          className="border-2 border-dashed border-slate-300 hover:border-[#5A0122] bg-slate-50/70 hover:bg-slate-50 rounded-2xl p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 group"
                         >
-                          <div className="w-12 h-12 rounded-2xl bg-[#58051E]/10 group-hover:bg-[#58051E] text-[#58051E] group-hover:text-white flex items-center justify-center transition-colors">
+                          <div className="w-12 h-12 rounded-2xl bg-[#5A0122]/10 group-hover:bg-[#5A0122] text-[#5A0122] group-hover:text-white flex items-center justify-center transition-colors">
                             {uploadingImage ? (
                               <CapLoader size="sm" />) : (
                               <Upload className="w-6 h-6" />
@@ -1354,7 +1354,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                           <button
                             type="button"
                             disabled={uploadingImage}
-                            className="mt-1 px-4 py-1.5 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5"
+                            className="mt-1 px-4 py-1.5 bg-[#5A0122] hover:bg-[#68092A] text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5"
                           >
                             <ImageIcon className="w-3.5 h-3.5" /> Choose Picture File
                           </button>
@@ -1417,7 +1417,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                       <button
                         type="button"
                         onClick={handleAddCourseProgram}
-                        className="px-3 py-1.5 bg-[#58051E] text-white text-xs font-bold rounded-lg hover:bg-[#430316] flex items-center gap-1"
+                        className="px-3 py-1.5 bg-[#5A0122] text-white text-xs font-bold rounded-lg hover:bg-[#68092A] flex items-center gap-1"
                       >
                         <Plus className="w-3.5 h-3.5" /> Add Program
                       </button>
@@ -1484,7 +1484,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                   <button
                     form="university-admin-form"
                     type="submit"
-                    className="h-9 px-6 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] shadow-md flex items-center gap-1.5 cursor-pointer transition-all active:scale-98"
+                    className="h-9 px-6 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#68092A] shadow-md flex items-center gap-1.5 cursor-pointer transition-all active:scale-98"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     {editingId ? 'Save Changes' : 'Publish University'}
@@ -1514,7 +1514,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                 <div className="h-32 rounded-xl overflow-hidden relative">
                   <UniversityImage src={viewUniversity.banner_image_url || viewUniversity.image_url} name={viewUniversity.name} country={viewUniversity.country} />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <span className="absolute bottom-2 left-2.5 px-2 py-0.5 bg-[#58051E] text-amber-300 rounded text-[10px] font-black">
+                  <span className="absolute bottom-2 left-2.5 px-2 py-0.5 bg-[#5A0122] text-amber-300 rounded text-[10px] font-black">
                     {viewUniversity.badge || 'Top Choice'}
                   </span>
                 </div>
@@ -1522,7 +1522,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
 
               <div className="space-y-3 text-xs">
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
-                  <div className="flex justify-between"><span>Annual Tuition:</span><span className="font-bold text-[#58051E]">{formatFeeEURandINR(viewUniversity.university_fee || viewUniversity.tuition_range)}</span></div>
+                  <div className="flex justify-between"><span>Annual Tuition:</span><span className="font-bold text-[#5A0122]">{formatFeeEURandINR(viewUniversity.university_fee || viewUniversity.tuition_range)}</span></div>
                 </div>
 
                 <div>
@@ -1531,7 +1531,7 @@ export const AdminUniversities: React.FC<AdminUniversitiesProps> = ({ isStaff = 
                     {(viewUniversity.course_programs || viewUniversity.programs || []).map((p: any, idx: number) => (
                       <div key={idx} className="p-2 bg-slate-50 rounded-lg flex justify-between font-semibold">
                         <span>{typeof p === 'string' ? p : p.name}</span>
-                        {typeof p !== 'string' && <span className="text-[#58051E] font-bold">{p.tuition_fee}</span>}
+                        {typeof p !== 'string' && <span className="text-[#5A0122] font-bold">{p.tuition_fee}</span>}
                       </div>
                     ))}
                   </div>

@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { GstField } from './GstField';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Trash2, Globe, Save, Edit2, CheckCircle2, XCircle,
@@ -15,7 +14,7 @@ import { useDestinations } from '../hooks/useDestinations';
 import { useUniversities } from '../hooks/useUniversities';
 import { CapLoader } from './CapLoader';
 
-const inp = 'w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20 focus:border-[#58051E] transition-all';
+const inp = 'w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5A0122]/20 focus:border-[#5A0122] transition-all';
 const lbl = 'block text-[11px] font-extrabold text-slate-600 uppercase tracking-wider mb-1';
 const btn = (cls: string) => `inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${cls}`;
 
@@ -266,13 +265,13 @@ export function CountryFeePackageBuilder() {
           <select
             value={newCountry}
             onChange={e => setNewCountry(e.target.value)}
-            className="h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20 focus:border-[#58051E]"
+            className="h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#5A0122]/20 focus:border-[#5A0122]"
           >
             {countries.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           <button
             onClick={handleCreatePackage}
-            className={btn('bg-[#58051E] text-white hover:bg-[#430316] shadow-sm shadow-[#58051E]/30')}
+            className={btn('bg-[#5A0122] text-white hover:bg-[#68092A] shadow-sm shadow-[#5A0122]/30')}
           >
             <Plus className="w-3.5 h-3.5" /> New Package
           </button>
@@ -306,7 +305,7 @@ export function CountryFeePackageBuilder() {
                 {/* Package Header */}
                 <div className="flex items-center gap-3 p-4">
                   {/* Country flag badge */}
-                  <div className="p-2 bg-[#58051E]/8 text-[#58051E] rounded-xl border border-[#58051E]/15 shrink-0">
+                  <div className="p-2 bg-[#5A0122]/8 text-[#5A0122] rounded-xl border border-[#5A0122]/15 shrink-0">
                     <Globe className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -344,7 +343,7 @@ export function CountryFeePackageBuilder() {
                     )}
                     {editing && (
                       <>
-                        <button onClick={handleSavePackage} disabled={saving} className={btn('bg-[#58051E] text-white hover:bg-[#430316] shadow-sm')}>
+                        <button onClick={handleSavePackage} disabled={saving} className={btn('bg-[#5A0122] text-white hover:bg-[#68092A] shadow-sm')}>
                           <Save className="w-3 h-3" /> {saving ? 'Saving…' : 'Save Package'}
                         </button>
                         <button onClick={handleDiscardEdit} className={btn('bg-slate-100 text-slate-600 hover:bg-slate-200')}>
@@ -402,7 +401,7 @@ export function CountryFeePackageBuilder() {
                             {editing ? (
                               <div className="flex gap-2">
                                 <select
-                                  className="h-9 px-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20"
+                                  className="h-9 px-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#5A0122]/20"
                                   value={p.currency}
                                   onChange={e => handleDraftChange({ currency: e.target.value as CountryFeePackage['currency'] })}
                                 >
@@ -416,43 +415,69 @@ export function CountryFeePackageBuilder() {
                                 />
                               </div>
                             ) : (
-                              <p className="text-sm font-black text-[#58051E]">{money(p.total_amount, p.currency)}</p>
+                              <p className="text-sm font-black text-[#5A0122]">{money(p.total_amount, p.currency)}</p>
                             )}
                           </div>
                           <div>
+                            <label className={lbl}>GST</label>
+                            {editing ? (() => { const g = p.gst ?? { enabled: (p.tax_rate_percent ?? 0) > 0, rate: p.tax_rate_percent || 18, mode: 'inclusive' as const };
+                              const set = (u: Partial<typeof g>) => { const n = { ...g, ...u }; handleDraftChange({ gst: n, tax_rate_percent: n.enabled ? n.rate : 0 }); };
+                              return (
+                              <div className="space-y-2">
+                                <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer select-none">
+                                  <input type="checkbox" aria-label="Enable GST" checked={g.enabled} onChange={e => set({ enabled: e.target.checked })} className="w-4 h-4 rounded text-[#5A0122] border-slate-300 cursor-pointer" /> Charge GST on this package
+                                </label>
+                                {g.enabled && <div className="flex gap-2">
+                                  <input type="number" min="0" max="100" aria-label="GST percentage" className={`${inp} w-20`} value={g.rate} onChange={e => set({ rate: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)) })} />
+                                  <select aria-label="GST mode" className={inp} value={g.mode} onChange={e => set({ mode: e.target.value as 'inclusive' | 'exclusive' })}>
+                                    <option value="inclusive">Inclusive (in the price)</option><option value="exclusive">Exclusive (added on top)</option>
+                                  </select>
+                                </div>}
+                              </div>); })()
+                              : <p className="text-xs font-bold text-slate-700">{p.gst ? (p.gst.enabled ? `${p.gst.rate}% ${p.gst.mode}` : 'Disabled') : (p.tax_rate_percent ?? 0) > 0 ? `${p.tax_rate_percent}% included` : 'Disabled'}</p>}
+                          </div>
+                          <div>
+                            <label className={lbl}>Specialization</label>
                             {editing
-                              ? <GstField label="GST included in this package" value={p.tax_rate_percent ?? 0} onChange={rate => handleDraftChange({ tax_rate_percent: rate })} />
-                              : <><label className={lbl}>GST</label><p className="text-xs font-bold text-slate-700">{(p.tax_rate_percent ?? 0) > 0 ? `${p.tax_rate_percent}% (CGST ${(p.tax_rate_percent ?? 0) / 2}% + SGST ${(p.tax_rate_percent ?? 0) / 2}%)` : 'No GST'}</p></>}
+                              ? <input className={inp} aria-label="Specialization" value={p.specialization || ''} onChange={e => handleDraftChange({ specialization: e.target.value })} placeholder="e.g. Engineering, Concierge" />
+                              : <p className="text-xs font-bold text-slate-800">{p.specialization || '—'}</p>}
                           </div>
                           <div>
                             <label className={lbl}>Registration fee for this plan</label>
                             {editing ? (
-                              <div className="flex items-center gap-2">
-                                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer select-none">
+                              <div className="space-y-2">
+                                <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer select-none">
                                   <input
                                     type="checkbox"
-                                    aria-label="Enable registration fee"
-                                    checked={p.registration_fee.enabled}
-                                    onChange={e => handleDraftChange({ registration_fee: { ...p.registration_fee, enabled: e.target.checked } })}
-                                    className="w-4 h-4 rounded text-[#58051E] border-slate-300 cursor-pointer"
+                                    aria-label="Include registration fee"
+                                    checked={p.registration_fee.included !== false}
+                                    onChange={e => handleDraftChange({ registration_fee: { ...p.registration_fee, included: e.target.checked } })}
+                                    className="w-4 h-4 rounded text-[#5A0122] border-slate-300 cursor-pointer"
                                   />
-                                  Override
+                                  Include the registration fee in this plan
                                 </label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  aria-label="Registration fee amount"
-                                  disabled={!p.registration_fee.enabled}
-                                  className={`${inp} flex-1 disabled:opacity-50`}
-                                  value={p.registration_fee.amount}
-                                  onChange={e => handleDraftChange({ registration_fee: { ...p.registration_fee, amount: Math.max(0, parseFloat(e.target.value) || 0) } })}
-                                />
+                                {p.registration_fee.included !== false && (
+                                  <div>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      aria-label="Custom registration fee amount"
+                                      placeholder="0"
+                                      className={`${inp} w-full`}
+                                      value={p.registration_fee.amount || ''}
+                                      onChange={e => { const amount = Math.max(0, parseFloat(e.target.value) || 0); handleDraftChange({ registration_fee: { ...p.registration_fee, amount, enabled: amount > 0 } }); }}
+                                    />
+                                    <p className="text-[11px] text-slate-500 mt-1">Leave empty to charge the standard registration fee. Enter an amount to replace it for this plan.</p>
+                                  </div>
+                                )}
                               </div>
                             ) : (
-                              <p className="text-sm font-black text-[#58051E]">
-                                {p.registration_fee.enabled && p.registration_fee.amount > 0
-                                  ? money(p.registration_fee.amount, p.currency)
-                                  : <span className="text-slate-400 font-bold">Standard registration fee</span>}
+                              <p className="text-sm font-black text-[#5A0122]">
+                                {p.registration_fee.included === false
+                                  ? <span className="text-slate-500 font-bold">Not included</span>
+                                  : p.registration_fee.enabled && p.registration_fee.amount > 0
+                                    ? money(p.registration_fee.amount, p.currency)
+                                    : <span className="text-slate-400 font-bold">Standard registration fee</span>}
                               </p>
                             )}
                           </div>
@@ -471,11 +496,33 @@ export function CountryFeePackageBuilder() {
                           </div>
                         </div>
 
+                        {/* ── Benefits, deliverables, milestones ── */}
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          {([['benefits', 'Benefits'], ['deliverables', 'Deliverables']] as const).map(([key, label]) => (
+                            <div key={key}>
+                              <label className={lbl}>{label} (one per line)</label>
+                              {editing
+                                ? <textarea className={`${inp} h-auto py-2`} rows={4} aria-label={label} value={(p[key] || []).join('\n')} onChange={e => handleDraftChange({ [key]: e.target.value.split('\n') } as Partial<CountryFeePackage>)} />
+                                : <ul className="text-xs text-slate-700 list-disc pl-4 space-y-0.5">{(p[key] || []).filter(Boolean).map((x, i) => <li key={i}>{x}</li>)}{!(p[key] || []).filter(Boolean).length && <li className="list-none -ml-4 text-slate-400">—</li>}</ul>}
+                            </div>
+                          ))}
+                          <div className="sm:col-span-2">
+                            <label className={lbl}>Journey milestones</label>
+                            <div className="flex flex-wrap gap-1.5">
+                              {JOURNEY_STAGES.map((st, i) => { const on = (p.milestones || []).some(m => m.stage === i + 1);
+                                return editing
+                                  ? <button type="button" key={st} aria-pressed={on} onClick={() => handleDraftChange({ milestones: on ? (p.milestones || []).filter(m => m.stage !== i + 1) : [...(p.milestones || []), { id: `m${i + 1}`, title: st, stage: i + 1 }].sort((x, y) => x.stage - y.stage) })} className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${on ? 'bg-[#5A0122] text-white border-[#5A0122]' : 'bg-white text-slate-500 border-slate-200'}`}>{st}</button>
+                                  : on ? <span key={st} className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#5A0122]/10 text-[#5A0122]">{st}</span> : null; })}
+                              {!editing && !(p.milestones || []).length && <span className="text-xs text-slate-400">—</span>}
+                            </div>
+                          </div>
+                        </div>
+
                         {/* ── Covered Services ── */}
                         <div>
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
-                              <List className="w-4 h-4 text-[#58051E]" />
+                              <List className="w-4 h-4 text-[#5A0122]" />
                               <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">Covered Services & Deliverables</h3>
                             </div>
                             {editing && (
@@ -539,7 +586,7 @@ export function CountryFeePackageBuilder() {
                         <div>
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
-                              <DollarSign className="w-4 h-4 text-[#58051E]" />
+                              <DollarSign className="w-4 h-4 text-[#5A0122]" />
                               <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">Payment Installment Milestones</h3>
                             </div>
                             {editing && (
@@ -553,11 +600,12 @@ export function CountryFeePackageBuilder() {
                           {editing && draft && (
                             (() => {
                               const instTotal = draft.installments.reduce((s, i) => s + (i.amount || 0), 0);
-                              const diff = draft.total_amount - instTotal;
+                              const regSeparate = draft.registration_fee.included !== false && draft.registration_fee.enabled && draft.registration_fee.amount > 0 ? draft.registration_fee.amount : 0;
+                              const diff = draft.total_amount - regSeparate - instTotal;
                               return (
                                 <div className={`mb-3 p-2.5 rounded-xl text-xs font-bold flex items-center gap-2 ${Math.abs(diff) < 1 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200'}`}>
                                   {Math.abs(diff) < 1
-                                    ? <><CheckCircle2 className="w-3.5 h-3.5" /> Installments balance matches total package price ({money(draft.total_amount, draft.currency)})</>
+                                    ? <><CheckCircle2 className="w-3.5 h-3.5" /> Installments balance matches the package price{regSeparate ? ` after the ${money(regSeparate, draft.currency)} registration` : ''} ({money(draft.total_amount - regSeparate, draft.currency)})</>
                                     : <><AlertCircle className="w-3.5 h-3.5" /> Installment totals ({money(instTotal, draft.currency)}) {diff > 0 ? `under` : `over`} by {money(Math.abs(diff), draft.currency)} vs package price</>
                                   }
                                 </div>
@@ -569,7 +617,7 @@ export function CountryFeePackageBuilder() {
                             {p.installments.map((inst, idx) => (
                               <div key={inst.id} className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
                                 <div className="flex items-center gap-2 mb-3">
-                                  <span className="w-6 h-6 rounded-full bg-[#58051E]/10 text-[#58051E] text-[11px] font-black flex items-center justify-center shrink-0">{idx + 1}</span>
+                                  <span className="w-6 h-6 rounded-full bg-[#5A0122]/10 text-[#5A0122] text-[11px] font-black flex items-center justify-center shrink-0">{idx + 1}</span>
                                   {editing ? (
                                     <input
                                       className={`${inp} flex-1`}
@@ -597,7 +645,7 @@ export function CountryFeePackageBuilder() {
                                         onChange={e => handleInstallmentChange(inst.id, 'amount', parseFloat(e.target.value) || 0)}
                                       />
                                     ) : (
-                                      <p className="text-sm font-black text-[#58051E]">{money(inst.amount, p.currency)}</p>
+                                      <p className="text-sm font-black text-[#5A0122]">{money(inst.amount, p.currency)}</p>
                                     )}
                                   </div>
                                   <div>
@@ -630,6 +678,12 @@ export function CountryFeePackageBuilder() {
                                     ) : (
                                       <p className="text-xs font-bold text-slate-700">{inst.timing === 'before' ? 'Before' : 'After'} Stage</p>
                                     )}
+                                  </div>
+                                  <div>
+                                    <label className={lbl}>Due Date</label>
+                                    {editing
+                                      ? <input type="date" aria-label="Instalment due date" className={inp} value={inst.due_date || ''} onChange={e => handleInstallmentChange(inst.id, 'due_date', e.target.value)} />
+                                      : <p className="text-[11px] text-slate-500">{inst.due_date || '—'}</p>}
                                   </div>
                                   <div>
                                     <label className={lbl}>Due Description</label>
@@ -680,7 +734,7 @@ export function CountryFeePackageBuilder() {
                               <Layers className="w-3.5 h-3.5 text-indigo-500" />
                               {p.installments.length} payment milestone{p.installments.length !== 1 ? 's' : ''}
                             </span>
-                            <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-[#58051E]">
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-black text-[#5A0122]">
                               <ArrowRight className="w-3.5 h-3.5" />
                               Total: {money(p.total_amount, p.currency)}
                             </span>

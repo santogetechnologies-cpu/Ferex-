@@ -30,6 +30,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { Link } from 'react-router-dom';
 import { BlockCap } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 interface AdminStudentEnquiriesProps {
   isStaff?: boolean; // When true, runs in Counselor portal view
@@ -63,7 +65,7 @@ const STATUS_COLORS: Record<EducationLead['status'], { bg: string; text: string;
   'Interested': { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
   'Follow Up': { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
   'Not Interested': { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200' },
-  'Enrolled': { bg: 'bg-[#58051E]/10', text: 'text-[#58051E]', border: 'border-[#58051E]/20' },
+  'Enrolled': { bg: 'bg-[#5A0122]/10', text: 'text-[#5A0122]', border: 'border-[#5A0122]/20' },
   'Lost': { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
 };
 
@@ -81,6 +83,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
   const currentCounselorName = (profile?.full_name || '').trim();
 
   const [leads, setLeads] = useState<EducationLead[]>([]);
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [counselors, setCounselors] = useState<DivisionStaffMember[]>([]);
   const [metrics, setMetrics] = useState<CounselorPerformanceMetric[]>([]);
   const [loading, setLoading] = useState(true);
@@ -347,7 +350,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
 
   // Filtered Leads
   const filteredLeads = useMemo(() => {
-    return leads.filter((l) => {
+    return leads.filter(l => inRange(l.created_at, range)).filter((l) => {
       // Status filter
       if (statusFilter !== 'All' && l.status !== statusFilter) return false;
 
@@ -374,7 +377,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
 
       return true;
     });
-  }, [leads, statusFilter, counselorFilter, searchQuery]);
+  }, [leads, statusFilter, counselorFilter, searchQuery, range]);
 
   // Counts for Status Tabs — scoped to counselor when in staff view
   const statusCounts = useMemo(() => {
@@ -412,9 +415,9 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Users className="w-5 h-5 text-[#58051E]" /> Enquiries
+              <Users className="w-5 h-5 text-[#5A0122]" /> Enquiries
             </h1>
-            <span className="text-[10px] font-extrabold bg-[#58051E]/10 text-[#58051E] px-2.5 py-0.5 rounded-full border border-[#58051E]/20">
+            <span className="text-[10px] font-extrabold bg-[#5A0122]/10 text-[#5A0122] px-2.5 py-0.5 rounded-full border border-[#5A0122]/20">
               {isStaff ? 'My Assigned Leads' : 'Full Admissions Pipeline'}
             </span>
           </div>
@@ -428,9 +431,9 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
             to="/study-abroad"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs font-bold text-slate-700 hover:text-[#58051E] bg-white border border-slate-200 hover:border-[#58051E]/40 px-3 py-2 rounded-xl transition-all shadow-2xs flex items-center gap-1.5"
+            className="text-xs font-bold text-slate-700 hover:text-[#5A0122] bg-white border border-slate-200 hover:border-[#5A0122]/40 px-3 py-2 rounded-xl transition-all shadow-2xs flex items-center gap-1.5"
           >
-            <ExternalLink className="w-3.5 h-3.5 text-[#58051E]" /> View Public Landing Page
+            <ExternalLink className="w-3.5 h-3.5 text-[#5A0122]" /> View Public Landing Page
           </Link>
           <Button
             size="sm"
@@ -445,11 +448,11 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
 
       {/* ── KPI & Performance Leaderboard Cards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <Card className="p-4 bg-gradient-to-br from-[#58051E]/10 via-[#58051E]/5 to-transparent border border-[#58051E]/20 shadow-xs">
-          <span className="text-[10px] font-black uppercase text-[#58051E] tracking-wider block">Total Admissions Leads</span>
+        <Card className="p-4 bg-gradient-to-br from-[#5A0122]/10 via-[#5A0122]/5 to-transparent border border-[#5A0122]/20 shadow-xs">
+          <span className="text-[10px] font-black uppercase text-[#5A0122] tracking-wider block">Total Admissions Leads</span>
           <div className="flex items-baseline justify-between mt-1">
             <span className="text-2xl font-black text-slate-900">{leads.length}</span>
-            <span className="text-[10px] font-bold text-[#58051E] bg-[#58051E]/15 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold text-[#5A0122] bg-[#5A0122]/15 px-2 py-0.5 rounded-full">
               {statusCounts['New Lead'] || 0} New
             </span>
           </div>
@@ -506,7 +509,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
       {!isStaff && leaderboard.length > 0 && (
         <Card className="p-4 border border-slate-200/80 shadow-xs space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-[#58051E]" /><h3 className="text-xs font-black uppercase tracking-wider text-slate-800">Who is closing the most</h3></div>
+            <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-[#5A0122]" /><h3 className="text-xs font-black uppercase tracking-wider text-slate-800">Who is closing the most</h3></div>
             <span className="text-[11px] font-semibold text-slate-500">Deals closed, all time and in {closureMonth}</span>
           </div>
           <ol className="space-y-2">
@@ -595,7 +598,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
                   onClick={() => setStatusFilter(tab)}
                   className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     isActive
-                      ? 'bg-[#58051E] text-white shadow-xs'
+                      ? 'bg-[#5A0122] text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
                   }`}
                 >
@@ -628,6 +631,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
               </select>
             )}
 
+            <DateRangeFilter compact label="Enquired" value={range} onChange={setRange} />
             <div className="relative min-w-[220px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
@@ -635,7 +639,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search name, phone, email, country..."
-                className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
               />
             </div>
           </div>
@@ -646,7 +650,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-3 bg-gradient-to-r from-[#58051E] to-[#7a082b] rounded-2xl text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg"
+            className="p-3 bg-gradient-to-r from-[#5A0122] to-[#7a082b] rounded-2xl text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg"
           >
             <div className="flex items-center gap-2">
               <span className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center font-black text-xs">
@@ -697,7 +701,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
           <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-extrabold uppercase text-slate-500 tracking-wider">
             <tr>
               <th className="p-3 w-10 text-center">
-                <input type="checkbox" aria-label="Select all" checked={filteredLeads.length > 0 && selectedLeadIds.size === filteredLeads.length} onChange={handleToggleSelectAll} className="w-4 h-4 rounded text-[#58051E] focus:ring-[#58051E] cursor-pointer" />
+                <input type="checkbox" aria-label="Select all" checked={filteredLeads.length > 0 && selectedLeadIds.size === filteredLeads.length} onChange={handleToggleSelectAll} className="w-4 h-4 rounded text-[#5A0122] focus:ring-[#5A0122] cursor-pointer" />
               </th>
               <th className="p-3 w-[24%]">Student</th>
               <th className="p-3 w-[27%]">Interest</th>
@@ -719,13 +723,13 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
                 return (
                   <tr key={lead.id} className={`align-top hover:bg-slate-50/80 transition-colors ${isSelected ? 'bg-rose-50/40' : ''}`}>
                     <td className="p-3 text-center">
-                      <input type="checkbox" aria-label={`Select ${lead.name || lead.phone}`} checked={isSelected} onChange={() => handleToggleSelectOne(lead.id)} className="w-4 h-4 rounded text-[#58051E] focus:ring-[#58051E] cursor-pointer" />
+                      <input type="checkbox" aria-label={`Select ${lead.name || lead.phone}`} checked={isSelected} onChange={() => handleToggleSelectOne(lead.id)} className="w-4 h-4 rounded text-[#5A0122] focus:ring-[#5A0122] cursor-pointer" />
                     </td>
 
                     <td className="p-3 min-w-0">
                       <div className="text-sm font-black text-slate-900 truncate">{lead.name || 'Admissions Enquiry'}</div>
                       <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-500 min-w-0">
-                        <a href={`tel:${lead.phone}`} className="font-mono font-bold text-slate-700 hover:text-[#58051E] shrink-0">{lead.phone}</a>
+                        <a href={`tel:${lead.phone}`} className="font-mono font-bold text-slate-700 hover:text-[#5A0122] shrink-0">{lead.phone}</a>
                         {lead.email && <span className="truncate">· {lead.email}</span>}
                       </div>
                     </td>
@@ -846,7 +850,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
                         aria-label="Assign counselor"
                         value={convertCounselorId}
                         onChange={(e) => setConvertCounselorId(e.target.value)}
-                        className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                       >
                         <option value="">Select the counselor for this student…</option>
                         {counselors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -864,7 +868,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
                       value={convertEmail}
                       onChange={(e) => setConvertEmail(e.target.value)}
                       placeholder="student@example.com"
-                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
 
@@ -878,7 +882,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
                       value={tempPassword}
                       onChange={(e) => setTempPassword(e.target.value)}
                       minLength={8}
-                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                     />
                     <span className="text-[10px] text-slate-400 mt-1 block">
                       Student will be prompted to change this password on first login.
@@ -952,7 +956,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
                         setCreatedCredentials(null);
                       }}
                       size="sm"
-                      className="w-full bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold"
+                      className="w-full bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold"
                     >
                       Done
                     </Button>
@@ -1008,7 +1012,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Current Status:</span>
-                    <span className="font-black text-[#58051E]">{activeLead.status}</span>
+                    <span className="font-black text-[#5A0122]">{activeLead.status}</span>
                   </div>
                 </div>
 
@@ -1076,7 +1080,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
                         placeholder="Call summary, eligibility discussion..."
                         className="flex-1 h-8.5 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
                       />
-                      <Button type="submit" size="sm" className="h-8.5 bg-[#58051E] text-white">
+                      <Button type="submit" size="sm" className="h-8.5 bg-[#5A0122] text-white">
                         <Send className="w-3.5 h-3.5" />
                       </Button>
                     </div>
@@ -1086,7 +1090,7 @@ export const AdminStudentEnquiries: React.FC<AdminStudentEnquiriesProps> = ({ is
                 {/* Activity History Timeline */}
                 <div className="space-y-3">
                   <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-[#58051E]" /> Chronological Activity History ({leadActivities.length})
+                    <Clock className="w-3.5 h-3.5 text-[#5A0122]" /> Chronological Activity History ({leadActivities.length})
                   </h4>
 
                   {leadActivities.length === 0 ? (

@@ -57,7 +57,7 @@ export const CentralActivity: React.FC = () => {
           items.push({
             id: l.id ? `AUD-${l.id.slice(0, 8).toUpperCase()}` : `AUD-${Math.floor(1000 + Math.random() * 9000)}`,
             division: (l.details?.division as any) || 'HQ',
-            divisionBadge: 'bg-[#58051E]/10 text-[#58051E] border-[#58051E]/20',
+            divisionBadge: 'bg-[#5A0122]/10 text-[#5A0122] border-[#5A0122]/20',
             action: l.action || 'System Operation',
             category: l.entity_type || 'Governance',
             details: typeof l.details === 'string' ? l.details : JSON.stringify(l.details || {}),
@@ -288,9 +288,9 @@ export const CentralActivity: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Activity className="w-6 h-6 text-[#58051E]" /> Activity log
+              <Activity className="w-6 h-6 text-[#5A0122]" /> Activity log
             </h1>
-            <span className="text-[10px] font-black bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-black bg-[#5A0122]/10 text-[#5A0122] border border-[#5A0122]/20 px-2.5 py-0.5 rounded-full">
               Live Event Stream
             </span>
           </div>
@@ -310,13 +310,13 @@ export const CentralActivity: React.FC = () => {
             variant="outline"
             className="text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border-slate-200/80"
           >
-            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin text-[#58051E]' : ''}`} /> Refresh
+            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin text-[#5A0122]' : ''}`} /> Refresh
           </Button>
 
           <Button
             size="sm"
             onClick={handleExportAuditCSV}
-            className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold text-white shadow-xs"
+            className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold text-white shadow-xs"
           >
             <Download className="w-3.5 h-3.5 mr-1.5" /> Export Audit CSV
           </Button>
@@ -367,7 +367,7 @@ export const CentralActivity: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by action, actor email, event ID, description, or IP..."
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#58051E]/40"
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#5A0122]/40"
             />
           </div>
 
@@ -379,7 +379,7 @@ export const CentralActivity: React.FC = () => {
                 onClick={() => setSelectedDivision(div)}
                 className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
                   selectedDivision === div
-                    ? 'bg-[#58051E] text-white shadow-xs'
+                    ? 'bg-[#5A0122] text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -487,7 +487,7 @@ export const CentralActivity: React.FC = () => {
                     <td className="py-3 px-4 text-right whitespace-nowrap">
                       <button
                         onClick={() => setSelectedEvent(log)}
-                        className="p-1.5 text-slate-400 hover:text-[#58051E] hover:bg-[#58051E]/10 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-slate-400 hover:text-[#5A0122] hover:bg-[#5A0122]/10 rounded-lg transition-colors cursor-pointer"
                         title="View Full Event Payload"
                       >
                         <Eye className="w-4 h-4" />
@@ -513,9 +513,9 @@ export const CentralActivity: React.FC = () => {
             >
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-[#58051E]" />
+                  <Activity className="w-5 h-5 text-[#5A0122]" />
                   <h3 className="text-sm font-black text-slate-900">
-                    Audit Event Payload: <span className="font-mono text-[#58051E]">{selectedEvent.id}</span>
+                    Audit Event Payload: <span className="font-mono text-[#5A0122]">{selectedEvent.id}</span>
                   </h3>
                 </div>
                 <button
@@ -563,7 +563,7 @@ export const CentralActivity: React.FC = () => {
                 <Button
                   size="sm"
                   onClick={() => setSelectedEvent(null)}
-                  className="bg-[#58051E] text-white text-xs font-bold"
+                  className="bg-[#5A0122] text-white text-xs font-bold"
                 >
                   Close Inspector
                 </Button>

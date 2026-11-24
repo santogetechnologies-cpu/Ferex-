@@ -42,6 +42,7 @@ const AdminDocumentReview = lazy(() => import('./pages/admin/AdminDocumentReview
 const AdminPayments = lazy(() => import('./pages/admin/AdminPayments').then(m => ({ default: m.AdminPayments })));
 const AdminSupportTickets = lazy(() => import('./pages/admin/AdminSupportTickets').then(m => ({ default: m.AdminSupportTickets })));
 const AdminChatSupport = lazy(() => import('./pages/admin/AdminChatSupport').then(m => ({ default: m.AdminChatSupport })));
+const AdminPaymentPlans = lazy(() => import('./pages/admin/AdminPaymentPlans').then(m => ({ default: m.AdminPaymentPlans })));
 const AdminFinance = lazy(() => import('./pages/admin/AdminFinance').then(m => ({ default: m.AdminFinance })));
 const AdminReports = lazy(() => import('./pages/admin/AdminReports').then(m => ({ default: m.AdminReports })));
 const AdminNotifications = lazy(() => import('./pages/admin/AdminNotifications').then(m => ({ default: m.AdminNotifications })));
@@ -60,6 +61,7 @@ import { getImpersonatedStudent } from './lib/api/studentImpersonation';
 import { CentralLayout } from './layouts/CentralLayout';
 const CentralDashboard = lazy(() => import('./pages/central/CentralDashboard').then(m => ({ default: m.CentralDashboard })));
 const CentralPayments = lazy(() => import('./pages/central/CentralPayments').then(m => ({ default: m.CentralPayments })));
+const CentralAppWorkflows = lazy(() => import('./pages/central/CentralAppWorkflows').then(m => ({ default: m.CentralAppWorkflows })));
 const CentralReports = lazy(() => import('./pages/central/CentralReports').then(m => ({ default: m.CentralReports })));
 const CentralAdmins = lazy(() => import('./pages/central/CentralAdmins').then(m => ({ default: m.CentralAdmins })));
 const RolesUsers = lazy(() => import('./pages/central/RolesUsers').then(m => ({ default: m.RolesUsers })));
@@ -110,6 +112,9 @@ const RimiDeliveries = lazy(() => import('./pages/rimi/RimiDeliveries').then(m =
 const RimiCollections = lazy(() => import('./pages/rimi/RimiCollections').then(m => ({ default: m.RimiCollections })));
 const RimiVehicles = lazy(() => import('./pages/rimi/RimiVehicles').then(m => ({ default: m.RimiVehicles })));
 const RimiDeliveryRoutes = lazy(() => import('./pages/rimi/RimiDeliveryRoutes').then(m => ({ default: m.RimiDeliveryRoutes })));
+const RimiFinance = lazy(() => import('./pages/rimi/RimiFinance').then(m => ({ default: m.RimiFinance })));
+const TradeBilling = lazy(() => import('./pages/trade/TradeBilling').then(m => ({ default: m.TradeBilling })));
+const DivisionExpenses = lazy(() => import('./components/finance/DivisionExpenses').then(m => ({ default: m.DivisionExpenses })));
 const RimiAnalytics = lazy(() => import('./pages/rimi/RimiAnalytics').then(m => ({ default: m.RimiAnalytics })));
 const RimiNotifications = lazy(() => import('./pages/rimi/RimiNotifications').then(m => ({ default: m.RimiNotifications })));
 const RimiProfile = lazy(() => import('./pages/rimi/RimiProfile').then(m => ({ default: m.RimiProfile })));
@@ -177,8 +182,10 @@ const AppInitializer: React.FC = () => {
 const ADMIN_ROLES = ['admin', 'education_admin', 'education'];
 const CENTRAL_ROLES = ['central', 'super_admin', 'superadmin'];
 const TRADE_ROLES = ['trade', 'trade_admin', 'global_trade', 'logistics_officer'];
+const RIMI_ADMIN_ROLES = ['rimi', 'rimi_admin', 'rimi_frozen'];
+const TRADE_ADMIN_ROLES = ['trade', 'trade_admin', 'global_trade'];
 const RIMI_ROLES = ['rimi', 'rimi_admin', 'rimi_frozen', 'operations_manager', 'rimi_staff'];
-const DIGITAL_ROLES = ['digital', 'digital_admin', 'ferex_digital', 'digital_director', 'digital_manager', 'project_manager', 'digimanager', 'pm', 'account_manager', 'accountmanager', 'digital_account_manager', 'account_executive', 'client_manager', 'digital_staff', 'designer', 'developer'];
+const DIGITAL_ROLES = ['digital', 'digital_admin', 'ferex_digital', 'digital_director', 'digital_manager', 'project_manager', 'digimanager', 'pm', 'account_manager', 'accountmanager', 'digital_account_manager', 'account_executive', 'client_manager', 'digital_staff', 'designer', 'developer', 'lead_developer', 'creative'];
 const PM_ROLES = ['project_manager', 'digital_manager', 'digimanager', 'pm', 'digital_pm', 'account_manager', 'accountmanager', 'digital_account_manager', 'account_executive', 'client_manager', 'digital_admin', 'digital'];
 const STAFF_ROLES = ['staff', 'counselor', 'admin', 'education_admin'];
 
@@ -186,10 +193,10 @@ const STAFF_ROLES = ['staff', 'counselor', 'admin', 'education_admin'];
 const NotFound: React.FC = () => (
   <main className="min-h-screen grid place-items-center bg-slate-50 px-6 text-center">
     <div>
-      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#58051E] mb-2">Error 404</p>
+      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#5A0122] mb-2">Error 404</p>
       <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">This page does not exist</h1>
       <p className="mt-2 text-sm font-medium text-slate-500">The link may be old or mistyped.</p>
-      <Link to="/" className="inline-flex mt-6 h-10 items-center px-5 rounded-xl bg-[#58051E] text-white text-sm font-semibold hover:bg-[#430316]">Go to the home page</Link>
+      <Link to="/" className="inline-flex mt-6 h-10 items-center px-5 rounded-xl bg-[#5A0122] text-white text-sm font-semibold hover:bg-[#68092A]">Go to the home page</Link>
     </div>
   </main>
 );
@@ -339,6 +346,7 @@ function App() {
           <Route path="/admin/nawa" element={<Navigate to="/admin/legalization" replace />} />
           <Route path="/admin/nawa-tracker" element={<Navigate to="/admin/legalization" replace />} />
           <Route path="/admin/payment-control" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminPaymentControl /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/payment-plans" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminPaymentPlans /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/payments" element={<Navigate to="/admin/payment-control" replace />} />
           <Route path="/admin/support" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminSupportTickets /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/chat" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminChatSupport /></AdminLayout></ProtectedRoute>} />
@@ -365,6 +373,7 @@ function App() {
           <Route path="/central/education-billing" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><AdminPaymentControl /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/finance" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralPayments /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/payments" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralPayments /></CentralLayout></ProtectedRoute>} />
+          <Route path="/central/app-workflows" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralAppWorkflows /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/reports" element={<ProtectedRoute allowedRoles={CENTRAL_ROLES}><CentralLayout><CentralReports /></CentralLayout></ProtectedRoute>} />
           <Route path="/central/admins" element={<Navigate to="/central/roles-users" replace />} />
           <Route path="/central/roles" element={<Navigate to="/central/roles-users" replace />} />
@@ -401,6 +410,9 @@ function App() {
           <Route path="/trade/certificates" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeCertificates /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/documents" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeDocuments /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/letters-of-credit" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeLettersOfCredit /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/billing" element={<ProtectedRoute allowedRoles={TRADE_ADMIN_ROLES}><TradeLayout><TradeBilling /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/expenses" element={<ProtectedRoute allowedRoles={TRADE_ADMIN_ROLES}><TradeLayout><DivisionExpenses division="trade" eyebrow="Global Trade" defaultCurrency="USD" /></TradeLayout></ProtectedRoute>} />
+          <Route path="/trade/finance" element={<Navigate to="/trade/billing" replace />} />
           <Route path="/trade/payments" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradePayments /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/reports" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeReports /></TradeLayout></ProtectedRoute>} />
           <Route path="/trade/shipment-analytics" element={<ProtectedRoute allowedRoles={TRADE_ROLES}><TradeLayout><TradeShipmentAnalytics /></TradeLayout></ProtectedRoute>} />
@@ -437,7 +449,11 @@ function App() {
           <Route path="/rimi/vehicles" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiVehicles /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/delivery-routes" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiDeliveryRoutes /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/analytics" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiAnalytics /></RimiLayout></ProtectedRoute>} />
-          <Route path="/rimi/finance" element={<ProtectedRoute allowedRoles={RIMI_ROLES}><RimiLayout><RimiAnalytics /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/finance" element={<Navigate to="/rimi/finance/billing" replace />} />
+          <Route path="/rimi/finance/billing" element={<ProtectedRoute allowedRoles={RIMI_ADMIN_ROLES}><RimiLayout><RimiFinance view="billing" /></RimiLayout></ProtectedRoute>} />
+          <Route path="/rimi/finance/invoices" element={<Navigate to="/rimi/finance/billing" replace />} />
+          <Route path="/rimi/finance/payments" element={<Navigate to="/rimi/collections" replace />} />
+          <Route path="/rimi/finance/expenses" element={<ProtectedRoute allowedRoles={RIMI_ADMIN_ROLES}><RimiLayout><DivisionExpenses division="rimi" eyebrow="Rimi Frozen" /></RimiLayout></ProtectedRoute>} />
           <Route path="/rimi/sales-reports" element={<Navigate to="/rimi/analytics" replace />} />
           <Route path="/rimi/inventory-analytics" element={<Navigate to="/rimi/analytics" replace />} />
           <Route path="/rimi/revenue-analytics" element={<Navigate to="/rimi/analytics" replace />} />

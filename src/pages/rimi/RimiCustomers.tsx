@@ -28,6 +28,8 @@ import {
 } from '../../lib/api/rimi';
 import { supabase } from '../../lib/supabase';
 import { BlockCap } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 const CUSTOMER_TYPES = ['Distributor', 'Shop / Retailer', 'Wholesaler', 'HORECA Partner'] as const;
 const PIPELINE_STAGES = ['Lead', 'Contacted', 'Sample Sent', 'Negotiation', 'Active Account', 'Suspended'] as const;
@@ -42,6 +44,7 @@ export const RimiCustomers: React.FC = () => {
   const [staffList, setStaffList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [typeFilter, setTypeFilter] = useState<string>('All');
   const [territoryFilter, setTerritoryFilter] = useState<string>('All');
   const [stageFilter, setStageFilter] = useState<string>('All');
@@ -67,7 +70,7 @@ export const RimiCustomers: React.FC = () => {
     email: '',
     gst_no: '',
     address: '',
-    city: 'Mumbai',
+    city: '',
     district: '',
     state: 'Maharashtra',
     pincode: '',
@@ -141,7 +144,7 @@ export const RimiCustomers: React.FC = () => {
         email: '',
         gst_no: '',
         address: '',
-        city: 'Mumbai',
+        city: '',
         district: '',
         state: 'Maharashtra',
         pincode: '',
@@ -269,7 +272,7 @@ export const RimiCustomers: React.FC = () => {
     }
   };
 
-  const filteredCustomers = customers.filter(c => {
+  const filteredCustomers = customers.filter(c => inRange(c.created_at, range)).filter(c => {
     const matchType = typeFilter === 'All' || c.customer_type === typeFilter;
     const matchTerritory = territoryFilter === 'All' || c.territory === territoryFilter;
     const matchStage = stageFilter === 'All' || c.pipeline_stage === stageFilter;
@@ -291,7 +294,7 @@ export const RimiCustomers: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Users className="w-5 h-5 text-[#58051E]" /> Customer Directory
+            <Users className="w-5 h-5 text-[#5A0122]" /> Customer Directory
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">
             Directory of distributors, retailers, wholesalers, and HORECA partners.
@@ -301,7 +304,7 @@ export const RimiCustomers: React.FC = () => {
         <Button
           size="sm"
           onClick={() => setShowAddModal(true)}
-          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
+          className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
         >
           <Plus className="w-4 h-4" /> Add Customer
         </Button>
@@ -311,6 +314,7 @@ export const RimiCustomers: React.FC = () => {
       <Card className="p-4 border border-slate-200/80 shadow-xs space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Search */}
+          <DateRangeFilter compact label="Added" value={range} onChange={setRange} />
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
@@ -318,7 +322,7 @@ export const RimiCustomers: React.FC = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search business, contact, city, phone..."
-              className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+              className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
             />
           </div>
 
@@ -397,7 +401,7 @@ export const RimiCustomers: React.FC = () => {
                     <select
                       value={c.pipeline_stage || 'Lead'}
                       onChange={(e) => handleInlineStageChange(c, e.target.value as any)}
-                      className={`text-[10.5px] font-extrabold px-2 py-0.5 rounded-full border cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#58051E] ${
+                      className={`text-[10.5px] font-extrabold px-2 py-0.5 rounded-full border cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#5A0122] ${
                         c.pipeline_stage === 'Active Account'
                           ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                           : c.pipeline_stage === 'Suspended'
@@ -459,10 +463,10 @@ export const RimiCustomers: React.FC = () => {
                         e.stopPropagation();
                         setEditingCustomer({ ...c });
                       }}
-                      className="p-1.5 text-slate-500 hover:text-[#58051E] hover:bg-[#58051E]/10 rounded-lg transition-colors cursor-pointer relative z-10"
+                      className="p-1.5 text-slate-500 hover:text-[#5A0122] hover:bg-[#5A0122]/10 rounded-lg transition-colors cursor-pointer relative z-10"
                       title="Edit Customer"
                     >
-                      <Edit3 className="w-4 h-4 pointer-events-none text-[#58051E]" />
+                      <Edit3 className="w-4 h-4 pointer-events-none text-[#5A0122]" />
                     </button>
                     {isAdmin && (
                       <button
@@ -485,19 +489,19 @@ export const RimiCustomers: React.FC = () => {
                     size="sm"
                     variant="outline"
                     onClick={() => setEditingCustomer({ ...c })}
-                    className="text-xs font-bold h-8.5 border-slate-200 hover:border-[#58051E] hover:text-[#58051E] flex items-center justify-center gap-1 cursor-pointer"
+                    className="text-xs font-bold h-8.5 border-slate-200 hover:border-[#5A0122] hover:text-[#5A0122] flex items-center justify-center gap-1 cursor-pointer"
                     title="Edit Customer"
                   >
-                    <Edit3 className="w-3.5 h-3.5 text-[#58051E]" /> Edit
+                    <Edit3 className="w-3.5 h-3.5 text-[#5A0122]" /> Edit
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => setUpdatingStageCustomer(c)}
-                    className="text-xs font-bold h-8.5 border-[#58051E]/30 bg-[#58051E]/5 hover:bg-[#58051E]/15 text-[#58051E] flex items-center justify-center gap-1 cursor-pointer"
+                    className="text-xs font-bold h-8.5 border-[#5A0122]/30 bg-[#5A0122]/5 hover:bg-[#5A0122]/15 text-[#5A0122] flex items-center justify-center gap-1 cursor-pointer"
                     title="Update Pipeline Stage"
                   >
-                    <TrendingUp className="w-3.5 h-3.5 text-[#58051E]" /> Stage
+                    <TrendingUp className="w-3.5 h-3.5 text-[#5A0122]" /> Stage
                   </Button>
                   <Button
                     size="sm"
@@ -634,6 +638,18 @@ export const RimiCustomers: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Delivery details used by Dispatch Reefer Truck */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Delivery Address *</label>
+                    <textarea rows={2} aria-label="Delivery address" value={formData.address || ''} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Shop no., street, area, landmark" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">PIN Code</label>
+                    <input type="text" inputMode="numeric" maxLength={6} aria-label="PIN code" value={formData.pincode || ''} onChange={(e) => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '') })} placeholder="400001" className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none" />
+                  </div>
+                </div>
+
                 {/* Address, City, Territory & GST */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
@@ -716,7 +732,7 @@ export const RimiCustomers: React.FC = () => {
 
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Customer Record</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]">Save Customer Record</Button>
                 </div>
               </form>
             </motion.div>
@@ -748,7 +764,7 @@ export const RimiCustomers: React.FC = () => {
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                    <Edit3 className="w-4 h-4 text-[#58051E]" /> Edit Customer Account
+                    <Edit3 className="w-4 h-4 text-[#5A0122]" /> Edit Customer Account
                   </h3>
                   <p className="text-xs font-semibold text-slate-400 mt-0.5">Modify CRM details, classification, credit terms, and contact profile.</p>
                 </div>
@@ -857,6 +873,18 @@ export const RimiCustomers: React.FC = () => {
                 </div>
 
                 {/* Address, City, Territory & GST */}
+                {/* Delivery details used by Dispatch Reefer Truck */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Delivery Address *</label>
+                    <textarea rows={2} aria-label="Delivery address" value={editingCustomer.address || ''} onChange={(e) => setEditingCustomer({ ...editingCustomer, address: e.target.value })} placeholder="Shop no., street, area, landmark" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">PIN Code</label>
+                    <input type="text" inputMode="numeric" maxLength={6} aria-label="PIN code" value={editingCustomer.pincode || ''} onChange={(e) => setEditingCustomer({ ...editingCustomer, pincode: e.target.value.replace(/\D/g, '') })} placeholder="400001" className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none" />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">City / District</label>
@@ -938,7 +966,7 @@ export const RimiCustomers: React.FC = () => {
 
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setEditingCustomer(null)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Save Changes</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]">Save Changes</Button>
                 </div>
               </form>
             </motion.div>
@@ -969,7 +997,7 @@ export const RimiCustomers: React.FC = () => {
               <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
                 <div>
                   <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-[#58051E]" /> Update Pipeline Stage
+                    <TrendingUp className="w-5 h-5 text-[#5A0122]" /> Update Pipeline Stage
                   </h3>
                   <p className="text-xs font-semibold text-slate-500 mt-0.5">
                     {updatingStageCustomer.business_name}
@@ -988,7 +1016,7 @@ export const RimiCustomers: React.FC = () => {
                   <span className="text-[10px] font-extrabold uppercase text-slate-400 block mb-1">
                     Current Stage
                   </span>
-                  <span className="text-xs font-black text-[#58051E] bg-[#58051E]/10 px-2.5 py-1 rounded-md border border-[#58051E]/20 inline-block">
+                  <span className="text-xs font-black text-[#5A0122] bg-[#5A0122]/10 px-2.5 py-1 rounded-md border border-[#5A0122]/20 inline-block">
                     {updatingStageCustomer.pipeline_stage || 'Lead'}
                   </span>
                 </div>
@@ -1010,7 +1038,7 @@ export const RimiCustomers: React.FC = () => {
                           }}
                           className={`w-full p-3 rounded-xl text-left font-bold text-xs flex items-center justify-between border transition-all cursor-pointer ${
                             isCurrent
-                              ? 'bg-[#58051E] text-white border-[#58051E] shadow-xs'
+                              ? 'bg-[#5A0122] text-white border-[#5A0122] shadow-xs'
                               : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200 hover:border-slate-300'
                           }`}
                         >
@@ -1059,7 +1087,7 @@ export const RimiCustomers: React.FC = () => {
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
                 <div>
                   <h3 className="text-base font-black text-slate-900">{dossierCustomer.business_name}</h3>
-                  <span className="text-[10px] font-bold text-[#58051E] uppercase">
+                  <span className="text-[10px] font-bold text-[#5A0122] uppercase">
                     {dossierCustomer.customer_type} • Stage: {dossierCustomer.pipeline_stage}
                   </span>
                 </div>
@@ -1070,10 +1098,10 @@ export const RimiCustomers: React.FC = () => {
                       setEditingCustomer({ ...dossierCustomer });
                       setDossierCustomer(null);
                     }}
-                    className="p-1.5 text-slate-400 hover:text-[#58051E] hover:bg-[#58051E]/10 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-xs font-bold"
+                    className="p-1.5 text-slate-400 hover:text-[#5A0122] hover:bg-[#5A0122]/10 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-xs font-bold"
                     title="Edit Customer Details"
                   >
-                    <Edit3 className="w-4 h-4 text-[#58051E]" />
+                    <Edit3 className="w-4 h-4 text-[#5A0122]" />
                     <span className="text-slate-700">Edit</span>
                   </button>
                   <button
@@ -1102,7 +1130,7 @@ export const RimiCustomers: React.FC = () => {
                         onClick={() => handleAdvanceStage(st)}
                         className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                           dossierCustomer.pipeline_stage === st
-                            ? 'bg-[#58051E] text-white shadow-xs'
+                            ? 'bg-[#5A0122] text-white shadow-xs'
                             : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
                         }`}
                       >
@@ -1136,7 +1164,7 @@ export const RimiCustomers: React.FC = () => {
                         placeholder="Interaction notes or meeting summary..."
                         className="flex-1 h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900"
                       />
-                      <Button type="submit" size="sm" className="bg-[#58051E] text-white text-xs font-bold h-9">
+                      <Button type="submit" size="sm" className="bg-[#5A0122] text-white text-xs font-bold h-9">
                         <Send className="w-3.5 h-3.5" />
                       </Button>
                     </div>
@@ -1146,7 +1174,7 @@ export const RimiCustomers: React.FC = () => {
                 {/* Chronological Activity Timeline */}
                 <div className="space-y-3">
                   <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-[#58051E]" /> Chronological Activity History ({dossierActivities.length})
+                    <Clock className="w-3.5 h-3.5 text-[#5A0122]" /> Chronological Activity History ({dossierActivities.length})
                   </h4>
 
                   {dossierActivities.length === 0 ? (
@@ -1175,7 +1203,7 @@ export const RimiCustomers: React.FC = () => {
                 {/* Sales Orders History */}
                 <div className="space-y-2">
                   <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-[#58051E]" /> Sales Orders History ({dossierOrders.length})
+                    <FileText className="w-3.5 h-3.5 text-[#5A0122]" /> Sales Orders History ({dossierOrders.length})
                   </h4>
 
                   {dossierOrders.length === 0 ? (
@@ -1198,7 +1226,7 @@ export const RimiCustomers: React.FC = () => {
                   )}
                 </div>
 
-                <Button size="sm" className="w-full text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => setDossierCustomer(null)}>
+                <Button size="sm" className="w-full text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]" onClick={() => setDossierCustomer(null)}>
                   Close File
                 </Button>
               </div>

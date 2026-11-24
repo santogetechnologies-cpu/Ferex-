@@ -24,7 +24,7 @@ export const Logo: React.FC<LogoProps> = ({
   const isWhite = variant === 'white' || color === 'white' || color === '#ffffff' || color === '#fff' || color?.toLowerCase() === '#ffffff';
   
   // Dark mode: the whole logo turns white so it reads on any dark surface
-  const defaultBrandColor = isDark ? '#ffffff' : '#570229';
+  const defaultBrandColor = isDark ? '#ffffff' : '#5A0122';
   const effectiveColor = isDark ? '#ffffff' : (color ? color : (isWhite ? '#ffffff' : defaultBrandColor));
 
   // If variant is 'badge', render the signature burgundy rounded brand tile
@@ -38,7 +38,7 @@ export const Logo: React.FC<LogoProps> = ({
     }[size];
 
     return (
-      <div className={`inline-flex flex-col items-center justify-center bg-[#570229] dark:bg-rose-950/70 border border-transparent dark:border-rose-900/60 text-white shadow-md select-none ${badgePadding} ${className}`}>
+      <div className={`inline-flex flex-col items-center justify-center bg-[#5A0122] dark:bg-rose-950/70 border border-transparent dark:border-rose-900/60 text-white shadow-md select-none ${badgePadding} ${className}`}>
         <FerexVectorMark color="#ffffff" size={size} />
         <div className="text-center mt-1">
           <span className={`font-serif tracking-wider font-extrabold uppercase block leading-none ${
@@ -67,8 +67,8 @@ export const Logo: React.FC<LogoProps> = ({
     );
   }
 
-  const textColor = isWhite ? 'text-white' : 'text-[#570229] dark:text-white';
-  const subtitleColor = isWhite ? 'text-white/80' : 'text-[#570229]/90 dark:text-white/80';
+  const textColor = isWhite ? 'text-white' : 'text-[#5A0122] dark:text-white';
+  const subtitleColor = isWhite ? 'text-white/80' : 'text-[#5A0122]/90 dark:text-white/80';
   const iconColor = effectiveColor;
 
   const ferexSizeClass = {
@@ -113,7 +113,7 @@ export const Logo: React.FC<LogoProps> = ({
 
 // Precise Vector Graduation Cap matching the uploaded logo
 export const FerexVectorMark: React.FC<{ color?: string; size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' }> = ({
-  color = '#58051E',
+  color = '#5A0122',
   size = 'md',
 }) => {
   const pixelSize = {

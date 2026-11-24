@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, Check, Plus, X, Building2, AlertCircle } from 'lucide-react';
@@ -7,13 +8,14 @@ import { getStudents } from '../lib/api/students';
 import { getApplications, isRealApplication } from '../lib/api/applications';
 import { listEducationPayments, recordEducationPayment, reviewEducationPayment } from '../lib/api/educationBilling';
 import { getCountryFeePackages, getBillingAssignments, getStudentFeeCountry, type CountryFeePackage, type StudentBillingAssignment } from '../lib/api/feePackages';
-import { getStudentFeeOverrides, type StudentFeeOverride } from '../lib/api/payments';
-import { studentFees, feeBalance, resolveStudentPackage, isDirectFee, directFeeMessage, educationStages, money, type EducationFee, type PaymentPart } from '../lib/educationBilling';
+import { getStudentFeeOverrides, initiateRefund, issueRefund, type StudentFeeOverride } from '../lib/api/payments';
+import { PackageTags } from './PackageTags';
+import { studentFees, feeBalance, packagePaymentStatus, resolveStudentPackage, isDirectFee, directFeeMessage, educationStages, money, type EducationFee, type PaymentPart } from '../lib/educationBilling';
 import type { Application, Payment, UserProfile } from '../lib/types';
 import { PageHeader, EmptyState, Skeleton } from './Kit';
-import { PaymentPlanPicker } from './PaymentPlanPicker';
-import { StudentDiscountEditor } from './StudentDiscountEditor';
 import { supabase } from '../lib/supabase';
+import { DateRangeFilter } from '../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../lib/dateRange';
 
 type Filter = 'all' | 'unconfirmed' | 'verify' | 'due';
 const METHODS: PaymentPart['method'][] = ['Bank Transfer', 'UPI', 'Cash', 'Cheque', 'Card'];
@@ -33,6 +35,7 @@ export function EducationPaymentsAdmin() {
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [params] = useSearchParams();
   const [selected, setSelected] = useState(params.get('student') || '');
   const [toast, setToast] = useState('');
@@ -68,26 +71,28 @@ export function EducationPaymentsAdmin() {
     const reg = fees.find(f => f.id === 'registration');
     const regPaid = reg ? feeBalance(reg, mine).remaining === 0 : true;
     const toVerify = mine.filter(p => p.status === 'Pending Verification').length;
-    return { s, flow, pkg, country: countryOf(s), left, regPaid, toVerify, hasDue: Object.keys(left).length > 0 };
+    const lastPay = mine.reduce((m, p) => { const d = p.paid_at || p.created_at || ''; return d > m ? d : m; }, '');
+    return { s, flow, pkg, status: flow === 'pending' ? undefined : packagePaymentStatus(fees, mine), country: countryOf(s), left, regPaid, toVerify, lastPay, hasDue: Object.keys(left).length > 0 };
   }), [students, plans, payments, packages, config, countryOf]);
 
   const counts = useMemo(() => ({ all: rows.length, unconfirmed: rows.filter(r => r.flow === 'pending').length, verify: rows.filter(r => r.toVerify > 0).length, due: rows.filter(r => r.hasDue).length }), [rows]);
   const shown = rows.filter(r => {
     const q = query.trim().toLowerCase();
     if (q && !`${r.s.full_name} ${r.s.email} ${r.country}`.toLowerCase().includes(q)) return false;
+    if (!inRange(r.lastPay, range)) return false;
     return filter === 'all' || (filter === 'unconfirmed' && r.flow === 'pending') || (filter === 'verify' && r.toVerify > 0) || (filter === 'due' && r.hasDue);
   }).sort((a, b) => b.toVerify - a.toVerify || a.s.full_name.localeCompare(b.s.full_name));
   const current = rows.find(r => r.s.id === selected);
 
   const chip = (id: Filter, label: string) => (
-    <button key={id} type="button" onClick={() => setFilter(id)} className={`h-8 px-3 rounded-full text-xs font-semibold border cursor-pointer ${filter === id ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>
+    <button key={id} type="button" onClick={() => setFilter(id)} className={`h-8 px-3 rounded-full text-xs font-semibold border cursor-pointer ${filter === id ? 'bg-[#5A0122] text-white border-[#5A0122]' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>
       {label} <span className="opacity-70 tabular-nums">{counts[id]}</span>
     </button>
   );
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Payments" subtitle="Pick a student to see where they stand, confirm how they pay and record what they have paid." />
+      <PageHeader title="Payments" subtitle="Pick a student to see what is paid and not paid, verify payments and record new ones. Plans and discounts are under Payment plans." />
       {toast && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-800">{toast}</p>}
       {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700">{error}</p>}
 
@@ -97,22 +102,19 @@ export function EducationPaymentsAdmin() {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search students" aria-label="Search students" className="w-full h-10 pl-9 pr-3" />
           </div>
+          <DateRangeFilter label="Last payment" value={range} onChange={setRange} />
           <div className="flex flex-wrap gap-1.5">{chip('all', 'All')}{chip('unconfirmed', 'Plan not confirmed')}{chip('verify', 'To verify')}{chip('due', 'Balance due')}</div>
           <ul className="divide-y divide-slate-100 max-h-[62vh] overflow-y-auto -mx-1" aria-label="Students">
             {loading && [0, 1, 2, 3].map(i => <li key={i} className="p-3"><Skeleton className="h-10" /></li>)}
             {!loading && shown.length === 0 && <li className="p-6 text-center text-sm text-slate-500">No students match.</li>}
             {shown.map(r => (
               <li key={r.s.id}>
-                <button type="button" onClick={() => setSelected(r.s.id)} aria-current={selected === r.s.id} className={`w-full text-left px-3 py-3 rounded-xl cursor-pointer ${selected === r.s.id ? 'bg-[#58051E]/[0.06]' : 'hover:bg-slate-50'}`}>
+                <button type="button" onClick={() => setSelected(r.s.id)} aria-current={selected === r.s.id} className={`w-full text-left px-3 py-3 rounded-xl cursor-pointer ${selected === r.s.id ? 'bg-[#5A0122]/[0.06]' : 'hover:bg-slate-50'}`}>
                   <span className="flex items-center justify-between gap-2">
                     <span className="text-sm font-semibold text-slate-900 truncate">{r.s.full_name || r.s.email}</span>
                     {r.toVerify > 0 && <span className="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">{r.toVerify} to verify</span>}
                   </span>
-                  <span className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
-                    <span className="truncate">{r.country || 'No country'}</span>
-                    <span aria-hidden>·</span>
-                    <span className={r.flow === 'pending' ? 'text-amber-700 font-medium' : ''}>{r.flow === 'pending' ? 'Plan not confirmed' : r.flow === 'normal' ? 'Normal flow' : r.pkg?.name || 'Package'}</span>
-                  </span>
+                  <span className="mt-1 block"><PackageTags country={r.country || undefined} pkg={r.pkg} flow={r.flow === 'package' ? undefined : r.flow} status={r.status} /></span>
                   <span className="mt-0.5 block text-xs text-slate-500">
                     {r.regPaid ? 'Registration paid' : 'Registration not paid'}{Object.entries(r.left).map(([c, v]) => ` · ${money(v, c)} left`).join('')}
                   </span>
@@ -150,7 +152,6 @@ function StudentPanel({ student, country, flow, pkg, payments, application, conf
   const [destination, setDestination] = useState(country);
   const [recording, setRecording] = useState<EducationFee | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [showDiscount, setShowDiscount] = useState(false);
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
 
@@ -164,6 +165,14 @@ function StudentPanel({ student, country, flow, pkg, payments, application, conf
   const direct = all.filter(isDirectFee);
   const toVerify = payments.filter(p => p.status === 'Pending Verification');
   const history = payments.filter(p => p.status !== 'Pending Verification');
+
+  const refund = async (p: Payment, step: 'start' | 'complete') => {
+    const reason = step === 'start' ? (window.prompt('Why is this payment being refunded?') || '').trim() : String(p.reviewer_notes || '').replace('[REFUND INITIATED]', '').trim() || 'Refund';
+    if (!reason) return;
+    if (step === 'complete' && !window.confirm(`Complete the refund of ${money(Number(p.amount), p.currency || 'INR')}? A credit note is issued.`)) return;
+    setBusy(p.id); setErr('');
+    try { if (step === 'start') await initiateRefund(p.id, reason); else await issueRefund(p.id, Number(p.amount), reason); onChanged(step === 'start' ? 'Refund initiated' : 'Refund completed'); await onReload(); } catch (e: any) { setErr(e.message); } finally { setBusy(''); }
+  };
 
   const review = async (p: Payment, approve: boolean) => {
     let notes = '';
@@ -181,7 +190,14 @@ function StudentPanel({ student, country, flow, pkg, payments, application, conf
         </div>
       </section>
 
-      <PaymentPlanPicker studentId={student.id} country={destination} actorName={actorName} onChanged={onChanged} onSaved={() => { window.dispatchEvent(new Event('ferex_student_billing_flow_change')); void onReload(); }} />
+      <section className="rounded-2xl border border-slate-200/80 bg-white px-5 py-3.5 flex flex-wrap items-center justify-between gap-3" aria-label="Payment plan">
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-slate-900">{flow === 'pending' ? 'Payment plan not confirmed' : flow === 'normal' ? 'Normal flow' : pkg?.name || 'Country package'}</p>
+          <div className="mt-1"><PackageTags country={destination || undefined} pkg={pkg} status={flow === 'pending' ? undefined : packagePaymentStatus(all.filter(f => !isDirectFee(f)), payments)} /></div>
+          <p className="text-[11px] text-slate-500">{flow === 'pending' ? 'The student sees only the registration fee. Confirm a plan under Payment plans.' : `Discounts: ${Object.values(overrides).filter(o => (o.discount_percent ?? 0) > 0 || o.discount_amount > 0).length ? 'applied, already included in the amounts below' : 'none'}.`}</p>
+        </div>
+        <Link to={`/admin/payment-plans?student=${student.id}`} className="h-9 px-4 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 inline-flex items-center">Manage plan and discounts</Link>
+      </section>
 
       {err && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700">{err}</p>}
 
@@ -235,7 +251,7 @@ function StudentPanel({ student, country, flow, pkg, payments, application, conf
                       <span className="text-xs text-slate-500">Paid {money(b.paid, fee.currency)} · Left {money(b.remaining, fee.currency)}{b.pending > 0 ? ` · In review ${money(b.pending, fee.currency)}` : ''}</span>
                     </div>
                     <div className="mt-3 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden"><div className="h-full rounded-full bg-emerald-600" style={{ width: `${pct}%` }} /></div>
-                    {b.payable > 0 && <button type="button" onClick={() => setRecording(fee)} className="mt-4 h-9 px-4 rounded-xl bg-[#58051E] text-white text-xs font-semibold hover:bg-[#430316] inline-flex items-center gap-1.5 cursor-pointer"><Plus className="w-3.5 h-3.5" /> Record payment</button>}
+                    {b.payable > 0 && <button type="button" onClick={() => setRecording(fee)} className="mt-4 h-9 px-4 rounded-xl bg-[#5A0122] text-white text-xs font-semibold hover:bg-[#68092A] inline-flex items-center gap-1.5 cursor-pointer"><Plus className="w-3.5 h-3.5" /> Record payment</button>}
                   </div>
                 </li>
               );
@@ -258,10 +274,6 @@ function StudentPanel({ student, country, flow, pkg, payments, application, conf
         </section>
       )}
 
-      {flow !== 'pending' && (showDiscount
-        ? <StudentDiscountEditor studentId={student.id} country={destination} onChanged={onChanged} />
-        : <button type="button" onClick={() => setShowDiscount(true)} className="h-10 px-4 rounded-xl border border-dashed border-slate-300 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer">+ Give this student a discount</button>)}
-
       <section className="rounded-2xl border border-slate-200/80 bg-white">
         <button type="button" onClick={() => setShowHistory(v => !v)} aria-expanded={showHistory} className="w-full flex items-center justify-between px-5 py-4 text-left cursor-pointer">
           <span className="text-sm font-bold text-slate-900">Payments received ({history.length})</span>
@@ -272,7 +284,9 @@ function StudentPanel({ student, country, flow, pkg, payments, application, conf
             {history.map(p => (
               <li key={p.id} className="py-3 flex flex-wrap items-center justify-between gap-2 text-sm">
                 <div><span className="font-semibold text-slate-900">{p.title}</span><div className="text-xs text-slate-500">{p.payment_method} · ref {p.utr_number} · {new Date(p.created_at).toLocaleDateString('en-GB')}</div></div>
-                <div className="text-right"><div className="font-semibold tabular-nums">{money(Number(p.amount), p.currency || 'INR')}</div><div className={`text-xs font-medium ${['Paid', 'Verified'].includes(p.status) ? 'text-emerald-700' : 'text-rose-700'}`}>{p.status}</div></div>
+                <div className="text-right"><div className="font-semibold tabular-nums">{money(Number(p.amount), p.currency || 'INR')}</div><div className={`text-xs font-medium ${['Paid', 'Verified'].includes(p.status) ? 'text-emerald-700' : p.status === 'Refund Initiated' ? 'text-orange-700' : 'text-rose-700'}`}>{p.status}</div>
+                  {['Paid', 'Verified'].includes(p.status) && <button type="button" onClick={() => refund(p, 'start')} disabled={busy === p.id} className="mt-1 text-[11px] font-bold text-orange-700 hover:underline cursor-pointer">Initiate refund</button>}
+                  {p.status === 'Refund Initiated' && <button type="button" onClick={() => refund(p, 'complete')} disabled={busy === p.id} className="mt-1 text-[11px] font-bold text-slate-700 hover:underline cursor-pointer">Complete refund</button>}</div>
               </li>
             ))}
           </ul>
@@ -324,7 +338,7 @@ function RecordModal({ student, fee, payments, application, onClose, onDone }: {
               {parts.length > 1 && <button type="button" onClick={() => setParts(ps => ps.filter((_, j) => j !== i))} className="col-span-2 text-xs font-semibold text-rose-700 text-left cursor-pointer">Remove this entry</button>}
             </div>
           ))}
-          <button type="button" onClick={() => setParts(ps => [...ps, { method: 'Cash', amount: 0, reference: '', date: today() }])} className="text-xs font-semibold text-[#58051E] cursor-pointer">+ Add another entry (split payment)</button>
+          <button type="button" onClick={() => setParts(ps => [...ps, { method: 'Cash', amount: 0, reference: '', date: today() }])} className="text-xs font-semibold text-[#5A0122] cursor-pointer">+ Add another entry (split payment)</button>
         </div>
         <label className="block text-xs font-semibold text-slate-600">Note (optional)
           <input value={notes} onChange={e => setNotes(e.target.value)} className="mt-1 w-full h-10 px-3" /></label>
@@ -332,7 +346,7 @@ function RecordModal({ student, fee, payments, application, onClose, onDone }: {
         {err && <p role="alert" className="text-sm font-semibold text-rose-700">{err}</p>}
         <div className="flex justify-end gap-2">
           <button type="button" onClick={onClose} className="h-10 px-4 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer">Cancel</button>
-          <button type="button" onClick={save} disabled={busy} className="h-10 px-5 rounded-xl bg-[#58051E] text-white text-sm font-semibold hover:bg-[#430316] disabled:opacity-50 cursor-pointer">{busy ? 'Saving…' : 'Save payment'}</button>
+          <button type="button" onClick={save} disabled={busy} className="h-10 px-5 rounded-xl bg-[#5A0122] text-white text-sm font-semibold hover:bg-[#68092A] disabled:opacity-50 cursor-pointer">{busy ? 'Saving…' : 'Save payment'}</button>
         </div>
       </div>
     </div>

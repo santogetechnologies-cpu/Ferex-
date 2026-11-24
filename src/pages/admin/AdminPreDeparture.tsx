@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Plane, Search, Edit3, Save, X, Sparkles, UserPlus, AlertTriangle, Building2, Car } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { ToastNotification } from '../../components/ToastNotification';
@@ -20,10 +20,11 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
   const counselorEmail = (profile?.email || user?.email || '').toLowerCase().trim();
   const counselorName = (profile?.full_name || '').toLowerCase().trim();
   const { students: allStudents } = useStudents();
-  const dbStudents = isStaff ? allStudents.filter(s => {
+  // Memoised: a fresh array on every render used to re-trigger the loader below forever for staff.
+  const dbStudents = useMemo(() => isStaff ? allStudents.filter(s => {
     const ac = (s.assigned_counselor || '').toLowerCase().trim();
     return Boolean(ac && ((counselorEmail && ac.includes(counselorEmail)) || (counselorName && ac.includes(counselorName))));
-  }) : allStudents;
+  }) : allStudents, [isStaff, allStudents, counselorEmail, counselorName]);
   const { applications: dbApps } = useApplications();
 
   const [search, setSearch] = useState('');
@@ -54,15 +55,17 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
     notes: 'Pre-departure flight packet & campus dorm allotment ready.'
   });
 
+  const firstLoad = useRef(true);
   const loadAllData = async () => {
-    setLoading(true);
+    if (firstLoad.current) setLoading(true);
     try {
-      const dbRecs = await getPreDepartureRecords();
-
-      const visaRecs = await getVisaRecords();
+      // The three lists load independently: one failing must not leave the page stuck or empty.
+      const [recsR, visaR, payR] = await Promise.allSettled([getPreDepartureRecords(), getVisaRecords(), getAllPaymentsAdmin()]);
+      if (recsR.status === 'rejected') throw recsR.reason;
+      const dbRecs = recsR.value;
+      const visaRecs = visaR.status === 'fulfilled' ? visaR.value : [];
       const visaMap = new Map(visaRecs.map(v => [v.student_id, v]));
-
-      const payments = await getAllPaymentsAdmin();
+      const payments = payR.status === 'fulfilled' ? payR.value : [];
 
       // Collect all active registered students, prioritizing Visa Approved / Stage 11 applicants
       const candidateList: Array<{ id: string; name: string; email: string; university: string; isStage11: boolean }> = [];
@@ -107,7 +110,9 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
       setRecords(dbRecs);
     } catch (e) {
       console.warn('[AdminPreDeparture load notice]:', e);
+      showToast(`Could not load pre-departure records: ${(e as Error)?.message || 'please retry'}`);
     } finally {
+      firstLoad.current = false;
       setLoading(false);
     }
   };
@@ -221,7 +226,7 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center border border-[#58051E]/20">
+            <span className="w-8 h-8 rounded-xl bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center border border-[#5A0122]/20">
               <Plane className="w-5 h-5" />
             </span>
             Pre-departure
@@ -231,7 +236,7 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="h-10 px-4 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] shadow-xs flex items-center gap-2 self-start md:self-auto transition-all"
+          className="h-10 px-4 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#68092A] shadow-xs flex items-center gap-2 self-start md:self-auto transition-all"
         >
           <UserPlus className="w-4 h-4" /> Add Completed Student
         </button>
@@ -258,7 +263,7 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
             <Plane className="w-10 h-10 text-slate-300 mx-auto mb-2 opacity-50" />
             <h4 className="text-sm font-extrabold text-slate-700">No Pre-Departure Students Added</h4>
             <p className="text-slate-400 mt-1 max-w-sm mx-auto">
-              Click <span className="text-[#58051E] font-black">+ Add Completed Student</span> above to enroll eligible students into Pre-Departure.
+              Click <span className="text-[#5A0122] font-black">+ Add Completed Student</span> above to enroll eligible students into Pre-Departure.
             </p>
           </div>
         ) : (
@@ -301,7 +306,7 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
                     <td className="py-3.5 px-4 text-right">
                       <button
                         onClick={() => setSelectedStudent(r)}
-                        className="h-8 px-3 bg-slate-100 hover:bg-[#58051E] hover:text-white border border-slate-200 rounded-lg text-xs font-bold transition-colors inline-flex items-center gap-1"
+                        className="h-8 px-3 bg-slate-100 hover:bg-[#5A0122] hover:text-white border border-slate-200 rounded-lg text-xs font-bold transition-colors inline-flex items-center gap-1"
                       >
                         <Edit3 className="w-3.5 h-3.5" /> Edit Packet
                       </button>
@@ -322,7 +327,7 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
               <div>
                 <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-[#58051E]" /> Enroll Student in Pre-Departure Stage
+                  <UserPlus className="w-5 h-5 text-[#5A0122]" /> Enroll Student in Pre-Departure Stage
                 </h3>
                 <p className="text-xs font-semibold text-slate-400">
                   Fill in pre-departure departure/arrival dates, accommodation address, and concierge pickup details.
@@ -355,7 +360,7 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
                         }));
                       }
                     }}
-                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-extrabold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl font-extrabold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                   >
                     {eligibleStudents.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -370,7 +375,7 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
                 <>
                   {/* Flight & Travel Dates */}
                   <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
-                    <span className="text-[10px] font-black uppercase text-[#58051E] tracking-wider flex items-center gap-1.5"><Plane className="w-3.5 h-3.5 text-[#58051E]" /> Flight & Travel Schedule</span>
+                    <span className="text-[10px] font-black uppercase text-[#5A0122] tracking-wider flex items-center gap-1.5"><Plane className="w-3.5 h-3.5 text-[#5A0122]" /> Flight & Travel Schedule</span>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Airline Carrier</label>
@@ -398,22 +403,20 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
                       <div>
                         <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Departure Date</label>
                         <input
-                          type="text"
+                          type="date"
                           value={newPacket.departure_date}
                           onChange={(e) => setNewPacket({ ...newPacket, departure_date: e.target.value })}
                           className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg font-bold"
-                          placeholder="e.g. Oct 1, 2026"
-                        />
+                                                  />
                       </div>
                       <div>
                         <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Arrival Date</label>
                         <input
-                          type="text"
+                          type="date"
                           value={newPacket.arrival_date}
                           onChange={(e) => setNewPacket({ ...newPacket, arrival_date: e.target.value })}
                           className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg font-bold"
-                          placeholder="e.g. Oct 2, 2026"
-                        />
+                            />
                       </div>
                     </div>
 
@@ -431,7 +434,7 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
 
                   {/* Accommodation / Stay Details */}
                   <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
-                    <span className="text-[10px] font-black uppercase text-[#58051E] tracking-wider flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5 text-[#58051E]" /> Accommodation / Stay Address</span>
+                    <span className="text-[10px] font-black uppercase text-[#5A0122] tracking-wider flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5 text-[#5A0122]" /> Accommodation / Stay Address</span>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Dorm / Residence Name</label>
@@ -468,7 +471,7 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
 
                   {/* Pickup & Concierge Details */}
                   <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
-                    <span className="text-[10px] font-black uppercase text-[#58051E] tracking-wider flex items-center gap-1.5"><Car className="w-3.5 h-3.5 text-[#58051E]" /> Airport Pickup & Concierge</span>
+                    <span className="text-[10px] font-black uppercase text-[#5A0122] tracking-wider flex items-center gap-1.5"><Car className="w-3.5 h-3.5 text-[#5A0122]" /> Airport Pickup & Concierge</span>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Pickup Driver / Lead</label>
@@ -505,7 +508,7 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
 
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                     <button type="button" onClick={() => setShowAddModal(false)} className="h-9 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">Cancel</button>
-                    <button type="submit" className="h-9 px-5 bg-[#58051E] text-white rounded-xl text-xs font-bold hover:bg-[#430316] shadow-xs flex items-center gap-1">
+                    <button type="submit" className="h-9 px-5 bg-[#5A0122] text-white rounded-xl text-xs font-bold hover:bg-[#68092A] shadow-xs flex items-center gap-1">
                       <Save className="w-3.5 h-3.5" /> Save & Enroll Student
                     </button>
                   </div>
@@ -532,7 +535,7 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
             <div className="space-y-4 text-xs font-semibold">
               {/* Flight & Travel Dates */}
               <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
-                <span className="text-[10px] font-black uppercase text-[#58051E] tracking-wider flex items-center gap-1.5"><Plane className="w-3.5 h-3.5 text-[#58051E]" /> Flight & Travel Schedule</span>
+                <span className="text-[10px] font-black uppercase text-[#5A0122] tracking-wider flex items-center gap-1.5"><Plane className="w-3.5 h-3.5 text-[#5A0122]" /> Flight & Travel Schedule</span>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Airline Carrier</label>
@@ -558,8 +561,8 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Departure Date</label>
                     <input
-                      type="text"
-                      value={selectedStudent.departure_date}
+                      type="date"
+                      value={(selectedStudent.departure_date || '').slice(0, 10)}
                       onChange={(e) => setSelectedStudent({ ...selectedStudent, departure_date: e.target.value })}
                       className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg font-bold"
                     />
@@ -567,11 +570,10 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Arrival Date</label>
                     <input
-                      type="text"
-                      value={selectedStudent.arrival_date || ''}
+                      type="date"
+                      value={(selectedStudent.arrival_date || '').slice(0, 10)}
                       onChange={(e) => setSelectedStudent({ ...selectedStudent, arrival_date: e.target.value })}
                       className="w-full h-9 px-3 bg-white border border-slate-200 rounded-lg font-bold"
-                      placeholder="e.g. Oct 2, 2026"
                     />
                   </div>
                 </div>
@@ -589,7 +591,7 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
 
               {/* Accommodation / Stay Details */}
               <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
-                <span className="text-[10px] font-black uppercase text-[#58051E] tracking-wider flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5 text-[#58051E]" /> Accommodation / Stay Address</span>
+                <span className="text-[10px] font-black uppercase text-[#5A0122] tracking-wider flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5 text-[#5A0122]" /> Accommodation / Stay Address</span>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Dorm / Residence Name</label>
@@ -624,7 +626,7 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
 
               {/* Pickup & Concierge Details */}
               <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
-                <span className="text-[10px] font-black uppercase text-[#58051E] tracking-wider flex items-center gap-1.5"><Car className="w-3.5 h-3.5 text-[#58051E]" /> Airport Pickup & Concierge</span>
+                <span className="text-[10px] font-black uppercase text-[#5A0122] tracking-wider flex items-center gap-1.5"><Car className="w-3.5 h-3.5 text-[#5A0122]" /> Airport Pickup & Concierge</span>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Pickup Driver / Lead</label>
@@ -672,7 +674,7 @@ export const AdminPreDeparture: React.FC<AdminPreDepartureProps> = ({ isStaff = 
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button onClick={() => setSelectedStudent(null)} className="h-9 px-4 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">Cancel</button>
-                <button onClick={() => handleSaveUpdate(selectedStudent)} className="h-9 px-5 bg-[#58051E] text-white rounded-xl text-xs font-bold hover:bg-[#430316] shadow-xs flex items-center gap-1">
+                <button onClick={() => handleSaveUpdate(selectedStudent)} className="h-9 px-5 bg-[#5A0122] text-white rounded-xl text-xs font-bold hover:bg-[#68092A] shadow-xs flex items-center gap-1">
                   <Save className="w-3.5 h-3.5" /> Save Pre-Departure Packet
                 </button>
               </div>

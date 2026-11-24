@@ -18,6 +18,8 @@ import {
 } from '../../lib/api/digitalMeetings';
 import { getDigitalClients, type DigitalClientRecord } from '../../lib/api/digital';
 import { CapLoader } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 const MEETING_TYPES = [
   'Discovery Call',
@@ -37,6 +39,7 @@ export const DigitalMeetings: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [toast, setToast] = useState('');
   const [search, setSearch] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [statusFilter, setStatusFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
 
@@ -102,6 +105,13 @@ export const DigitalMeetings: React.FC = () => {
   const handleCreateMeeting = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMtg.title.trim()) return;
+    // The chosen time is kept (it used to be replaced by 12:00 UTC for every meeting).
+    const tm = /^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i.exec((newMtg.time_display || '').trim());
+    let hh = tm ? Number(tm[1]) : 10; const mm = tm ? Number(tm[2]) : 0;
+    if (tm?.[3]) { const pm = tm[3].toUpperCase() === 'PM'; hh = (hh % 12) + (pm ? 12 : 0); }
+    const when = new Date(`${newMtg.date_display}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:00`);
+    if (Number.isNaN(when.getTime())) { showToast('Choose a valid date and time for the meeting.'); return; }
+    if (when.getTime() < Date.now() - 60000) { showToast('The meeting cannot be scheduled in the past.'); return; }
 
     try {
       const selectedClient = clients.find(c => c.id === newMtg.client_id);
@@ -115,7 +125,7 @@ export const DigitalMeetings: React.FC = () => {
         host_staff_email: newMtg.host_staff_email || profile?.email || '',
         time_display: newMtg.time_display,
         date_display: newMtg.date_display,
-        scheduled_at: `${newMtg.date_display}T12:00:00.000Z`,
+        scheduled_at: when.toISOString(),
         platform: newMtg.platform,
         meeting_type: newMtg.meeting_type,
         meeting_url: newMtg.meeting_url,
@@ -169,7 +179,7 @@ export const DigitalMeetings: React.FC = () => {
     }
   };
 
-  const filteredMeetings = meetings.filter(m => {
+  const filteredMeetings = meetings.filter(m => inRange((m as any).scheduled_at || (m as any).created_at, range)).filter(m => {
     const matchesSearch =
       (m.title || '').toLowerCase().includes(search.toLowerCase()) ||
       (m.client_name || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -188,7 +198,7 @@ export const DigitalMeetings: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-[#58051E]/8 text-[#58051E] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#5A0122]/8 text-[#5A0122] flex items-center justify-center">
               <Video className="w-4 h-4" />
             </div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
@@ -219,6 +229,7 @@ export const DigitalMeetings: React.FC = () => {
 
       {/* Filter Bar */}
       <div className="bg-white border border-slate-200/80 rounded-xl p-3 shadow-subtle flex flex-col sm:flex-row items-center justify-between gap-3">
+        <DateRangeFilter compact label="Meeting date" value={range} onChange={setRange} />
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
           <input
@@ -226,7 +237,7 @@ export const DigitalMeetings: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search meetings, clients, hosts..."
-            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
           />
         </div>
 
@@ -291,7 +302,7 @@ export const DigitalMeetings: React.FC = () => {
                 <h3 className="text-sm font-bold text-slate-900 mb-1">
                   {m.title}
                 </h3>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#58051E]/8 text-[#58051E] inline-block mb-3">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#5A0122]/8 text-[#5A0122] inline-block mb-3">
                   {m.meeting_type}
                 </span>
 
@@ -304,15 +315,15 @@ export const DigitalMeetings: React.FC = () => {
                 <div className="space-y-1 text-[11px] text-slate-500">
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{m.date_display || 'Scheduled Date'} • {m.time_display || '11:00 AM'}</span>
+                    <span>{m.date_display || 'Date not set'} • {m.time_display || 'Time not set'}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-slate-400" />
                     <span>Host: {m.host_staff_name || 'Digital Staff'}</span>
                   </div>
                   {m.notes && m.notes.includes('[Digital Manager:') && (
-                    <div className="flex items-center gap-1.5 text-[#58051E] font-semibold">
-                      <Globe2 className="w-3.5 h-3.5 text-[#58051E]" />
+                    <div className="flex items-center gap-1.5 text-[#5A0122] font-semibold">
+                      <Globe2 className="w-3.5 h-3.5 text-[#5A0122]" />
                       <span>Mgr: {m.notes.match(/\[Digital Manager: ([^\]]+)\]/)?.[1] || 'Digital Manager'}</span>
                     </div>
                   )}
@@ -325,7 +336,7 @@ export const DigitalMeetings: React.FC = () => {
                     href={m.meeting_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#58051E] hover:bg-[#430417] text-white text-xs font-bold transition-all shadow-2xs"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#5A0122] hover:bg-[#430417] text-white text-xs font-bold transition-all shadow-2xs"
                   >
                     <Video className="w-3.5 h-3.5" /> Join Call
                   </a>
@@ -469,8 +480,8 @@ export const DigitalMeetings: React.FC = () => {
                 </div>
 
                 {/* Digital Manager Field */}
-                <div className="p-3 bg-[#58051E]/5 border border-[#58051E]/20 rounded-xl">
-                  <label className="block text-[10px] font-bold uppercase text-[#58051E] mb-2">📌 Assign Digital Manager (sees meeting link)</label>
+                <div className="p-3 bg-[#5A0122]/5 border border-[#5A0122]/20 rounded-xl">
+                  <label className="block text-[10px] font-bold uppercase text-[#5A0122] mb-2">📌 Assign Digital Manager (sees meeting link)</label>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="block text-[9px] font-bold uppercase text-slate-400 mb-1">Manager Name</label>

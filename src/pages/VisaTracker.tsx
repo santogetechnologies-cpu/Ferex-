@@ -166,7 +166,7 @@ export const VisaTracker: React.FC = () => {
             exit={{ opacity: 0, y: -20 }}
             className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-lg shadow-card text-xs font-semibold flex items-center gap-2 border border-slate-700"
           >
-            <ShieldCheck className="w-4 h-4 text-[#58051E]" />
+            <ShieldCheck className="w-4 h-4 text-[#5A0122]" />
             {toastMsg}
           </motion.div>
         )}
@@ -330,7 +330,7 @@ export const VisaTracker: React.FC = () => {
                     isPast
                       ? 'bg-slate-50/50 border-slate-200/60'
                       : isCurrent
-                      ? 'bg-white border-[#58051E]/30 shadow-subtle ring-1 ring-[#58051E]/10'
+                      ? 'bg-white border-[#5A0122]/30 shadow-subtle ring-1 ring-[#5A0122]/10'
                       : 'bg-white/40 border-slate-200/40 opacity-70'
                   }`}
                 >
@@ -338,7 +338,7 @@ export const VisaTracker: React.FC = () => {
                     isPast
                       ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                       : isCurrent
-                      ? 'bg-[#58051E] text-white border-[#58051E]'
+                      ? 'bg-[#5A0122] text-white border-[#5A0122]'
                       : 'bg-slate-100 text-slate-400 border-slate-200'
                   }`}>
                     {isPast ? <CheckCircle2 className="w-3.5 h-3.5" /> : st.num}
@@ -346,7 +346,7 @@ export const VisaTracker: React.FC = () => {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <h4 className={`text-xs font-semibold ${isCurrent ? 'text-[#58051E]' : isPast ? 'text-slate-900' : 'text-slate-500'}`}>
+                      <h4 className={`text-xs font-semibold ${isCurrent ? 'text-[#5A0122]' : isPast ? 'text-slate-900' : 'text-slate-500'}`}>
                         {st.name}
                       </h4>
                       {isPast && <Badge variant="success">Cleared</Badge>}
@@ -385,7 +385,7 @@ export const VisaTracker: React.FC = () => {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">VFS Center:</span>
-                <span className="font-medium text-[#58051E]">{visaRecord.vfs_center || 'VFS Center Awaiting Allocation'}</span>
+                <span className="font-medium text-[#5A0122]">{visaRecord.vfs_center || 'VFS Center Awaiting Allocation'}</span>
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                 <span className="text-slate-400">Courier Dispatch:</span>

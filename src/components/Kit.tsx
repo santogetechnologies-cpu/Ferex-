@@ -7,12 +7,11 @@ import { CapLoader } from './CapLoader';
 // The shared building blocks for every page in every app, so headers, tiles and empty states look and read the same everywhere.
 
 export const PageHeader: React.FC<{ title: string; subtitle?: string; eyebrow?: string; actions?: React.ReactNode; className?: string }> = ({ title, subtitle, eyebrow, actions, className }) => {
-  const welcome = /^Welcome back/i.test(title);
   return (
     <header className={cn('fx-ph flex flex-wrap items-end justify-between gap-4 max-w-full', className)}>
       <div className="min-w-0 max-w-full">
         {eyebrow && <p className="fx-ph-eyebrow mb-2">{eyebrow}</p>}
-        <h1 className="font-extrabold text-slate-900 dark:text-white">{title}{welcome && <> <span className="fx-hand" aria-hidden>👋</span></>}</h1>
+        <h1 className="font-extrabold text-slate-900 dark:text-white">{title}</h1>
         {subtitle && <p className="fx-ph-sub font-medium">{subtitle}</p>}
         <div className="fx-ph-bar" aria-hidden />
       </div>
@@ -22,14 +21,16 @@ export const PageHeader: React.FC<{ title: string; subtitle?: string; eyebrow?: 
 };
 
 type Tone = 'brand' | 'blue' | 'green' | 'amber' | 'violet' | 'slate' | 'rose';
+// One palette only: every tone is the FEREX burgundy; the tone name is kept so existing pages do not change.
+const BRAND_CHIP = 'text-white';
 const TONES: Record<Tone, { chip: string; line: string }> = {
-  brand: { chip: 'bg-gradient-to-br from-[#F6DDE8] to-[#EBCBDC] text-[#8A1148]', line: '#B03A74' },
-  blue: { chip: 'bg-gradient-to-br from-[#DCEBFA] to-[#C9DDF6] text-[#2563A8]', line: '#3B82C4' },
-  green: { chip: 'bg-gradient-to-br from-[#D9F3E6] to-[#C2E9D4] text-[#157A4B]', line: '#22A06B' },
-  amber: { chip: 'bg-gradient-to-br from-[#FBEBCF] to-[#F6DBAE] text-[#B26A06]', line: '#E59A1F' },
-  violet: { chip: 'bg-gradient-to-br from-[#E8E0F8] to-[#D8CCF2] text-[#5B3AA8]', line: '#7A5BD0' },
-  slate: { chip: 'bg-gradient-to-br from-[#ECEFF4] to-[#DEE3EC] text-[#475569]', line: '#64748B' },
-  rose: { chip: 'bg-gradient-to-br from-[#FAE0E3] to-[#F4CBD0] text-[#BE1E3C]', line: '#E0455F' },
+  brand: { chip: BRAND_CHIP, line: '#68092A' },
+  blue: { chip: BRAND_CHIP, line: '#68092A' },
+  green: { chip: BRAND_CHIP, line: '#68092A' },
+  amber: { chip: BRAND_CHIP, line: '#68092A' },
+  violet: { chip: BRAND_CHIP, line: '#68092A' },
+  slate: { chip: BRAND_CHIP, line: '#68092A' },
+  rose: { chip: BRAND_CHIP, line: '#68092A' },
 };
 
 /** A small trend line. Only drawn when real numbers are given. */
@@ -63,7 +64,7 @@ export const StatTile: React.FC<{ label: string; value: React.ReactNode; hint?: 
       </div>
     </div>
   );
-  return to ? <Link to={to} className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#58051E]/40 rounded-[1.5rem]">{body}</Link> : body;
+  return to ? <Link to={to} className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5A0122]/40 rounded-[1.5rem]">{body}</Link> : body;
 };
 
 export const Section: React.FC<{ title: string; hint?: string; action?: { label: string; to: string } | React.ReactElement; children: React.ReactNode; className?: string; padded?: boolean }> = ({ title, hint, action, children, className, padded = true }) => (
@@ -71,7 +72,7 @@ export const Section: React.FC<{ title: string; hint?: string; action?: { label:
     <div className="flex items-start justify-between gap-3 px-6 pt-5 pb-3">
       <div><h2 className="font-bold text-slate-900 dark:text-white">{title}</h2>{hint && <p className="text-xs font-medium text-slate-500 mt-1">{hint}</p>}</div>
       {action && (React.isValidElement(action) ? action
-        : <Link to={(action as { label: string; to: string }).to} className="text-xs font-bold text-[#58051E] dark:text-rose-300 hover:underline shrink-0">{(action as { label: string; to: string }).label} →</Link>)}
+        : <Link to={(action as { label: string; to: string }).to} className="text-xs font-bold text-[#5A0122] dark:text-rose-300 hover:underline shrink-0">{(action as { label: string; to: string }).label} →</Link>)}
     </div>
     <div className={cn(padded && 'px-6 pb-6')}>{children}</div>
   </section>

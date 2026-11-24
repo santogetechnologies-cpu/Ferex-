@@ -29,7 +29,7 @@ const TAB_ICONS: Record<string, any> = {
   Organization: <Building2 className="w-4 h-4 text-blue-600" />,
   'Lead Form Configuration': <Sliders className="w-4 h-4 text-emerald-600" />,
   'WhatsApp API & Automation': <MessageSquare className="w-4 h-4 text-cyan-600" />,
-  'Security & Password': <Shield className="w-4 h-4 text-[#58051E]" />,
+  'Security & Password': <Shield className="w-4 h-4 text-[#5A0122]" />,
 };
 
 const INITIAL_ORG = {
@@ -193,7 +193,7 @@ export const AdminSettings: React.FC = () => {
             <input
               value={org[key]}
               onChange={(e) => setOrg({ ...org, [key]: e.target.value })}
-              className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/50 focus:bg-white transition-all"
+              className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]/50 focus:bg-white transition-all"
             />
           </div>
         ))}
@@ -202,7 +202,7 @@ export const AdminSettings: React.FC = () => {
           <select
             value={org.timezone}
             onChange={(e) => setOrg({ ...org, timezone: e.target.value })}
-            className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/50 focus:bg-white cursor-pointer"
+            className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]/50 focus:bg-white cursor-pointer"
           >
             <option>IST (UTC+5:30)</option>
             <option>UTC</option>
@@ -215,7 +215,7 @@ export const AdminSettings: React.FC = () => {
           <select
             value={org.language}
             onChange={(e) => setOrg({ ...org, language: e.target.value })}
-            className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]/50 focus:bg-white cursor-pointer"
+            className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]/50 focus:bg-white cursor-pointer"
           >
             <option>English</option>
             <option>Arabic</option>
@@ -227,7 +227,7 @@ export const AdminSettings: React.FC = () => {
         <button
           onClick={handleSaveOrg}
           disabled={isSavingOrg}
-          className="flex items-center gap-2 h-10 px-5 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer disabled:opacity-60"
+          className="flex items-center gap-2 h-10 px-5 bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer disabled:opacity-60"
         >
           <Save className="w-4 h-4" /> {isSavingOrg ? 'Saving...' : 'Save Organization Settings'}
         </button>
@@ -260,7 +260,7 @@ export const AdminSettings: React.FC = () => {
                 onClick={() => setActiveTab(tab)}
                 className={`flex-1 lg:flex-initial flex items-center gap-2.5 h-10 px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap lg:whitespace-normal text-left
                   ${isActive
-                    ? 'bg-[#58051E] text-white shadow-xs font-black'
+                    ? 'bg-[#5A0122] text-white shadow-xs font-black'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'}`}
               >
                 <div className={`shrink-0 ${isActive ? 'brightness-200' : ''}`}>
@@ -347,7 +347,7 @@ export const AdminSettings: React.FC = () => {
                         onChange={(e) => setFormConfig({ ...formConfig, name_enabled: e.target.checked })}
                         className="sr-only peer"
                       />
-                      <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#58051E]" />
+                      <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#5A0122]" />
                     </label>
                   </div>
 
@@ -366,7 +366,7 @@ export const AdminSettings: React.FC = () => {
                         onChange={(e) => setFormConfig({ ...formConfig, email_enabled: e.target.checked })}
                         className="sr-only peer"
                       />
-                      <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#58051E]" />
+                      <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#5A0122]" />
                     </label>
                   </div>
 
@@ -385,7 +385,7 @@ export const AdminSettings: React.FC = () => {
                         onChange={(e) => setFormConfig({ ...formConfig, country_enabled: e.target.checked })}
                         className="sr-only peer"
                       />
-                      <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#58051E]" />
+                      <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#5A0122]" />
                     </label>
                   </div>
 
@@ -404,7 +404,7 @@ export const AdminSettings: React.FC = () => {
                         onChange={(e) => setFormConfig({ ...formConfig, degree_level_enabled: e.target.checked })}
                         className="sr-only peer"
                       />
-                      <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#58051E]" />
+                      <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#5A0122]" />
                     </label>
                   </div>
                 </div>
@@ -416,7 +416,7 @@ export const AdminSettings: React.FC = () => {
                   <div><span className="text-xs font-black text-slate-900 block">Preferred Intake</span><span className="text-[11px] text-slate-400">Asks when the student wants to start.</span></div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" checked={formConfig.intake_enabled} onChange={(e) => setFormConfig({ ...formConfig, intake_enabled: e.target.checked })} className="sr-only peer" />
-                    <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#58051E]" />
+                    <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#5A0122]" />
                   </label>
                 </div>
 
@@ -426,8 +426,8 @@ export const AdminSettings: React.FC = () => {
                   <ol className="mt-3 space-y-2">
                     {(formConfig.highlighted_countries || []).map((c, i, list) => (
                       <li key={c} className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2">
-                        <span className="w-6 h-6 rounded-full bg-[#58051E] text-white text-[11px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
-                        <span className="w-7 h-7 rounded-full overflow-hidden ring-2 ring-[#58051E]/20 shrink-0"><CountryFlag name={c} code={allDestinations.find(d => d.name.trim() === c)?.code} className="w-full h-full" /></span><span className="text-xs font-bold text-slate-900 flex-1 truncate">{c}</span>
+                        <span className="w-6 h-6 rounded-full bg-[#5A0122] text-white text-[11px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
+                        <span className="w-7 h-7 rounded-full overflow-hidden ring-2 ring-[#5A0122]/20 shrink-0"><CountryFlag name={c} code={allDestinations.find(d => d.name.trim() === c)?.code} className="w-full h-full" /></span><span className="text-xs font-bold text-slate-900 flex-1 truncate">{c}</span>
                         <button type="button" aria-label={`Move ${c} up`} disabled={i === 0} onClick={() => { const n = [...list]; [n[i - 1], n[i]] = [n[i], n[i - 1]]; setFormConfig({ ...formConfig, highlighted_countries: n }); }} className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 cursor-pointer"><ArrowUp className="w-3.5 h-3.5" /></button>
                         <button type="button" aria-label={`Move ${c} down`} disabled={i === list.length - 1} onClick={() => { const n = [...list]; [n[i + 1], n[i]] = [n[i], n[i + 1]]; setFormConfig({ ...formConfig, highlighted_countries: n }); }} className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 cursor-pointer"><ArrowDown className="w-3.5 h-3.5" /></button>
                         <button type="button" aria-label={`Remove ${c}`} onClick={() => setFormConfig({ ...formConfig, highlighted_countries: list.filter(x => x !== c) })} className="p-1.5 rounded-lg hover:bg-rose-50 text-rose-600 cursor-pointer"><XIcon className="w-3.5 h-3.5" /></button>
@@ -482,7 +482,7 @@ export const AdminSettings: React.FC = () => {
                 <Button
                   onClick={handleSaveLeadForm}
                   disabled={isSavingForm}
-                  className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold"
+                  className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold"
                 >
                   <Save className="w-4 h-4 mr-1.5" />
                   {isSavingForm ? 'Saving Controls...' : 'Save Lead Form Controls'}
@@ -534,7 +534,7 @@ export const AdminSettings: React.FC = () => {
                   <select
                     value={whatsappConfig.provider}
                     onChange={(e) => setWhatsappConfig({ ...whatsappConfig, provider: e.target.value as any })}
-                    className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                   >
                     <option value="meta">Meta WhatsApp Cloud API (Official Graph API)</option>
                     <option value="ultramsg">UltraMsg API (Instance Based)</option>
@@ -614,17 +614,17 @@ export const AdminSettings: React.FC = () => {
                   </label>
                   <div className="text-[10px] text-slate-400 space-x-1">
                     <span>Variables:</span>
-                    <span className="font-mono text-[#58051E] bg-[#58051E]/10 px-1 rounded">{`{student_name}`}</span>
-                    <span className="font-mono text-[#58051E] bg-[#58051E]/10 px-1 rounded">{`{country}`}</span>
-                    <span className="font-mono text-[#58051E] bg-[#58051E]/10 px-1 rounded">{`{degree}`}</span>
-                    <span className="font-mono text-[#58051E] bg-[#58051E]/10 px-1 rounded">{`{counselor_name}`}</span>
+                    <span className="font-mono text-[#5A0122] bg-[#5A0122]/10 px-1 rounded">{`{student_name}`}</span>
+                    <span className="font-mono text-[#5A0122] bg-[#5A0122]/10 px-1 rounded">{`{country}`}</span>
+                    <span className="font-mono text-[#5A0122] bg-[#5A0122]/10 px-1 rounded">{`{degree}`}</span>
+                    <span className="font-mono text-[#5A0122] bg-[#5A0122]/10 px-1 rounded">{`{counselor_name}`}</span>
                   </div>
                 </div>
                 <textarea
                   rows={6}
                   value={whatsappConfig.welcome_message_template}
                   onChange={(e) => setWhatsappConfig({ ...whatsappConfig, welcome_message_template: e.target.value })}
-                  className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-[#58051E] leading-relaxed"
+                  className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-[#5A0122] leading-relaxed"
                 />
               </div>
 
@@ -677,7 +677,7 @@ export const AdminSettings: React.FC = () => {
                 <Button
                   onClick={handleSaveWhatsApp}
                   disabled={isSavingWhatsApp}
-                  className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold"
+                  className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold"
                 >
                   <Save className="w-4 h-4 mr-1.5" />
                   {isSavingWhatsApp ? 'Saving Gateway...' : 'Save WhatsApp Configuration'}

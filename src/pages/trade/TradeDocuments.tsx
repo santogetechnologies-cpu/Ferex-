@@ -326,7 +326,7 @@ export const TradeDocuments: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <FolderArchive className="w-6 h-6 text-[#58051E]" /> Documents
+            <FolderArchive className="w-6 h-6 text-[#5A0122]" /> Documents
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">Upload and verify the core trade documents for each order.</p>
         </div>
@@ -337,7 +337,7 @@ export const TradeDocuments: React.FC = () => {
             setFileDataUrl('');
             setShowUploadModal(true);
           }}
-          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
+          className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
         >
           <Paperclip className="w-4 h-4 mr-1" />
           Attach & Send Document
@@ -364,7 +364,7 @@ export const TradeDocuments: React.FC = () => {
                     ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
                     : tab.id === 'Rejected'
                     ? 'bg-rose-600 text-white shadow-sm shadow-rose-600/20'
-                    : 'bg-[#58051E] text-white shadow-sm shadow-[#58051E]/20'
+                    : 'bg-[#5A0122] text-white shadow-sm shadow-[#5A0122]/20'
                   : 'bg-white border border-slate-200/90 text-slate-600 hover:bg-slate-50'
               }`}
             >
@@ -388,7 +388,7 @@ export const TradeDocuments: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by Order #, Client, Document name, status, notes..."
-            className="w-full h-9.5 pl-9 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            className="w-full h-9.5 pl-9 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
           />
           {searchQuery && (
             <button
@@ -405,7 +405,7 @@ export const TradeDocuments: React.FC = () => {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            className="h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:border-[#5A0122]"
           >
             <option value="All">All Types ({docs.length})</option>
             {TRADE_STANDARD_DOC_TYPES.map(type => (
@@ -435,7 +435,7 @@ export const TradeDocuments: React.FC = () => {
               setFileDataUrl('');
               setShowUploadModal(true);
             }}
-            className="mt-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold"
+            className="mt-4 bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold"
           >
             <Paperclip className="w-3.5 h-3.5 mr-1" /> Attach & Send Document
           </Button>
@@ -460,7 +460,7 @@ export const TradeDocuments: React.FC = () => {
                     {/* Document Type */}
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-bold">
+                        <div className="w-8 h-8 rounded-xl bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center font-bold">
                           <FileText className="w-4 h-4" />
                         </div>
                         <div>
@@ -517,7 +517,7 @@ export const TradeDocuments: React.FC = () => {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => handleSendToClient(doc)}
-                          className="px-2 py-1 bg-slate-100 hover:bg-[#58051E] hover:text-white text-slate-700 rounded-lg text-[10.5px] font-black transition-all cursor-pointer flex items-center gap-1"
+                          className="px-2 py-1 bg-slate-100 hover:bg-[#5A0122] hover:text-white text-slate-700 rounded-lg text-[10.5px] font-black transition-all cursor-pointer flex items-center gap-1"
                           title="Send / Resend Document Notice to Client"
                         >
                           <Send className="w-3 h-3" /> Send
@@ -589,7 +589,7 @@ export const TradeDocuments: React.FC = () => {
               <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
                 <div>
                   <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-                    <Paperclip className="w-4 h-4 text-[#58051E]" /> Attach & Send Trade Document
+                    <Paperclip className="w-4 h-4 text-[#5A0122]" /> Attach & Send Trade Document
                   </h2>
                   <p className="text-xs text-slate-500 font-semibold">
                     Upload official compliance files for audit, internal verification, and automatic client dispatch.
@@ -619,7 +619,7 @@ export const TradeDocuments: React.FC = () => {
                     onDrop={handleDrop}
                     className={`p-5 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center text-center ${
                       isDragging
-                        ? 'border-[#58051E] bg-[#58051E]/5'
+                        ? 'border-[#5A0122] bg-[#5A0122]/5'
                         : selectedFile
                         ? 'border-emerald-400 bg-emerald-50/40'
                         : 'border-slate-200 bg-slate-50 hover:bg-slate-100/60 hover:border-slate-300'
@@ -636,7 +636,7 @@ export const TradeDocuments: React.FC = () => {
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                            className="mt-1 text-[11px] text-[#58051E] font-bold underline cursor-pointer"
+                            className="mt-1 text-[11px] text-[#5A0122] font-bold underline cursor-pointer"
                           >
                             Change file
                           </button>
@@ -644,14 +644,14 @@ export const TradeDocuments: React.FC = () => {
                       </div>
                     ) : (
                       <>
-                        <UploadCloud className="w-9 h-9 text-[#58051E] mb-2" />
+                        <UploadCloud className="w-9 h-9 text-[#5A0122] mb-2" />
                         <span className="font-bold text-slate-800 text-sm">Drag & drop your document here</span>
                         <span className="text-[11px] text-slate-400 mt-0.5">Supports PDF, Word, Excel, CSV, PNG, JPG (up to 25MB)</span>
                         <Button
                           type="button"
                           size="sm"
                           onClick={() => fileInputRef.current?.click()}
-                          className="mt-3 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
+                          className="mt-3 bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-xs cursor-pointer"
                         >
                           <UploadCloud className="w-3.5 h-3.5 mr-1.5" /> Browse File from Computer
                         </Button>
@@ -667,7 +667,7 @@ export const TradeDocuments: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setCustomOrderMode(!customOrderMode)}
-                      className="text-[10px] font-bold text-[#58051E] hover:underline cursor-pointer"
+                      className="text-[10px] font-bold text-[#5A0122] hover:underline cursor-pointer"
                     >
                       {customOrderMode ? '← Choose from active orders' : '+ Enter custom order ref'}
                     </button>
@@ -681,7 +681,7 @@ export const TradeDocuments: React.FC = () => {
                         value={uploadForm.order_no}
                         onChange={(e) => setUploadForm({ ...uploadForm, order_no: e.target.value })}
                         placeholder="e.g. TRD-2026-9021"
-                        className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                       />
                       <input
                         type="text"
@@ -689,7 +689,7 @@ export const TradeDocuments: React.FC = () => {
                         value={uploadForm.client_name}
                         onChange={(e) => setUploadForm({ ...uploadForm, client_name: e.target.value })}
                         placeholder="e.g. Baltic Grain Sp. z o.o."
-                        className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
                   ) : (
@@ -697,7 +697,7 @@ export const TradeDocuments: React.FC = () => {
                       required
                       value={uploadForm.order_no}
                       onChange={(e) => handleOrderSelect(e.target.value)}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-[#5A0122]"
                     >
                       <option value="">-- Choose active order --</option>
                       {orders.map(o => (
@@ -722,7 +722,7 @@ export const TradeDocuments: React.FC = () => {
                           file_name: selectedFile ? selectedFile.name : `${dt.replace(/[^a-zA-Z0-9]/g, '_')}_${prev.order_no || 'TRD'}.pdf`
                         }));
                       }}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-[#5A0122]"
                     >
                       {TRADE_STANDARD_DOC_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
@@ -734,7 +734,7 @@ export const TradeDocuments: React.FC = () => {
                       value={uploadForm.doc_number}
                       onChange={(e) => setUploadForm({ ...uploadForm, doc_number: e.target.value })}
                       placeholder="e.g. CI-8801 / BL-98394"
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -747,7 +747,7 @@ export const TradeDocuments: React.FC = () => {
                     value={uploadForm.file_name}
                     onChange={(e) => setUploadForm({ ...uploadForm, file_name: e.target.value })}
                     placeholder="e.g. Commercial_Invoice_TRD-8801.pdf"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -769,7 +769,7 @@ export const TradeDocuments: React.FC = () => {
                         type="checkbox"
                         checked={uploadForm.auto_send}
                         onChange={(e) => setUploadForm({ ...uploadForm, auto_send: e.target.checked })}
-                        className="rounded text-[#58051E] focus:ring-0"
+                        className="rounded text-[#5A0122] focus:ring-0"
                       />
                       <span className="text-xs font-bold text-slate-800">Auto-send email notice</span>
                     </label>
@@ -783,13 +783,13 @@ export const TradeDocuments: React.FC = () => {
                     value={uploadForm.notes}
                     onChange={(e) => setUploadForm({ ...uploadForm, notes: e.target.value })}
                     placeholder="Attestation, seal numbers, chamber stamp details..."
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowUploadModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white flex items-center gap-1.5">
+                  <Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-white flex items-center gap-1.5">
                     <Send className="w-3.5 h-3.5" /> Attach & Send Document
                   </Button>
                 </div>
@@ -843,7 +843,7 @@ export const TradeDocuments: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto text-left space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-2xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black">
+                  <div className="w-10 h-10 rounded-2xl bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center font-black">
                     <FileText className="w-5 h-5" />
                   </div>
                   <div>
@@ -866,7 +866,7 @@ export const TradeDocuments: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">File Attachment:</span>
-                    <span className="font-bold text-[#58051E]">{selectedDoc.file_name}</span>
+                    <span className="font-bold text-[#5A0122]">{selectedDoc.file_name}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Internal Status:</span>
@@ -894,7 +894,7 @@ export const TradeDocuments: React.FC = () => {
                 <Button size="sm" variant="outline" onClick={() => handleDownloadDoc(selectedDoc)}>
                   <Download className="w-3.5 h-3.5 mr-1" /> Download Copy
                 </Button>
-                <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white" onClick={() => setSelectedDoc(null)}>Close</Button>
+                <Button size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-white" onClick={() => setSelectedDoc(null)}>Close</Button>
               </div>
             </motion.div>
           </>

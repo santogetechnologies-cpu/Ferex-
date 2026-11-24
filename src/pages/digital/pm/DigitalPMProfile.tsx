@@ -1,3 +1,4 @@
+import { changeMyPassword } from '../../../lib/api/password';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
@@ -20,6 +21,7 @@ export const DigitalPMProfile: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   // Password update
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordMsg, setPasswordMsg] = useState('');
@@ -62,13 +64,12 @@ export const DigitalPMProfile: React.FC = () => {
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordMsg('');
-    if (newPassword.length < 8) { setPasswordMsg('Use at least 8 characters.'); return; }
     if (newPassword !== confirmPassword) { setPasswordMsg('The two passwords do not match.'); return; }
 
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
-      showToastMsg('Password changed successfully!');
+      await changeMyPassword(currentPassword, newPassword);
+      showToastMsg('Password changed. A confirmation email was sent and other devices were signed out.');
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
@@ -88,7 +89,7 @@ export const DigitalPMProfile: React.FC = () => {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2.5 mb-1">
-          <div className="w-8 h-8 rounded-lg bg-[#58051E]/8 text-[#58051E] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-[#5A0122]/8 text-[#5A0122] flex items-center justify-center">
             <User className="w-4 h-4" />
           </div>
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">
@@ -103,7 +104,7 @@ export const DigitalPMProfile: React.FC = () => {
 
       {/* Profile Card Header */}
       <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-subtle flex flex-col sm:flex-row items-center sm:items-start gap-5">
-        <div className="w-16 h-16 rounded-2xl bg-[#58051E] text-white text-xl font-extrabold flex items-center justify-center shadow-md shrink-0">
+        <div className="w-16 h-16 rounded-2xl bg-[#5A0122] text-white text-xl font-extrabold flex items-center justify-center shadow-md shrink-0">
           {pmInitials}
         </div>
 
@@ -126,7 +127,7 @@ export const DigitalPMProfile: React.FC = () => {
         {/* Personal Details */}
         <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-subtle">
           <h3 className="text-sm font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
-            <User className="w-4 h-4 text-[#58051E]" />
+            <User className="w-4 h-4 text-[#5A0122]" />
             Staff Identity Details
           </h3>
 
@@ -177,7 +178,7 @@ export const DigitalPMProfile: React.FC = () => {
         {/* Security & Password */}
         <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-subtle">
           <h3 className="text-sm font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
-            <KeyRound className="w-4 h-4 text-[#58051E]" />
+            <KeyRound className="w-4 h-4 text-[#5A0122]" />
             Account Security & Password
           </h3>
 
@@ -189,6 +190,18 @@ export const DigitalPMProfile: React.FC = () => {
           )}
 
           <form onSubmit={handleUpdatePassword} className="space-y-3.5">
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Current Password</label>
+              <input
+                type="password"
+                required
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white"
+              />
+            </div>
+
             <div>
               <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">New Password</label>
               <input

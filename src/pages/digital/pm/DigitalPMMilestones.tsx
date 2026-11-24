@@ -168,7 +168,7 @@ export const DigitalPMMilestones: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-[#58051E]/8 text-[#58051E] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#5A0122]/8 text-[#5A0122] flex items-center justify-center">
               <Target className="w-4 h-4" />
             </div>
             <h1 className="text-xl font-bold text-slate-900 tracking-tight">
@@ -206,7 +206,7 @@ export const DigitalPMMilestones: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search milestones, projects..."
-            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
           />
         </div>
 
@@ -217,7 +217,7 @@ export const DigitalPMMilestones: React.FC = () => {
               onClick={() => setStatusFilter(st)}
               className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 cursor-pointer ${
                 statusFilter === st
-                  ? 'bg-[#58051E] text-white shadow-xs'
+                  ? 'bg-[#5A0122] text-white shadow-xs'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >

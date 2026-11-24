@@ -412,7 +412,7 @@ export const SelectUniversity: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center">
+            <span className="w-8 h-8 rounded-xl bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center">
               <GraduationCap className="w-5 h-5" />
             </span>
             Universities
@@ -423,7 +423,7 @@ export const SelectUniversity: React.FC = () => {
         {/* Assigned Counselor Status Pill (Clean SaaS style) */}
         {hasCounselorAssigned ? (
           <div className="flex items-center gap-2.5 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200/80 shrink-0">
-            <div className="w-7 h-7 rounded-lg bg-[#58051E] text-white flex items-center justify-center font-black text-xs shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-[#5A0122] text-white flex items-center justify-center font-black text-xs shrink-0">
               {assignedCounselorName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
             </div>
             <div className="text-left min-w-0">
@@ -449,7 +449,7 @@ export const SelectUniversity: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search university name, city, or program (e.g. Computer Science, Warsaw)..."
-              className="w-full h-10 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+              className="w-full h-10 pl-10 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
             />
           </div>
 
@@ -464,7 +464,7 @@ export const SelectUniversity: React.FC = () => {
             onClick={() => handleCountrySelect('All')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
               selectedCountry === 'All'
-                ? 'bg-[#58051E] text-white shadow-xs'
+                ? 'bg-[#5A0122] text-white shadow-xs'
                 : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/80'
             }`}
           >
@@ -480,7 +480,7 @@ export const SelectUniversity: React.FC = () => {
                 onClick={() => handleCountrySelect(d.country)}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                   isSelected
-                    ? 'bg-[#58051E] text-white shadow-xs'
+                    ? 'bg-[#5A0122] text-white shadow-xs'
                     : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80'
                 }`}
               >
@@ -507,7 +507,7 @@ export const SelectUniversity: React.FC = () => {
           const wf = getWorkflowForCountry(uni.country);
 
           return (
-            <Card key={uni.id} className="p-0 overflow-hidden flex flex-col justify-between border border-slate-200/80 hover:border-[#6A1B2E]/30 transition-all hover:shadow-md group bg-white">
+            <Card key={uni.id} className="p-0 overflow-hidden flex flex-col justify-between border border-slate-200/80 hover:border-[#5A0122]/30 transition-all hover:shadow-md group bg-white">
               <div>
                 {/* Campus Image Banner */}
                 <div className="h-36 relative overflow-hidden bg-gradient-to-br from-slate-800 to-slate-950">
@@ -520,7 +520,7 @@ export const SelectUniversity: React.FC = () => {
                     </div>
                   )}
                   {/* Floating Badges */}
-                  <span className="absolute top-2.5 right-2.5 text-[9.5px] font-black bg-[#58051E] text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300/30 shadow-xs">
+                  <span className="absolute top-2.5 right-2.5 text-[9.5px] font-black bg-[#5A0122] text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300/30 shadow-xs">
                     {uni.badge || wf?.authority_acronym || 'Accredited'}
                   </span>
 
@@ -543,7 +543,7 @@ export const SelectUniversity: React.FC = () => {
                 </div>
 
                 <div className="p-4 space-y-3">
-                  <h3 className="text-base font-black text-slate-900 leading-snug group-hover:text-[#58051E] transition-colors line-clamp-1">
+                  <h3 className="text-base font-black text-slate-900 leading-snug group-hover:text-[#5A0122] transition-colors line-clamp-1">
                     {uni.name}
                   </h3>
 
@@ -560,7 +560,7 @@ export const SelectUniversity: React.FC = () => {
                   <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 space-y-1 text-xs font-semibold">
                     <div className="flex justify-between">
                       <span className="text-slate-400">Tuition Fee:</span>
-                      <span className="font-bold text-[#58051E]">{formatFeeEURandINR(uni.tuition_range || uni.university_fee)}</span>
+                      <span className="font-bold text-[#5A0122]">{formatFeeEURandINR(uni.tuition_range || uni.university_fee)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-400">Procedure:</span>
@@ -581,7 +581,7 @@ export const SelectUniversity: React.FC = () => {
 
                   <button
                     onClick={() => handleOpenApply(uni)}
-                    className="flex-1 h-9 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1 shadow-xs transition-all cursor-pointer"
+                    className="flex-1 h-9 bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1 shadow-xs transition-all cursor-pointer"
                   >
                     Apply Now <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
                   </button>
@@ -604,7 +604,7 @@ export const SelectUniversity: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-black text-sm border border-[#58051E]/20">
+                      <div className="w-10 h-10 rounded-xl bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center font-black text-sm border border-[#5A0122]/20">
                         {drawerUni.name?.[0] || 'U'}
                       </div>
                       <div>
@@ -620,7 +620,7 @@ export const SelectUniversity: React.FC = () => {
                     <div className="h-36 rounded-2xl overflow-hidden relative mb-4">
                       <UniversityImage src={drawerUni.banner_image_url || drawerUni.image_url} name={drawerUni.name} country={drawerUni.country} />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                      <span className="absolute bottom-2.5 left-3 px-2.5 py-0.5 bg-[#6A1B2E] text-amber-300 rounded-lg text-[10px] font-black">
+                      <span className="absolute bottom-2.5 left-3 px-2.5 py-0.5 bg-[#5A0122] text-amber-300 rounded-lg text-[10px] font-black">
                         {drawerUni.badge || 'Accredited Partner'}
                       </span>
                     </div>
@@ -650,7 +650,7 @@ export const SelectUniversity: React.FC = () => {
                       <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Fee Structure & Estimates</h4>
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-slate-500">University Tuition:</span>
-                        <span className="font-bold text-[#6A1B2E]">{drawerUni.university_fee || drawerUni.tuition_range || 'Ask the university'}</span>
+                        <span className="font-bold text-[#5A0122]">{drawerUni.university_fee || drawerUni.tuition_range || 'Ask the university'}</span>
                       </div>
                       {studentFees(config, drawerUni.country, getActiveStudentFeeProfile()).filter(f => !isDirectFee(f)).map(f => <div key={f.id} className="flex justify-between text-xs"><span>{f.title}:</span><span className="font-bold">{money(f.amount, f.currency)}</span></div>)}
                       <p className="text-[11px] text-slate-500">University fees and visa fees are paid directly to the university and the embassy. Ferex does not collect them.</p>
@@ -672,7 +672,7 @@ export const SelectUniversity: React.FC = () => {
                             <div key={cp.id || cp.name} className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs space-y-1">
                               <div className="flex items-center justify-between font-bold text-slate-900">
                                 <span className="font-extrabold">{cp.name}</span>
-                                <span className="text-[#58051E] font-black">{cp.tuition_fee}</span>
+                                <span className="text-[#5A0122] font-black">{cp.tuition_fee}</span>
                               </div>
                               <div className="flex items-center gap-2 text-[10.5px] text-slate-500 font-medium flex-wrap">
                                 {cp.degree_level && <span className="bg-slate-200/70 text-slate-700 px-1.5 py-0.5 rounded font-bold">{cp.degree_level}</span>}
@@ -688,7 +688,7 @@ export const SelectUniversity: React.FC = () => {
                               )}
                               {cp.link && (
                                 <div className="pt-0.5">
-                                  <a href={cp.link} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#58051E] hover:underline font-bold inline-flex items-center gap-0.5">
+                                  <a href={cp.link} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#5A0122] hover:underline font-bold inline-flex items-center gap-0.5">
                                     Official Course Portal ↗
                                   </a>
                                 </div>
@@ -712,7 +712,7 @@ export const SelectUniversity: React.FC = () => {
                       <div className="flex flex-wrap gap-1.5 mb-4">
                         {(drawerUni.intakes && drawerUni.intakes.length > 0) ? (
                           drawerUni.intakes.map((i: string) => (
-                            <span key={i} className="px-2.5 py-1 bg-[#6A1B2E]/5 border border-[#6A1B2E]/20 text-[#6A1B2E] text-xs font-bold rounded-lg">
+                            <span key={i} className="px-2.5 py-1 bg-[#5A0122]/5 border border-[#5A0122]/20 text-[#5A0122] text-xs font-bold rounded-lg">
                               {i}
                             </span>
                           ))
@@ -731,7 +731,7 @@ export const SelectUniversity: React.FC = () => {
                       setDrawerUni(null);
                       handleOpenApply(u);
                     }}
-                    className="w-full h-10 text-xs font-black rounded-xl shadow-md bg-[#6A1B2E] text-white hover:bg-[#521221] flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full h-10 text-xs font-black rounded-xl shadow-md bg-[#5A0122] text-white hover:bg-[#521221] flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <span>Proceed to Course Application</span>
                     <ArrowRight className="w-4 h-4" />
@@ -754,7 +754,7 @@ export const SelectUniversity: React.FC = () => {
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white w-full max-w-xl rounded-3xl shadow-2xl z-10 p-6 sm:p-7 text-left border border-slate-200 max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-[#6A1B2E]/10 text-[#6A1B2E] flex items-center justify-center font-black text-base border border-[#6A1B2E]/20 shrink-0">
+                    <div className="w-10 h-10 rounded-2xl bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center font-black text-base border border-[#5A0122]/20 shrink-0">
                       {applyUni.name?.[0] || 'U'}
                     </div>
                     <div>
@@ -830,7 +830,7 @@ export const SelectUniversity: React.FC = () => {
 
                   <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1 text-xs">
                     <div className="flex items-center gap-1.5 font-bold text-slate-900">
-                      <ShieldCheck className="w-3.5 h-3.5 text-[#6A1B2E]" />
+                      <ShieldCheck className="w-3.5 h-3.5 text-[#5A0122]" />
                       <span>{targetWf?.authority_badge || 'Standard'} Procedure</span>
                     </div>
                     <p className="text-[11px] text-slate-500 leading-relaxed font-semibold">
@@ -843,7 +843,7 @@ export const SelectUniversity: React.FC = () => {
 
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                     <button type="button" onClick={() => setApplyUni(null)} className="h-10 px-4 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50 cursor-pointer">Cancel</button>
-                    <button type="submit" disabled={isSubmitting} className="h-10 px-6 bg-[#6A1B2E] text-white text-xs font-black rounded-xl hover:bg-[#521221] shadow-md cursor-pointer disabled:opacity-50 flex items-center gap-1.5">
+                    <button type="submit" disabled={isSubmitting} className="h-10 px-6 bg-[#5A0122] text-white text-xs font-black rounded-xl hover:bg-[#521221] shadow-md cursor-pointer disabled:opacity-50 flex items-center gap-1.5">
                       <Check className="w-4 h-4" />
                       <span>{isSubmitting ? 'Submitting Application...' : 'Confirm & Submit Application'}</span>
                     </button>

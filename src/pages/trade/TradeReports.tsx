@@ -171,7 +171,7 @@ export const TradeReports: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-3">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-            <BarChart3 className="w-6 h-6 text-[#58051E]" /> Reports
+            <BarChart3 className="w-6 h-6 text-[#5A0122]" /> Reports
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">Turnover, port clearance and customs duty reports.</p>
         </div>
@@ -179,7 +179,7 @@ export const TradeReports: React.FC = () => {
           <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => showToastMsg('Exporting Consolidated Master Trade Audit Deck...')}>
             <Download className="w-3.5 h-3.5 mr-1.5" /> Export All (ZIP)
           </Button>
-          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => window.print()}>
+          <Button size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold shadow-md shadow-rose-950/10" onClick={() => window.print()}>
             <Printer className="w-4 h-4 mr-1.5" /> Print Live Audit Deck
           </Button>
         </div>
@@ -191,7 +191,7 @@ export const TradeReports: React.FC = () => {
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{r.code}</span>
-                <span className="text-[10px] font-extrabold text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded-full border border-[#58051E]/20">{r.stats}</span>
+                <span className="text-[10px] font-extrabold text-[#5A0122] bg-[#5A0122]/10 px-2 py-0.5 rounded-full border border-[#5A0122]/20">{r.stats}</span>
               </div>
               <h3 className="text-sm font-black text-slate-900 leading-snug">{r.title}</h3>
               <p className="text-xs font-semibold text-slate-500 leading-relaxed">{r.desc}</p>
@@ -200,7 +200,7 @@ export const TradeReports: React.FC = () => {
               <Button size="sm" variant="outline" className="flex-1 text-xs font-bold" onClick={() => setSelectedReport(r)}>
                 <FileText className="w-3.5 h-3.5 mr-1" /> View Report
               </Button>
-              <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold px-3" onClick={() => showToastMsg(`Downloaded verified PDF: ${r.code}.pdf`)}>
+              <Button size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold px-3" onClick={() => showToastMsg(`Downloaded verified PDF: ${r.code}.pdf`)}>
                 <Download className="w-3.5 h-3.5" />
               </Button>
             </div>
@@ -216,7 +216,7 @@ export const TradeReports: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6">
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                 <div>
-                  <span className="text-[10px] font-black text-[#58051E] uppercase">{selectedReport.code} · {selectedReport.category}</span>
+                  <span className="text-[10px] font-black text-[#5A0122] uppercase">{selectedReport.code} · {selectedReport.category}</span>
                   <h3 className="text-base font-black text-slate-900 leading-tight mt-0.5">{selectedReport.title}</h3>
                 </div>
                 <button onClick={() => setSelectedReport(null)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-4 h-4" /></button>
@@ -241,7 +241,7 @@ export const TradeReports: React.FC = () => {
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => window.print()}>
                     <Printer className="w-3.5 h-3.5 mr-1" /> Print Report
                   </Button>
-                  <Button type="button" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]" onClick={() => {
+                  <Button type="button" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]" onClick={() => {
                     showToastMsg(`Downloaded ${selectedReport.code}.pdf`);
                     setSelectedReport(null);
                   }}>

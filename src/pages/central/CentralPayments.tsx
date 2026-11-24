@@ -217,7 +217,7 @@ export const CentralPayments: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left antialiased">
-      <Link to="/central/education-billing" className="inline-block rounded-xl bg-[#58051E] px-4 py-2 text-white text-sm">Education billing &amp; fee configuration</Link>
+      <Link to="/central/education-billing" className="inline-block rounded-xl bg-[#5A0122] px-4 py-2 text-white text-sm">Education billing &amp; fee configuration</Link>
       {/* Toast Notification */}
       <ToastNotification message={toast} onClose={() => setToast('')} />
 
@@ -226,9 +226,9 @@ export const CentralPayments: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <CreditCard className="w-6 h-6 text-[#58051E]" /> Finance
+              <CreditCard className="w-6 h-6 text-[#5A0122]" /> Finance
             </h1>
-            <span className="text-[10px] font-black bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-black bg-[#5A0122]/10 text-[#5A0122] border border-[#5A0122]/20 px-2.5 py-0.5 rounded-full">
               4-Division Treasury
             </span>
           </div>
@@ -241,7 +241,7 @@ export const CentralPayments: React.FC = () => {
           <Button
             size="sm"
             onClick={handleExportLedger}
-            className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold text-white shadow-xs"
+            className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold text-white shadow-xs"
           >
             <Download className="w-4 h-4 mr-1.5" /> Export Treasury CSV
           </Button>
@@ -311,7 +311,7 @@ export const CentralPayments: React.FC = () => {
                   onClick={() => setSelectedDivision(div)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
                     selectedDivision === div
-                      ? 'bg-[#58051E] text-white shadow-xs'
+                      ? 'bg-[#5A0122] text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -329,7 +329,7 @@ export const CentralPayments: React.FC = () => {
               placeholder="Search reference, client, invoice..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full h-9 pl-9 pr-3 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:bg-white focus:border-[#58051E]"
+              className="w-full h-9 pl-9 pr-3 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:bg-white focus:border-[#5A0122]"
             />
           </div>
         </div>
@@ -389,7 +389,7 @@ export const CentralPayments: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        {t.division === 'Education' ? <Link className="text-xs underline text-[#58051E]" to="/central/education-billing">Manage education payment</Link> : <span className="text-xs text-slate-500">Managed in source division</span>}
+                        {t.division === 'Education' ? <Link className="text-xs underline text-[#5A0122]" to="/central/education-billing">Manage education payment</Link> : <span className="text-xs text-slate-500">Managed in source division</span>}
                       </div>
                     </td>
                   </tr>

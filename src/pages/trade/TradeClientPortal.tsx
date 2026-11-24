@@ -207,7 +207,7 @@ export const TradeClientPortal: React.FC = () => {
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
                   isActive
-                    ? 'bg-[#58051E] text-white shadow-lg shadow-[#58051E]/30'
+                    ? 'bg-[#5A0122] text-white shadow-lg shadow-[#5A0122]/30'
                     : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
               >
@@ -269,7 +269,7 @@ export const TradeClientPortal: React.FC = () => {
                               key={st}
                               className={`p-3 rounded-2xl border text-center transition-all ${
                                 isCurrent
-                                  ? 'bg-[#58051E] text-white border-[#8f193d] shadow-lg shadow-[#58051E]/40 scale-105'
+                                  ? 'bg-[#5A0122] text-white border-[#8f193d] shadow-lg shadow-[#5A0122]/40 scale-105'
                                   : isPassed
                                   ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
                                   : 'bg-slate-950/50 text-slate-600 border-slate-800'
@@ -352,7 +352,7 @@ export const TradeClientPortal: React.FC = () => {
               {documents.map((doc) => (
                 <Card key={doc.id} className="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex items-start justify-between gap-3 text-left">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-[#58051E]/30 text-[#e0567a] flex items-center justify-center font-bold shrink-0">
+                    <div className="w-10 h-10 rounded-2xl bg-[#5A0122]/30 text-[#e0567a] flex items-center justify-center font-bold shrink-0">
                       <FileText className="w-5 h-5" />
                     </div>
                     <div>
@@ -463,7 +463,7 @@ export const TradeClientPortal: React.FC = () => {
                 <div key={i} className={`flex flex-col ${m.is_self ? 'items-end' : 'items-start'}`}>
                   <div className={`p-3 rounded-2xl text-xs max-w-md ${
                     m.is_self
-                      ? 'bg-[#58051E] text-white rounded-br-none'
+                      ? 'bg-[#5A0122] text-white rounded-br-none'
                       : 'bg-slate-800 text-slate-100 rounded-bl-none border border-slate-700'
                   }`}>
                     <div className="text-[10px] font-bold text-white/70 mb-0.5">{m.sender_name || 'Officer'}</div>
@@ -479,9 +479,9 @@ export const TradeClientPortal: React.FC = () => {
                 value={newMsg}
                 onChange={(e) => setNewMsg(e.target.value)}
                 placeholder="Type your inquiry to the logistics desk..."
-                className="flex-1 h-10 px-4 bg-slate-950 border border-slate-800 rounded-2xl text-xs font-semibold text-white focus:outline-none focus:border-[#58051E]"
+                className="flex-1 h-10 px-4 bg-slate-950 border border-slate-800 rounded-2xl text-xs font-semibold text-white focus:outline-none focus:border-[#5A0122]"
               />
-              <Button type="submit" isLoading={sendingMsg} className="bg-[#58051E] hover:bg-[#430316] text-white px-5 rounded-2xl">
+              <Button type="submit" isLoading={sendingMsg} className="bg-[#5A0122] hover:bg-[#68092A] text-white px-5 rounded-2xl">
                 <Send className="w-4 h-4 mr-1.5" /> Send
               </Button>
             </form>

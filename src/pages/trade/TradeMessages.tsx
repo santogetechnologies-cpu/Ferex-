@@ -122,7 +122,7 @@ export const TradeMessages: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <div>
         <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-          <MessageSquare className="w-5 h-5 text-[#58051E]" /> Messages
+          <MessageSquare className="w-5 h-5 text-[#5A0122]" /> Messages
         </h1>
         <p className="text-xs font-semibold text-slate-500 mt-1">Messages with logistics officers, buyers and banks.</p>
       </div>
@@ -137,7 +137,7 @@ export const TradeMessages: React.FC = () => {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search trade contacts..."
-              className="w-full h-8.5 pl-8.5 pr-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+              className="w-full h-8.5 pl-8.5 pr-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]"
             />
           </div>
 
@@ -148,7 +148,7 @@ export const TradeMessages: React.FC = () => {
                 onClick={() => setActiveConv(c.id)}
                 className={`p-3 rounded-2xl cursor-pointer transition-all ${
                   activeConv === c.id
-                    ? 'bg-[#58051E] text-white shadow-md'
+                    ? 'bg-[#5A0122] text-white shadow-md'
                     : 'bg-white hover:bg-slate-100 border border-slate-100 text-slate-700'
                 }`}
               >
@@ -188,7 +188,7 @@ export const TradeMessages: React.FC = () => {
                     <div key={idx} className={`flex flex-col ${m.is_self ? 'items-end' : 'items-start'}`}>
                       <div className={`p-3 rounded-2xl text-xs max-w-sm ${
                         m.is_self
-                          ? 'bg-[#58051E] text-white rounded-br-none'
+                          ? 'bg-[#5A0122] text-white rounded-br-none'
                           : 'bg-slate-100 text-slate-800 rounded-bl-none'
                       }`}>
                         <div className="text-[9.5px] font-black opacity-70 mb-0.5">{m.sender_name || 'Trade Rep'}</div>
@@ -205,9 +205,9 @@ export const TradeMessages: React.FC = () => {
                   value={inputText}
                   onChange={e => setInputText(e.target.value)}
                   placeholder="Type encrypted message..."
-                  className="flex-1 h-9 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="flex-1 h-9 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
-                <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">
+                <Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-white">
                   <Send className="w-3.5 h-3.5 mr-1" /> Send
                 </Button>
               </form>

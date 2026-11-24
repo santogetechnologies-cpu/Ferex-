@@ -52,6 +52,12 @@ export async function createLegalizationApplication(payload: {
   notes?: string;
 }): Promise<LegalizationRecord> {
   const country = payload.country || 'Poland';
+  // One legalization file per student and country: a second one would split the same case across two cards.
+  if (payload.student_id) {
+    const found = await getLegalizationRecords(country, payload.student_id).catch(() => []);
+    const same = found.find(r => (r.country || '').toLowerCase() === country.toLowerCase());
+    if (same) throw new Error(`${payload.student_name || 'This student'} already has a ${country} legalization file (${same.ref_no}).`);
+  }
   const acronym = payload.authority_acronym || (country === 'Poland' ? 'NAWA' : country === 'Germany' ? 'APS' : country === 'UK' ? 'CAS' : country === 'France' ? 'Campus France' : 'CERT');
   const authority = payload.authority || `${country} Legalization & Qualification Authority`;
   const refNo = payload.ref_no || payload.nawa_ref_no || `${acronym}/${country.slice(0, 3).toUpperCase()}/2026/${Math.floor(1000 + Math.random() * 9000)}`;
@@ -120,10 +126,13 @@ export async function updateLegalizationStatus(
     if (updatedRecord.student_id) {
       try {
         const isApproved = status === 'Approved';
+        const isRejected = status === 'Rejected';
         await createNotification({
           user_id: updatedRecord.student_id,
-          title: isApproved ? 'Qualification Legalization Approved!' : `Legalization Status: ${status}`,
-          body: isApproved
+          title: isApproved ? 'Qualification Legalization Approved!' : isRejected ? 'Legalization Rejected' : `Legalization Status: ${status}`,
+          body: isRejected
+            ? `Your legalization file (${updatedRecord.ref_no || ''}) was rejected.${updatedRecord.notes ? ' ' + updatedRecord.notes : ''} Please contact your counselor to correct and resubmit.`
+            : isApproved
             ? `Your official qualifications for ${updatedRecord.country || 'Europe'} have been recognized and approved (${updatedRecord.ref_no || ''}). You can now file for your National Student Visa!`
             : `Your legalization file (${updatedRecord.ref_no || ''}) has reached Step ${updatedRecord.current_step || step || 1}: ${status}.`,
           category: 'Legalization',
@@ -166,3 +175,11 @@ export const createNawaRecord = createLegalizationApplication;
 export const updateNawaStep = async (id: string, step: number, status?: any, notes?: string, certificateUrl?: string) =>
   updateLegalizationStatus(id, status || 'In Review', step, notes, certificateUrl);
 export const deleteNawaRecord = deleteLegalizationRecord;
+
+/** Makes sure the student has a legalization file for the country they applied to; returns the existing one if there already is one. */
+export async function ensureLegalizationFile(payload: Parameters<typeof createLegalizationApplication>[0]): Promise<LegalizationRecord> {
+  const country = payload.country || 'Poland';
+  const found = await getLegalizationRecords(country, payload.student_id).catch(() => []);
+  const same = found.find(r => (r.country || '').toLowerCase() === country.toLowerCase());
+  return same || createLegalizationApplication(payload);
+}

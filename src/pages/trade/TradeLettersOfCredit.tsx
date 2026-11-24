@@ -266,7 +266,7 @@ export const TradeLettersOfCredit: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-[#58051E]" /> Letters of credit
+            <Building2 className="w-5 h-5 text-[#5A0122]" /> Letters of credit
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">Letters of credit and bank guarantees.</p>
         </div>
@@ -276,7 +276,7 @@ export const TradeLettersOfCredit: React.FC = () => {
           </Button>
           <Button
             size="sm"
-            className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold cursor-pointer"
+            className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold cursor-pointer"
             onClick={() => {
               setNewLC(initialLC);
               setShowIssueModal(true);
@@ -311,14 +311,14 @@ export const TradeLettersOfCredit: React.FC = () => {
           <span className="text-[10px] font-extrabold text-slate-500 block">Confirmed Irrevocable Lines</span>
         </Card>
 
-        <Card className="p-4 border-l-4 border-l-[#58051E] border-slate-200/80 shadow-xs space-y-1">
+        <Card className="p-4 border-l-4 border-l-[#5A0122] border-slate-200/80 shadow-xs space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black uppercase text-slate-400">Settled Under UCP 600</span>
             <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#58051E]" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#5A0122]" />
             </div>
           </div>
-          <div className="text-xl font-black text-[#58051E]">{settledLCCount} Lines</div>
+          <div className="text-xl font-black text-[#5A0122]">{settledLCCount} Lines</div>
           <span className="text-[10px] font-extrabold text-slate-500 block">Completed Bank Clearances</span>
         </Card>
 
@@ -343,7 +343,7 @@ export const TradeLettersOfCredit: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search LC #, Bank, Beneficiary..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
           />
         </div>
 
@@ -351,7 +351,7 @@ export const TradeLettersOfCredit: React.FC = () => {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="h-8.5 px-3 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#58051E]"
+            className="h-8.5 px-3 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-[#5A0122]"
           >
             <option value="All">All LC Statuses</option>
             {LC_STATUSES.map((s) => (
@@ -376,7 +376,7 @@ export const TradeLettersOfCredit: React.FC = () => {
           </p>
           <Button
             size="sm"
-            className="mt-4 bg-[#58051E] hover:bg-[#430316] text-xs font-bold cursor-pointer"
+            className="mt-4 bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold cursor-pointer"
             onClick={() => {
               setNewLC(initialLC);
               setShowIssueModal(true);
@@ -391,7 +391,7 @@ export const TradeLettersOfCredit: React.FC = () => {
             <Card key={l.id} className="p-5 border border-slate-200/70 shadow-xs space-y-4 hover:border-slate-300 transition-all flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-[#58051E] uppercase font-mono">{l.id}</span>
+                  <span className="text-[10px] font-black text-[#5A0122] uppercase font-mono">{l.id}</span>
                   <select
                     value={l.status}
                     onChange={(e) => handleStatusChange(l.id, l.rawId, e.target.value)}
@@ -436,7 +436,7 @@ export const TradeLettersOfCredit: React.FC = () => {
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                 <button
                   onClick={() => handleInspectLC(l)}
-                  className="text-xs font-bold text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-bold text-[#5A0122] hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <Eye className="w-3.5 h-3.5" /> Inspect LC Details
                 </button>
@@ -461,7 +461,7 @@ export const TradeLettersOfCredit: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl z-50 border border-slate-100 p-6 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-[#58051E]" /> Issue Irrevocable Letter of Credit (MT700)
+                  <Building2 className="w-4 h-4 text-[#5A0122]" /> Issue Irrevocable Letter of Credit (MT700)
                 </h3>
                 <button onClick={() => setShowIssueModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
               </div>
@@ -474,7 +474,7 @@ export const TradeLettersOfCredit: React.FC = () => {
                       required
                       value={newLC.applicant}
                       onChange={(e) => setNewLC({ ...newLC, applicant: e.target.value })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -486,7 +486,7 @@ export const TradeLettersOfCredit: React.FC = () => {
                       value={newLC.beneficiary}
                       onChange={(e) => setNewLC({ ...newLC, beneficiary: e.target.value })}
                       placeholder="e.g. Baltic Grain Sp. z o.o."
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                     <datalist id="crm-lc-beneficiary-list">
                       {crmPartners.map((p) => (
@@ -504,7 +504,7 @@ export const TradeLettersOfCredit: React.FC = () => {
                     <select
                       value={newLC.bank}
                       onChange={(e) => setNewLC({ ...newLC, bank: e.target.value })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     >
                       {TRADE_MASTER_BANKS.map((b) => (
                         <option key={b} value={b}>{b}</option>
@@ -516,7 +516,7 @@ export const TradeLettersOfCredit: React.FC = () => {
                     <select
                       value={newLC.advising_bank}
                       onChange={(e) => setNewLC({ ...newLC, advising_bank: e.target.value })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     >
                       {TRADE_MASTER_BANKS.map((b) => (
                         <option key={b} value={b}>{b}</option>
@@ -534,7 +534,7 @@ export const TradeLettersOfCredit: React.FC = () => {
                       value={newLC.amount}
                       onChange={(e) => setNewLC({ ...newLC, amount: e.target.value })}
                       placeholder="e.g. 14500000"
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -542,7 +542,7 @@ export const TradeLettersOfCredit: React.FC = () => {
                     <select
                       value={newLC.currency}
                       onChange={(e) => setNewLC({ ...newLC, currency: e.target.value })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     >
                       {TRADE_MASTER_CURRENCIES.map((c) => (
                         <option key={c} value={c}>{c}</option>
@@ -561,7 +561,7 @@ export const TradeLettersOfCredit: React.FC = () => {
                         // The LC is in the order's currency, issued for the order's client.
                         setNewLC({ ...newLC, shipment_no: e.target.value, currency: ord?.currency || newLC.currency, applicant: ord?.client_name || newLC.applicant });
                       }}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     >
                       <option value="">-- Select Shipment / Order * --</option>
                       {shipments.map((s) => (
@@ -576,7 +576,7 @@ export const TradeLettersOfCredit: React.FC = () => {
                     <select
                       value={newLC.invoice_no}
                       onChange={(e) => setNewLC({ ...newLC, invoice_no: e.target.value })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     >
                       <option value="">-- Optional Invoice Link --</option>
                       {invoices.map((i) => (
@@ -596,7 +596,7 @@ export const TradeLettersOfCredit: React.FC = () => {
                       required
                       value={newLC.expiryDate}
                       onChange={(e) => setNewLC({ ...newLC, expiryDate: e.target.value })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -604,7 +604,7 @@ export const TradeLettersOfCredit: React.FC = () => {
                     <select
                       value={newLC.status}
                       onChange={(e) => setNewLC({ ...newLC, status: e.target.value })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     >
                       {LC_STATUSES.map((st) => (
                         <option key={st} value={st}>{st}</option>
@@ -615,7 +615,7 @@ export const TradeLettersOfCredit: React.FC = () => {
 
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold cursor-pointer" onClick={() => setShowIssueModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316] cursor-pointer">Submit to Issuing Bank</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A] cursor-pointer">Submit to Issuing Bank</Button>
                 </div>
               </form>
             </motion.div>
@@ -631,7 +631,7 @@ export const TradeLettersOfCredit: React.FC = () => {
             <motion.div initial={{ translateX: '100%' }} animate={{ translateX: 0 }} exit={{ translateX: '100%' }} transition={{ duration: 0.25 }} className="fixed top-0 right-0 h-screen w-full max-w-lg bg-white z-50 shadow-2xl p-6 overflow-y-auto">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
                 <div>
-                  <span className="text-[10px] font-black text-[#58051E] uppercase">{selectedLC.id}</span>
+                  <span className="text-[10px] font-black text-[#5A0122] uppercase">{selectedLC.id}</span>
                   <h3 className="text-sm font-black text-slate-900">Letter of Credit Document Inspector</h3>
                 </div>
                 <button onClick={() => setSelectedLC(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"><X className="w-4 h-4" /></button>

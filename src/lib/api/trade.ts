@@ -116,6 +116,8 @@ export interface TradeOrder {
   advance_percentage: number;
   advance_amount: number;
   advance_paid: number;
+  /** Payments recorded beyond the order value (0 when none). */
+  overpaid_by?: number;
   advance_status: 'Pending' | 'Paid';
   balance_amount: number;
   balance_paid: number;
@@ -237,7 +239,11 @@ export const TRADE_INVOICE_STATUSES: string[] = [
   'Cancelled'
 ];
 
+/** Domestic methods, offered next to the international trade methods when settling an invoice or recording a payment. */
+export const TRADE_DOMESTIC_PAYMENT_METHODS: string[] = ['UPI', 'Google Pay (GPay)', 'PhonePe', 'Debit Card', 'Credit Card', 'Cash', 'Net Banking'];
+
 export const TRADE_MASTER_PAYMENT_METHODS: string[] = [
+  ...TRADE_DOMESTIC_PAYMENT_METHODS,
   'Bank Wire (T/T)',
   'Irrevocable Letter of Credit (LC)',
   'Documents Against Payment (DP)',
@@ -552,8 +558,13 @@ export async function getTradeOrders(staffEmail?: string): Promise<TradeOrder[]>
     const mine = totals.get(o.order_no)?.get(o.currency || '') || { advance: 0, balance: 0 };
     // Paid amounts come from the recorded payments in the order's own currency, so a deleted or foreign-currency
     // payment can never leave the order showing the wrong balance.
-    const advancePaid = mine.advance;
-    const balancePaid = mine.balance;
+    // Payments beyond the order value (old duplicate entries) are never counted as collected: the paid amounts are capped
+    // at the order total and the excess is reported separately so it can be corrected or refunded.
+    const orderTotal = tnum(o.total_amount);
+    const received = mine.advance + mine.balance;
+    const advancePaid = Math.min(mine.advance, orderTotal);
+    const balancePaid = Math.min(mine.balance, Math.max(0, orderTotal - advancePaid));
+    const overpaidBy = Math.max(0, Math.round((received - orderTotal) * 100) / 100);
     const advanceAmount = tnum(o.advance_amount);
     const balanceAmount = tnum(o.balance_amount);
     return {
@@ -562,10 +573,11 @@ export async function getTradeOrders(staffEmail?: string): Promise<TradeOrder[]>
       advance_percentage: tnum(o.advance_percentage),
       advance_amount: advanceAmount,
       advance_paid: advancePaid,
-      advance_status: advanceAmount > 0 && advancePaid >= advanceAmount ? 'Paid' : 'Pending',
+      advance_status: (advanceAmount > 0 && advancePaid >= advanceAmount) || (tnum(o.total_amount) > 0 && advancePaid + balancePaid >= tnum(o.total_amount) - 0.005) ? 'Paid' : 'Pending',
       balance_amount: balanceAmount,
       balance_paid: balancePaid,
-      balance_status: balanceAmount > 0 && balancePaid >= balanceAmount ? 'Paid' : 'Pending',
+      balance_status: (balanceAmount > 0 && balancePaid >= balanceAmount) || (tnum(o.total_amount) > 0 && advancePaid + balancePaid >= tnum(o.total_amount) - 0.005) ? 'Paid' : 'Pending',
+      overpaid_by: overpaidBy,
       stage_history: Array.isArray(o.stage_history) ? o.stage_history : [],
     } as TradeOrder;
   });
@@ -1155,9 +1167,13 @@ export async function createTradePayment(payment: Partial<TradePaymentRecord>): 
   if (currency !== order.currency) {
     throw new Error(`This order is in ${order.currency}. Record the payment in ${order.currency} (convert it first if it was received in ${currency}).`);
   }
-  const outstanding = isAdvance ? order.advance_amount - order.advance_paid : order.balance_amount - order.balance_paid;
+  // A settlement, full or completed payment clears whatever is still owed on the whole order, so it is checked against the
+  // order total less everything already paid (not just the balance instalment, which can be zero when the advance is 100%).
+  const isSettlement = /settle|full|complet|drawdown/i.test(String(type));
+  const owedOnOrder = Math.max(0, order.total_amount - order.advance_paid - order.balance_paid);
+  const outstanding = isAdvance ? order.advance_amount - order.advance_paid : isSettlement ? owedOnOrder : order.balance_amount - order.balance_paid;
   if (amt > outstanding + 0.005) {
-    throw new Error(`Amount exceeds the ${isAdvance ? 'advance' : 'balance'} still due on this order (${order.currency} ${outstanding.toLocaleString('en-IN')}).`);
+    throw new Error(`Amount exceeds the ${isAdvance ? 'advance' : isSettlement ? 'amount' : 'balance'} still due on this order (${order.currency} ${outstanding.toLocaleString('en-IN')}).`);
   }
 
   const data = tok(
@@ -1439,12 +1455,12 @@ export async function triggerTradeAutomatedEmail(payload: {
           studentName: payload.recipient_name,
           subject: triggerInfo.subject,
           htmlContent: `
-            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #E5E5E5; border-radius: 8px; overflow: hidden;">
               <div style="background: linear-gradient(135deg, #0f766e 0%, #134e4a 100%); padding: 24px; color: #ffffff;">
                 <h1 style="margin: 0; font-size: 18px; font-weight: 700;">FEREX GLOBAL TRADE</h1>
                 <p style="margin: 4px 0 0; font-size: 12px; color: #99f6e4;">International Trade Logistics & Compliance Desk</p>
               </div>
-              <div style="padding: 24px; color: #1e293b;">
+              <div style="padding: 24px; color: #262626;">
                 <h2 style="margin-top: 0; font-size: 16px; color: #0f766e;">${triggerInfo.label}</h2>
                 <p style="font-size: 14px; line-height: 1.5;">Dear <strong>${payload.recipient_name}</strong>,</p>
                 <p style="font-size: 14px; line-height: 1.5;">${triggerInfo.preview}</p>
@@ -1452,7 +1468,7 @@ export async function triggerTradeAutomatedEmail(payload: {
                   <p style="margin: 0; font-size: 13px;"><strong>Consignment No:</strong> ${payload.order_no}</p>
                 </div>
               </div>
-              <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 24px; font-size: 11px; color: #64748b;">
+              <div style="background: #FAFAFA; border-top: 1px solid #E5E5E5; padding: 16px 24px; font-size: 11px; color: #737373;">
                 FEREX VENTURES • Global Trade & Maritime Freight Desk
               </div>
             </div>
@@ -1502,23 +1518,30 @@ export interface CentralTradeSummary {
   openTicketsCount: number;
   totalClientsCount: number;
   stageBreakdown: Record<TradeOrderStage, number>;
+  /** Order value and money still owed, per currency, so nothing in euros is ever counted as dollars. */
+  byCurrency: Record<string, { total: number; owed: number }>;
+  /** Latest records, for the dashboard lists. */
+  orders?: TradeOrder[];
+  tasks?: TradeTask[];
+  tickets?: TradeTicket[];
 }
 
 export async function getCentralTradeSummary(staffEmail?: string): Promise<CentralTradeSummary> {
   try {
-    const [orders, docs, tasks, tickets, clients] = await Promise.all([
-      getTradeOrders(staffEmail),
-      getTradeDocuments(),
-      getTradeTasks(staffEmail),
-      getTradeTickets(staffEmail),
-      getTradeClients()
+    // Each source loads on its own: a problem with documents or tickets must not blank the order and payment cards.
+    const results = await Promise.allSettled([
+      getTradeOrders(staffEmail), getTradeDocuments(), getTradeTasks(staffEmail), getTradeTickets(staffEmail), getTradeClients()
     ]);
+    const pick = <T,>(i: number): T[] => results[i].status === 'fulfilled' ? ((results[i] as PromiseFulfilledResult<T[]>).value || []) : [];
+    if (results[0].status === 'rejected') throw results[0].reason;
+    const orders = pick<TradeOrder>(0), docs = pick<any>(1), tasks = pick<TradeTask>(2), tickets = pick<any>(3), clients = pick<any>(4);
 
     let totalVal = 0;
     let advPaid = 0;
     let balOut = 0;
     let activeShip = 0;
     let delivered = 0;
+    const byCurrency: Record<string, { total: number; owed: number }> = {};
 
     const stageMap: Record<TradeOrderStage, number> = {
       'Inquiry': 0,
@@ -1533,6 +1556,10 @@ export async function getCentralTradeSummary(staffEmail?: string): Promise<Centr
     for (const ord of orders) {
       totalVal += Number(ord.total_amount || 0);
       advPaid += Number(ord.advance_paid || 0);
+      const cur = ord.currency || 'USD';
+      const row = (byCurrency[cur] ||= { total: 0, owed: 0 });
+      row.total += Number(ord.total_amount || 0);
+      row.owed += Math.max(0, Number(ord.total_amount || 0) - Number(ord.advance_paid || 0) - Number(ord.balance_paid || 0));
       balOut += (Number(ord.total_amount || 0) - Number(ord.advance_paid || 0) - Number(ord.balance_paid || 0));
 
       if (ord.stage === 'Shipped' || ord.stage === 'Customs Clearance') {
@@ -1548,7 +1575,8 @@ export async function getCentralTradeSummary(staffEmail?: string): Promise<Centr
 
     const pendingDocs = docs.filter(d => d.status === 'Pending' || d.status === 'Submitted').length;
     const verifiedDocs = docs.filter(d => d.status === 'Verified').length;
-    const openTasks = tasks.filter(t => t.status !== 'Completed').length;
+    const isOpenTask = (t: any) => t.status !== 'Completed' && t.status !== 'Cancelled';
+    const openTasks = tasks.filter(isOpenTask).length;
     const urgentTasks = tasks.filter(t => t.status !== 'Completed' && (t.priority === 'Urgent' || t.priority === 'High')).length;
     const openTickets = tickets.filter(t => t.status === 'Open' || t.status === 'In Progress').length;
 
@@ -1565,11 +1593,18 @@ export async function getCentralTradeSummary(staffEmail?: string): Promise<Centr
       urgentTasksCount: urgentTasks,
       openTicketsCount: openTickets,
       totalClientsCount: clients.length,
-      stageBreakdown: stageMap
+      stageBreakdown: stageMap,
+      byCurrency,
+      orders: orders.slice(0, 8),
+      tasks: tasks.filter(isOpenTask).slice(0, 8),
+      tickets: tickets.filter(t => t.status === 'Open' || t.status === 'In Progress').slice(0, 8)
     };
   } catch (err) {
     console.error('[TradeAPI] Error calculating trade summary:', err);
+    throw new Error('Could not load the Trade dashboard. Check your connection and try again.');
+    // eslint-disable-next-line no-unreachable
     return {
+      byCurrency: {},
       totalOrdersCount: 0,
       totalOrderBookValueUSD: 0,
       totalAdvancePaidUSD: 0,

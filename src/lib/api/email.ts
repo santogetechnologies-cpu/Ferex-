@@ -222,28 +222,28 @@ const EMAIL_WRAPPER_STYLE = `
   margin: 0 auto;
   padding: 0;
   background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #E5E5E5;
   border-radius: 12px;
   overflow: hidden;
 `;
 
 const EMAIL_FOOTER_HTML = `
-  <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 24px 32px; font-size: 12px; color: #64748b; line-height: 1.6;">
-    <p style="margin: 0 0 8px 0; font-weight: 600; color: #334155;">FEREX VENTURES PRIVATE LIMITED</p>
+  <div style="background: #FAFAFA; border-top: 1px solid #E5E5E5; padding: 24px 32px; font-size: 12px; color: #737373; line-height: 1.6;">
+    <p style="margin: 0 0 8px 0; font-weight: 600; color: #404040;">FEREX VENTURES PRIVATE LIMITED</p>
     <p style="margin: 0 0 8px 0;">
       European Headquarters: Warsaw, Poland • India Corporate Hub: Infopark Expressway, Kochi & Bangalore
     </p>
-    <p style="margin: 0; color: #94a3b8;">
+    <p style="margin: 0; color: #A3A3A3;">
       This is an automated operational notification. For assistance, contact your designated account executive or reply to this message.
     </p>
   </div>
 `;
 
-function getBrandedHeader(title: string, subtitle: string, accentColor = '#58051E') {
+function getBrandedHeader(title: string, subtitle: string, accentColor = '#5A0122') {
   return `
     <div style="background: linear-gradient(135deg, ${accentColor} 0%, #1e1b4b 100%); padding: 28px 32px; color: #ffffff;">
       <h1 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.5px; color: #ffffff;">${title}</h1>
-      <p style="margin: 4px 0 0; font-size: 13px; color: #e2e8f0; font-weight: 500;">${subtitle}</p>
+      <p style="margin: 4px 0 0; font-size: 13px; color: #E5E5E5; font-weight: 500;">${subtitle}</p>
     </div>
   `;
 }
@@ -256,15 +256,15 @@ export async function sendStudentWelcomeEmail(studentEmail: string, studentName:
   const subject = `Welcome to FEREX Higher Education Portal — Admission File Created`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
-      ${getBrandedHeader('FEREX HIGHER EDUCATION', 'European Higher Education & Admissions Desk', '#58051E')}
+      ${getBrandedHeader('FEREX HIGHER EDUCATION', 'European Higher Education & Admissions Desk', '#5A0122')}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 20px; margin-top: 0; margin-bottom: 16px;">Welcome to FEREX, ${studentName}!</h2>
-        <p style="color: #334155; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+        <h2 style="color: #141414; font-size: 20px; margin-top: 0; margin-bottom: 16px;">Welcome to FEREX, ${studentName}!</h2>
+        <p style="color: #404040; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
           Your student admissions account with <strong>FEREX Global Higher Education</strong> is now active. You now have full access to select European universities, track offer letters, upload visa dossiers, and monitor fee settlements.
         </p>
-        <div style="background: #fdf8f6; border-left: 4px solid #58051E; padding: 18px 20px; border-radius: 6px; margin: 24px 0;">
-          <h3 style="margin: 0 0 10px 0; font-size: 15px; color: #58051E;">Your Student Portal Details:</h3>
-          <ul style="margin: 0; padding-left: 18px; color: #475569; font-size: 13px; line-height: 1.8;">
+        <div style="background: #fdf8f6; border-left: 4px solid #5A0122; padding: 18px 20px; border-radius: 6px; margin: 24px 0;">
+          <h3 style="margin: 0 0 10px 0; font-size: 15px; color: #5A0122;">Your Student Portal Details:</h3>
+          <ul style="margin: 0; padding-left: 18px; color: #525252; font-size: 13px; line-height: 1.8;">
             <li><strong>Registered Email:</strong> ${studentEmail}</li>
             <li><strong>Admissions Desk:</strong> Poland, Germany, UK, Canada, France, Italy & Switzerland</li>
           </ul>
@@ -293,11 +293,11 @@ export async function sendStudentPaymentEmail(params: {
   const subject = `Payment Confirmed: Receipt #${receiptNumber} — FEREX Education (${formattedAmount})`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
-      ${getBrandedHeader('FEREX HIGHER EDUCATION', 'Official Electronic Settlement Voucher', '#58051E')}
+      ${getBrandedHeader('FEREX HIGHER EDUCATION', 'Official Electronic Settlement Voucher', '#5A0122')}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 20px; margin: 0 0 16px 0;">Payment Receipt Confirmed</h2>
-        <p style="color: #334155; font-size: 14px; line-height: 1.6;">Dear <strong>${studentName}</strong>, we have received your payment for <strong>${purpose}</strong>.</p>
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0;">
+        <h2 style="color: #141414; font-size: 20px; margin: 0 0 16px 0;">Payment Receipt Confirmed</h2>
+        <p style="color: #404040; font-size: 14px; line-height: 1.6;">Dear <strong>${studentName}</strong>, we have received your payment for <strong>${purpose}</strong>.</p>
+        <div style="background: #FAFAFA; border: 1px solid #E5E5E5; border-radius: 8px; padding: 20px; margin: 20px 0;">
           <p style="margin: 0 0 8px 0;"><strong>Receipt Number:</strong> ${receiptNumber}</p>
           <p style="margin: 0 0 8px 0;"><strong>Amount Paid:</strong> <span style="color: #059669; font-weight: bold; font-size: 16px;">${formattedAmount}</span></p>
           <p style="margin: 0 0 8px 0;"><strong>Purpose:</strong> ${purpose}</p>
@@ -325,11 +325,11 @@ export async function sendStudentApplicationEmail(params: {
   const subject = `Application Submitted: ${universityName} — ${programName}`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
-      ${getBrandedHeader('FEREX HIGHER EDUCATION', 'Admissions Application Queue', '#58051E')}
+      ${getBrandedHeader('FEREX HIGHER EDUCATION', 'Admissions Application Queue', '#5A0122')}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 19px; margin-top: 0;">University Application Queued</h2>
-        <p style="color: #334155; font-size: 14px; line-height: 1.6;">Dear <strong>${studentName}</strong>, your formal application for <strong>${programName}</strong> at <strong>${universityName}</strong> has been submitted.</p>
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin: 20px 0;">
+        <h2 style="color: #141414; font-size: 19px; margin-top: 0;">University Application Queued</h2>
+        <p style="color: #404040; font-size: 14px; line-height: 1.6;">Dear <strong>${studentName}</strong>, your formal application for <strong>${programName}</strong> at <strong>${universityName}</strong> has been submitted.</p>
+        <div style="background: #FAFAFA; border: 1px solid #E5E5E5; border-radius: 8px; padding: 18px; margin: 20px 0;">
           <p style="margin: 0 0 8px 0;"><strong>University:</strong> ${universityName}</p>
           <p style="margin: 0 0 8px 0;"><strong>Program:</strong> ${programName}</p>
           <p style="margin: 0 0 8px 0;"><strong>Country:</strong> ${country}</p>
@@ -354,10 +354,10 @@ export async function sendStudentDocumentUploadedEmail(params: {
   const subject = `Document Received: ${documentName} (${documentType})`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
-      ${getBrandedHeader('FEREX HIGHER EDUCATION', 'Document Legalization & Verification Desk', '#58051E')}
+      ${getBrandedHeader('FEREX HIGHER EDUCATION', 'Document Legalization & Verification Desk', '#5A0122')}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 19px; margin-top: 0;">Document Upload Received</h2>
-        <p style="color: #334155; font-size: 14px;">Dear <strong>${studentName}</strong>, we have received your document <strong>${documentName}</strong> (${documentType})${fileSize ? ` [${fileSize}]` : ''}. Our legalization officers will verify its compliance.</p>
+        <h2 style="color: #141414; font-size: 19px; margin-top: 0;">Document Upload Received</h2>
+        <p style="color: #404040; font-size: 14px;">Dear <strong>${studentName}</strong>, we have received your document <strong>${documentName}</strong> (${documentType})${fileSize ? ` [${fileSize}]` : ''}. Our legalization officers will verify its compliance.</p>
       </div>
       ${EMAIL_FOOTER_HTML}
     </div>
@@ -377,10 +377,10 @@ export async function sendStudentMeetingScheduledEmail(params: {
   const subject = `Session Confirmed: "${meetingTopic}" with ${advisorName}`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
-      ${getBrandedHeader('FEREX HIGHER EDUCATION', 'Admissions Advisory & Counseling Desk', '#58051E')}
+      ${getBrandedHeader('FEREX HIGHER EDUCATION', 'Admissions Advisory & Counseling Desk', '#5A0122')}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 19px; margin-top: 0;">Advisory Session Confirmed</h2>
-        <p style="color: #334155; font-size: 14px;">Dear <strong>${studentName}</strong>, your 1-on-1 session with <strong>${advisorName}</strong> is scheduled for <strong>${scheduledDate} at ${startTime}</strong>.</p>
+        <h2 style="color: #141414; font-size: 19px; margin-top: 0;">Advisory Session Confirmed</h2>
+        <p style="color: #404040; font-size: 14px;">Dear <strong>${studentName}</strong>, your 1-on-1 session with <strong>${advisorName}</strong> is scheduled for <strong>${scheduledDate} at ${startTime}</strong>.</p>
       </div>
       ${EMAIL_FOOTER_HTML}
     </div>
@@ -400,10 +400,10 @@ export async function sendStudentTicketCreatedEmail(params: {
   const subject = `Support Ticket Created: [${ticketNo}] ${ticketSubject}`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
-      ${getBrandedHeader('FEREX HIGHER EDUCATION', 'Student Support Helpdesk', '#58051E')}
+      ${getBrandedHeader('FEREX HIGHER EDUCATION', 'Student Support Helpdesk', '#5A0122')}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 19px; margin-top: 0;">Support Ticket Received</h2>
-        <p style="color: #334155; font-size: 14px;">Dear <strong>${studentName}</strong>, ticket <strong>${ticketNo}</strong> (${category || 'General'}${priority ? ` - Priority: ${priority}` : ''}) has been logged. Our admissions support team will respond promptly.</p>
+        <h2 style="color: #141414; font-size: 19px; margin-top: 0;">Support Ticket Received</h2>
+        <p style="color: #404040; font-size: 14px;">Dear <strong>${studentName}</strong>, ticket <strong>${ticketNo}</strong> (${category || 'General'}${priority ? ` - Priority: ${priority}` : ''}) has been logged. Our admissions support team will respond promptly.</p>
       </div>
       ${EMAIL_FOOTER_HTML}
     </div>
@@ -427,8 +427,8 @@ export async function sendRimiCustomerWelcomeEmail(params: {
     <div style="${EMAIL_WRAPPER_STYLE}">
       ${getBrandedHeader('RIMI FROZEN DISTRIBUTION', 'Cold Chain & FMCG Wholesale Network', '#0284c7')}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 20px; margin-top: 0;">Welcome to Rimi Frozen, ${customerName}!</h2>
-        <p style="color: #334155; font-size: 14px; line-height: 1.6;">
+        <h2 style="color: #141414; font-size: 20px; margin-top: 0;">Welcome to Rimi Frozen, ${customerName}!</h2>
+        <p style="color: #404040; font-size: 14px; line-height: 1.6;">
           Your wholesale enterprise account for <strong>${businessName}</strong> has been configured in our distribution management system.
         </p>
         <div style="background: #f0f9ff; border-left: 4px solid #0284c7; padding: 18px 20px; border-radius: 6px; margin: 20px 0;">
@@ -436,7 +436,7 @@ export async function sendRimiCustomerWelcomeEmail(params: {
           <p style="margin: 0 0 6px 0; font-size: 13px;"><strong>Account Type:</strong> ${accountType}</p>
           <p style="margin: 0; font-size: 13px;"><strong>Contact Email:</strong> ${customerEmail}</p>
         </div>
-        <p style="color: #64748b; font-size: 13px; line-height: 1.6;">
+        <p style="color: #737373; font-size: 13px; line-height: 1.6;">
           You can now place scheduled orders, monitor cold storage dispatches, and track real-time temperature logs.
         </p>
       </div>
@@ -462,9 +462,9 @@ export async function sendRimiSalesOrderEmail(params: {
     <div style="${EMAIL_WRAPPER_STYLE}">
       ${getBrandedHeader('RIMI FROZEN DISTRIBUTION', 'Cold Chain Consignment & Sales Order Desk', '#0284c7')}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 20px; margin-top: 0;">Sales Order Update: ${status}</h2>
-        <p style="color: #334155; font-size: 14px; line-height: 1.6;">Dear <strong>${customerName}</strong>, order <strong>${orderNumber}</strong> has been updated to <strong>${status}</strong>.</p>
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0;">
+        <h2 style="color: #141414; font-size: 20px; margin-top: 0;">Sales Order Update: ${status}</h2>
+        <p style="color: #404040; font-size: 14px; line-height: 1.6;">Dear <strong>${customerName}</strong>, order <strong>${orderNumber}</strong> has been updated to <strong>${status}</strong>.</p>
+        <div style="background: #FAFAFA; border: 1px solid #E5E5E5; border-radius: 8px; padding: 20px; margin: 20px 0;">
           <p style="margin: 0 0 8px 0;"><strong>Order Number:</strong> ${orderNumber}</p>
           <p style="margin: 0 0 8px 0;"><strong>Order Total:</strong> <span style="color: #0284c7; font-weight: bold; font-size: 16px;">${formattedAmount}</span></p>
           <p style="margin: 0 0 8px 0;"><strong>Status:</strong> <span style="color: #059669; font-weight: 600;">${status}</span></p>
@@ -494,8 +494,8 @@ export async function sendRimiDeliveryDispatchedEmail(params: {
     <div style="${EMAIL_WRAPPER_STYLE}">
       ${getBrandedHeader('RIMI FROZEN DISTRIBUTION', 'Reefer Fleet Telemetry & Dispatch', '#0284c7')}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 20px; margin-top: 0;">Reefer Vehicle Dispatched</h2>
-        <p style="color: #334155; font-size: 14px;">Dear <strong>${customerName}</strong>, your frozen batch consignment is en route in temperature-controlled reefer truck <strong>${vehicleNumber}</strong>.</p>
+        <h2 style="color: #141414; font-size: 20px; margin-top: 0;">Reefer Vehicle Dispatched</h2>
+        <p style="color: #404040; font-size: 14px;">Dear <strong>${customerName}</strong>, your frozen batch consignment is en route in temperature-controlled reefer truck <strong>${vehicleNumber}</strong>.</p>
         <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 20px; margin: 20px 0;">
           <p style="margin: 0 0 8px 0;"><strong>Delivery Consignment:</strong> ${deliveryNumber}</p>
           <p style="margin: 0 0 8px 0;"><strong>Vehicle Number:</strong> ${vehicleNumber}</p>
@@ -525,9 +525,9 @@ export async function sendRimiPaymentCollectionEmail(params: {
     <div style="${EMAIL_WRAPPER_STYLE}">
       ${getBrandedHeader('RIMI FROZEN DISTRIBUTION', 'Payment Settlement & Accounting Desk', '#0284c7')}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 20px; margin-top: 0;">Payment Receipt Recorded</h2>
-        <p style="color: #334155; font-size: 14px;">Dear <strong>${customerName}</strong>, we have received payment settlement of <strong>${formattedAmount}</strong>.</p>
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0;">
+        <h2 style="color: #141414; font-size: 20px; margin-top: 0;">Payment Receipt Recorded</h2>
+        <p style="color: #404040; font-size: 14px;">Dear <strong>${customerName}</strong>, we have received payment settlement of <strong>${formattedAmount}</strong>.</p>
+        <div style="background: #FAFAFA; border: 1px solid #E5E5E5; border-radius: 8px; padding: 20px; margin: 20px 0;">
           <p style="margin: 0 0 8px 0;"><strong>Collection Ref:</strong> ${collectionNumber}</p>
           <p style="margin: 0 0 8px 0;"><strong>Amount Paid:</strong> <span style="color: #059669; font-weight: bold; font-size: 16px;">${formattedAmount}</span></p>
           <p style="margin: 0 0 8px 0;"><strong>Method:</strong> ${paymentMethod}</p>
@@ -561,8 +561,8 @@ export async function sendTradeShipmentStageEmail(params: {
     <div style="${EMAIL_WRAPPER_STYLE}">
       ${getBrandedHeader('FEREX GLOBAL TRADE', 'International Trade Logistics & Cargo Desk', '#0f766e')}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 20px; margin-top: 0;">Shipment Status: ${stage}</h2>
-        <p style="color: #334155; font-size: 14px;">Dear <strong>${clientName}</strong>, commercial consignment <strong>${shipmentNumber}</strong> has reached stage <strong>${stage}</strong>.</p>
+        <h2 style="color: #141414; font-size: 20px; margin-top: 0;">Shipment Status: ${stage}</h2>
+        <p style="color: #404040; font-size: 14px;">Dear <strong>${clientName}</strong>, commercial consignment <strong>${shipmentNumber}</strong> has reached stage <strong>${stage}</strong>.</p>
         <div style="background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 20px; margin: 20px 0;">
           <p style="margin: 0 0 8px 0;"><strong>Consignment No:</strong> ${shipmentNumber}</p>
           <p style="margin: 0 0 8px 0;"><strong>Current Stage:</strong> <span style="color: #0f766e; font-weight: bold;">${stage}</span></p>
@@ -594,9 +594,9 @@ export async function sendTradeInvoiceEmail(params: {
     <div style="${EMAIL_WRAPPER_STYLE}">
       ${getBrandedHeader('FEREX GLOBAL TRADE', 'Commercial Invoicing & Letter of Credit Desk', '#0f766e')}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 20px; margin-top: 0;">Commercial Invoice Issued</h2>
-        <p style="color: #334155; font-size: 14px;">Dear <strong>${clientName}</strong>, commercial invoice <strong>${invoiceNumber}</strong> has been generated for your trade account.</p>
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0;">
+        <h2 style="color: #141414; font-size: 20px; margin-top: 0;">Commercial Invoice Issued</h2>
+        <p style="color: #404040; font-size: 14px;">Dear <strong>${clientName}</strong>, commercial invoice <strong>${invoiceNumber}</strong> has been generated for your trade account.</p>
+        <div style="background: #FAFAFA; border: 1px solid #E5E5E5; border-radius: 8px; padding: 20px; margin: 20px 0;">
           <p style="margin: 0 0 8px 0;"><strong>Invoice Number:</strong> ${invoiceNumber}</p>
           <p style="margin: 0 0 8px 0;"><strong>Invoice Total:</strong> <span style="color: #0f766e; font-weight: bold; font-size: 16px;">${formattedAmount}</span></p>
           ${dueDate ? `<p style="margin: 0 0 8px 0;"><strong>Payment Due Date:</strong> ${dueDate}</p>` : ''}
@@ -623,8 +623,8 @@ export async function sendTradeDocumentReadyEmail(params: {
     <div style="${EMAIL_WRAPPER_STYLE}">
       ${getBrandedHeader('FEREX GLOBAL TRADE', 'Customs Clearance & Trade Document Desk', '#0f766e')}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 20px; margin-top: 0;">Trade Document Ready</h2>
-        <p style="color: #334155; font-size: 14px;">Dear <strong>${clientName}</strong>, verified shipping compliance document <strong>${documentName}</strong> (${documentType}) is ready.</p>
+        <h2 style="color: #141414; font-size: 20px; margin-top: 0;">Trade Document Ready</h2>
+        <p style="color: #404040; font-size: 14px;">Dear <strong>${clientName}</strong>, verified shipping compliance document <strong>${documentName}</strong> (${documentType}) is ready.</p>
         <div style="background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 20px; margin: 20px 0;">
           <p style="margin: 0 0 8px 0;"><strong>Document:</strong> ${documentName}</p>
           <p style="margin: 0 0 8px 0;"><strong>Type:</strong> ${documentType}</p>
@@ -653,13 +653,13 @@ export async function sendDigitalClientWelcomeEmail(params: {
   const subject = `Welcome to Ferex Digital — Client Workspace Created [${companyName}]`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
-      ${getBrandedHeader('FEREX DIGITAL AGENCY', 'Enterprise Engineering, AI & Design Studio', '#58051E')}
+      ${getBrandedHeader('FEREX DIGITAL AGENCY', 'Enterprise Engineering, AI & Design Studio', '#5A0122')}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 20px; margin-top: 0;">Welcome to Ferex Digital, ${clientName}!</h2>
-        <p style="color: #334155; font-size: 14px; line-height: 1.6;">
+        <h2 style="color: #141414; font-size: 20px; margin-top: 0;">Welcome to Ferex Digital, ${clientName}!</h2>
+        <p style="color: #404040; font-size: 14px; line-height: 1.6;">
           Your client portal account for <strong>${companyName}</strong> is active. You can track sprint deliverables, review code milestones, inspect Figma designs, and download tax invoices.
         </p>
-        <div style="background: #fdf8f6; border-left: 4px solid #58051E; padding: 18px 20px; border-radius: 6px; margin: 20px 0;">
+        <div style="background: #fdf8f6; border-left: 4px solid #5A0122; padding: 18px 20px; border-radius: 6px; margin: 20px 0;">
           <p style="margin: 0 0 6px 0; font-size: 13px;"><strong>Client Account:</strong> ${companyName}</p>
           <p style="margin: 0 0 6px 0; font-size: 13px;"><strong>Engagement:</strong> ${serviceRetainer}</p>
           <p style="margin: 0; font-size: 13px;"><strong>Portal Access:</strong> ${clientEmail}</p>
@@ -684,15 +684,15 @@ export async function sendDigitalProjectMilestoneEmail(params: {
   const formattedAmount = amount ? `₹${Number(amount).toLocaleString('en-IN')}` : undefined;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
-      ${getBrandedHeader('FEREX DIGITAL AGENCY', 'Sprint Delivery & Milestones Desk', '#58051E')}
+      ${getBrandedHeader('FEREX DIGITAL AGENCY', 'Sprint Delivery & Milestones Desk', '#5A0122')}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 20px; margin-top: 0;">Sprint Update: ${stage}</h2>
-        <p style="color: #334155; font-size: 14px; line-height: 1.6;">
+        <h2 style="color: #141414; font-size: 20px; margin-top: 0;">Sprint Update: ${stage}</h2>
+        <p style="color: #404040; font-size: 14px; line-height: 1.6;">
           Dear <strong>${clientName}</strong>, the milestone for project <strong>${projectTitle}</strong> has advanced to <strong>${stage}</strong>.
         </p>
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0;">
+        <div style="background: #FAFAFA; border: 1px solid #E5E5E5; border-radius: 8px; padding: 20px; margin: 20px 0;">
           <p style="margin: 0 0 8px 0;"><strong>Project:</strong> ${projectTitle}</p>
-          <p style="margin: 0 0 8px 0;"><strong>Status:</strong> <span style="color: #58051E; font-weight: bold;">${stage}</span></p>
+          <p style="margin: 0 0 8px 0;"><strong>Status:</strong> <span style="color: #5A0122; font-weight: bold;">${stage}</span></p>
           ${invoiceNo ? `<p style="margin: 0 0 8px 0;"><strong>Milestone Invoice:</strong> ${invoiceNo}</p>` : ''}
           ${formattedAmount ? `<p style="margin: 0;"><strong>Amount:</strong> ${formattedAmount}</p>` : ''}
         </div>
@@ -715,15 +715,15 @@ export async function sendDigitalDeliverableEmail(params: {
   const subject = `Deliverable [${deliverableTitle}]: Status is ${status} — Ferex Digital`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
-      ${getBrandedHeader('FEREX DIGITAL AGENCY', 'Engineering & Design Review Desk', '#58051E')}
+      ${getBrandedHeader('FEREX DIGITAL AGENCY', 'Engineering & Design Review Desk', '#5A0122')}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 20px; margin-top: 0;">Deliverable Status: ${status}</h2>
-        <p style="color: #334155; font-size: 14px;">Dear <strong>${clientName}</strong>, deliverable <strong>${deliverableTitle}</strong> for project <strong>${projectTitle}</strong> has been updated.</p>
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0;">
+        <h2 style="color: #141414; font-size: 20px; margin-top: 0;">Deliverable Status: ${status}</h2>
+        <p style="color: #404040; font-size: 14px;">Dear <strong>${clientName}</strong>, deliverable <strong>${deliverableTitle}</strong> for project <strong>${projectTitle}</strong> has been updated.</p>
+        <div style="background: #FAFAFA; border: 1px solid #E5E5E5; border-radius: 8px; padding: 20px; margin: 20px 0;">
           <p style="margin: 0 0 8px 0;"><strong>Deliverable:</strong> ${deliverableTitle}</p>
           <p style="margin: 0 0 8px 0;"><strong>Project:</strong> ${projectTitle}</p>
-          <p style="margin: 0 0 8px 0;"><strong>Status:</strong> <span style="color: #58051E; font-weight: bold;">${status}</span></p>
-          ${previewUrl ? `<p style="margin: 0;"><strong>Preview / Staging Link:</strong> <a href="${previewUrl}" style="color: #58051E;">${previewUrl}</a></p>` : ''}
+          <p style="margin: 0 0 8px 0;"><strong>Status:</strong> <span style="color: #5A0122; font-weight: bold;">${status}</span></p>
+          ${previewUrl ? `<p style="margin: 0;"><strong>Preview / Staging Link:</strong> <a href="${previewUrl}" style="color: #5A0122;">${previewUrl}</a></p>` : ''}
         </div>
       </div>
       ${EMAIL_FOOTER_HTML}
@@ -746,13 +746,13 @@ export async function sendDigitalInvoiceEmail(params: {
   const subject = `Retainer & Project Invoice [${invoiceNumber}] Issued — Ferex Digital (${formattedAmount})`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
-      ${getBrandedHeader('FEREX DIGITAL AGENCY', 'Client Billing & Retainer Invoicing', '#58051E')}
+      ${getBrandedHeader('FEREX DIGITAL AGENCY', 'Client Billing & Retainer Invoicing', '#5A0122')}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 20px; margin-top: 0;">Invoice Issued: ${invoiceNumber}</h2>
-        <p style="color: #334155; font-size: 14px;">Dear <strong>${clientName}</strong>, invoice <strong>${invoiceNumber}</strong> has been generated for your account.</p>
+        <h2 style="color: #141414; font-size: 20px; margin-top: 0;">Invoice Issued: ${invoiceNumber}</h2>
+        <p style="color: #404040; font-size: 14px;">Dear <strong>${clientName}</strong>, invoice <strong>${invoiceNumber}</strong> has been generated for your account.</p>
         <div style="background: #fdf8f6; border: 1px solid #fecdd3; border-radius: 8px; padding: 20px; margin: 20px 0;">
           <p style="margin: 0 0 8px 0;"><strong>Invoice Number:</strong> ${invoiceNumber}</p>
-          <p style="margin: 0 0 8px 0;"><strong>Amount Due:</strong> <span style="color: #58051E; font-weight: bold; font-size: 16px;">${formattedAmount}</span></p>
+          <p style="margin: 0 0 8px 0;"><strong>Amount Due:</strong> <span style="color: #5A0122; font-weight: bold; font-size: 16px;">${formattedAmount}</span></p>
           ${dueDate ? `<p style="margin: 0 0 8px 0;"><strong>Due Date:</strong> ${dueDate}</p>` : ''}
           ${projectName ? `<p style="margin: 0;"><strong>Project / Retainer:</strong> ${projectName}</p>` : ''}
         </div>
@@ -775,19 +775,35 @@ export async function sendDigitalMeetingEmail(params: {
   const subject = `Client Sync Scheduled: "${title}" — Ferex Digital`;
   const htmlContent = `
     <div style="${EMAIL_WRAPPER_STYLE}">
-      ${getBrandedHeader('FEREX DIGITAL AGENCY', 'Strategy, Sprint Sync & Design Review', '#58051E')}
+      ${getBrandedHeader('FEREX DIGITAL AGENCY', 'Strategy, Sprint Sync & Design Review', '#5A0122')}
       <div style="padding: 32px;">
-        <h2 style="color: #0f172a; font-size: 20px; margin-top: 0;">Meeting Scheduled</h2>
-        <p style="color: #334155; font-size: 14px;">Dear <strong>${clientName}</strong>, your digital sprint sync has been scheduled.</p>
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 20px 0;">
+        <h2 style="color: #141414; font-size: 20px; margin-top: 0;">Meeting Scheduled</h2>
+        <p style="color: #404040; font-size: 14px;">Dear <strong>${clientName}</strong>, your digital sprint sync has been scheduled.</p>
+        <div style="background: #FAFAFA; border: 1px solid #E5E5E5; border-radius: 8px; padding: 20px; margin: 20px 0;">
           <p style="margin: 0 0 8px 0;"><strong>Topic:</strong> ${title}</p>
           <p style="margin: 0 0 8px 0;"><strong>Date:</strong> ${meetingDate}</p>
           <p style="margin: 0 0 8px 0;"><strong>Time:</strong> ${startTime} (IST)</p>
-          ${meetLink ? `<p style="margin: 0;"><strong>Conference Link:</strong> <a href="${meetLink}" style="color: #58051E; font-weight: 600;">Join Meeting Room</a></p>` : ''}
+          ${meetLink ? `<p style="margin: 0;"><strong>Conference Link:</strong> <a href="${meetLink}" style="color: #5A0122; font-weight: 600;">Join Meeting Room</a></p>` : ''}
         </div>
       </div>
       ${EMAIL_FOOTER_HTML}
     </div>
   `;
   return sendStudentEmail({ studentEmail: clientEmail, studentName: clientName, subject, htmlContent, templateType: 'digital_meeting_scheduled', division: 'digital', referenceId: title, metadata: params });
+}
+
+/** Tells the account owner that their password was changed or reset, so an unexpected change is noticed straight away. */
+export async function sendPasswordChangedEmail(email: string, name = ''): Promise<SendEmailResult> {
+  const when = new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 'short' });
+  const htmlContent = `
+    <div style="${EMAIL_WRAPPER_STYLE}">
+      ${getBrandedHeader('FEREX', 'Account security', '#5A0122')}
+      <div style="padding: 32px;">
+        <h2 style="color: #141414; font-size: 20px; margin-top: 0; margin-bottom: 16px;">Your password was changed</h2>
+        <p style="color: #404040; font-size: 14px; line-height: 1.6;">Hello ${name || email.split('@')[0]}, the password for your FEREX account (${email}) was changed on <strong>${when}</strong>.</p>
+        <p style="color: #404040; font-size: 14px; line-height: 1.6;">If this was you, no action is needed. If it was not, reset your password straight away from the sign-in page ("Forgot password") and contact your administrator.</p>
+      </div>
+      ${EMAIL_FOOTER_HTML}
+    </div>`;
+  return sendStudentEmail({ studentEmail: email, studentName: name, subject: 'Your FEREX password was changed', htmlContent, templateType: 'password_changed', division: 'education' });
 }

@@ -56,7 +56,7 @@ export const DocumentViewer: React.FC<{ doc: ViewerDoc | null; onClose: () => vo
             <FileText className="w-10 h-10 mx-auto text-slate-400" />
             <p className="text-sm font-bold text-slate-900">This file type can't be previewed here</p>
             <p className="text-xs text-slate-500">Download it to open it on your device.</p>
-            <a href={url} download={doc.name} className="inline-flex h-10 px-5 items-center rounded-xl bg-[#58051E] text-white text-xs font-bold">Download</a>
+            <a href={url} download={doc.name} className="inline-flex h-10 px-5 items-center rounded-xl bg-[#5A0122] text-white text-xs font-bold">Download</a>
           </div>
         )}
       </div>

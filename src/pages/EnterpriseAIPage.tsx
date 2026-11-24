@@ -235,7 +235,7 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
 
       if (trimmed.startsWith('### ')) {
         return (
-          <h4 key={idx} className="font-bold text-xs sm:text-sm text-[#58051E] mt-2 mb-1 border-b border-[#58051E]/10 pb-0.5">
+          <h4 key={idx} className="font-bold text-xs sm:text-sm text-[#5A0122] mt-2 mb-1 border-b border-[#5A0122]/10 pb-0.5">
             {trimmed.replace('### ', '')}
           </h4>
         );
@@ -251,7 +251,7 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
         const bulletText = trimmed.replace(/^[-*•]\s+/, '');
         return (
           <div key={idx} className="flex items-start gap-2 ml-1 my-1 text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
-            <span className="text-[#58051E] font-bold text-xs shrink-0 mt-0.5">•</span>
+            <span className="text-[#5A0122] font-bold text-xs shrink-0 mt-0.5">•</span>
             <span className="flex-1">{renderInlineFormatting(bulletText)}</span>
           </div>
         );
@@ -260,7 +260,7 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
       if (numMatch) {
         return (
           <div key={idx} className="flex items-start gap-2 ml-1 my-1 text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
-            <span className="font-bold text-[#58051E] text-xs shrink-0 mt-0.5 bg-[#58051E]/10 w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
+            <span className="font-bold text-[#5A0122] text-xs shrink-0 mt-0.5 bg-[#5A0122]/10 w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
               {numMatch[1]}
             </span>
             <span className="flex-1">{renderInlineFormatting(numMatch[2])}</span>
@@ -308,7 +308,7 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
       {/* ── Page Header / Sub-Nav Bar ── */}
       <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#58051E] via-[#6f0335] to-[#800020] text-white flex items-center justify-center shadow-md shadow-[#58051E]/20 shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#5A0122] via-[#68092A] to-[#800020] text-white flex items-center justify-center shadow-md shadow-[#5A0122]/20 shrink-0">
             <RoleIcon className="w-6 h-6 text-white" />
           </div>
           <div>
@@ -316,7 +316,7 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
               <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
                 AI Assistant
               </h1>
-              <span className="text-[10px] font-extrabold uppercase bg-[#58051E]/10 text-[#58051E] px-2.5 py-0.5 rounded-full border border-[#58051E]/20">
+              <span className="text-[10px] font-extrabold uppercase bg-[#5A0122]/10 text-[#5A0122] px-2.5 py-0.5 rounded-full border border-[#5A0122]/20">
                 {portalName}
               </span>
             </div>
@@ -335,7 +335,7 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
               onClick={() => setActiveMode('chat')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeMode === 'chat'
-                  ? 'bg-white text-[#58051E] shadow-xs'
+                  ? 'bg-white text-[#5A0122] shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -346,7 +346,7 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
               onClick={() => setActiveMode('voice')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeMode === 'voice'
-                  ? 'bg-[#58051E] text-white shadow-xs animate-pulse'
+                  ? 'bg-[#5A0122] text-white shadow-xs animate-pulse'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -397,14 +397,14 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
                   >
                     {!isUser && (
                       <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-center shrink-0 mt-0.5 p-1">
-                        <Logo variant="icon" size="xs" color="#58051E" />
+                        <Logo variant="icon" size="xs" color="#5A0122" />
                       </div>
                     )}
 
                     <div
                       className={`relative group max-w-[90%] sm:max-w-[80%] rounded-2xl p-4 sm:p-4.5 text-xs sm:text-sm shadow-xs ${
                         isUser
-                          ? 'bg-gradient-to-r from-[#58051E] to-[#780a37] text-white rounded-br-xs font-medium'
+                          ? 'bg-gradient-to-r from-[#5A0122] to-[#780a37] text-white rounded-br-xs font-medium'
                           : 'bg-white text-slate-800 border border-slate-200/90 rounded-bl-xs'
                       }`}
                     >
@@ -416,9 +416,9 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
                             renderFormattedContent(msg.content)
                           ) : (
                             <div className="flex items-center gap-1.5 py-1 px-1">
-                              <span className="w-2 h-2 rounded-full bg-[#58051E] animate-bounce" style={{ animationDelay: '0ms' }} />
-                              <span className="w-2 h-2 rounded-full bg-[#58051E] animate-bounce" style={{ animationDelay: '150ms' }} />
-                              <span className="w-2 h-2 rounded-full bg-[#58051E] animate-bounce" style={{ animationDelay: '300ms' }} />
+                              <span className="w-2 h-2 rounded-full bg-[#5A0122] animate-bounce" style={{ animationDelay: '0ms' }} />
+                              <span className="w-2 h-2 rounded-full bg-[#5A0122] animate-bounce" style={{ animationDelay: '150ms' }} />
+                              <span className="w-2 h-2 rounded-full bg-[#5A0122] animate-bounce" style={{ animationDelay: '300ms' }} />
                             </div>
                           )}
 
@@ -459,14 +459,14 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
             {/* Quick Action Prompt Badges */}
             <div className="px-4 sm:px-6 py-2.5 bg-white border-t border-slate-100 flex items-center gap-2 overflow-x-auto scrollbar-none shrink-0">
               <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
-                <Sparkles className="w-3.5 h-3.5 text-[#58051E]" /> Suggested:
+                <Sparkles className="w-3.5 h-3.5 text-[#5A0122]" /> Suggested:
               </div>
               {(quickPrompts[role] || quickPrompts.central_admin).map((prompt, pIdx) => (
                 <button
                   key={pIdx}
                   onClick={() => handleSendMessage(prompt)}
                   disabled={isLoading}
-                  className="text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-[#58051E]/10 hover:text-[#58051E] px-3 py-1.5 rounded-xl transition-colors shrink-0 whitespace-nowrap cursor-pointer border border-slate-200/60"
+                  className="text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-[#5A0122]/10 hover:text-[#5A0122] px-3 py-1.5 rounded-xl transition-colors shrink-0 whitespace-nowrap cursor-pointer border border-slate-200/60"
                 >
                   {prompt}
                 </button>
@@ -489,23 +489,23 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
                   onChange={(e) => setInputMessage(e.target.value)}
                   placeholder="Ask anything about enterprise records, applications, shipments, tasks..."
                   disabled={isLoading}
-                  className="flex-1 h-12 px-4.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#58051E] disabled:opacity-50 transition-all shadow-inner"
+                  className="flex-1 h-12 px-4.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#5A0122] disabled:opacity-50 transition-all shadow-inner"
                 />
 
                 <button
                   type="button"
                   onClick={() => setActiveMode('voice')}
-                  className="h-12 px-3.5 rounded-2xl bg-slate-100 hover:bg-[#58051E]/10 text-slate-700 hover:text-[#58051E] flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shrink-0 border border-slate-200/60"
+                  className="h-12 px-3.5 rounded-2xl bg-slate-100 hover:bg-[#5A0122]/10 text-slate-700 hover:text-[#5A0122] flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shrink-0 border border-slate-200/60"
                   title="Switch to Realtime Voice Mode"
                 >
-                  <Mic className="w-4 h-4 text-[#58051E]" />
+                  <Mic className="w-4 h-4 text-[#5A0122]" />
                   <span className="hidden sm:inline">Voice</span>
                 </button>
 
                 <button
                   type="submit"
                   disabled={!inputMessage.trim() || isLoading}
-                  className="h-12 px-5 rounded-2xl bg-[#58051E] hover:bg-[#6F0335] text-white flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer shadow-md disabled:opacity-40 disabled:cursor-not-allowed shrink-0 active:scale-95"
+                  className="h-12 px-5 rounded-2xl bg-[#5A0122] hover:bg-[#68092A] text-white flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer shadow-md disabled:opacity-40 disabled:cursor-not-allowed shrink-0 active:scale-95"
                   aria-label="Send message"
                 >
                   {isLoading ? (
@@ -519,7 +519,7 @@ export const EnterpriseAIPage: React.FC<EnterpriseAIPageProps> = ({
               </form>
 
               <div className="max-w-4xl mx-auto flex items-center justify-between text-[11px] text-slate-400 font-medium px-2 mt-2">
-                <span className="flex items-center gap-1 text-[#58051E] font-bold">
+                <span className="flex items-center gap-1 text-[#5A0122] font-bold">
                   <ShieldCheck className="w-3.5 h-3.5" /> FEREX Intelligence
                 </span>
                 <span>Confidential Internal Operations</span>

@@ -4,7 +4,8 @@ import {
 } from 'lucide-react';
 import { useDocuments } from '../../hooks/useDocuments';
 import { useApplications } from '../../hooks/useApplications';
-import { createNawaRecord } from '../../lib/api/nawa';
+import { ensureLegalizationFile } from '../../lib/api/legalization';
+import { getWorkflowForCountry } from '../../lib/api/countryWorkflows';
 import { getStudents } from '../../lib/api/students';
 import { getAllDocumentRequirements, calculateDossierStatus, type DocumentRequirement } from '../../lib/api/documentRequirements';
 import { ToastNotification } from '../../components/ToastNotification';
@@ -34,7 +35,7 @@ const TONE: Record<Norm | 'Missing', string> = {
 const LABEL: Record<Norm | 'Missing', string> = { Approved: 'Approved', 'Under Review': 'Under review', 'Needs action': 'Re-upload asked', Submitted: 'To review', Missing: 'Not uploaded' };
 const Pill: React.FC<{ s: Norm | 'Missing' }> = ({ s }) => <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-semibold ring-1 ring-inset whitespace-nowrap ${TONE[s]}`}>{LABEL[s]}</span>;
 const dateOf = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '');
-const btnPrimary = 'h-8 px-3 rounded-lg bg-[#58051E] text-white text-xs font-bold hover:bg-[#430316] inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50';
+const btnPrimary = 'h-8 px-3 rounded-lg bg-[#5A0122] text-white text-xs font-bold hover:bg-[#68092A] inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50';
 const btnGhost = 'h-8 px-3 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 inline-flex items-center gap-1.5 cursor-pointer';
 
 interface StudentInfo { full_name: string; email: string; assigned_counselor?: string; target_country?: string }
@@ -122,7 +123,17 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
       await changeStatus(d.id, 'Approved', '', user?.id);
       const sid = d.student_id;
       try {
-        await createNawaRecord({ student_id: sid, student_name: students[sid]?.full_name || 'Student', document_type: d.doc_type || d.file_name, notes: 'Document verified. Legalization and admission can start.' });
+        // One legalization file per student, for the country they applied to (not one per approved document, and not always Poland).
+        const country = countryOf(sid);
+        if (country) {
+          const wf = getWorkflowForCountry(country);
+          await ensureLegalizationFile({
+            student_id: sid, student_name: students[sid]?.full_name || 'Student', student_email: students[sid]?.email,
+            country, authority: wf?.authority_name, authority_acronym: wf?.authority_acronym,
+            document_type: `${country} - Academic Diploma & Transcripts${wf?.authority_acronym ? ` (${wf.authority_acronym})` : ''}`,
+            notes: 'Documents verified. Legalization and admission can start.',
+          });
+        }
         const { setStudentStageStatus } = await import('../../lib/api/journey');
         await setStudentStageStatus(sid, 4, 'Completed');
         await setStudentStageStatus(sid, 5, 'In Progress');
@@ -199,6 +210,7 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
           <span className="text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-200/80 px-2.5 py-0.5 rounded-full">{displayList.length} {displayList.length === 1 ? 'file' : 'files'}</span>
         </div>
 
+<<<<<<< HEAD
         {displayList.length === 0 ? (
           <p className="text-xs text-slate-400 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center">No other files uploaded yet.</p>
         ) : (
@@ -213,6 +225,45 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
               </li>
             ))}
           </ul>
+=======
+        {current.pct !== null && (
+          <div className="rounded-xl bg-slate-50 border border-slate-200/70 p-3.5 space-y-1.5">
+            <div className="flex justify-between text-xs font-bold text-slate-700"><span>Required documents uploaded</span><span className="tabular-nums">{current.pct}%</span></div>
+            <div className="h-2 rounded-full bg-slate-200 overflow-hidden"><div className="h-full bg-[#5A0122] rounded-full transition-all" style={{ width: `${current.pct}%` }} /></div>
+          </div>
+        )}
+
+        <section className="space-y-2">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Required documents{current.country ? ` for ${current.country}` : ''}</h3>
+          {current.dossier.results.length === 0 ? <p className="text-xs text-slate-500 rounded-xl border border-dashed border-slate-300 p-4">No checklist is set for {current.country || 'this student yet'}. Set it under Settings → Document requirements. Their files are listed below.</p> : (
+            <ul className="rounded-2xl border border-slate-200/80 bg-white divide-y divide-slate-100">
+              {current.dossier.results.map(({ requirement: r, status, doc }) => (
+                <li key={r.id} className="p-3.5 flex flex-col md:flex-row md:items-center gap-2.5 justify-between">
+                  <div className="min-w-0"><p className="text-sm font-semibold text-slate-900">{r.document_name}{!r.is_required && <span className="ml-2 text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">Optional</span>}</p>
+                    {doc ? <p className="text-[11px] text-slate-500 truncate">{[doc.file_name, doc.file_size, dateOf(doc.uploaded_at)].filter(Boolean).join(' · ')}</p> : <p className="text-[11px] text-slate-400">Nothing uploaded yet</p>}
+                    {doc?.reviewer_notes && norm(doc.status) === 'Needs action' && <p className="text-[11px] text-rose-700 mt-0.5">Asked: {doc.reviewer_notes}</p>}
+                  </div>
+                  {doc ? fileActions(doc, r) : <div className="flex items-center gap-2"><Pill s="Missing" /><button type="button" className={btnPrimary} onClick={() => setUpload({ req: r })}><FilePlus2 className="w-3.5 h-3.5" />Upload</button></div>}
+                  {status === 'Missing' ? null : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {extra.length > 0 && (
+          <section className="space-y-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Other files</h3>
+            <ul className="rounded-2xl border border-slate-200/80 bg-white divide-y divide-slate-100">
+              {extra.map(d => (
+                <li key={d.id} className="p-3.5 flex flex-col md:flex-row md:items-center gap-2.5 justify-between">
+                  <div className="min-w-0"><p className="text-sm font-semibold text-slate-900 truncate">{d.file_name}</p><p className="text-[11px] text-slate-500">{[d.doc_type, d.file_size, dateOf(d.uploaded_at)].filter(Boolean).join(' · ')}</p></div>
+                  {fileActions(d)}
+                </li>
+              ))}
+            </ul>
+          </section>
+>>>>>>> 3e28d86d4dc824b1580a3355cad955464ac5bb3f
         )}
       </div>
     );
@@ -231,16 +282,20 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
       <div className="grid lg:grid-cols-[320px_minmax(0,1fr)] gap-5 items-start">
         <aside className={`${selected ? 'hidden lg:block' : ''} space-y-3`}>
           <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search students" className="w-full h-10 pl-9 pr-3" /></div>
-          <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer"><input type="checkbox" checked={queueOnly} onChange={e => setQueueOnly(e.target.checked)} className="w-4 h-4 accent-[#58051E]" />Only students with files to review</label>
+          <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer"><input type="checkbox" checked={queueOnly} onChange={e => setQueueOnly(e.target.checked)} className="w-4 h-4 accent-[#5A0122]" />Only students with files to review</label>
           {loading ? <BlockCap /> : visible.length === 0 ? (
             <EmptyState icon={Users} title={rows.length ? 'No students match' : isStaff ? 'No students assigned to you' : 'No students yet'} hint={rows.length ? 'Clear the search or the review filter.' : 'Students appear here once they register.'} />
           ) : (
             <ul className="space-y-2 max-h-[70vh] overflow-y-auto pr-1">
               {visible.map(r => (
                 <li key={r.id}>
-                  <button type="button" onClick={() => setSelected(r.id)} className={`w-full text-left rounded-xl border p-3 transition cursor-pointer ${selected === r.id ? 'border-[#58051E] bg-[#58051E]/[0.04] ring-1 ring-[#58051E]/20' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                  <button type="button" onClick={() => setSelected(r.id)} className={`w-full text-left rounded-xl border p-3 transition cursor-pointer ${selected === r.id ? 'border-[#5A0122] bg-[#5A0122]/[0.04] ring-1 ring-[#5A0122]/20' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
                     <div className="flex items-center justify-between gap-2"><p className="text-sm font-bold text-slate-900 truncate">{r.name}</p>{r.toReview > 0 && <span className="text-[10px] font-bold bg-amber-100 text-amber-800 rounded-full px-2 py-0.5 shrink-0">{r.toReview} to review</span>}</div>
                     <p className="text-[11px] text-slate-500 truncate">{r.country || 'No country yet'} · {r.docs.length} {r.docs.length === 1 ? 'file' : 'files'}</p>
+<<<<<<< HEAD
+=======
+                    {r.pct !== null && <div className="mt-2 h-1.5 rounded-full bg-slate-100 overflow-hidden"><div className="h-full bg-[#5A0122]/80" style={{ width: `${r.pct}%` }} /></div>}
+>>>>>>> 3e28d86d4dc824b1580a3355cad955464ac5bb3f
                   </button>
                 </li>
               ))}

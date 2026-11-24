@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PaymentPlanPicker } from '../../components/PaymentPlanPicker';
+import { PackageTags } from '../../components/PackageTags';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Eye, Edit3, Trash2, X, Save, CheckCircle2, UserPlus, ChevronLeft, ChevronRight, UserCheck, Headphones, Globe, Sparkles, Check, GraduationCap, ShieldCheck, AlertCircle, Clock, FileText, Receipt, ExternalLink, Package, Layers , MapPin } from 'lucide-react';
@@ -20,6 +20,8 @@ import { isAgreementSigned, getLocalAgreement } from '../../lib/api/agreement';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { startImpersonatingStudent } from '../../lib/api/studentImpersonation';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 interface StudentItem {
   id: string;
@@ -119,6 +121,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
   const [searchParams] = useSearchParams();
   // Filters
   const [search, setSearch] = useState(() => searchParams.get('q') || searchParams.get('search') || '');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
 
   useEffect(() => {
     const q = searchParams.get('q') || searchParams.get('search');
@@ -232,7 +235,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
           studentApp?.status === 'Enrolled'
             ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
             : studentApp?.status === 'Offer Issued'
-            ? 'bg-[#58051E]/10 text-[#58051E] border-[#58051E]/20'
+            ? 'bg-[#5A0122]/10 text-[#5A0122] border-[#5A0122]/20'
             : 'bg-emerald-50 text-emerald-700 border-emerald-100',
         counselor: assignedCounselor,
         joined: s.created_at ? new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently',
@@ -259,6 +262,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
   // Billing Flow & Country Package State for View Drawer
   const [availableCountryPackages, setAvailableCountryPackages] = useState<CountryFeePackage[]>([]);
   const [studentBillingAssignment, setStudentBillingAssignment] = useState<StudentBillingAssignment | null>(null);
+  const [allPackages, setAllPackages] = useState<CountryFeePackage[]>([]);
   const [isUpdatingBillingFlow, setIsUpdatingBillingFlow] = useState(false);
 
   useEffect(() => {
@@ -268,6 +272,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
     }
     getStudentBillingAssignment(viewStudent.id).then(setStudentBillingAssignment);
     getCountryFeePackages().then(pkgs => {
+      setAllPackages(pkgs);
       const activeForCountry = pkgs.filter(p => p.is_active && p.country.toLowerCase().trim() === (viewStudent.targetCountry || '').toLowerCase().trim());
       setAvailableCountryPackages(activeForCountry.length > 0 ? activeForCountry : pkgs.filter(p => p.is_active));
     });
@@ -514,7 +519,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
     }
   };
 
-  const filtered = students.filter(s => {
+  const filtered = students.filter(s => inRange(s.joined, range)).filter(s => {
     const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.id.toLowerCase().includes(search.toLowerCase()) ||
       s.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -555,9 +560,9 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <GraduationCap className="w-6 h-6 text-[#58051E]" /> Students
+              <GraduationCap className="w-6 h-6 text-[#5A0122]" /> Students
             </h1>
-            <span className="text-[10px] font-extrabold bg-[#58051E]/10 text-[#58051E] px-2.5 py-0.5 rounded-full border border-[#58051E]/20">
+            <span className="text-[10px] font-extrabold bg-[#5A0122]/10 text-[#5A0122] px-2.5 py-0.5 rounded-full border border-[#5A0122]/20">
               {isStaff ? 'Counselor CRM' : 'Multi-Country CRM'}
             </span>
           </div>
@@ -572,7 +577,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
           <div className="flex items-center gap-2">
             <button
               onClick={() => { setAddPassword(generateTempPassword()); setAddTargetCountry(''); setShowAddModal(true); }}
-              className="flex items-center gap-1.5 h-9.5 px-4 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] active:scale-98 transition-all shadow-md shadow-[#58051E]/20 cursor-pointer"
+              className="flex items-center gap-1.5 h-9.5 px-4 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#68092A] active:scale-98 transition-all shadow-md shadow-[#5A0122]/20 cursor-pointer"
             >
               <UserPlus className="w-4 h-4" /> Add Student
             </button>
@@ -583,7 +588,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
       {/* Multi-Country Destination Filter Bar */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
         <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1 mr-1">
-          <Globe className="w-3.5 h-3.5 text-[#58051E]" /> Destination:
+          <Globe className="w-3.5 h-3.5 text-[#5A0122]" /> Destination:
         </span>
         {ALL_DESTINATIONS.map(c => {
           const flag = COUNTRY_FLAGS[c]?.flag || 'ALL';
@@ -594,7 +599,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
               onClick={() => { setCountryFilter(c); setCurrentPage(1); }}
               className={`h-8 px-3 rounded-xl text-xs font-bold shrink-0 transition-all flex items-center gap-1.5 ${
                 isActive
-                  ? 'bg-[#58051E] text-white shadow-xs'
+                  ? 'bg-[#5A0122] text-white shadow-xs'
                   : 'bg-white border border-slate-200/80 text-slate-600 hover:bg-slate-50'
               }`}
             >
@@ -605,6 +610,8 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
         })}
       </div>
 
+      <div><DateRangeFilter compact label="Joined" value={range} onChange={setRange} /></div>
+
       {/* Search + Counselor + Status Filters */}
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
         <div className="sm:col-span-6 relative">
@@ -612,7 +619,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
           <input
             value={search} onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
             placeholder="Search by student name, ID, email, destination or university..."
-            className="w-full h-10 pl-9.5 pr-4 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#58051E]/40 focus:ring-4 focus:ring-[#58051E]/5 transition-all shadow-xs"
+            className="w-full h-10 pl-9.5 pr-4 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#5A0122]/40 focus:ring-4 focus:ring-[#5A0122]/5 transition-all shadow-xs"
           />
         </div>
 
@@ -640,7 +647,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
         <div className="sm:col-span-3 flex gap-1.5">
           {['All', 'Active', 'Enrolled', 'Pending'].map(f => (
             <button key={f} onClick={() => { setStatusFilter(f); setCurrentPage(1); }}
-              className={`flex-1 h-10 rounded-xl text-xs font-bold border transition-all duration-150 active:scale-98 ${statusFilter === f ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm shadow-[#58051E]/20' : 'bg-white text-slate-600 border-slate-200/90 hover:bg-slate-50 hover:border-slate-300'}`}>
+              className={`flex-1 h-10 rounded-xl text-xs font-bold border transition-all duration-150 active:scale-98 ${statusFilter === f ? 'bg-[#5A0122] text-white border-[#5A0122] shadow-sm shadow-[#5A0122]/20' : 'bg-white text-slate-600 border-slate-200/90 hover:bg-slate-50 hover:border-slate-300'}`}>
               {f}
             </button>
           ))}
@@ -672,7 +679,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                 <tr key={s.id} className="group hover:bg-slate-50/80 transition-colors">
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#58051E] text-white flex items-center justify-center font-black text-xs shadow-2xs shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-[#5A0122] text-white flex items-center justify-center font-black text-xs shadow-2xs shrink-0">
                         {s.name[0]?.toUpperCase() || 'S'}
                       </div>
                       <div className="min-w-0">
@@ -747,11 +754,11 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                       }`}
                       title={!isStaff ? 'Click to change or reassign counselor' : 'Assigned Counselor'}
                     >
-                      <Headphones className="w-3 h-3 text-[#58051E]" />
-                      <span className="text-[11px] font-bold text-slate-800 group-hover/c:text-[#58051E] max-w-[140px] truncate">
+                      <Headphones className="w-3 h-3 text-[#5A0122]" />
+                      <span className="text-[11px] font-bold text-slate-800 group-hover/c:text-[#5A0122] max-w-[140px] truncate">
                         {s.counselor.split('(')[0].trim()}
                       </span>
-                      {!isStaff && <span className="text-[9px] font-extrabold text-[#58051E] underline ml-1">Change</span>}
+                      {!isStaff && <span className="text-[9px] font-extrabold text-[#5A0122] underline ml-1">Change</span>}
                     </div>
                   </td>
                   <td className="px-4 py-3.5 text-slate-500 font-semibold whitespace-nowrap">{s.joined}</td>
@@ -761,7 +768,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                         <button
                           onClick={() => { setCounselorModalStudent(s); setSelectedCounselorToAssign(s.counselor); }}
                           title="Assign Counselor"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#58051E] hover:bg-rose-50 transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-[#5A0122] hover:bg-rose-50 transition-colors cursor-pointer"
                         >
                           <UserCheck className="w-4 h-4" />
                         </button>
@@ -769,7 +776,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                       <button
                         onClick={() => handleNavigateAsStudent(s)}
                         title={`Navigate into Student Portal as ${s.name}`}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#58051E] hover:bg-[#720a28] text-white rounded-lg text-xs font-black shadow-xs transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#5A0122] hover:bg-[#720a28] text-white rounded-lg text-xs font-black shadow-xs transition-all cursor-pointer"
                       >
                         <ExternalLink className="w-3.5 h-3.5 text-amber-300" />
                         <span className="hidden 2xl:inline">Open as student</span>
@@ -825,10 +832,11 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl z-50 border-l border-slate-100 p-6 overflow-y-auto">
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-[#58051E] text-white flex items-center justify-center font-black text-lg shadow-md">{viewStudent.name[0]}</div>
+                  <div className="w-12 h-12 rounded-2xl bg-[#5A0122] text-white flex items-center justify-center font-black text-lg shadow-md">{viewStudent.name[0]}</div>
                   <div>
                     <h3 className="text-base font-extrabold text-slate-900">{viewStudent.name}</h3>
                     <p className="text-xs font-semibold text-slate-400">{viewStudent.email}</p>
+                    <div className="mt-1.5"><PackageTags country={viewStudent.targetCountry || undefined} flow={studentBillingAssignment?.flow_mode === 'package' ? undefined : (studentBillingAssignment?.flow_mode ?? 'pending')} pkg={studentBillingAssignment?.flow_mode === 'package' ? allPackages.find(x => x.id === studentBillingAssignment.package_id) : null} /></div>
                   </div>
                 </div>
                 <button onClick={() => setViewStudent(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
@@ -839,7 +847,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                 <button
                   type="button"
                   onClick={() => handleNavigateAsStudent(viewStudent)}
-                  className="w-full h-11 px-4 bg-[#58051E] hover:bg-[#720a28] text-white rounded-xl text-xs font-black shadow-md shadow-[#58051E]/20 flex items-center justify-center gap-2 cursor-pointer transition-all"
+                  className="w-full h-11 px-4 bg-[#5A0122] hover:bg-[#720a28] text-white rounded-xl text-xs font-black shadow-md shadow-[#5A0122]/20 flex items-center justify-center gap-2 cursor-pointer transition-all"
                 >
                   <ExternalLink className="w-4 h-4 text-amber-300" />
                   <span>Navigate into Student Portal (Act as {viewStudent.name})</span>
@@ -865,7 +873,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                           setEditStudent(sToEdit);
                           setEditTemp({ ...sToEdit });
                         }}
-                        className="text-[10px] font-extrabold text-[#58051E] hover:underline"
+                        className="text-[10px] font-extrabold text-[#5A0122] hover:underline"
                       >
                         Change Counselor
                       </button>
@@ -995,9 +1003,9 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                 )}
 
                 {!isStaff && viewStudent?.id && (
-                  <Link to={`/admin/payment-control?student=${viewStudent.id}`} className="flex items-center justify-between gap-3 p-4 rounded-xl border border-[#58051E]/20 bg-[#58051E]/[0.04] hover:bg-[#58051E]/[0.08] transition-colors">
+                  <Link to={`/admin/payment-control?student=${viewStudent.id}`} className="flex items-center justify-between gap-3 p-4 rounded-xl border border-[#5A0122]/20 bg-[#5A0122]/[0.04] hover:bg-[#5A0122]/[0.08] transition-colors">
                     <span><span className="block text-xs font-black text-slate-900">Payment plan, fees and discounts</span><span className="block text-[11px] text-slate-500 mt-0.5">Confirm how this student pays, record payments and add a discount, all in one place.</span></span>
-                    <span className="text-xs font-bold text-[#58051E] shrink-0">Open Payments →</span>
+                    <span className="text-xs font-bold text-[#5A0122] shrink-0">Open Payments →</span>
                   </Link>
                 )}
 
@@ -1101,7 +1109,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
 
               <div className="flex gap-3 pt-2">
                 <button onClick={() => setEditStudent(null)} className="flex-1 h-9 border border-slate-200 text-xs font-bold text-slate-600 rounded-xl hover:bg-slate-50">Cancel</button>
-                <button onClick={handleSaveEdit} className="flex-1 h-9 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#4A101E] flex items-center justify-center gap-1.5">
+                <button onClick={handleSaveEdit} className="flex-1 h-9 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#5A0122] flex items-center justify-center gap-1.5">
                   <Save className="w-3.5 h-3.5" /> Save Changes
                 </button>
               </div>
@@ -1118,7 +1126,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-slate-100 z-10 text-left space-y-4 max-h-[90vh] overflow-y-auto my-auto scrollbar-thin">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-[#58051E]" />
+                  <UserPlus className="w-5 h-5 text-[#5A0122]" />
                   <h3 className="text-base font-black text-slate-900">Add New Student Profile</h3>
                 </div>
                 <button onClick={() => setShowAddModal(false)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"><X className="w-4 h-4" /></button>
@@ -1169,7 +1177,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                       aria-label="Target country"
                       required
                       value={addTargetCountry}
-                      onChange={(e) => { setAddTargetCountry(e.target.value); setAddUniversityId(''); }}
+                      onChange={(e) => { setAddTargetCountry(e.target.value); setAddUniversityId(''); setAddCourse(''); }}
                       className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
                     >
                       <option value="">Select destination…</option>
@@ -1198,7 +1206,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                   <select
                     aria-label="Target university"
                     value={addUniversityId}
-                    onChange={(e) => setAddUniversityId(e.target.value)}
+                    onChange={(e) => { setAddUniversityId(e.target.value); setAddCourse(''); }}
                     className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
                   >
                     <option value="">Student will choose later</option>
@@ -1210,13 +1218,17 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
 
                 <div>
                   <label className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider mb-1">Program / Course</label>
-                  <input
-                    type="text"
-                    value={addCourse}
-                    onChange={(e) => setAddCourse(e.target.value)}
-                    placeholder="B.Sc Computer Science"
-                    className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none"
-                  />
+                  {(() => {
+                    // Only what the chosen university offers: its course list, else its programme names. Until a university is picked there is nothing to choose.
+                    const uni: any = allUniversities.find(u => u.id === addUniversityId);
+                    const names: string[] = uni ? Array.from(new Set<string>([...((uni.course_programs || []) as any[]).map(c => c.name), ...((uni.programs || []) as string[])].filter(Boolean))) : [];
+                    return (
+                      <select aria-label="Program or course" value={addCourse} disabled={!uni} onChange={(e) => setAddCourse(e.target.value)} className="w-full h-9.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none disabled:opacity-60">
+                        <option value="">{!uni ? 'Choose a university first' : names.length ? 'Select a course…' : 'This university has no courses listed yet'}</option>
+                        {names.map(n => <option key={n} value={n}>{n}</option>)}
+                      </select>
+                    );
+                  })()}
                 </div>
 
                 <div>
@@ -1270,7 +1282,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                   <button
                     type="submit"
                     disabled={isSubmittingAdd}
-                    className="h-9 px-5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] shadow-xs"
+                    className="h-9 px-5 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#68092A] shadow-xs"
                   >
                     {isSubmittingAdd ? 'Adding Student...' : 'Create Student Profile'}
                   </button>
@@ -1292,7 +1304,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
               </div>
               <div className="flex justify-end gap-2">
                 <button type="button" onClick={() => navigator.clipboard?.writeText(`Email: ${createdCreds.email}\nPassword: ${createdCreds.password}`)} className="h-9 px-4 border border-slate-200 text-xs font-bold text-slate-700 rounded-xl hover:bg-slate-50 cursor-pointer">Copy</button>
-                <button type="button" onClick={() => setCreatedCreds(null)} className="h-9 px-5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] cursor-pointer">Done</button>
+                <button type="button" onClick={() => setCreatedCreds(null)} className="h-9 px-5 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#68092A] cursor-pointer">Done</button>
               </div>
             </div>
           </div>
@@ -1305,7 +1317,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl border border-slate-100 z-10 text-left space-y-4 max-h-[90vh] overflow-y-auto my-auto scrollbar-thin">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-2xl bg-[#58051E] text-white flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-2xl bg-[#5A0122] text-white flex items-center justify-center">
                     <UserCheck className="w-5 h-5" />
                   </div>
                   <div>
@@ -1338,25 +1350,25 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                         onClick={() => setSelectedCounselorToAssign(counselorVal)}
                         className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
                           isSelected
-                            ? 'bg-rose-50/70 border-[#58051E] ring-2 ring-[#58051E]/10'
+                            ? 'bg-rose-50/70 border-[#5A0122] ring-2 ring-[#5A0122]/10'
                             : 'bg-white border-slate-200/80 hover:bg-slate-50'
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${
-                            isSelected ? 'bg-[#58051E] text-white' : 'bg-slate-100 text-slate-600'
+                            isSelected ? 'bg-[#5A0122] text-white' : 'bg-slate-100 text-slate-600'
                           }`}>
                             {(s.full_name || s.email)[0]}
                           </div>
                           <div>
                             <p className="text-xs font-black text-slate-900">{s.full_name || s.email}</p>
-                            <p className="text-[10px] font-bold text-[#58051E]">{deskLabel}</p>
+                            <p className="text-[10px] font-bold text-[#5A0122]">{deskLabel}</p>
                             <p className="text-[9.5px] font-semibold text-slate-400">{s.role} • {s.email}</p>
                           </div>
                         </div>
 
                         <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                          isSelected ? 'border-[#58051E] bg-[#58051E] text-white' : 'border-slate-300'
+                          isSelected ? 'border-[#5A0122] bg-[#5A0122] text-white' : 'border-slate-300'
                         }`}>
                           {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
                         </div>
@@ -1383,7 +1395,7 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({ isStaff = false })
                   type="button"
                   disabled={!selectedCounselorToAssign || isAssigningCounselor}
                   onClick={() => handleQuickAssignCounselor(counselorModalStudent, selectedCounselorToAssign)}
-                  className="h-9 px-5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  className="h-9 px-5 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#68092A] shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   <UserCheck className="w-4 h-4" />
                   {isAssigningCounselor ? 'Assigning...' : 'Assign & Notify Student'}

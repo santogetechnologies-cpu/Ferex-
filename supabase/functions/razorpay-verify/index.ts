@@ -16,7 +16,7 @@ Deno.serve(async req => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'POST required' }, 405);
   try {
-    const keyId = Deno.env.get('RAZORPAY_KEY_ID'), keySecret = Deno.env.get('RAZORPAY_KEY_SECRET');
+    const keyId = Deno.env.get('RAZORPAY_KEY_ID')?.trim().replace(/^['"]|['"]$/g, ''), keySecret = Deno.env.get('RAZORPAY_KEY_SECRET')?.trim().replace(/^['"]|['"]$/g, '');
     if (!keyId || !keySecret) return json({ error: 'Online payments are not configured yet' }, 503);
     const url = Deno.env.get('SUPABASE_URL')!;
     const caller = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: req.headers.get('Authorization') || '' } } });
@@ -24,6 +24,39 @@ Deno.serve(async req => {
     if (authError || !user) return json({ error: 'Sign in to continue' }, 401);
 
     const body = await req.json().catch(() => ({}));
+    const db0 = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+
+    // Reconcile: ask Razorpay what really happened to each order and make the stored status match, so a payment that was
+    // completed after the checkout window closed (UPI apps) is never left showing Failed, and a failed one never shows Paid.
+    if (body.reconcile) {
+      const ids: string[] = (Array.isArray(body.order_ids) ? body.order_ids : [body.order_id]).map(String).filter((x: string) => /^order_\w+$/.test(x)).slice(0, 25);
+      const { data: me } = await db0.from('users').select('role').eq('id', user.id).maybeSingle();
+      const staff = ['superadmin', 'super_admin', 'central', 'admin', 'education_admin', 'staff', 'counselor'].includes(String(me?.role || ''));
+      const basicAuth = { Authorization: 'Basic ' + btoa(`${keyId}:${keySecret}`) };
+      const results: { order_id: string; status: string }[] = [];
+      for (const oid of ids) {
+        const { data: row } = await db0.from('payments').select('*').eq('utr_number', oid).maybeSingle();
+        if (!row || (!staff && row.student_id !== user.id)) continue;
+        if (row.status === 'Paid' || row.status === 'Verified') { results.push({ order_id: oid, status: 'Paid' }); continue; }
+        const rzRes = await fetch(`https://api.razorpay.com/v1/orders/${oid}/payments`, { headers: basicAuth });
+        if (!rzRes.ok) continue;
+        const items: any[] = (await rzRes.json()).items || [];
+        let hit = items.find(i => i.status === 'captured');
+        const auth = items.find(i => i.status === 'authorized');
+        if (!hit && auth) {
+          const cap = await (await fetch(`https://api.razorpay.com/v1/payments/${auth.id}/capture`, { method: 'POST', headers: { ...basicAuth, 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: auth.amount, currency: 'INR' }) })).json();
+          if (cap.status === 'captured') hit = cap;
+        }
+        if (hit && Number(hit.amount) === Math.round(Number(row.amount) * 100)) {
+          await db0.from('payments').update({ status: 'Paid', paid_at: new Date().toISOString(), transaction_id: hit.id, reviewer_notes: 'Confirmed with Razorpay', description: `Paid online via Razorpay (${hit.method || 'checkout'}), payment ${hit.id}, order ${oid}.` }).eq('id', row.id).in('status', ['Pending Verification', 'Rejected']);
+          results.push({ order_id: oid, status: 'Paid' });
+        } else if (row.status === 'Pending Verification' && Date.now() - new Date(row.created_at).getTime() > 30 * 60 * 1000) {
+          await db0.from('payments').update({ status: 'Rejected', reviewer_notes: items.length ? 'Payment failed at Razorpay' : 'Checkout not completed' }).eq('id', row.id).eq('status', 'Pending Verification');
+          results.push({ order_id: oid, status: 'Failed' });
+        } else results.push({ order_id: oid, status: row.status === 'Pending Verification' ? 'Pending' : 'Failed' });
+      }
+      return json({ reconciled: results });
+    }
     const orderId = String(body.razorpay_order_id || body.order_id || '');
     if (!/^order_\w+$/.test(orderId)) return json({ error: 'Missing order' }, 400);
     const db = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

@@ -44,7 +44,7 @@ async function setup(page: Page, role = 'education_admin', existingPayments: any
       if (request.method() === 'POST') { const row = request.postDataJSON(); chatSent.push(row); result = { ...row, id: 'msg-1', created_at: new Date().toISOString() }; } else result = [];
     }
     else if (name === 'education_workflow_progress') result = [{ id: 's2', student_id: studentId, stage_number: 2, stage_name: 'Service agreement', status: 'Completed' }];
-    else if (name === 'education_student_preferences') result = object ? { country: 'Canada' } : [{ student_id: studentId, country: 'Canada' }];
+    else if (name === 'education_student_preferences') result = object ? { country: 'Canada', fee_flow_mode: 'normal' } : [{ student_id: studentId, country: 'Canada', fee_flow_mode: 'normal' }];
     else if (name === 'education_service_agreements') result = object ? { body: { student_id: studentId, status: 'Signed', signature_data: 'Test Student' } } : [{ body: { student_id: studentId, status: 'Signed', signature_data: 'Test Student' } }];
     else if (name === 'system_config') {
       const value = { education_fees: [fee], advance_registration_fee_amount: 1500, payment_gateways: { phonepe_upi_enabled: true } };
@@ -88,8 +88,9 @@ test('student sees country override, only UPI and pending verification after sub
 test('admin picks a student, sees their fees in order and records three entries as one request', async ({ page }) => {
   const { saved } = await setup(page); await page.goto('/admin/payment-control');
   await page.getByRole('button', { name: /Test Student/ }).click();
-  await expect(page.getByText('Not confirmed').first()).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Registration fee', exact: true })).toBeVisible();
+  await expect(page.getByText('Normal flow').first()).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Manage plan and discounts' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Fees, in order', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Record payment' }).click();
   const dialog = page.getByRole('dialog');
   await dialog.locator('input[type="number"]').nth(0).fill('1000'); await dialog.locator('input:not([type])').nth(0).fill('BANK-1');
@@ -147,4 +148,12 @@ test('student chat opens their thread and sends a real message', async ({ page }
   await expect(page.getByText('Hello counselor')).toBeVisible();
   expect(chatSent).toHaveLength(1);
   expect(chatSent[0]).toMatchObject({ conversation_id: 'conv-1', message: 'Hello counselor' });
+});
+test('student whose plan is not set yet cannot pay and is told why', async ({ page }) => {
+  await setup(page, 'student');
+  await page.route('**/rest/v1/education_student_preferences*', route => { const h = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*', 'content-type': 'application/json' }; if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 200, headers: h, body: '' }); const row = { country: 'Canada', fee_flow_mode: 'pending' }; return route.fulfill({ status: 200, headers: h, body: JSON.stringify((route.request().headers().accept || '').includes('object') ? row : [row]) }); });
+  await page.goto('/student/payments');
+  await expect(page.getByText('Your payment plan has not been set yet')).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Pay .* now/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Pay by UPI and enter the reference', exact: true })).toHaveCount(0);
 });

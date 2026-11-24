@@ -26,6 +26,8 @@ import { createDivisionStaff } from '../../lib/api/staff';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { CapLoader } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 export const TradeTasks: React.FC = () => {
   const { profile } = useAuth();
@@ -33,6 +35,7 @@ export const TradeTasks: React.FC = () => {
   const [orders, setOrders] = useState<TradeOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [filterStatus, setFilterStatus] = useState<string>('All');
   const [filterPriority, setFilterPriority] = useState<string>('All');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -41,6 +44,8 @@ export const TradeTasks: React.FC = () => {
   const [toast, setToast] = useState('');
 
   const [staffList, setStaffList] = useState(getTradeStaffOfficers());
+  // Creating staff logins is for the Trade Admin; logistics officers only assign existing staff.
+  const canAddStaff = ['trade_admin', 'trade', 'global_trade', 'admin', 'central', 'super_admin', 'superadmin'].includes(profile?.role || '');
   const userEmail = profile?.email || 'trade@ferex.com';
   const userName = profile?.full_name || 'Trade Logistics Desk';
 
@@ -197,11 +202,15 @@ export const TradeTasks: React.FC = () => {
     }
   };
 
+  const statusLabel = (st: string) => st === 'Completed' ? 'Delivered' : st === 'In Progress' ? 'In Process' : st;
+
   const handleStatusToggle = async (task: TradeTask) => {
-    const nextStatus: TaskStatus = task.status === 'Pending' ? 'In Progress' : task.status === 'In Progress' ? 'Completed' : 'Pending';
+    // Pending → In Process → Delivered. Delivered is final: clicking it again changes nothing.
+    if (task.status === 'Completed') { showToastMsg('This task is already Delivered.'); return; }
+    const nextStatus: TaskStatus = task.status === 'Pending' ? 'In Progress' : 'Completed';
     try {
       await updateTradeTaskStatus(task.id, nextStatus);
-      showToastMsg(`Task updated to ${nextStatus}`);
+      showToastMsg(`Task updated to ${statusLabel(nextStatus)}`);
       await loadData();
     } catch (err: any) {
       showToastMsg(`Error: ${err.message}`);
@@ -243,7 +252,7 @@ export const TradeTasks: React.FC = () => {
     completed: tasks.filter(t => t.status === 'Completed').length,
   };
 
-  const filteredTasks = tasks.filter(t => {
+  const filteredTasks = tasks.filter(t => inRange(t.due_date || t.created_at, range)).filter(t => {
     const matchesSearch =
       t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.assigned_staff_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -263,28 +272,28 @@ export const TradeTasks: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <ListTodo className="w-5 h-5 text-[#58051E]" />
+            <ListTodo className="w-5 h-5 text-[#5A0122]" />
             Tasks
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">Assign and follow order, document, customs and logistics tasks.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
+          {canAddStaff && <Button
             size="sm"
             variant="outline"
             onClick={() => setShowAddStaffModal(true)}
             className="text-xs font-bold border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer"
           >
-            <UserPlus className="w-4 h-4 mr-1.5 text-[#58051E]" />
+            <UserPlus className="w-4 h-4 mr-1.5 text-[#5A0122]" />
             Add New Staff
-          </Button>
+          </Button>}
           <Button
             size="sm"
             onClick={() => {
               setStaffAssignMode('select');
               setShowCreateModal(true);
             }}
-            className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
+            className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-xs cursor-pointer"
           >
             <Plus className="w-4 h-4 mr-1.5" />
             Assign New Task
@@ -303,17 +312,18 @@ export const TradeTasks: React.FC = () => {
           <div className="text-xl font-black text-amber-900 mt-1">{counts.pending}</div>
         </Card>
         <Card className="p-3.5 border border-blue-200/80 bg-blue-50/40">
-          <div className="text-[10.5px] font-bold uppercase tracking-wider text-blue-700">In Progress</div>
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-blue-700">In Process</div>
           <div className="text-xl font-black text-blue-900 mt-1">{counts.inProgress}</div>
         </Card>
         <Card className="p-3.5 border border-emerald-200/80 bg-emerald-50/40">
-          <div className="text-[10.5px] font-bold uppercase tracking-wider text-emerald-700">Completed</div>
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-emerald-700">Delivered</div>
           <div className="text-xl font-black text-emerald-900 mt-1">{counts.completed}</div>
         </Card>
       </div>
 
       {/* Filter and Search Bar */}
       <Card className="p-3 border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <DateRangeFilter compact label="Due" value={range} onChange={setRange} />
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
@@ -321,7 +331,7 @@ export const TradeTasks: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search tasks, officers, orders..."
-            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
           />
         </div>
 
@@ -330,15 +340,15 @@ export const TradeTasks: React.FC = () => {
           {[
             { key: 'All', label: 'All', count: counts.all },
             { key: 'Pending', label: 'Pending', count: counts.pending },
-            { key: 'In Progress', label: 'In Progress', count: counts.inProgress },
-            { key: 'Completed', label: 'Completed', count: counts.completed }
+            { key: 'In Progress', label: 'In Process', count: counts.inProgress },
+            { key: 'Completed', label: 'Delivered', count: counts.completed }
           ].map(st => (
             <button
               key={st.key}
               onClick={() => setFilterStatus(st.key)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                 filterStatus === st.key
-                  ? 'bg-[#58051E] text-white shadow-xs'
+                  ? 'bg-[#5A0122] text-white shadow-xs'
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
               }`}
             >
@@ -373,7 +383,7 @@ export const TradeTasks: React.FC = () => {
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2 flex-wrap">
                     {(task.is_central_directive || task.created_by === 'Central Admin' || (task.notes && task.notes.toLowerCase().includes('central admin'))) && (
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-[#58051E] text-white flex items-center gap-1 shadow-2xs">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-[#5A0122] text-white flex items-center gap-1 shadow-2xs">
                         Central HQ
                       </span>
                     )}
@@ -388,21 +398,22 @@ export const TradeTasks: React.FC = () => {
                     onClick={() => handleStatusToggle(task)}
                     className={`px-2.5 py-1 rounded-full text-[10.5px] font-black cursor-pointer transition-all shrink-0 ${
                       task.status === 'Completed'
-                        ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                        ? 'bg-emerald-100 text-emerald-800 cursor-default'
                         : task.status === 'In Progress'
                         ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
                         : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
                     }`}
-                    title="Click to advance status"
+                    title={task.status === 'Completed' ? 'Delivered' : 'Click to advance status'}
+                    aria-disabled={task.status === 'Completed'}
                   >
-                    {task.status}
+                    {statusLabel(task.status)}
                   </button>
                 </div>
 
                 <h3 className="text-sm font-black text-slate-900 leading-snug mb-1">{task.title}</h3>
 
                 {task.order_no && (
-                  <div className="text-[11px] text-[#58051E] font-extrabold mb-2 flex items-center gap-1">
+                  <div className="text-[11px] text-[#5A0122] font-extrabold mb-2 flex items-center gap-1">
                     <span>Linked Order:</span> <span>{task.order_no} {task.client_name ? `(${task.client_name})` : ''}</span>
                   </div>
                 )}
@@ -422,13 +433,13 @@ export const TradeTasks: React.FC = () => {
 
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-slate-400 font-mono">Due: {task.due_date}</span>
-                  <button
+                  {canAddStaff && <button
                     onClick={() => setReassigningTask(task)}
                     className="p-1 text-slate-400 hover:text-slate-700 rounded cursor-pointer"
                     title="Reassign Staff"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
-                  </button>
+                  </button>}
                   <button
                     onClick={() => handleDelete(task.id, task.title)}
                     className="p-1 text-slate-400 hover:text-rose-600 rounded cursor-pointer"
@@ -451,7 +462,7 @@ export const TradeTasks: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 text-left max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <Plus className="w-4 h-4 text-[#58051E]" /> Assign Operational Task
+                  <Plus className="w-4 h-4 text-[#5A0122]" /> Assign Operational Task
                 </h3>
                 <button onClick={() => setShowCreateModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
@@ -465,7 +476,7 @@ export const TradeTasks: React.FC = () => {
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="e.g. Review Phytosanitary Certificate for Lot #8801"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -522,20 +533,20 @@ export const TradeTasks: React.FC = () => {
                         type="button"
                         onClick={() => setStaffAssignMode('select')}
                         className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
-                          staffAssignMode === 'select' ? 'bg-[#58051E] text-white' : 'text-slate-500 hover:text-slate-800'
+                          staffAssignMode === 'select' ? 'bg-[#5A0122] text-white' : 'text-slate-500 hover:text-slate-800'
                         }`}
                       >
                         Select Existing
                       </button>
-                      <button
+                      {canAddStaff && <button
                         type="button"
                         onClick={() => setStaffAssignMode('new')}
                         className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
-                          staffAssignMode === 'new' ? 'bg-[#58051E] text-white' : 'text-slate-500 hover:text-slate-800'
+                          staffAssignMode === 'new' ? 'bg-[#5A0122] text-white' : 'text-slate-500 hover:text-slate-800'
                         }`}
                       >
                         + Enter New Staff
-                      </button>
+                      </button>}
                     </div>
                   </div>
 
@@ -569,7 +580,7 @@ export const TradeTasks: React.FC = () => {
                             value={newStaffForm.name}
                             onChange={(e) => setNewStaffForm({ ...newStaffForm, name: e.target.value })}
                             placeholder="Officer Full Name *"
-                            className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                            className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                           />
                         </div>
                         <div>
@@ -578,7 +589,7 @@ export const TradeTasks: React.FC = () => {
                             value={newStaffForm.email}
                             onChange={(e) => setNewStaffForm({ ...newStaffForm, email: e.target.value })}
                             placeholder="officer@ferex.com *"
-                            className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                            className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                           />
                         </div>
                       </div>
@@ -598,7 +609,7 @@ export const TradeTasks: React.FC = () => {
                           value={newStaffForm.department}
                           onChange={(e) => setNewStaffForm({ ...newStaffForm, department: e.target.value })}
                           placeholder="Department"
-                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                          className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                         />
                       </div>
                       <p className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
@@ -615,7 +626,7 @@ export const TradeTasks: React.FC = () => {
                     type="date"
                     value={formData.due_date}
                     onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -626,13 +637,13 @@ export const TradeTasks: React.FC = () => {
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     placeholder="Specific operational instructions..."
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowCreateModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Assign Task</Button>
+                  <Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-white">Assign Task</Button>
                 </div>
               </form>
             </motion.div>
@@ -648,7 +659,7 @@ export const TradeTasks: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 text-left">
               <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <UserPlus className="w-4 h-4 text-[#58051E]" /> Register Trade Staff Officer
+                  <UserPlus className="w-4 h-4 text-[#5A0122]" /> Register Trade Staff Officer
                 </h3>
                 <button onClick={() => setShowAddStaffModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
@@ -662,7 +673,7 @@ export const TradeTasks: React.FC = () => {
                     value={newStaffForm.name}
                     onChange={(e) => setNewStaffForm({ ...newStaffForm, name: e.target.value })}
                     placeholder="e.g. Alexander Vance"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -674,7 +685,7 @@ export const TradeTasks: React.FC = () => {
                     value={newStaffForm.email}
                     onChange={(e) => setNewStaffForm({ ...newStaffForm, email: e.target.value })}
                     placeholder="e.g. alexander@ferex.com"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -699,13 +710,13 @@ export const TradeTasks: React.FC = () => {
                     value={newStaffForm.department}
                     onChange={(e) => setNewStaffForm({ ...newStaffForm, department: e.target.value })}
                     placeholder="Trade Logistics & Customs"
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowAddStaffModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Save Staff Officer</Button>
+                  <Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-white">Save Staff Officer</Button>
                 </div>
               </form>
             </motion.div>
@@ -726,7 +737,7 @@ export const TradeTasks: React.FC = () => {
                   <button
                     key={s.email}
                     onClick={() => handleReassignSubmit(s.name, s.email)}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 hover:border-[#58051E] hover:bg-[#58051E]/5 text-left transition-all flex items-center justify-between text-xs font-bold text-slate-800 cursor-pointer"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 hover:border-[#5A0122] hover:bg-[#5A0122]/5 text-left transition-all flex items-center justify-between text-xs font-bold text-slate-800 cursor-pointer"
                   >
                     <span>{s.name}</span>
                     <span className="text-[10px] text-slate-400">{s.roleLabel || s.role}</span>

@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { PackageTags } from './PackageTags';
+import { packagePaymentStatus, payableAmount } from '../lib/educationBilling';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   CreditCard, Banknote, Landmark, QrCode, Search,
@@ -12,6 +14,8 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useActiveStudentScope } from '../hooks/useActiveStudentScope';
 import { useFeeConfig } from '../hooks/useFeeConfig';
+import { PAYMENT_METHODS, methodLabel } from '../lib/paymentMethods';
+import { openReceiptWindow } from '../lib/receiptPrint';
 import { useUniversities } from '../hooks/useUniversities';
 import { useDestinations } from '../hooks/useDestinations';
 import { getApplications, isRealApplication } from '../lib/api/applications';
@@ -44,14 +48,14 @@ import { supabase } from '../lib/supabase';
 import { CapLoader } from './CapLoader';
 import { payEducationFeeOnline } from '../lib/api/razorpayCheckout';
 
-const fieldClass = 'w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20 focus:border-[#58051E] transition-all';
-const primaryBtn = 'h-9.5 px-4 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-[#58051E]/20 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50';
+const fieldClass = 'w-full h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5A0122]/20 focus:border-[#5A0122] transition-all';
+const primaryBtn = 'h-9.5 px-4 bg-[#5A0122] hover:bg-[#68092A] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-[#5A0122]/20 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50';
 const secondaryBtn = 'h-9.5 px-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5';
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
 export function EducationBillingConsole({ admin = false }: { admin?: boolean }) {
   const { user, profile } = useAuth();
-  const { activeStudentId } = useActiveStudentScope();
+  const { activeStudentId, isImpersonating } = useActiveStudentScope();
   const { config, ready: configReady } = useFeeConfig();
   const { universities } = useUniversities();
   const { destinations } = useDestinations();
@@ -70,12 +74,12 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Paid' | 'Pending' | 'Failed' | 'Partially Paid' | 'Refunded'>('All');
-  const [methodFilter, setMethodFilter] = useState<'All' | 'Cash' | 'UPI' | 'Direct Bank Transfer'>('All');
+  const [methodFilter, setMethodFilter] = useState<string>('All');
   const [dateFilter, setDateFilter] = useState<'All' | 'Today' | 'This Week' | 'This Month' | 'Custom'>('All');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const [viewPayment, setViewPayment] = useState<Payment | null>(null);
+  const [viewPaymentRow, setViewPayment] = useState<Payment | null>(null);
   const [activeFee, setActiveFee] = useState<EducationFee | null>(null);
   const [parts, setParts] = useState<PaymentPart[]>([]);
   const [total, setTotal] = useState(0);
@@ -101,6 +105,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   const [activePackage, setActivePackage] = useState<CountryFeePackage | null>(null);
   const [allPackages, setAllPackages] = useState<CountryFeePackage[]>([]);
 
+  const reconciledRef = useRef(false);
   const load = useCallback(async () => {
     if (!admin && !targetId) return;
     setLoading(true);
@@ -113,6 +118,14 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
         getGlobalPaymentGateways(),
       ]);
       setPayments(records);
+      // Online payments that are not settled may have been completed (or failed) at Razorpay after the window closed: sync once, then reload.
+      const open = records.filter(r => /^order_\w+$/.test(String(r.utr_number || '')) && ['Pending Verification', 'Rejected'].includes(r.status) && Date.now() - new Date((r as any).created_at || 0).getTime() < 14 * 86400000).map(r => String(r.utr_number));
+      if (open.length && !reconciledRef.current) {
+        reconciledRef.current = true;
+        void import('../lib/api/razorpayCheckout').then(m => m.reconcileOnlinePayments(open)).then(async changed => {
+          if (changed) setPayments(await listEducationPayments(admin ? undefined : targetId));
+        });
+      }
       setApplications(apps.filter(isRealApplication));
       setStudents(studentList);
       setGateway(gateways);
@@ -223,6 +236,19 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   const fees = studentFees(config, country, { flow: studentAssignment?.flow_mode ?? 'pending', pkg: activePackage, overrides: feeOverrides }).sort((a, b) => (a.timing === 'before' ? a.stage - 0.5 : a.stage) - (b.timing === 'before' ? b.stage - 0.5 : b.stage));
   const flowPending = !studentAssignment || studentAssignment.flow_mode === 'pending';
 
+  // How far along the student is, as the database counts it, so the Pay button agrees with what the payment guard will accept.
+  const [reachedStage, setReachedStage] = useState<number | null>(null);
+  useEffect(() => {
+    setReachedStage(null);
+    if (admin || !targetId) return;
+    let live = true;
+    supabase.rpc('education_student_reached_stage', { p_student: targetId }).then(({ data, error }) => { if (live && !error && typeof data === 'number') setReachedStage(data); });
+    return () => { live = false; };
+  }, [admin, targetId, application?.status, studentPayments.length]);
+  // The registration fee is due as soon as the plan is set; every other fee waits for its step.
+  const feeOpensAt = (fee: EducationFee) => fee.id === 'registration' ? 0 : fee.stage - (fee.timing === 'before' ? 1 : 0);
+  const feeIsOpen = (fee: EducationFee) => reachedStage === null || reachedStage >= feeOpensAt(fee);
+
   const totals = useMemo(() => {
     const result: Record<string, { paid: number; pending: number }> = {};
     for (const p of payments.filter(p => !targetId || p.student_id === targetId)) {
@@ -276,7 +302,14 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
   const normalizeMethod = (method?: string): string => {
     const m = (method || '').toLowerCase().trim();
     if (m === 'cash') return 'Cash';
-    if (m === 'upi' || m.includes('upi') || m.includes('phonepe')) return 'UPI';
+    if (m === 'upi' || m.includes('upi')) return 'UPI';
+    if (m.includes('google') || m.includes('gpay')) return 'Google Pay (GPay)';
+    if (m.includes('phonepe')) return 'PhonePe';
+    if (m.includes('paytm')) return 'Paytm';
+    if (m.includes('credit')) return 'Credit Card';
+    if (m.includes('debit') || m === 'card') return m === 'card' ? 'Card' : 'Debit Card';
+    if (m.includes('net banking') || m === 'net_banking' || m.includes('netbanking')) return 'Net Banking';
+    if (m.includes('cheque') || m.includes('check')) return 'Cheque';
     if (m.includes('bank') || m.includes('transfer') || m === 'net_banking' || m === 'wire' || m === 'swift') return 'Direct Bank Transfer';
     return method || 'Direct Bank Transfer';
   };
@@ -288,7 +321,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-            <span>Paid</span>
+            <span>Payment Received</span>
           </span>
         );
       case 'Pending':
@@ -462,16 +495,22 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
 
   const handleDownloadReceipt = (payment: any) => {
     const student = studentMap.get(payment.student_id);
-    const blob = createReceiptPdfBlob({
+    const data = {
       receipt_no: payment.ref_no || `REC-${payment.id?.slice(0, 8)}`,
       student_name: payment.student_name || student?.full_name || studentName,
+      student_email: student?.email || payment.student_email || '',
       amount: Number(payment.amount) || 0,
       currency: payment.currency || 'INR',
       payment_method: normalizeMethod(payment.payment_method) || 'UPI',
       description: payment.title || payment.description || 'Education Payment',
       issued_at: payment.paid_at || payment.created_at || new Date().toISOString(),
       tax_rate_percent: payment.tax_rate_percent,
-    });
+      reference: payment.transaction_id || payment.utr_number || '',
+      invoice_settings: config.invoice_settings,
+    };
+    // The branded receipt opens in a print window (Print → Save as PDF); the plain PDF is only a fallback if pop-ups are blocked.
+    if (openReceiptWindow(data)) return;
+    const blob = createReceiptPdfBlob(data);
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -487,7 +526,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <CreditCard className="w-6 h-6 text-[#58051E]" />
+              <CreditCard className="w-6 h-6 text-[#5A0122]" />
               {admin ? 'Payments' : 'Payments'}
             </h1>
           </div>
@@ -526,7 +565,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
             <button
               type="button"
               onClick={() => handleDownloadReceipt(lastReceiptData)}
-              className="px-3 py-1 bg-[#58051E] hover:bg-[#430316] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3 py-1 bg-[#5A0122] hover:bg-[#68092A] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Download className="w-3 h-3" />
               <span>Download PDF Receipt</span>
@@ -605,33 +644,37 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
 
               {!admin && flowPending && (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
-                  <p className="text-sm font-bold text-slate-900">Your payment plan is not confirmed yet</p>
-                  <p className="text-sm text-slate-600 mt-1">For now only the registration fee is shown. Your counselor will confirm your plan, and the other fees will appear here once they do.</p>
+                  <p className="text-sm font-bold text-slate-900">Your payment plan has not been set yet</p>
+                  <p className="text-sm text-slate-600 mt-1">Payments open as soon as your counselor sets your fees. Nothing is due from you until then, and your fees will appear here once they are set.</p>
                 </div>
               )}
 
               {/* Package Flow View (When Assigned to Country Fee Package) */}
               {activePackage && (
-                <div className="p-5 bg-gradient-to-br from-[#58051E]/5 via-white to-indigo-50/30 border-2 border-[#58051E]/20 rounded-3xl space-y-5 shadow-xs">
+                <div className="p-5 bg-gradient-to-br from-[#5A0122]/5 via-white to-indigo-50/30 border-2 border-[#5A0122]/20 rounded-3xl space-y-5 shadow-xs">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="p-1.5 bg-[#58051E] text-white rounded-lg">
+                        <span className="p-1.5 bg-[#5A0122] text-white rounded-lg">
                           <Coins className="w-4 h-4" />
                         </span>
                         <h2 className="text-base font-black text-slate-900 tracking-tight">
                           {activePackage.name}
                         </h2>
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#5A0122]/10 text-[#5A0122] border border-[#5A0122]/20">
                           Assigned Package
                         </span>
                       </div>
                       <p className="text-xs text-slate-600 mt-1">
                         {activePackage.description}
                       </p>
+                      <div className="mt-2"><PackageTags country={activePackage.country} pkg={activePackage} status={packagePaymentStatus(fees.filter(f => f.recipient === 'ferex'), payments)} /></div>
+                      {!!activePackage.benefits?.filter(Boolean).length && <p className="text-[11px] text-slate-600 mt-2"><b>Benefits:</b> {activePackage.benefits.filter(Boolean).join(' · ')}</p>}
+                      {!!activePackage.deliverables?.filter(Boolean).length && <p className="text-[11px] text-slate-600 mt-1"><b>Deliverables:</b> {activePackage.deliverables.filter(Boolean).join(' · ')}</p>}
+                      {activePackage.gst && <p className="text-[11px] text-slate-500 mt-1">{activePackage.gst.enabled ? `GST ${activePackage.gst.rate}% ${activePackage.gst.mode === 'exclusive' ? 'added on top of the amounts below' : 'included in the price'}` : 'GST not applicable'}</p>}
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-xl font-black text-[#58051E]">
+                      <div className="text-xl font-black text-[#5A0122]">
                         {pkgMoney(activePackage.total_amount, activePackage.currency)}
                       </div>
                       <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
@@ -676,19 +719,19 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                         <Clock className="w-3.5 h-3.5 text-indigo-600" /> Payment Installment Schedule
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {activePackage.installments.map((inst, idx) => (
+                        {activePackage.installments.filter(i => i.amount > 0).map((inst, idx) => (
                           <div key={inst.id} className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-2">
                             <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-black text-[#58051E] uppercase tracking-wider">
+                              <span className="text-[10px] font-black text-[#5A0122] uppercase tracking-wider">
                                 Installment {idx + 1}
                               </span>
                               <span className="text-sm font-black text-slate-900">
-                                {pkgMoney(inst.amount, activePackage.currency)}
+                                {pkgMoney(payableAmount(activePackage, inst.amount), activePackage.currency)}
                               </span>
                             </div>
                             <p className="text-xs font-extrabold text-slate-800">{inst.title}</p>
                             <p className="text-[11px] text-slate-500 font-semibold">
-                              {inst.due_description || `${inst.timing === 'before' ? 'Before' : 'After'} Stage ${inst.stage_trigger}`}
+                              {inst.due_date ? `Due ${new Date(inst.due_date).toLocaleDateString('en-GB')} · ` : ''}{inst.due_description || `${inst.timing === 'before' ? 'Before' : 'After'} Stage ${inst.stage_trigger}`}
                             </p>
                           </div>
                         ))}
@@ -705,13 +748,13 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
               )}
 
               {/* Payment position */}
-              {Object.entries(feeSummary).map(([currency, row]) => (
+              {(admin || !flowPending) && Object.entries(feeSummary).map(([currency, row]) => (
                 <section key={currency} aria-label={`Payment summary ${currency}`} className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
                     ['Total to pay', row.due, 'text-slate-900'],
                     ['Paid & verified', row.paid, 'text-emerald-700'],
                     ['In review', row.pending, 'text-amber-700'],
-                    ['Left to pay', row.remaining, row.remaining > 0 ? 'text-[#58051E]' : 'text-emerald-700'],
+                    ['Left to pay', row.remaining, row.remaining > 0 ? 'text-[#5A0122]' : 'text-emerald-700'],
                   ].map(([label, value, tone]) => (
                     <div key={label as string} className="p-3.5 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
                       <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">{label as string}</p>
@@ -723,19 +766,20 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
 
               {/* Fees Ferex collects, in the order they fall due */}
               {(() => {
-                const collected = fees.filter(f => !isDirectFee(f));
-                const direct = fees.filter(isDirectFee);
+                const shown = !admin && flowPending ? [] : fees;
+                const collected = shown.filter(f => !isDirectFee(f));
+                const direct = shown.filter(isDirectFee);
                 return (
                   <>
                     <section className="space-y-3" aria-label="Your fees">
                       <div className="flex items-end justify-between gap-3">
                         <div>
-                          <h2 className="text-base font-bold text-slate-900">{flowPending && !admin ? 'Registration fee' : 'Your fees, in order'}</h2>
-                          <p className="text-xs text-slate-500 mt-0.5">{flowPending && !admin ? 'The one fee that applies to every student.' : 'Pay each one when it falls due. You can pay by UPI and get a receipt once it is verified.'}</p>
+                          <h2 className="text-base font-bold text-slate-900">{'Your fees, in order'}</h2>
+                          <p className="text-xs text-slate-500 mt-0.5">{'Pay each one when it falls due. You can pay by UPI and get a receipt once it is verified.'}</p>
                         </div>
                       </div>
                       {notice && <p role={notice.tone === 'error' ? 'alert' : 'status'} className={`rounded-xl px-4 py-3 text-sm font-semibold ${notice.tone === 'ok' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>{notice.text}</p>}
-                      {collected.length === 0 && <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">No fees to pay right now.</p>}
+                      {collected.length === 0 && <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">{!admin && flowPending ? 'Your fees will appear here once your counselor sets your payment plan.' : 'No fees to pay right now.'}</p>}
                       <ol className="space-y-3">
                         {collected.map((fee, index) => {
                           const balance = feeBalance(fee, studentPayments);
@@ -772,6 +816,10 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                                     <div className="mt-4">
                                       {admin ? (
                                         <button className={primaryBtn} disabled={needsCountry} onClick={() => openPayment(fee)}><CreditCard className="w-4 h-4" /><span>Record payment</span></button>
+                                      ) : isImpersonating ? (
+                                        <p className="text-xs font-semibold text-slate-600 rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 inline-block">You are viewing this student's account. The student pays from their own login; to record a payment for them, use Payments.</p>
+                                      ) : !feeIsOpen(fee) ? (
+                                        <p className="text-xs font-semibold text-slate-500 rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 inline-block">This fee opens after the "{educationStages[Math.max(0, feeOpensAt(fee) - 1)] || 'previous'}" step.</p>
                                       ) : (
                                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                                           <button className={primaryBtn} disabled={needsCountry || !!onlineFee} onClick={() => payOnline(fee)}>
@@ -832,7 +880,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <h2 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Receipt className="w-4 h-4 text-[#58051E]" /> Your payments
+                  <Receipt className="w-4 h-4 text-[#5A0122]" /> Your payments
                 </h2>
                 <p className="text-[11px] text-slate-500 font-medium">
                   Every payment you have made, with its status and receipt.
@@ -845,7 +893,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     aria-label="Search payment ledger"
-                    className="w-full h-9 pl-9 pr-8 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#58051E]"
+                    className="w-full h-9 pl-9 pr-8 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#5A0122]"
                     placeholder="Search student, fee, ref or status"
                     value={search}
                     onChange={e => setSearch(e.target.value)}
@@ -869,7 +917,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                     onClick={() => setShowFilterDropdown(prev => !prev)}
                     className={`h-9 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                       activeFilterCount > 0
-                        ? 'bg-[#58051E] text-white border-[#58051E] shadow-sm'
+                        ? 'bg-[#5A0122] text-white border-[#5A0122] shadow-sm'
                         : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
                     }`}
                     title="Filter payments"
@@ -877,7 +925,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                     <Filter className="w-3.5 h-3.5" />
                     <span>Filter</span>
                     {activeFilterCount > 0 && (
-                      <span className="w-4 h-4 rounded-full bg-white text-[#58051E] text-[10px] font-black flex items-center justify-center">
+                      <span className="w-4 h-4 rounded-full bg-white text-[#5A0122] text-[10px] font-black flex items-center justify-center">
                         {activeFilterCount}
                       </span>
                     )}
@@ -893,7 +941,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                       <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-white border border-slate-200 rounded-2xl shadow-xl z-40 p-4 space-y-3.5">
                         <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                           <div className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5">
-                            <Filter className="w-3.5 h-3.5 text-[#58051E]" /> Filter Payments
+                            <Filter className="w-3.5 h-3.5 text-[#5A0122]" /> Filter Payments
                           </div>
                           {activeFilterCount > 0 && (
                             <button
@@ -914,7 +962,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                           <select
                             value={statusFilter}
                             onChange={e => setStatusFilter(e.target.value as any)}
-                            className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#58051E]"
+                            className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#5A0122]"
                           >
                             <option value="All">All Statuses</option>
                             <option value="Paid">Paid</option>
@@ -933,12 +981,13 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                           <select
                             value={methodFilter}
                             onChange={e => setMethodFilter(e.target.value as any)}
-                            className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#58051E]"
+                            className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#5A0122]"
                           >
                             <option value="All">All Methods</option>
                             <option value="Cash">Cash</option>
                             <option value="UPI">UPI</option>
                             <option value="Direct Bank Transfer">Direct Bank Transfer</option>
+                            {PAYMENT_METHODS.filter(m => !['Cash', 'UPI', 'Bank Transfer'].includes(m)).map(m => <option key={m} value={m}>{m}</option>)}
                           </select>
                         </div>
 
@@ -950,7 +999,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                           <select
                             value={dateFilter}
                             onChange={e => setDateFilter(e.target.value as any)}
-                            className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#58051E]"
+                            className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#5A0122]"
                           >
                             <option value="All">All Time</option>
                             <option value="Today">Today</option>
@@ -991,7 +1040,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                           <button
                             type="button"
                             onClick={() => setShowFilterDropdown(false)}
-                            className="px-3 py-1 bg-[#58051E] hover:bg-[#430316] text-white rounded-lg text-xs font-bold cursor-pointer"
+                            className="px-3 py-1 bg-[#5A0122] hover:bg-[#68092A] text-white rounded-lg text-xs font-bold cursor-pointer"
                           >
                             Apply
                           </button>
@@ -1008,19 +1057,19 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
                 <span className="text-[11px] font-semibold text-slate-500">Active filters:</span>
                 {statusFilter !== 'All' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#58051E]/10 text-[#58051E]">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#5A0122]/10 text-[#5A0122]">
                     Status: {statusFilter}
                     <button type="button" onClick={() => setStatusFilter('All')} className="hover:opacity-70 cursor-pointer"><X className="w-3 h-3" /></button>
                   </span>
                 )}
                 {methodFilter !== 'All' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#58051E]/10 text-[#58051E]">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#5A0122]/10 text-[#5A0122]">
                     Method: {methodFilter}
                     <button type="button" onClick={() => setMethodFilter('All')} className="hover:opacity-70 cursor-pointer"><X className="w-3 h-3" /></button>
                   </span>
                 )}
                 {dateFilter !== 'All' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#58051E]/10 text-[#58051E]">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#5A0122]/10 text-[#5A0122]">
                     Date: {dateFilter === 'Custom' ? `${customStartDate || '...'} to ${customEndDate || '...'}` : dateFilter}
                     <button type="button" onClick={() => { setDateFilter('All'); setCustomStartDate(''); setCustomEndDate(''); }} className="hover:opacity-70 cursor-pointer"><X className="w-3 h-3" /></button>
                   </span>
@@ -1069,7 +1118,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
 
                         {/* 2. Fee / Payment Description */}
                         <td className="py-3 px-4">
-                          <div className="font-extrabold text-[#58051E] leading-snug">{p.title || 'Education Fee'}</div>
+                          <div className="font-extrabold text-[#5A0122] leading-snug">{p.title || 'Education Fee'}</div>
                           {p.description && (
                             <div className="text-[11px] text-slate-500 truncate max-w-[200px]" title={p.description}>
                               {p.description}
@@ -1203,7 +1252,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                         setSearch('');
                         clearFilters();
                       }}
-                      className="mt-1 text-xs font-bold text-[#58051E] hover:underline cursor-pointer"
+                      className="mt-1 text-xs font-bold text-[#5A0122] hover:underline cursor-pointer"
                     >
                       Clear search & filters
                     </button>
@@ -1214,10 +1263,10 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
 
             {!admin && (
               <div className="flex items-center gap-4 text-xs font-bold pt-2">
-                <Link to="/student/invoices" className="text-[#58051E] hover:underline flex items-center gap-1">
+                <Link to="/student/invoices" className="text-[#5A0122] hover:underline flex items-center gap-1">
                   <FileText className="w-3.5 h-3.5" /> View Invoices
                 </Link>
-                <Link to="/student/receipts" className="text-[#58051E] hover:underline flex items-center gap-1">
+                <Link to="/student/receipts" className="text-[#5A0122] hover:underline flex items-center gap-1">
                   <Receipt className="w-3.5 h-3.5" /> View Receipts
                 </Link>
               </div>
@@ -1285,8 +1334,8 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                           value={part.method}
                           onChange={e => setParts(parts.map((p, n) => n === i ? { ...p, method: e.target.value as PaymentPart['method'] } : p))}
                         >
-                          {['Bank Transfer', 'Cash', 'UPI', 'Card', 'Cheque'].map(m => (
-                            <option key={m} value={m}>{m === 'Bank Transfer' ? 'Direct Bank Transfer' : m}</option>
+                          {PAYMENT_METHODS.map(m => (
+                            <option key={m} value={m}>{methodLabel(m)}</option>
                           ))}
                         </select>
                       </div>
@@ -1365,7 +1414,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                   </label>
                   <textarea
                     aria-label="Payment notes"
-                    className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#58051E]"
+                    className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#5A0122]"
                     placeholder="Notes / receiving bank / cashier..."
                     value={notes}
                     onChange={e => setNotes(e.target.value)}
@@ -1554,7 +1603,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
 
             <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
               <div className="text-xs font-bold text-slate-900">{review.payment.student_name}</div>
-              <div className="text-sm font-black text-[#58051E]">
+              <div className="text-sm font-black text-[#5A0122]">
                 {money(Number(review.payment.amount), review.payment.currency || 'INR')}
               </div>
               <div className="text-xs font-mono text-slate-600">UTR: {review.payment.utr_number}</div>
@@ -1566,7 +1615,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
               </label>
               <textarea
                 aria-label="Review notes"
-                className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#58051E]"
+                className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#5A0122]"
                 value={reviewNotes}
                 onChange={e => setReviewNotes(e.target.value)}
                 placeholder="Verification details or rejection reason..."
@@ -1610,7 +1659,9 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
       )}
 
       {/* View Payment Details & Receipt Modal */}
-      {viewPayment && (() => {
+      {viewPaymentRow && (() => {
+        // Always show the live row so the list and the details can never disagree.
+        const viewPayment = payments.find(x => x.id === (viewPaymentRow as Payment).id) || viewPaymentRow as Payment;
         const student = studentMap.get(viewPayment.student_id);
         const sName = viewPayment.student_name || student?.full_name || (profile?.full_name ?? 'Student');
         const sEmail = student?.email || (viewPayment as any).student_email || (profile?.email ?? '—');
@@ -1628,7 +1679,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
             >
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-[#58051E]/10 flex items-center justify-center text-[#58051E]">
+                  <div className="w-8 h-8 rounded-xl bg-[#5A0122]/10 flex items-center justify-center text-[#5A0122]">
                     <Receipt className="w-4 h-4" />
                   </div>
                   <div>
@@ -1686,7 +1737,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
 
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 col-span-2">
                   <div className="text-[10px] font-extrabold text-slate-400 uppercase">Fee Description</div>
-                  <div className="text-xs font-bold text-[#58051E] mt-0.5">{viewPayment.title || 'Education Fee'}</div>
+                  <div className="text-xs font-bold text-[#5A0122] mt-0.5">{viewPayment.title || 'Education Fee'}</div>
                   {viewPayment.description && (
                     <div className="text-xs text-slate-600 mt-1 leading-relaxed">{viewPayment.description}</div>
                   )}
@@ -1755,7 +1806,7 @@ export function EducationBillingConsole({ admin = false }: { admin?: boolean }) 
                   <button
                     type="button"
                     onClick={() => handleDownloadReceipt(viewPayment)}
-                    className="h-9 px-4 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
+                    className="h-9 px-4 bg-[#5A0122] hover:bg-[#68092A] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
                   >
                     <Download className="w-3.5 h-3.5" /> Download Receipt
                   </button>

@@ -231,6 +231,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
 
   const menuItems = [
     { name: 'Dashboard', path: '/student/dashboard', icon: Home, badge: null, hasUpdate: false },
+    { name: 'My Journey', path: '/student/journey-tracker', icon: Milestone, badge: hasUnreadJourney ? 'ROADMAP' : null, hasUpdate: hasUnreadJourney },
     {
       name: 'Service Agreement',
       path: '/student/agreement',
@@ -238,12 +239,12 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
       badge: !hasSignedAgreement ? 'SIGN' : null,
       hasUpdate: !hasSignedAgreement,
     },
-    { name: 'My Journey', path: '/student/journey-tracker', icon: Milestone, badge: hasUnreadJourney ? 'ROADMAP' : null, hasUpdate: hasUnreadJourney },
+    { name: 'Payments', path: '/student/payments', icon: CreditCard, badge: hasUnreadPayment ? 'DUE' : null, hasUpdate: hasUnreadPayment },
+    { name: 'Documents', path: '/student/documents', icon: Folder, badge: null, hasUpdate: false },
     { name: 'Universities', path: '/student/select-university', icon: Target, badge: null, hasUpdate: false },
     { name: 'Applications', path: '/student/applications', icon: GraduationCap, badge: null, hasUpdate: false },
     { name: 'Offer Letters', path: '/student/offers', icon: FileText, badge: hasUnreadOffer ? 'OFFER' : null, hasUpdate: hasUnreadOffer },
-    { name: 'Documents', path: '/student/documents', icon: Folder, badge: null, hasUpdate: false },
-    { name: 'Payments', path: '/student/payments', icon: CreditCard, badge: hasUnreadPayment ? 'DUE' : null, hasUpdate: hasUnreadPayment },
+    { name: 'Invoices', path: '/student/invoices', icon: FileSpreadsheet, badge: null, hasUpdate: false },
     { name: 'Receipts', path: '/student/receipts', icon: Receipt, badge: null, hasUpdate: false },
     { name: 'Invoices', path: '/student/invoices', icon: FileSpreadsheet, badge: null, hasUpdate: false },
     { name: 'Visa', path: '/student/visa-tracker', icon: ShieldCheck, badge: hasUnreadVisa ? 'VFS' : null, hasUpdate: hasUnreadVisa },
@@ -654,7 +655,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="fx-app h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 flex text-slate-800 dark:text-slate-100 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E] print:h-auto print:min-h-0 print:overflow-visible print:block">
+    <div className="fx-app h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 flex text-slate-800 dark:text-slate-100 antialiased selection:bg-[#5A0122]/10 selection:text-[#5A0122] print:h-auto print:min-h-0 print:overflow-visible print:block">
 
       {/* MOBILE SIDEBAR DRAWER BACKDROP */}
       <AnimatePresence>
@@ -707,11 +708,11 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                 onClick={() => setIsMobileOpen(false)}
                 className={`relative flex items-center rounded-xl h-9 px-2.5 transition-all duration-150 text-xs font-semibold group
                   ${isActive
-                    ? 'bg-[#58051E]/8 text-[#58051E] font-bold border-l-2 border-[#58051E]'
+                    ? 'bg-[#5A0122]/8 text-[#5A0122] font-bold border-l-2 border-[#5A0122]'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'}`}
                 title={isCollapsed ? item.name : undefined}
               >
-                <Icon className={`w-4 h-4 shrink-0 transition-transform duration-150 ${isCollapsed ? 'mx-auto' : 'mr-2.5'} ${isActive ? 'text-[#58051E]' : 'text-slate-400 group-hover:text-slate-700'}`} />
+                <Icon className={`w-4 h-4 shrink-0 transition-transform duration-150 ${isCollapsed ? 'mx-auto' : 'mr-2.5'} ${isActive ? 'text-[#5A0122]' : 'text-slate-400 group-hover:text-slate-700'}`} />
 
                 {!isCollapsed && (
                   <span className="truncate flex-1 flex items-center justify-between">
@@ -728,7 +729,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                 {!isCollapsed && item.badge && (
                   <span className={`ml-1.5 px-1.5 py-0.2 rounded text-[9px] font-bold shrink-0 transition-colors
                     ${isActive
-                      ? 'bg-[#58051E]/15 text-[#58051E]'
+                      ? 'bg-[#5A0122]/15 text-[#5A0122]'
                       : item.badge === 'OFFER' || item.badge === 'DUE'
                         ? 'bg-amber-50 text-amber-800 border border-amber-200'
                         : 'bg-slate-100 text-slate-500'}`}>
@@ -746,7 +747,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
 
         {/* COUNSELOR / ADMIN IMPERSONATION BANNER */}
         {impersonated && (
-          <div className="bg-gradient-to-r from-amber-600 via-[#58051E] to-[#3a0213] text-white px-4 py-2 text-xs font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-md shrink-0 z-40 print:hidden">
+          <div className="bg-gradient-to-r from-amber-600 via-[#5A0122] to-[#3a0213] text-white px-4 py-2 text-xs font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-md shrink-0 z-40 print:hidden">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
               <span>
@@ -817,7 +818,11 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                 }}
                 onKeyDown={handleSearchKeyDown}
                 placeholder="Search portal..."
+<<<<<<< HEAD
                 className="w-full h-9.5 pl-8.5 pr-8 bg-slate-50 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-[#58051E]/40 dark:focus:border-rose-400 focus:ring-2 focus:ring-[#58051E]/5 transition-all"
+=======
+                className="w-full h-8.5 pl-8.5 pr-8 bg-slate-50 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-[#5A0122]/40 dark:focus:border-rose-400 focus:ring-2 focus:ring-[#5A0122]/5 transition-all"
+>>>>>>> 3e28d86d4dc824b1580a3355cad955464ac5bb3f
               />
               {searchQuery ? (
                 <button
@@ -887,14 +892,14 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                               onMouseEnter={() => setActiveSearchIndex(idx)}
                               className={`p-2 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition-colors ${
                                 isSelected
-                                  ? 'bg-[#58051E]/5 dark:bg-[#58051E]/20 text-[#58051E] dark:text-rose-300'
+                                  ? 'bg-[#5A0122]/5 dark:bg-[#5A0122]/20 text-[#5A0122] dark:text-rose-300'
                                   : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-200'
                               }`}
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
                                   isSelected
-                                    ? 'bg-[#58051E] text-white shadow-xs'
+                                    ? 'bg-[#5A0122] text-white shadow-xs'
                                     : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                                 }`}>
                                   <Icon className="w-3.5 h-3.5" />
@@ -969,7 +974,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                       <Link
                         to="/student/notifications"
                         onClick={() => setShowNotifications(false)}
-                        className="text-[10px] font-bold text-[#58051E] hover:underline"
+                        className="text-[10px] font-bold text-[#5A0122] hover:underline"
                       >
                         View All
                       </Link>
@@ -986,7 +991,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                               if (n.link) navigate(n.link);
                               setShowNotifications(false);
                             }}
-                            className={`p-2 rounded-xl text-xs cursor-pointer transition-colors ${n.is_read ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-500' : 'bg-[#58051E]/5 text-slate-800 font-semibold'}`}
+                            className={`p-2 rounded-xl text-xs cursor-pointer transition-colors ${n.is_read ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-500' : 'bg-[#5A0122]/5 text-slate-800 font-semibold'}`}
                           >
                             <p className="font-bold text-[11px] truncate">{n.title}</p>
                             <p className="text-[10px] text-slate-500 line-clamp-2 mt-0.5">{n.body || n.message}</p>
@@ -1015,7 +1020,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                   {profilePhoto ? (
                     <img src={profilePhoto} alt={displayName} className="w-6.5 h-6.5 rounded-lg object-cover border border-slate-200 shadow-2xs" />
                   ) : (
-                    <div className="w-6.5 h-6.5 rounded-lg bg-[#58051E] text-white text-[10px] font-black flex items-center justify-center shadow-xs">
+                    <div className="w-6.5 h-6.5 rounded-lg bg-[#5A0122] text-white text-[10px] font-black flex items-center justify-center shadow-xs">
                       {initialLetter}
                     </div>
                   )}

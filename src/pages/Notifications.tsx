@@ -272,7 +272,7 @@ export const Notifications: React.FC = () => {
       <div className="p-6 bg-white text-slate-900 rounded-2xl shadow-xs border border-slate-200/80">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-[#58051E]/10 rounded-md text-[10px] font-black uppercase text-[#58051E] mb-2">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-[#5A0122]/10 rounded-md text-[10px] font-black uppercase text-[#5A0122] mb-2">
               <Bell className="w-3.5 h-3.5" /> Communications & Updates
             </div>
             <h1 className="text-2xl font-black tracking-tight text-slate-900">
@@ -292,7 +292,7 @@ export const Notifications: React.FC = () => {
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllAsRead}
-                className="h-9 px-4 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                className="h-9 px-4 bg-[#5A0122] hover:bg-[#68092A] text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <CheckCheck className="w-4 h-4" /> Mark All Read
               </button>
@@ -365,7 +365,7 @@ export const Notifications: React.FC = () => {
           <div className="bg-white rounded-3xl border border-slate-200/80 p-4 shadow-xs space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-[#58051E]" />
+                <SlidersHorizontal className="w-4 h-4 text-[#5A0122]" />
                 <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Notification Side Channels</h3>
               </div>
               <span className="text-[10px] font-bold text-slate-400">Filter by category</span>
@@ -392,7 +392,7 @@ export const Notifications: React.FC = () => {
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-2xl text-xs font-bold transition-all ${
                       isSelected
-                        ? 'bg-[#58051E] text-white shadow-md shadow-[#58051E]/20'
+                        ? 'bg-[#5A0122] text-white shadow-md shadow-[#5A0122]/20'
                         : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
                     }`}
                   >
@@ -425,7 +425,7 @@ export const Notifications: React.FC = () => {
           <div className="bg-white rounded-3xl border border-slate-200/80 p-4 shadow-xs space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <ExternalLink className="w-4 h-4 text-[#58051E]" />
+                <ExternalLink className="w-4 h-4 text-[#5A0122]" />
                 <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Quick Jump Portals</h3>
               </div>
             </div>
@@ -443,9 +443,9 @@ export const Notifications: React.FC = () => {
                       <div className={`w-7 h-7 rounded-lg border flex items-center justify-center shrink-0 ${portal.color}`}>
                         <Icon className="w-3.5 h-3.5" />
                       </div>
-                      <span className="group-hover:text-[#58051E] transition-colors">{portal.label}</span>
+                      <span className="group-hover:text-[#5A0122] transition-colors">{portal.label}</span>
                     </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#58051E] group-hover:translate-x-0.5 transition-all" />
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#5A0122] group-hover:translate-x-0.5 transition-all" />
                   </button>
                 );
               })}
@@ -471,7 +471,7 @@ export const Notifications: React.FC = () => {
               </button>
               <button
                 onClick={() => navigate('/student/support')}
-                className="w-full h-8 px-3 bg-[#58051E] hover:bg-[#58051E] rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-xs"
+                className="w-full h-8 px-3 bg-[#5A0122] hover:bg-[#5A0122] rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-xs"
               >
                 <LifeBuoy className="w-3.5 h-3.5 text-white" /> Contact Counselor Support
               </button>
@@ -495,7 +495,7 @@ export const Notifications: React.FC = () => {
                   }}
                   className={`h-8 px-4 rounded-xl text-xs font-black transition-all ${
                     filter === tab
-                      ? 'bg-[#58051E] text-white shadow-xs'
+                      ? 'bg-[#5A0122] text-white shadow-xs'
                       : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200/60'
                   }`}
                 >
@@ -511,7 +511,7 @@ export const Notifications: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search alerts, keywords..."
-                className="w-full h-8 pl-8 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#58051E]"
+                className="w-full h-8 pl-8 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#5A0122]"
               />
             </div>
           </div>
@@ -520,7 +520,7 @@ export const Notifications: React.FC = () => {
           {(categoryFilter !== 'All' || filter !== 'All' || searchQuery) && (
             <div className="flex items-center justify-between px-3 py-2 bg-slate-100/80 rounded-2xl text-xs font-bold text-slate-600 border border-slate-200/60">
               <div className="flex items-center gap-2">
-                <Filter className="w-3.5 h-3.5 text-[#58051E]" />
+                <Filter className="w-3.5 h-3.5 text-[#5A0122]" />
                 <span>Showing: <strong className="text-slate-900">{filter === 'Unread' ? 'Unread Priority' : categoryFilter}</strong> ({filteredNotifications.length} items)</span>
               </div>
               <button
@@ -529,7 +529,7 @@ export const Notifications: React.FC = () => {
                   setCategoryFilter('All');
                   setSearchQuery('');
                 }}
-                className="text-[10px] font-black text-[#58051E] hover:underline"
+                className="text-[10px] font-black text-[#5A0122] hover:underline"
               >
                 Reset Filters
               </button>
@@ -554,7 +554,7 @@ export const Notifications: React.FC = () => {
               {(searchQuery || categoryFilter !== 'All' || filter !== 'All') && (
                 <button
                   onClick={() => { setFilter('All'); setCategoryFilter('All'); setSearchQuery(''); }}
-                  className="px-4 py-2 bg-[#58051E] text-white rounded-xl text-xs font-bold shadow-xs hover:bg-[#58051E] transition-all"
+                  className="px-4 py-2 bg-[#5A0122] text-white rounded-xl text-xs font-bold shadow-xs hover:bg-[#5A0122] transition-all"
                 >
                   View All Notifications
                 </button>
@@ -577,7 +577,7 @@ export const Notifications: React.FC = () => {
                       transition={{ duration: 0.2 }}
                       onClick={() => handleNotificationClick(n)}
                       className={`bg-white border rounded-3xl p-4.5 shadow-2xs hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300 transition-all duration-200 cursor-pointer group ${
-                        !n.is_read ? 'border-[#58051E]/25 shadow-[#58051E]/5 bg-gradient-to-r from-white via-rose-50/20 to-white' : 'border-slate-200/80'
+                        !n.is_read ? 'border-[#5A0122]/25 shadow-[#5A0122]/5 bg-gradient-to-r from-white via-rose-50/20 to-white' : 'border-slate-200/80'
                       }`}
                     >
                       <div className="flex items-start gap-3.5">
@@ -591,7 +591,7 @@ export const Notifications: React.FC = () => {
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-center gap-2">
                               <p className={`text-xs sm:text-sm font-extrabold ${!n.is_read ? 'text-slate-900' : 'text-slate-700'}`}>{n.title}</p>
-                              {!n.is_read && <span className="w-2 h-2 rounded-full bg-[#58051E] shrink-0 animate-pulse" />}
+                              {!n.is_read && <span className="w-2 h-2 rounded-full bg-[#5A0122] shrink-0 animate-pulse" />}
                             </div>
 
                             {/* Right-aligned Module Badge & Timestamp */}
@@ -616,7 +616,7 @@ export const Notifications: React.FC = () => {
                                 e.stopPropagation();
                                 handleNotificationClick(n);
                               }}
-                              className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 hover:bg-[#58051E] text-slate-700 hover:text-white rounded-xl text-[11px] font-extrabold transition-all"
+                              className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 hover:bg-[#5A0122] text-slate-700 hover:text-white rounded-xl text-[11px] font-extrabold transition-all"
                             >
                               <span>{catConfig.actionText}</span>
                               <ArrowRight className="w-3.5 h-3.5" />

@@ -39,7 +39,7 @@ export const MyAttendance: React.FC<Shared> = ({ ctx, rules, holidays, toast }) 
 
   const act = async (fn: () => Promise<unknown>, ok: string) => {
     setBusy(true);
-    try { await fn(); toast(ok); setAsking(false); setSummary(''); await load(); } catch (e: any) { toast(e.message); } finally { setBusy(false); }
+    try { await fn(); toast(ok); setAsking(false); setSummary(''); await load(); } catch (e: any) { toast(e.message); setAsking(false); await load().catch(() => undefined); } finally { setBusy(false); }
   };
 
   const totals = useMemo(() => days.reduce((a, d) => { if (d.status === 'Present') a.p++; else if (d.status === 'Half Day') a.h++; else if (d.status === 'Absent') a.a++; else if (d.status === 'Leave') a.l++; a.hours += Number(d.hours) || 0; return a; }, { p: 0, h: 0, a: 0, l: 0, hours: 0 }), [days]);
@@ -64,8 +64,10 @@ export const MyAttendance: React.FC<Shared> = ({ ctx, rules, holidays, toast }) 
               </>
             ) : <p className="text-sm font-semibold text-slate-600">{todayOff ? `${todayOff} today — no attendance needed.` : 'You have not clocked in yet.'}</p>}
           </div>
-          {!open ? (
-            <Btn tone="brand" disabled={busy || today?.review === 'Verified'} onClick={() => void act(() => clockIn(), 'Clocked in')}>{today?.clock_out ? 'Clock in again' : 'Clock in'}</Btn>
+          {!open && today?.review === 'Verified' ? (
+            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">Today's attendance is verified. Nothing more to clock; ask your administrator if it needs to be reopened.</span>
+          ) : !open ? (
+            <Btn tone="brand" disabled={busy} onClick={() => void act(() => clockIn(), 'Clocked in')}>{today?.clock_out ? 'Clock in again' : 'Clock in'}</Btn>
           ) : asking ? (
             <div className="flex flex-wrap items-center gap-2">
               <input className={`${inputCls} w-64`} placeholder="What did you work on? (optional)" value={summary} onChange={e => setSummary(e.target.value)} aria-label="Work summary" />
@@ -179,7 +181,7 @@ const LeaveForm: React.FC<{ types: LeaveType[]; today: string; level: string; on
         {t && t.is_paid && t.kind !== 'hourly' && <p className="text-[11px] font-semibold text-slate-500">Days beyond your yearly limit of {t.annual_quota} are treated as loss of pay.</p>}
         <p className="text-[11px] font-semibold text-slate-500">{level === 'admin' ? 'The superadmin approves your leave.' : 'Your platform administrator approves your leave.'}</p>
         {err && <p role="alert" className="text-xs font-semibold text-rose-700">{err}</p>}
-        <div className="flex justify-end gap-2"><Btn onClick={onClose}>Cancel</Btn><button type="submit" disabled={busy} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#58051E] text-white cursor-pointer disabled:opacity-50">{busy ? 'Sending…' : 'Send request'}</button></div>
+        <div className="flex justify-end gap-2"><Btn onClick={onClose}>Cancel</Btn><button type="submit" disabled={busy} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#5A0122] text-white cursor-pointer disabled:opacity-50">{busy ? 'Sending…' : 'Send request'}</button></div>
       </form>
     </Modal>
   );

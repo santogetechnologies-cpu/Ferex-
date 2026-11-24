@@ -140,7 +140,7 @@ export const TradeNotifications: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <Mail className="w-5 h-5 text-[#58051E]" />
+            <Mail className="w-5 h-5 text-[#5A0122]" />
             Notifications
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">Automatic emails sent for orders, payments and documents.</p>
@@ -148,7 +148,7 @@ export const TradeNotifications: React.FC = () => {
         <Button
           size="sm"
           onClick={() => setShowManualTriggerModal(true)}
-          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
+          className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-xs cursor-pointer"
         >
           <Send className="w-4 h-4 mr-1.5" />
           Trigger Custom Automated Email
@@ -162,7 +162,7 @@ export const TradeNotifications: React.FC = () => {
           <button
             onClick={() => setFilterTrigger('All')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              filterTrigger === 'All' ? 'bg-[#58051E] text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              filterTrigger === 'All' ? 'bg-[#5A0122] text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}
           >
             All Triggers ({emails.length})
@@ -175,7 +175,7 @@ export const TradeNotifications: React.FC = () => {
                 onClick={() => setFilterTrigger(k)}
                 className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                   filterTrigger === k
-                    ? 'bg-[#58051E] text-white'
+                    ? 'bg-[#5A0122] text-white'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
@@ -198,7 +198,7 @@ export const TradeNotifications: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search email logs, subject, recipient, order #..."
-            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
           />
         </div>
       </Card>
@@ -246,7 +246,7 @@ export const TradeNotifications: React.FC = () => {
                       <div className="font-bold text-slate-900 truncate">{em.subject}</div>
                       <div className="text-[10.5px] text-slate-400 truncate">{em.content_preview}</div>
                     </td>
-                    <td className="py-3 px-4 font-mono font-black text-[#58051E]">
+                    <td className="py-3 px-4 font-mono font-black text-[#5A0122]">
                       {em.order_no}
                     </td>
                     <td className="py-3 px-4 text-slate-400 font-mono text-[10px]">
@@ -281,7 +281,7 @@ export const TradeNotifications: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 text-left">
               <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <Send className="w-4 h-4 text-[#58051E]" /> Trigger Automated Client Email
+                  <Send className="w-4 h-4 text-[#5A0122]" /> Trigger Automated Client Email
                 </h3>
                 <button onClick={() => setShowManualTriggerModal(false)} className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"><X className="w-5 h-5" /></button>
               </div>
@@ -292,7 +292,7 @@ export const TradeNotifications: React.FC = () => {
                   <select
                     value={triggerForm.trigger_type}
                     onChange={(e) => setTriggerForm({ ...triggerForm, trigger_type: e.target.value as AutomatedEmailTrigger })}
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-[#5A0122]"
                   >
                     {Object.entries(TRIGGER_LABELS).map(([k, label]) => (
                       <option key={k} value={k}>{label}</option>
@@ -321,7 +321,7 @@ export const TradeNotifications: React.FC = () => {
                       required
                       value={triggerForm.recipient_name}
                       onChange={(e) => setTriggerForm({ ...triggerForm, recipient_name: e.target.value })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -331,14 +331,14 @@ export const TradeNotifications: React.FC = () => {
                       required
                       value={triggerForm.recipient_email}
                       onChange={(e) => setTriggerForm({ ...triggerForm, recipient_email: e.target.value })}
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowManualTriggerModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Trigger Email Now</Button>
+                  <Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-white">Trigger Email Now</Button>
                 </div>
               </form>
             </motion.div>
@@ -354,7 +354,7 @@ export const TradeNotifications: React.FC = () => {
             <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-3xl shadow-2xl z-50 border border-slate-100 p-6 text-left">
               <div className="flex items-start justify-between pb-3 border-b border-slate-100">
                 <div>
-                  <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-black uppercase text-[#5A0122] bg-[#5A0122]/10 px-2 py-0.5 rounded">
                     {selectedEmail.trigger_label}
                   </span>
                   <h3 className="text-base font-black text-slate-900 mt-1">{selectedEmail.subject}</h3>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { Link } from 'react-router-dom';
 import { DollarSign, PackageCheck, CreditCard, ListTodo, LifeBuoy, ArrowRight, Ship } from 'lucide-react';
 import { Button } from '../../components/Button';
@@ -31,6 +32,10 @@ export const TradeDashboard: React.FC = () => {
     }
   }, []);
 
+  useRealtimeTable('trade_orders', loadSummary);
+  useRealtimeTable('trade_payments', loadSummary);
+  useRealtimeTable('trade_tasks', loadSummary);
+
   useEffect(() => {
     void loadSummary();
     const handleUpdate = () => void loadSummary();
@@ -40,6 +45,15 @@ export const TradeDashboard: React.FC = () => {
 
   const first = (profile?.full_name || '').split(' ')[0];
   const orders: TradeOrder[] = summary?.orders || [];
+  const by: Record<string, { total: number; owed: number }> = summary?.byCurrency || {};
+  const money = (n: number, c: string) => `${({ USD: '$', EUR: '€', GBP: '£', INR: '₹' } as Record<string, string>)[c] ?? `${c} `}${Math.round(n).toLocaleString()}`;
+
+  // One line per currency that has an amount, so USD, INR and EUR orders are all visible on the card.
+  const perCurrency = (key: 'total' | 'owed') => {
+    const rows = Object.entries(by).filter(([, v]) => v[key] > 0).sort(([a], [b]) => (a === 'USD' ? -1 : b === 'USD' ? 1 : a.localeCompare(b)));
+    if (!rows.length) return money(0, 'USD');
+    return <span className={rows.length > 1 ? 'block text-[1.15rem] leading-snug' : ''}>{rows.map(([c, v]) => <span key={c} className="block">{money(v[key], c)}</span>)}</span>;
+  };
 
   return (
     <div className="space-y-6 text-left antialiased">
@@ -53,15 +67,15 @@ export const TradeDashboard: React.FC = () => {
         </>}
       />
 
-      {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</p>}
+      {error && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 flex items-center justify-between gap-3"><span>{error}</span><button type="button" onClick={() => { setLoading(true); void loadSummary(); }} className="px-3 py-1 rounded-lg bg-white border border-rose-200 text-xs font-bold cursor-pointer">Try again</button></div>}
 
       {loading ? <PageSkeleton /> : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatTile label="Total order value" value={`$${Math.round(summary?.totalOrderValueUSD || 0).toLocaleString()}`} hint="All orders, in USD" icon={DollarSign} tone="green" to="/trade/shipments" />
-            <StatTile label="Balance to collect" value={`$${Math.round(summary?.pendingPaymentsUSD || 0).toLocaleString()}`} hint="Unpaid across orders" icon={CreditCard} tone="amber" to="/trade/payments" />
-            <StatTile label="In transit" value={summary?.inTransitCount || 0} hint="Shipments on the way" icon={Ship} tone="blue" to="/trade/shipments" />
-            <StatTile label="Open work" value={(summary?.pendingTasksCount || 0) + (summary?.openTicketsCount || 0)} hint="Tasks and tickets" icon={ListTodo} tone="brand" to="/trade/tasks" />
+            <StatTile label="Total order value" value={perCurrency('total')} hint={Object.keys(by).length > 1 ? 'Each currency shown separately' : 'All orders'} icon={DollarSign} tone="green" to="/trade/shipments" />
+            <StatTile label="Balance to collect" value={perCurrency('owed')} hint={Object.values(by).some(v => v.owed > 0) ? 'Unpaid across orders' : 'Nothing unpaid'} icon={CreditCard} tone="amber" to="/trade/payments" />
+            <StatTile label="In transit" value={summary?.activeShipmentsCount || 0} hint="Shipments on the way" icon={Ship} tone="blue" to="/trade/shipments" />
+            <StatTile label="Open work" value={summary?.openTasksCount || 0} hint="Tasks still open" icon={ListTodo} tone="brand" to="/trade/tasks" />
           </div>
 
           <Section title="Orders by stage" hint="Where every active order stands" action={{ label: 'All orders', to: '/trade/shipments' }}>
@@ -69,7 +83,7 @@ export const TradeDashboard: React.FC = () => {
               {TRADE_ORDER_STAGES.map((stage) => {
                 const count = orders.filter(o => o.stage === stage).length;
                 return (
-                  <div key={stage} className={`rounded-xl border p-3 ${count ? 'border-[#58051E]/20 bg-[#58051E]/[0.03]' : 'border-slate-200/80 bg-slate-50/60'}`}>
+                  <div key={stage} className={`rounded-xl border p-3 ${count ? 'border-[#5A0122]/20 bg-[#5A0122]/[0.03]' : 'border-slate-200/80 bg-slate-50/60'}`}>
                     <div className="text-[11px] font-semibold text-slate-500 truncate">{stage}</div>
                     <div className="text-xl font-extrabold text-slate-900 mt-1 tabular-nums">{count}</div>
                   </div>

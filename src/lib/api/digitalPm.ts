@@ -32,6 +32,7 @@ export interface DigitalMilestone {
   deliverables_summary?: string;
   completion_percentage: number;
   payment_percentage: number;
+  part_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -256,6 +257,13 @@ export async function updateDigitalMilestoneDirect(id: string, updates: Partial<
   if (!data?.length) throw new Error('You cannot change this milestone');
   notify('ferex_digital_milestones_change');
   return { id, ...updates };
+}
+
+export async function deleteDigitalMilestoneDirect(id: string) {
+  const { data, error } = await supabase.from('digital_milestones').delete().eq('id', id).select('id');
+  if (error) throw fail('Failed to delete milestone', error);
+  if (!data?.length) throw new Error('You cannot delete this milestone');
+  notify('ferex_digital_milestones_change');
 }
 
 export async function getAssignedDigitalTickets(projectIds?: string[], _pm?: DigitalPMIdentity): Promise<DigitalTicket[]> {

@@ -42,7 +42,7 @@ export const UniversityFallbackPanel: React.FC<{ onMessage?: (m: string) => void
         <p className="text-xs text-slate-500 leading-relaxed">Shown for any university that has no picture of its own, for students, staff and on the public site. {current ? '' : 'Until you upload one, a drawn campus illustration is used.'}</p>
         <input ref={input} type="file" accept="image/*" className="hidden" onChange={e => upload(e.target.files?.[0])} />
         <div className="flex flex-wrap gap-2 pt-1">
-          <button type="button" disabled={busy} onClick={() => input.current?.click()} className="h-9 px-4 rounded-xl bg-[#58051E] text-white text-xs font-bold hover:bg-[#430316] disabled:opacity-50 inline-flex items-center gap-1.5 cursor-pointer">
+          <button type="button" disabled={busy} onClick={() => input.current?.click()} className="h-9 px-4 rounded-xl bg-[#5A0122] text-white text-xs font-bold hover:bg-[#68092A] disabled:opacity-50 inline-flex items-center gap-1.5 cursor-pointer">
             {busy ? <CapLoader size="xs" tone="light" /> : <ImagePlus className="w-3.5 h-3.5" />}{busy ? 'Saving…' : current ? 'Replace picture' : 'Upload picture'}
           </button>
           {current && <button type="button" disabled={busy} onClick={remove} className="h-9 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 inline-flex items-center gap-1.5 cursor-pointer"><Trash2 className="w-3.5 h-3.5" />Remove</button>}

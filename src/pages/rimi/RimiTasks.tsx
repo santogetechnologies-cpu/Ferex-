@@ -21,6 +21,8 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useRimiAccess } from '../../lib/rimiAccess';
 import { createNotification } from '../../lib/api/notifications';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 const STATUS_OPTIONS = ['Pending', 'In Progress', 'Completed', 'Incomplete'] as const;
 const fmtDateTime = (v?: string | null) => (v ? new Date(v).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—');
@@ -46,6 +48,7 @@ export const RimiTasks: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterStaff, setFilterStaff] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
 
   // Modals & Editing State
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -92,7 +95,7 @@ export const RimiTasks: React.FC = () => {
     );
   };
 
-  const filteredTasks = tasks.filter(t => {
+  const filteredTasks = tasks.filter(t => inRange(t.due_date || t.created_at, range)).filter(t => {
     if (filterCategory !== 'All' && t.category !== filterCategory) return false;
     if (filterPriority !== 'All' && t.priority !== filterPriority) return false;
     if (filterStatus !== 'All' && t.status !== filterStatus) return false;
@@ -237,7 +240,7 @@ export const RimiTasks: React.FC = () => {
         {isAdmin && (
           <Button
             variant="primary"
-            className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-md flex items-center gap-2"
+            className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-md flex items-center gap-2"
             onClick={() => { setNewTask(blankTask()); setShowCreateModal(true); }}
           >
             <Plus className="w-4 h-4" /> Assign New Task
@@ -248,6 +251,7 @@ export const RimiTasks: React.FC = () => {
       {/* Filter Toolbar */}
       <Card className="p-3.5 bg-white border-slate-200 shadow-xs">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-2.5">
+          <DateRangeFilter compact label="Due" value={range} onChange={setRange} />
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input
@@ -312,7 +316,7 @@ export const RimiTasks: React.FC = () => {
               <div className="space-y-1 flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {(t.is_central_directive || t.created_by === 'Central Admin' || (t.created_by && t.created_by.toLowerCase().includes('central')) || (t.description && t.description.toLowerCase().includes('central admin'))) && (
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-[#58051E] text-white flex items-center gap-1 shadow-2xs">
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-[#5A0122] text-white flex items-center gap-1 shadow-2xs">
                       Central HQ
                     </span>
                   )}
@@ -370,7 +374,7 @@ export const RimiTasks: React.FC = () => {
             <p className="text-xs text-slate-600 font-medium leading-relaxed">{t.description || 'No description added.'}</p>
 
             <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] font-semibold text-slate-500 bg-slate-50 rounded-xl p-3">
-              <div><span className="block text-[9px] font-extrabold uppercase text-slate-400">Assigned to</span><span className="text-slate-800 font-bold flex items-center gap-1"><UserCheck className="w-3 h-3 text-[#58051E]" /> {t.assigned_staff_name || 'Unassigned'}</span></div>
+              <div><span className="block text-[9px] font-extrabold uppercase text-slate-400">Assigned to</span><span className="text-slate-800 font-bold flex items-center gap-1"><UserCheck className="w-3 h-3 text-[#5A0122]" /> {t.assigned_staff_name || 'Unassigned'}</span></div>
               <div><span className="block text-[9px] font-extrabold uppercase text-slate-400">Assigned on</span><span className="text-slate-800">{fmtDateTime(t.created_at)}</span></div>
               <div><span className="block text-[9px] font-extrabold uppercase text-slate-400">Start</span><span className="text-slate-800">{fmtDateTime(t.start_at)}</span></div>
               <div><span className="block text-[9px] font-extrabold uppercase text-slate-400">Due</span><span className="text-slate-800">{t.due_at ? fmtDateTime(t.due_at) : (t.due_date || '—')}</span></div>
@@ -435,7 +439,7 @@ export const RimiTasks: React.FC = () => {
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <Button type="button" variant="ghost" onClick={() => setEditingTitleTask(null)}>Cancel</Button>
-                  <Button type="submit" variant="primary" className="bg-[#58051E] text-white">Save Title</Button>
+                  <Button type="submit" variant="primary" className="bg-[#5A0122] text-white">Save Title</Button>
                 </div>
               </form>
             </motion.div>
@@ -466,7 +470,7 @@ export const RimiTasks: React.FC = () => {
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <Button type="button" variant="ghost" onClick={() => setReassigningTask(null)}>Cancel</Button>
-                  <Button type="submit" variant="primary" className="bg-[#58051E] text-white">Confirm Reassignment</Button>
+                  <Button type="submit" variant="primary" className="bg-[#5A0122] text-white">Confirm Reassignment</Button>
                 </div>
               </form>
             </motion.div>
@@ -577,7 +581,7 @@ export const RimiTasks: React.FC = () => {
 
                 <div className="flex justify-end gap-2 pt-3">
                   <Button type="button" variant="ghost" onClick={() => setShowCreateModal(false)}>Cancel</Button>
-                  <Button type="submit" variant="primary" className="bg-[#58051E] text-white">Create & Assign</Button>
+                  <Button type="submit" variant="primary" className="bg-[#5A0122] text-white">Create & Assign</Button>
                 </div>
               </form>
             </motion.div>

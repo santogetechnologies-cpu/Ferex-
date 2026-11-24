@@ -71,7 +71,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
       value: '₹0',
       change: 'Fee Verification',
       icon: CreditCard,
-      color: 'text-[#58051E] bg-[#58051E]/8',
+      color: 'text-[#5A0122] bg-[#5A0122]/8',
       trend: 'up',
       path: '/admin/payment-control'
     }]),
@@ -105,7 +105,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
             value: `₹${pendingAmount.toLocaleString('en-IN')}`,
             change: `${pendingCount} Pending Request${pendingCount === 1 ? '' : 's'}`,
             icon: CreditCard,
-            color: 'text-[#58051E] bg-[#58051E]/8',
+            color: 'text-[#5A0122] bg-[#5A0122]/8',
             trend: 'up',
             path: '/admin/payments'
           }]),
@@ -213,7 +213,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
             <div className="flex items-end gap-3 h-32">
               {activityBuckets.map((bucket, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1.5" title={`${bucket.dayLabel}: ${bucket.count}`}>
-                  <div className="w-full flex-1 flex items-end"><div className={`w-full rounded-xl transition-all duration-300 ${bucket.count === peak && peak > 0 ? 'bg-gradient-to-b from-[#B2306E] to-[#58051E] shadow-[0_14px_24px_-12px_rgba(88,5,30,0.7)]' : 'bg-[#E4D6F3] hover:bg-[#D3BFEA] dark:bg-white/10'}`} style={{ height: `${Math.max(8, Math.round(bucket.heightPct * 0.95))}px` }} /></div>
+                  <div className="w-full flex-1 flex items-end"><div className={`w-full rounded-xl transition-all duration-300 ${bucket.count === peak && peak > 0 ? 'bg-gradient-to-b from-[#B2306E] to-[#5A0122] shadow-[0_14px_24px_-12px_rgba(88,5,30,0.7)]' : 'bg-[#E4D6F3] hover:bg-[#D3BFEA] dark:bg-white/10'}`} style={{ height: `${Math.max(8, Math.round(bucket.heightPct * 0.95))}px` }} /></div>
                   <span className="text-[10px] font-semibold text-slate-400">{bucket.dayLabel}</span>
                 </div>
               ))}
@@ -227,10 +227,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isStaff = false 
               {safeStudents.slice(0, 5).map((st, idx) => (
                 <li key={idx}>
                   <button type="button" onClick={() => navigate(`${base}/students`)} className="w-full flex items-center gap-3 py-3 text-left cursor-pointer group">
-                    <span className="grid place-items-center w-9 h-9 rounded-full bg-[#58051E]/8 text-[#58051E] text-xs font-bold shrink-0">{(st.full_name || st.email || '?').slice(0, 1).toUpperCase()}</span>
-                    <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-slate-900 truncate group-hover:text-[#58051E]">{st.full_name || st.email}</span>
+                    <span className="grid place-items-center w-9 h-9 rounded-full bg-[#5A0122]/8 text-[#5A0122] text-xs font-bold shrink-0">{(st.full_name || st.email || '?').slice(0, 1).toUpperCase()}</span>
+                    <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-slate-900 truncate group-hover:text-[#5A0122]">{st.full_name || st.email}</span>
                       <span className="block text-xs text-slate-500">{st.created_at && !isNaN(new Date(st.created_at).getTime()) ? new Date(st.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'Recently'}</span></span>
-                    <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-[#58051E]" />
+                    <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-[#5A0122]" />
                   </button>
                 </li>
               ))}

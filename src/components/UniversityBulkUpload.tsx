@@ -134,7 +134,7 @@ export function UniversityBulkUpload({ onComplete, className }: UniversityBulkUp
             {/* Modal Header */}
             <div className="px-6 py-4.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-[#58051E]/10 text-[#58051E] rounded-xl border border-[#58051E]/20">
+                <div className="p-2 bg-[#5A0122]/10 text-[#5A0122] rounded-xl border border-[#5A0122]/20">
                   <Building2 className="w-5 h-5" />
                 </div>
                 <div>
@@ -142,7 +142,7 @@ export function UniversityBulkUpload({ onComplete, className }: UniversityBulkUp
                     <h2 className="text-base font-black text-slate-900 tracking-tight">
                       Bulk upload universities across countries
                     </h2>
-                    <span className="text-[10px] font-extrabold bg-[#58051E]/10 text-[#58051E] px-2 py-0.5 rounded-full border border-[#58051E]/20">
+                    <span className="text-[10px] font-extrabold bg-[#5A0122]/10 text-[#5A0122] px-2 py-0.5 rounded-full border border-[#5A0122]/20">
                       CSV Import
                     </span>
                   </div>
@@ -171,7 +171,7 @@ export function UniversityBulkUpload({ onComplete, className }: UniversityBulkUp
               {/* Template Download Card */}
               <div className="flex items-center justify-between p-3.5 bg-gradient-to-r from-rose-50/50 via-white to-amber-50/40 border border-rose-100 rounded-2xl">
                 <div className="flex items-center gap-2.5">
-                  <FileSpreadsheet className="w-5 h-5 text-[#58051E]" />
+                  <FileSpreadsheet className="w-5 h-5 text-[#5A0122]" />
                   <div>
                     <p className="text-xs font-bold text-slate-800">CSV Template Schema</p>
                     <p className="text-[11px] text-slate-500">Includes sample headers & international sample data</p>
@@ -180,7 +180,7 @@ export function UniversityBulkUpload({ onComplete, className }: UniversityBulkUp
                 <a
                   download="universities-template.csv"
                   href={`data:text/csv;charset=utf-8,${encodeURIComponent(universityImportTemplate)}`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-rose-50 text-[#58051E] border border-[#58051E]/20 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-rose-50 text-[#5A0122] border border-[#5A0122]/20 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Download CSV template</span>
@@ -200,11 +200,11 @@ export function UniversityBulkUpload({ onComplete, className }: UniversityBulkUp
                 onClick={() => fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
                   dragOver
-                    ? 'border-[#58051E] bg-[#58051E]/5'
-                    : 'border-slate-200 hover:border-[#58051E]/40 bg-slate-50/50 hover:bg-slate-50'
+                    ? 'border-[#5A0122] bg-[#5A0122]/5'
+                    : 'border-slate-200 hover:border-[#5A0122]/40 bg-slate-50/50 hover:bg-slate-50'
                 }`}
               >
-                <UploadCloud className="w-8 h-8 text-[#58051E] mx-auto mb-2 opacity-80" />
+                <UploadCloud className="w-8 h-8 text-[#5A0122] mx-auto mb-2 opacity-80" />
                 <p className="text-xs font-bold text-slate-800">
                   {fileName ? `Selected: ${fileName}` : 'Click or drag & drop CSV file to upload'}
                 </p>
@@ -262,7 +262,7 @@ export function UniversityBulkUpload({ onComplete, className }: UniversityBulkUp
                                     onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
                                   />
                                 ) : (
-                                  <div className="w-7 h-7 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center shrink-0 text-[#58051E]">
+                                  <div className="w-7 h-7 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center shrink-0 text-[#5A0122]">
                                     <Building2 className="w-3.5 h-3.5" />
                                   </div>
                                 )}
@@ -337,7 +337,7 @@ export function UniversityBulkUpload({ onComplete, className }: UniversityBulkUp
                 type="button"
                 disabled={busy || !rows.length}
                 onClick={importRows}
-                className="h-9.5 px-5 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-[#58051E]/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                className="h-9.5 px-5 bg-[#5A0122] hover:bg-[#68092A] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-[#5A0122]/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {busy ? (
                   <>

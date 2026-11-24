@@ -18,10 +18,12 @@ import { useDigitalPermissions } from '../../hooks/usePermissions';
 import { supabase } from '../../lib/supabase';
 import { BlockCap } from '../../components/CapLoader';
 import { openDocument } from '../../lib/digitalDocument';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 type View = 'billing' | 'invoices' | 'payments' | 'emails';
 
-const input = 'w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E] disabled:bg-slate-50 disabled:text-slate-400';
+const input = 'w-full h-9 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122] disabled:bg-slate-50 disabled:text-slate-400';
 const label = 'block text-[10px] font-extrabold uppercase tracking-wide text-slate-500 mb-1';
 const today = () => new Date().toLocaleDateString('en-CA');
 const uid = () => crypto.randomUUID();
@@ -55,7 +57,7 @@ function StatusChip({ status }: { status: TermStatus }) {
 }
 
 function Bar({ percent, status }: { percent: number; status?: TermStatus }) {
-  const colour = status === 'Overdue' ? 'bg-rose-500' : status === 'Paid' ? 'bg-emerald-500' : 'bg-[#58051E]';
+  const colour = status === 'Overdue' ? 'bg-rose-500' : status === 'Paid' ? 'bg-emerald-500' : 'bg-[#5A0122]';
   return <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden"><div className={`h-full rounded-full ${colour}`} style={{ width: `${Math.min(100, percent)}%` }} /></div>;
 }
 
@@ -91,6 +93,7 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
   const [toast, setToast] = useState('');
   const [filter, setFilter] = useState<'All' | 'Overdue' | 'Partially Paid' | 'Paid' | 'Not started'>('All');
   const [search, setSearch] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
 
   // Dialogs
@@ -160,12 +163,17 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
     return tracked
       .filter(({ c, t }) => {
         if (focusProject && c.project_id !== focusProject) return false;
+        if (!inRange((c as any).created_at, range)) return false;
         const state = t.total > 0 && t.received >= t.total ? 'Paid' : t.overdue_count > 0 ? 'Overdue' : t.received > 0 ? 'Partially Paid' : 'Not started';
         if (filter !== 'All' && state !== filter) return false;
         return !q || `${c.body.project_title} ${c.body.client_name}`.toLowerCase().includes(q);
       })
       .sort((a, b) => b.t.overdue_amount - a.t.overdue_amount || a.c.body.project_title.localeCompare(b.c.body.project_title));
-  }, [tracked, filter, search, focusProject]);
+  }, [tracked, filter, search, focusProject, range]);
+
+  const shownCollections = useMemo(() => collections.filter(t => inRange(t.payment_date, range)), [collections, range]);
+  const shownDocuments = useMemo(() => documents.filter(d => inRange(d.created_at, range)), [documents, range]);
+  const shownMail = useMemo(() => mail.filter(m => inRange(m.created_at, range)), [mail, range]);
 
   const withoutContract = useMemo(() => projects.filter(p => !contracts.some(c => c.project_id === p.id)), [projects, contracts]);
   const locked = (c: CommerceContract) => documents.some(d => d.contract_id === c.id);
@@ -253,7 +261,7 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
             <div className="col-span-8 sm:col-span-3"><label className={label}>Due date</label>
               <input className={input} type="date" required value={p.due_date} onChange={e => setter({ ...body, parts: body.parts.map((x, j) => (j === i ? { ...x, due_date: e.target.value } : x)) })} /></div>
             <div className="col-span-8 sm:col-span-2"><label className={label}>Amount</label>
-              <div className="h-9 flex items-center text-xs font-black text-[#58051E]">{money(amounts[i] || 0, body.currency.length === 3 ? body.currency : 'INR')}</div></div>
+              <div className="h-9 flex items-center text-xs font-black text-[#5A0122]">{money(amounts[i] || 0, body.currency.length === 3 ? body.currency : 'INR')}</div></div>
             <div className="col-span-4 sm:col-span-1 text-right"><button type="button" className="text-rose-600 text-[11px] font-bold cursor-pointer" onClick={() => setter({ ...body, parts: body.parts.filter(x => x.id !== p.id) })}>Remove</button></div>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -297,9 +305,11 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
 
       <nav className="flex flex-wrap gap-2">
         {([['/digital/billing', 'Billing & Milestones'], ['/digital/invoices', 'Invoices'], ['/digital/payments', 'Payments'], ['/digital/emails', 'Email logs'], ['/digital/settings', 'Tax & term settings']] as const).map(([to, text]) => (
-          <NavLink key={to} to={to} className={({ isActive }) => `px-3 py-1.5 rounded-xl text-xs font-bold border ${isActive ? 'bg-[#58051E] text-white border-[#58051E]' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>{text}</NavLink>
+          <NavLink key={to} to={to} className={({ isActive }) => `px-3 py-1.5 rounded-xl text-xs font-bold border ${isActive ? 'bg-[#5A0122] text-white border-[#5A0122]' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>{text}</NavLink>
         ))}
       </nav>
+
+      <DateRangeFilter value={range} onChange={setRange} label={view === 'payments' ? 'Paid' : view === 'billing' ? 'Contract created' : view === 'invoices' ? 'Issued' : 'Sent'} />
 
       {!loaded && <BlockCap />}
 
@@ -316,7 +326,7 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
       {loaded && view === 'billing' && (
         <>
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" disabled={busy || withoutContract.length === 0} onClick={openNew} title={withoutContract.length === 0 ? 'Every project already has billing configured' : undefined}>
+            <Button size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold" disabled={busy || withoutContract.length === 0} onClick={openNew} title={withoutContract.length === 0 ? 'Every project already has billing configured' : undefined}>
               <Plus className="w-4 h-4 mr-1" /> Configure project billing {withoutContract.length > 0 && `(${withoutContract.length} waiting)`}
             </Button>
             <input className={`${input} max-w-xs`} placeholder="Search project or client…" value={search} onChange={e => setSearch(e.target.value)} />
@@ -374,7 +384,7 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
                               <td className="py-2.5 pr-3 text-right whitespace-nowrap font-black">{money(term.remaining, c.body.currency)}</td>
                               <td className="py-2.5 pr-3"><StatusChip status={term.status} /></td>
                               <td className="py-2.5 text-right whitespace-nowrap space-x-1">
-                                {term.remaining > 0 && <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-[11px] font-bold h-7" disabled={busy} onClick={() => setPay({ contract: c.id, part: term.id, amount: String(term.remaining), method: 'Bank Transfer', reference: '', date: today(), key: uid() })}><Wallet className="w-3 h-3 mr-1" /> Record payment</Button>}
+                                {term.remaining > 0 && <Button size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-[11px] font-bold h-7" disabled={busy} onClick={() => setPay({ contract: c.id, part: term.id, amount: String(term.remaining), method: 'Bank Transfer', reference: '', date: today(), key: uid() })}><Wallet className="w-3 h-3 mr-1" /> Record payment</Button>}
                                 <Button size="sm" variant="outline" className="text-[11px] font-bold h-7" disabled={busy} onClick={() => setTermEdit({ contract: c, part, label: part.label, due: part.due_date, reason: '' })}><Pencil className="w-3 h-3 mr-1" /> Edit</Button>
                                 <Button size="sm" variant="outline" className="text-[11px] font-bold h-7" disabled={busy} onClick={() => run(async () => { const w = window.open('', '_blank'); try { const d = await issueDocument(c.id, 'Invoice', term.id); print(d, w); } catch (e) { w?.close(); throw e; } try { await dispatchDigitalMail(); } catch { /* queued; retry from Email Delivery Logs */ } })}><FileText className="w-3 h-3 mr-1" /> Invoice</Button>
                               </td>
@@ -401,15 +411,15 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
       {/* ───────── Payments ───────── */}
       {loaded && view === 'payments' && (
         <>
-          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" disabled={busy || contracts.length === 0} onClick={() => setPay({ contract: '', part: '', amount: '', method: 'Bank Transfer', reference: '', date: today(), key: uid() })}><Plus className="w-4 h-4 mr-1" /> Record payment</Button>
-          {collections.length === 0 && <Card className="p-8 text-center text-xs font-semibold text-slate-500 border-dashed">No payments recorded yet.</Card>}
-          {collections.length > 0 && (
+          <Button size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold" disabled={busy || contracts.length === 0} onClick={() => setPay({ contract: '', part: '', amount: '', method: 'Bank Transfer', reference: '', date: today(), key: uid() })}><Plus className="w-4 h-4 mr-1" /> Record payment</Button>
+          {shownCollections.length === 0 && <Card className="p-8 text-center text-xs font-semibold text-slate-500 border-dashed">{collections.length ? 'No payments in this period.' : 'No payments recorded yet.'}</Card>}
+          {shownCollections.length > 0 && (
             <Card className="p-0 overflow-hidden border border-slate-200/80">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-[10px] font-extrabold uppercase text-slate-500"><tr><th className="p-3">Date</th><th className="p-3">Project</th><th className="p-3">Milestone / term</th><th className="p-3 text-right">Amount</th><th className="p-3">Method</th><th className="p-3">Reference</th><th className="p-3 text-right">Refunded</th><th className="p-3" /></tr></thead>
                   <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-                    {collections.map(t => {
+                    {shownCollections.map(t => {
                       const c = contracts.find(x => x.id === t.contract_id); const cur = c?.body.currency || 'INR';
                       const refunded = refunds.filter(r => r.collection_id === t.id).reduce((s, r) => s + Number(r.amount), 0);
                       return (
@@ -436,11 +446,11 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
       {/* ───────── Invoices & documents ───────── */}
       {loaded && view === 'invoices' && (
         <>
-          {documents.length === 0 && <Card className="p-8 text-center text-xs font-semibold text-slate-500 border-dashed">No documents yet. Issue an invoice from a milestone, or record a payment to generate its receipt.</Card>}
-          {documents.map(d => (
+          {shownDocuments.length === 0 && <Card className="p-8 text-center text-xs font-semibold text-slate-500 border-dashed">{documents.length ? 'No documents in this period.' : 'No documents yet.'}  Issue an invoice from a milestone, or record a payment to generate its receipt.</Card>}
+          {shownDocuments.map(d => (
             <Card key={d.id} className="p-4 border border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <div className="text-xs font-black text-slate-900 flex items-center gap-2">{d.kind === 'Receipt' ? <Receipt className="w-4 h-4 text-emerald-600" /> : d.kind === 'Credit Note' ? <Undo2 className="w-4 h-4 text-rose-600" /> : <FileText className="w-4 h-4 text-[#58051E]" />} {d.kind} · {d.number}</div>
+                <div className="text-xs font-black text-slate-900 flex items-center gap-2">{d.kind === 'Receipt' ? <Receipt className="w-4 h-4 text-emerald-600" /> : d.kind === 'Credit Note' ? <Undo2 className="w-4 h-4 text-rose-600" /> : <FileText className="w-4 h-4 text-[#5A0122]" />} {d.kind} · {d.number}</div>
                 <p className="text-[11px] font-semibold text-slate-500">{d.body.client_name} · {d.body.project_title}{d.body.part?.label ? ` · ${d.body.part.label}` : ''} · {money(Number(d.body.amount || 0), d.body.currency)}</p>
               </div>
               <Button size="sm" variant="outline" className="text-xs font-bold" onClick={() => print(d)}><Printer className="w-3.5 h-3.5 mr-1" /> Print / PDF</Button>
@@ -453,9 +463,9 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
       {loaded && view === 'emails' && (
         <>
           <p className="text-xs font-semibold text-slate-500">"Sent" means the provider accepted the email. Delivery needs provider confirmation.</p>
-          <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" disabled={busy} onClick={() => run(deliver)}><Mail className="w-3.5 h-3.5 mr-1" /> Retry queued / failed delivery</Button>
-          {mail.length === 0 && <Card className="p-8 text-center text-xs font-semibold text-slate-500 border-dashed">No emails queued yet.</Card>}
-          {mail.map(m => (
+          <Button size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold" disabled={busy} onClick={() => run(deliver)}><Mail className="w-3.5 h-3.5 mr-1" /> Retry queued / failed delivery</Button>
+          {shownMail.length === 0 && <Card className="p-8 text-center text-xs font-semibold text-slate-500 border-dashed">{mail.length ? 'No emails in this period.' : 'No emails queued yet.'}</Card>}
+          {shownMail.map(m => (
             <Card key={m.id} className="p-3 border border-slate-200/80 text-xs font-semibold text-slate-700 flex flex-wrap justify-between gap-2">
               <span>{m.recipient}</span>
               <span className={m.status === 'Failed' ? 'text-rose-600 font-black' : m.status === 'Sent' ? 'text-emerald-700 font-black' : 'text-amber-700 font-black'}>{m.status}{m.error ? ` · ${m.error}` : ''}</span>
@@ -504,7 +514,7 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
             <div><label className={label}>Proposal notes</label><textarea className={`${input} h-20 py-2`} value={config.body.notes} onChange={e => setBody({ ...config.body, notes: e.target.value })} /></div>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setConfig(null)}>Cancel</Button>
-              <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] font-bold" disabled={busy}>{busy ? 'Saving…' : 'Save configuration'}</Button>
+              <Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] font-bold" disabled={busy}>{busy ? 'Saving…' : 'Save configuration'}</Button>
             </div>
           </form>
         </Modal>
@@ -534,7 +544,7 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
             <div><label className={label}>Reason for the change *</label><textarea className={`${input} h-20 py-2`} required minLength={3} value={scope.reason} onChange={e => setScope({ ...scope, reason: e.target.value })} placeholder="e.g. Client requested an SEO package" /></div>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setScope(null)}>Cancel</Button>
-              <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] font-bold" disabled={busy}>{busy ? 'Saving…' : 'Add scope'}</Button>
+              <Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] font-bold" disabled={busy}>{busy ? 'Saving…' : 'Add scope'}</Button>
             </div>
           </form>
         </Modal>
@@ -548,7 +558,7 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
             <div><label className={label}>Name</label><input className={input} required value={termEdit.label} onChange={e => setTermEdit({ ...termEdit, label: e.target.value })} /></div>
             <div><label className={label}>Due date</label><input className={input} type="date" required value={termEdit.due} onChange={e => setTermEdit({ ...termEdit, due: e.target.value })} /></div>
             <div><label className={label}>Reason *</label><input className={input} required minLength={3} value={termEdit.reason} onChange={e => setTermEdit({ ...termEdit, reason: e.target.value })} placeholder="e.g. Client asked for a later date" /></div>
-            <div className="flex justify-end gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setTermEdit(null)}>Cancel</Button><Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] font-bold" disabled={busy}>Save</Button></div>
+            <div className="flex justify-end gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setTermEdit(null)}>Cancel</Button><Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] font-bold" disabled={busy}>Save</Button></div>
           </form>
         </Modal>
       )}
@@ -586,7 +596,7 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
                 <div><label className={label}>Date</label><input className={input} type="date" required max={today()} value={pay.date} onChange={e => k({ date: e.target.value })} /></div>
               </div>
               <div><label className={label}>Bank / transaction reference</label><input className={input} value={pay.reference} onChange={e => k({ reference: e.target.value })} /></div>
-              <div className="flex justify-end gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setPay(null)}>Cancel</Button><Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] font-bold" disabled={busy || !pay.part}>{busy ? 'Saving…' : 'Record payment'}</Button></div>
+              <div className="flex justify-end gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setPay(null)}>Cancel</Button><Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] font-bold" disabled={busy || !pay.part}>{busy ? 'Saving…' : 'Record payment'}</Button></div>
             </form>
           </Modal>
         );
@@ -599,7 +609,7 @@ export function DigitalCommerce({ view = 'billing' }: { view?: View }) {
             <p className="text-[11px] font-semibold text-slate-500">Record this only after the money has been returned. It reduces the milestone's received amount and queues a credit note.</p>
             <div><label className={label}>Refund amount *</label><input className={input} type="number" required min="0.001" step="any" value={refund.amount} onChange={e => setRefund({ ...refund, amount: e.target.value, key: uid() })} /></div>
             <div><label className={label}>Reason *</label><textarea className={`${input} h-20 py-2`} required minLength={3} value={refund.reason} onChange={e => setRefund({ ...refund, reason: e.target.value, key: uid() })} /></div>
-            <div className="flex justify-end gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setRefund(null)}>Cancel</Button><Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] font-bold" disabled={busy}>Record refund</Button></div>
+            <div className="flex justify-end gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setRefund(null)}>Cancel</Button><Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] font-bold" disabled={busy}>Record refund</Button></div>
           </form>
         </Modal>
       )}

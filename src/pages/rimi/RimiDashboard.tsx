@@ -125,13 +125,13 @@ export const RimiDashboard: React.FC = () => {
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                <ShoppingCart className="w-4 h-4 text-[#58051E]" /> Recent orders
+                <ShoppingCart className="w-4 h-4 text-[#5A0122]" /> Recent orders
               </h3>
               <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
                 The latest sales orders and their status.
               </p>
             </div>
-            <Link to="/rimi/sales-orders" className="text-xs font-bold text-[#58051E] hover:underline flex items-center gap-1">
+            <Link to="/rimi/sales-orders" className="text-xs font-bold text-[#5A0122] hover:underline flex items-center gap-1">
               <span>All orders</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
@@ -187,7 +187,7 @@ export const RimiDashboard: React.FC = () => {
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                <Activity className="w-4 h-4 text-[#58051E]" /> Recent activity
+                <Activity className="w-4 h-4 text-[#5A0122]" /> Recent activity
               </h3>
               <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
                 Latest changes across orders and stock.
@@ -230,7 +230,7 @@ export const RimiDashboard: React.FC = () => {
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div>
             <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-              <Warehouse className="w-4 h-4 text-[#58051E]" /> Cold storage
+              <Warehouse className="w-4 h-4 text-[#5A0122]" /> Cold storage
             </h3>
             <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
               Pallet use in each warehouse.
@@ -259,7 +259,7 @@ export const RimiDashboard: React.FC = () => {
                 </div>
                 <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-[#58051E] rounded-full"
+                    className="h-full bg-[#5A0122] rounded-full"
                     style={{ width: `${Math.min(100, Math.round((wh.utilized_pallets / (wh.total_capacity_pallets || 1)) * 100))}%` }}
                   />
                 </div>

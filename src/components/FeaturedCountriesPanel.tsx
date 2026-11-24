@@ -21,7 +21,7 @@ export function FeaturedCountriesPanel({ destinations, onMessage }: { destinatio
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
 
-  const field = 'h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#58051E]/20';
+  const field = 'h-10 px-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#5A0122]/20';
   return (
     <section className="p-5 bg-white border border-slate-200/90 rounded-2xl shadow-xs space-y-3 text-left">
       <div className="flex items-center gap-2">
@@ -48,7 +48,7 @@ export function FeaturedCountriesPanel({ destinations, onMessage }: { destinatio
         ))}
       </div>
       {error && <p role="alert" className="text-[11px] font-bold text-rose-700">{error}</p>}
-      <button type="button" disabled={busy || !dirty} onClick={save} className="h-9 px-4 rounded-xl text-xs font-bold bg-[#58051E] text-white hover:bg-[#430316] disabled:opacity-40 cursor-pointer">
+      <button type="button" disabled={busy || !dirty} onClick={save} className="h-9 px-4 rounded-xl text-xs font-bold bg-[#5A0122] text-white hover:bg-[#68092A] disabled:opacity-40 cursor-pointer">
         Save featured countries
       </button>
     </section>

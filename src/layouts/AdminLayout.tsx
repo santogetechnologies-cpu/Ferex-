@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Users, ClipboardList, FileCheck, FolderOpen,
   CreditCard, Headphones, BarChart3, Crown, GraduationCap,
   Bell, Settings, LogOut, Menu, X, ChevronDown, ChevronRight, Search, Building2, ShieldCheck, Calendar, Plane, FileText, Home, Sparkles, Mail, Award, MessageSquare, Sliders
-  , Wallet
+  , Wallet, Layers, Receipt
 } from 'lucide-react';
 
 import { Logo } from '../components/Logo';
@@ -27,7 +27,8 @@ const pageLabelFromPath = (path: string) => {
 
 interface AdminLayoutProps { children: React.ReactNode; }
 
-const baseMenuItems = [
+type MenuItem = { name: string; path: string; icon: any; badge: string | null; hasUpdate: boolean; group?: string };
+const baseMenuItems: MenuItem[] = [
   { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard, badge: null, hasUpdate: false },
   { name: 'Enquiries', path: '/admin/enquiries', icon: Users, badge: null, hasUpdate: false },
   { name: 'Students', path: '/admin/students', icon: GraduationCap, badge: null, hasUpdate: false },
@@ -38,8 +39,13 @@ const baseMenuItems = [
   { name: 'Document Requirements', path: '/admin/document-config', icon: FileText, badge: null, hasUpdate: false },
   { name: 'Legalization', path: '/admin/legalization', icon: FileCheck, badge: null, hasUpdate: false },
   { name: 'Payments', path: '/admin/payment-control', icon: CreditCard, badge: null, hasUpdate: false },
+  { name: 'Payment plans', path: '/admin/payment-plans', icon: Layers, badge: null, hasUpdate: false },
   { name: 'Fees', path: '/admin/fee-config', icon: Sliders, badge: null, hasUpdate: false },
-  { name: 'Finance', path: '/admin/finance', icon: Wallet, badge: null, hasUpdate: false },
+  { name: 'Overview', path: '/admin/finance', icon: Wallet, badge: null, hasUpdate: false, group: 'Finance' },
+  { name: 'Billing', path: '/admin/finance/billing', icon: Receipt, badge: null, hasUpdate: false, group: 'Finance' },
+  { name: 'Invoices', path: '/admin/finance/invoices', icon: FileText, badge: null, hasUpdate: false, group: 'Finance' },
+  { name: 'Payments', path: '/admin/finance/payments', icon: CreditCard, badge: null, hasUpdate: false, group: 'Finance' },
+  { name: 'Expenses', path: '/admin/finance/expenses', icon: Sliders, badge: null, hasUpdate: false, group: 'Finance' },
   { name: 'Visa', path: '/admin/visa-tracker', icon: ShieldCheck, badge: null, hasUpdate: false },
   { name: 'Pre-Departure', path: '/admin/pre-departure', icon: Plane, badge: null, hasUpdate: false },
   { name: 'Tasks', path: '/admin/tasks', icon: ClipboardList, badge: null, hasUpdate: false },
@@ -109,7 +115,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const hasUnreadVisa = hasUnreadCategory('Visa') || hasUnreadCategory('VFS') || hasUnreadCategory('Embassy');
   const hasUnreadLegalization = hasUnreadCategory('Legalization') || hasUnreadCategory('Apostille');
 
-  const active = baseMenuItems.find(m => location.pathname === m.path || (m.path === '/admin/payment-control' && location.pathname === '/admin/payments'))?.name || pageLabelFromPath(location.pathname);
+  // The page whose path best matches the address bar (two items can share a name, e.g. Payments under Finance).
+  const activeItemPath = (() => {
+    const p = location.pathname === '/admin/payments' ? '/admin/payment-control' : location.pathname;
+    return baseMenuItems.find(m => m.path === p)?.path || baseMenuItems.filter(m => p.startsWith(m.path + '/')).sort((a, b) => b.path.length - a.path.length)[0]?.path || '';
+  })();
+  const active = baseMenuItems.find(m => m.path === activeItemPath)?.name || pageLabelFromPath(location.pathname);
   const localSavedUser = (() => {
     try {
       const r = localStorage.getItem('ferex_user');
@@ -135,11 +146,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     .filter(item => {
       const normalizedPath = item.path.toLowerCase();
       const normalizedName = item.name.toLowerCase();
-      if (seenPaths.has(normalizedPath) || seenNames.has(normalizedName)) {
+      if (seenPaths.has(normalizedPath) || (!item.group && seenNames.has(normalizedName))) {
         return false;
       }
       seenPaths.add(normalizedPath);
-      seenNames.add(normalizedName);
+      if (!item.group) seenNames.add(normalizedName);
       return true;
     })
     .map(item => {
@@ -163,7 +174,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="fx-app h-screen overflow-hidden bg-slate-50/80 dark:bg-slate-950 flex text-slate-800 dark:text-slate-100 antialiased selection:bg-[#58051E]/10 selection:text-[#58051E]">
+    <div className="fx-app h-screen overflow-hidden bg-slate-50/80 dark:bg-slate-950 flex text-slate-800 dark:text-slate-100 antialiased selection:bg-[#5A0122]/10 selection:text-[#5A0122]">
       {/* Mobile Backdrop */}
       <AnimatePresence>
         {isMobileOpen && (
@@ -192,22 +203,24 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         {/* Navigation Items */}
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5 scrollbar-thin">
           <div className="px-2.5 pb-1.5 text-[9.5px] font-bold uppercase tracking-wider text-slate-400">Navigation</div>
-          {menuItems.map((item) => {
-            const isActive = item.name === active;
+          {menuItems.map((item, idx) => {
+            const isActive = item.path === activeItemPath;
+            const startsGroup = Boolean(item.group) && menuItems[idx - 1]?.group !== item.group;
             const Icon = item.icon;
             const badgeValue = item.badge;
 
             return (
-              <React.Fragment key={item.name}>
+              <React.Fragment key={item.path}>
+                {startsGroup && <div className="px-2.5 pt-3 pb-1 text-[9.5px] font-bold uppercase tracking-wider text-slate-400">{item.group}</div>}
                 <Link
                   to={item.path}
                   onClick={() => setIsMobileOpen(false)}
                   className={`relative flex items-center gap-2.5 h-9 px-2.5 rounded-xl text-xs font-semibold transition-all duration-150 group
                     ${isActive
-                      ? 'bg-[#58051E]/8 text-[#58051E] font-bold border-l-2 border-[#58051E]'
+                      ? 'bg-[#5A0122]/8 text-[#5A0122] font-bold border-l-2 border-[#5A0122]'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'}`}
                 >
-                  <Icon className={`w-4 h-4 shrink-0 transition-transform duration-150 ${isActive ? 'text-[#58051E]' : 'text-slate-400 group-hover:text-slate-700'}`} />
+                  <Icon className={`w-4 h-4 shrink-0 transition-transform duration-150 ${isActive ? 'text-[#5A0122]' : 'text-slate-400 group-hover:text-slate-700'}`} />
                   <span className="truncate flex-1 flex items-center justify-between">
                     <span className="truncate">{item.name}</span>
                     {item.hasUpdate && (
@@ -220,7 +233,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
                   {(badgeValue || item.badge) && (
                     <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold shrink-0 transition-colors ${isActive
-                        ? 'bg-[#58051E]/15 text-[#58051E]'
+                        ? 'bg-[#5A0122]/15 text-[#5A0122]'
                         : item.badge === 'VERIFY' || item.badge === 'REVIEW'
                           ? 'bg-amber-50 text-amber-800 border border-amber-200'
                           : 'bg-rose-50 text-rose-700 border border-rose-200'
@@ -240,7 +253,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                     }}
                     className="w-full relative flex items-center gap-2.5 h-9 px-2.5 rounded-xl text-xs font-bold transition-all duration-150 text-slate-600 hover:bg-slate-100 hover:text-slate-900 text-left cursor-pointer group"
                   >
-                    <Sparkles className="w-4 h-4 shrink-0 text-slate-400 group-hover:text-[#58051E] transition-colors" />
+                    <Sparkles className="w-4 h-4 shrink-0 text-slate-400 group-hover:text-[#5A0122] transition-colors" />
                     <span className="truncate flex-1">AI Assistant</span>
                   </button>
                 )}
@@ -253,7 +266,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         <div className="p-3 border-t border-slate-100 shrink-0 bg-slate-50/50">
           <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white border border-slate-200/60 shadow-2xs">
             <div className="relative">
-              <div className="w-7.5 h-7.5 rounded-lg bg-[#58051E] flex items-center justify-center text-white text-xs font-bold shadow-xs">
+              <div className="w-7.5 h-7.5 rounded-lg bg-[#5A0122] flex items-center justify-center text-white text-xs font-bold shadow-xs">
                 {adminName[0]?.toUpperCase() || 'A'}
               </div>
               <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 border-2 border-white rounded-full" />
@@ -286,7 +299,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           {/* Breadcrumb & Division Identity */}
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-medium text-slate-400 min-w-0">
             <Link to="/admin/dashboard" className="hover:text-slate-700 transition-colors flex items-center gap-1.5 text-slate-700 font-semibold shrink-0">
-              <GraduationCap className="w-4 h-4 text-[#58051E]" />
+              <GraduationCap className="w-4 h-4 text-[#5A0122]" />
               <span className="hidden sm:inline">Ferex Education</span>
             </Link>
             <ChevronRight className="w-3 h-3 text-slate-300 shrink-0 hidden sm:inline-block" />
@@ -322,7 +335,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search students, CRM... (Enter)"
-                className="h-9 w-60 pl-9 pr-8 bg-slate-100/70 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#58051E]/40 focus:ring-4 focus:ring-[#58051E]/5 transition-all"
+                className="h-9 w-60 pl-9 pr-8 bg-slate-100/70 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#5A0122]/40 focus:ring-4 focus:ring-[#5A0122]/5 transition-all"
               />
             </form>
 
@@ -362,7 +375,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                   >
                     <div className="flex items-center justify-between px-2 pb-2.5 border-b border-slate-100">
                       <span className="text-xs font-extrabold text-slate-900">Notifications ({unreadNotifs.length})</span>
-                      <button onClick={() => navigate('/admin/notifications')} className="text-[10px] font-bold text-[#58051E] hover:underline">View All</button>
+                      <button onClick={() => navigate('/admin/notifications')} className="text-[10px] font-bold text-[#5A0122] hover:underline">View All</button>
                     </div>
                     <div className="py-2 space-y-2 max-h-64 overflow-y-auto">
                       {notifications.length === 0 ? (
@@ -398,7 +411,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 className="flex items-center gap-2.5 h-9.5 px-3 rounded-xl border border-slate-200/80 hover:bg-slate-50 transition-colors"
               >
                 <div className="relative">
-                  <div className="w-6.5 h-6.5 rounded-lg bg-[#58051E] flex items-center justify-center text-white text-[10px] font-black shadow-xs">
+                  <div className="w-6.5 h-6.5 rounded-lg bg-[#5A0122] flex items-center justify-center text-white text-[10px] font-black shadow-xs">
                     {adminName[0]?.toUpperCase() || 'A'}
                   </div>
                   <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 border border-white rounded-full" />

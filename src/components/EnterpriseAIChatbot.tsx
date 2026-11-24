@@ -244,7 +244,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
 
       if (trimmed.startsWith('### ')) {
         return (
-          <h4 key={idx} className="font-bold text-xs sm:text-sm text-[#58051E] mt-2 mb-1 border-b border-[#58051E]/10 pb-0.5">
+          <h4 key={idx} className="font-bold text-xs sm:text-sm text-[#5A0122] mt-2 mb-1 border-b border-[#5A0122]/10 pb-0.5">
             {trimmed.replace('### ', '')}
           </h4>
         );
@@ -260,7 +260,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
         const bulletText = trimmed.replace(/^[-*•]\s+/, '');
         return (
           <div key={idx} className="flex items-start gap-2 ml-1 my-1 text-xs text-slate-700 leading-relaxed font-medium">
-            <span className="text-[#58051E] font-bold text-xs shrink-0 mt-0.5">•</span>
+            <span className="text-[#5A0122] font-bold text-xs shrink-0 mt-0.5">•</span>
             <span className="flex-1">{renderInlineFormatting(bulletText)}</span>
           </div>
         );
@@ -269,7 +269,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
       if (numMatch) {
         return (
           <div key={idx} className="flex items-start gap-2 ml-1 my-1 text-xs text-slate-700 leading-relaxed font-medium">
-            <span className="font-bold text-[#58051E] text-xs shrink-0 mt-0.5 bg-[#58051E]/10 w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
+            <span className="font-bold text-[#5A0122] text-xs shrink-0 mt-0.5 bg-[#5A0122]/10 w-4 h-4 rounded-full flex items-center justify-center text-[10px]">
               {numMatch[1]}
             </span>
             <span className="flex-1">{renderInlineFormatting(numMatch[2])}</span>
@@ -326,10 +326,10 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
             }`}
           >
             {/* ── Header ── */}
-            <div className="bg-gradient-to-r from-[#58051E] via-[#6f0335] to-[#800020] text-white p-3.5 flex items-center justify-between border-b border-white/10 shrink-0">
+            <div className="bg-gradient-to-r from-[#5A0122] via-[#68092A] to-[#800020] text-white p-3.5 flex items-center justify-between border-b border-white/10 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8.5 h-8.5 rounded-xl bg-white p-1.5 flex items-center justify-center shadow-xs shrink-0">
-                  <Logo variant="icon" size="sm" color="#58051E" />
+                  <Logo variant="icon" size="sm" color="#5A0122" />
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
@@ -353,7 +353,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
                     onClick={() => setActiveMode('chat')}
                     className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
                       activeMode === 'chat'
-                        ? 'bg-white text-[#58051E] shadow-xs'
+                        ? 'bg-white text-[#5A0122] shadow-xs'
                         : 'text-white/80 hover:text-white hover:bg-white/10'
                     }`}
                     title="Text Chat Mode"
@@ -364,7 +364,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
                     onClick={() => setActiveMode('voice')}
                     className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
                       activeMode === 'voice'
-                        ? 'bg-white text-[#58051E] shadow-xs animate-pulse'
+                        ? 'bg-white text-[#5A0122] shadow-xs animate-pulse'
                         : 'text-white/80 hover:text-white hover:bg-white/10'
                     }`}
                     title="Realtime Voice Mode"
@@ -427,14 +427,14 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
                       >
                         {!isUser && (
                           <div className="w-7 h-7 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center shrink-0 mt-0.5 p-0.5">
-                            <Logo variant="icon" size="xs" color="#58051E" />
+                            <Logo variant="icon" size="xs" color="#5A0122" />
                           </div>
                         )}
 
                         <div
                           className={`relative group max-w-[85%] sm:max-w-[80%] rounded-2xl p-3.5 text-xs shadow-xs ${
                             isUser
-                              ? 'bg-gradient-to-r from-[#58051E] to-[#780a37] text-white rounded-br-xs font-medium'
+                              ? 'bg-gradient-to-r from-[#5A0122] to-[#780a37] text-white rounded-br-xs font-medium'
                               : 'bg-white text-slate-800 border border-slate-200/90 rounded-bl-xs'
                           }`}
                         >
@@ -446,9 +446,9 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
                                 renderFormattedContent(msg.content)
                               ) : (
                                 <div className="flex items-center gap-1.5 py-1 px-1">
-                                  <span className="w-2 h-2 rounded-full bg-[#58051E] animate-bounce" style={{ animationDelay: '0ms' }} />
-                                  <span className="w-2 h-2 rounded-full bg-[#58051E] animate-bounce" style={{ animationDelay: '150ms' }} />
-                                  <span className="w-2 h-2 rounded-full bg-[#58051E] animate-bounce" style={{ animationDelay: '300ms' }} />
+                                  <span className="w-2 h-2 rounded-full bg-[#5A0122] animate-bounce" style={{ animationDelay: '0ms' }} />
+                                  <span className="w-2 h-2 rounded-full bg-[#5A0122] animate-bounce" style={{ animationDelay: '150ms' }} />
+                                  <span className="w-2 h-2 rounded-full bg-[#5A0122] animate-bounce" style={{ animationDelay: '300ms' }} />
                                 </div>
                               )}
 
@@ -493,7 +493,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
                       key={pIdx}
                       onClick={() => handleSendMessage(prompt)}
                       disabled={isLoading}
-                      className="text-[11px] font-semibold text-slate-600 bg-slate-100 hover:bg-[#58051E]/10 hover:text-[#58051E] px-2.5 py-1 rounded-xl transition-colors shrink-0 whitespace-nowrap cursor-pointer"
+                      className="text-[11px] font-semibold text-slate-600 bg-slate-100 hover:bg-[#5A0122]/10 hover:text-[#5A0122] px-2.5 py-1 rounded-xl transition-colors shrink-0 whitespace-nowrap cursor-pointer"
                     >
                       {prompt}
                     </button>
@@ -516,13 +516,13 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
                       onChange={(e) => setInputMessage(e.target.value)}
                       placeholder="Type whatever to get instant answers..."
                       disabled={isLoading}
-                      className="flex-1 h-11 px-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#58051E] disabled:opacity-50 transition-all"
+                      className="flex-1 h-11 px-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#5A0122] disabled:opacity-50 transition-all"
                     />
 
                     <button
                       type="button"
                       onClick={() => setActiveMode('voice')}
-                      className="w-11 h-11 rounded-2xl bg-slate-100 hover:bg-[#58051E]/10 text-slate-700 hover:text-[#58051E] flex items-center justify-center transition-all cursor-pointer shrink-0"
+                      className="w-11 h-11 rounded-2xl bg-slate-100 hover:bg-[#5A0122]/10 text-slate-700 hover:text-[#5A0122] flex items-center justify-center transition-all cursor-pointer shrink-0"
                       title="Switch to Realtime Voice Mode"
                     >
                       <Mic className="w-4 h-4" />
@@ -531,7 +531,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
                     <button
                       type="submit"
                       disabled={!inputMessage.trim() || isLoading}
-                      className="w-11 h-11 rounded-2xl bg-[#58051E] hover:bg-[#6F0335] text-white flex items-center justify-center transition-all cursor-pointer shadow-md disabled:opacity-40 disabled:cursor-not-allowed shrink-0 active:scale-95"
+                      className="w-11 h-11 rounded-2xl bg-[#5A0122] hover:bg-[#68092A] text-white flex items-center justify-center transition-all cursor-pointer shadow-md disabled:opacity-40 disabled:cursor-not-allowed shrink-0 active:scale-95"
                       aria-label="Send"
                       title="Send"
                     >
@@ -543,7 +543,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
                   </form>
 
                   <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium px-1 mt-2">
-                    <span className="flex items-center gap-1 text-[#58051E] font-semibold">
+                    <span className="flex items-center gap-1 text-[#5A0122] font-semibold">
                       <ShieldCheck className="w-3 h-3" /> Ferex Support
                     </span>
                     <span>Student Admissions Desk</span>
@@ -571,7 +571,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
               initial={{ opacity: 0, x: 10, scale: 0.95 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               transition={{ delay: 0.1, duration: 0.2 }}
-              className="relative hidden sm:flex items-center gap-2 bg-white/70 backdrop-blur-xl text-slate-800 text-xs font-bold pl-4 pr-3.5 py-2.5 rounded-full shadow-[0_14px_34px_-14px_rgba(101,0,45,0.5)] border border-white/80 hover:border-[#A0004C]/40 transition-all cursor-pointer group-hover:scale-105"
+              className="relative hidden sm:flex items-center gap-2 bg-white/70 backdrop-blur-xl text-slate-800 text-xs font-bold pl-4 pr-3.5 py-2.5 rounded-full shadow-[0_14px_34px_-14px_rgba(101,0,45,0.5)] border border-white/80 hover:border-[#68092A]/40 transition-all cursor-pointer group-hover:scale-105"
             >
               <span className="font-extrabold text-slate-900 whitespace-nowrap">
                 {role === 'student' ? 'AI Assistant' : 'Ask Ferex AI'}
@@ -587,7 +587,7 @@ export const EnterpriseAIChatbot: React.FC<EnterpriseAIChatbotProps> = ({
             <button
               type="button"
               aria-label="Open Ferex AI Assistant"
-              className="relative w-14 h-14 rounded-full bg-gradient-to-br from-[#58051E] via-[#6f0335] to-[#800020] text-white shadow-2xl shadow-[#58051E]/45 hover:shadow-[#58051E]/65 border-2 border-white/35 flex items-center justify-center transition-transform duration-200 group-hover:scale-110 active:scale-95 cursor-pointer shrink-0"
+              className="relative w-14 h-14 rounded-full bg-gradient-to-br from-[#5A0122] via-[#68092A] to-[#800020] text-white shadow-2xl shadow-[#5A0122]/45 hover:shadow-[#5A0122]/65 border-2 border-white/35 flex items-center justify-center transition-transform duration-200 group-hover:scale-110 active:scale-95 cursor-pointer shrink-0"
             >
               <GraduationCap className="w-7 h-7 text-white" />
               <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-emerald-400 border-2 border-white rounded-full animate-pulse shadow-xs" />

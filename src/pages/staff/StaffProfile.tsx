@@ -1,3 +1,4 @@
+import { changeMyPassword } from '../../lib/api/password';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -16,6 +17,7 @@ export const StaffProfile: React.FC = () => {
   const [toast, setToast] = useState('');
 
   // Password update state
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
@@ -42,10 +44,6 @@ export const StaffProfile: React.FC = () => {
     setPasswordError('');
     setPasswordSuccess('');
 
-    if (!newPassword || newPassword.length < 6) {
-      setPasswordError('Password must be at least 6 characters long.');
-      return;
-    }
     if (newPassword !== confirmPassword) {
       setPasswordError('Passwords do not match.');
       return;
@@ -53,19 +51,9 @@ export const StaffProfile: React.FC = () => {
 
     try {
       setIsUpdatingPassword(true);
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) {
-        // Direct admin auth fallback
-        const admin = await getAdminSupabaseClient();
-        if (user?.id) {
-          const res = await admin.auth.admin.updateUserById(user.id, { password: newPassword });
-          if (res.error) throw res.error;
-        } else {
-          throw error;
-        }
-      }
-
-      setPasswordSuccess('Password updated.');
+      await changeMyPassword(currentPassword, newPassword);
+      setPasswordSuccess('Password updated. A confirmation email was sent and other devices were signed out.');
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       showToast('Security credentials updated successfully.');
@@ -82,7 +70,7 @@ export const StaffProfile: React.FC = () => {
       <ToastNotification message={toast} onClose={() => setToast('')} />
 
       {/* Header Banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-[#58051E] via-[#430316] to-[#2E030F] text-white p-8 shadow-xl relative overflow-hidden">
+      <div className="rounded-3xl bg-gradient-to-r from-[#5A0122] via-[#68092A] to-[#2E030F] text-white p-8 shadow-xl relative overflow-hidden">
         <div
           className="absolute inset-0 opacity-10 pointer-events-none"
           style={{ backgroundImage: 'radial-gradient(circle at 80% 50%, white 0%, transparent 60%)' }}
@@ -113,7 +101,7 @@ export const StaffProfile: React.FC = () => {
         {/* Employment & Role Information */}
         <Card className="p-6 border border-slate-200/80 shadow-xs space-y-4">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-            <User className="w-4 h-4 text-[#58051E]" />
+            <User className="w-4 h-4 text-[#5A0122]" />
             <h3 className="text-sm font-black text-slate-900">Counselor Profile Information</h3>
           </div>
 
@@ -144,7 +132,7 @@ export const StaffProfile: React.FC = () => {
         {/* Security & Password Reset */}
         <Card className="p-6 border border-slate-200/80 shadow-xs space-y-4">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-            <KeyRound className="w-4 h-4 text-[#58051E]" />
+            <KeyRound className="w-4 h-4 text-[#5A0122]" />
             <h3 className="text-sm font-black text-slate-900">Security & Authentication</h3>
           </div>
 
@@ -169,6 +157,20 @@ export const StaffProfile: React.FC = () => {
           <form onSubmit={handlePasswordUpdate} className="space-y-3">
             <div>
               <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
+                Current Password
+              </label>
+              <input
+                type="password"
+                required
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={e => setCurrentPassword(e.target.value)}
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#5A0122]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
                 New Password
               </label>
               <input
@@ -176,8 +178,8 @@ export const StaffProfile: React.FC = () => {
                 required
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
-                placeholder="At least 6 characters"
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#58051E]"
+                placeholder="8+ characters, upper, lower, number"
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#5A0122]"
               />
             </div>
 
@@ -191,7 +193,7 @@ export const StaffProfile: React.FC = () => {
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 placeholder="Repeat new password"
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#58051E]"
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#5A0122]"
               />
             </div>
 
@@ -199,7 +201,7 @@ export const StaffProfile: React.FC = () => {
               type="submit"
               size="sm"
               disabled={isUpdatingPassword}
-              className="w-full bg-[#58051E] hover:bg-[#430316] text-white font-black text-xs mt-2"
+              className="w-full bg-[#5A0122] hover:bg-[#68092A] text-white font-black text-xs mt-2"
             >
               <Lock className="w-3.5 h-3.5 mr-1.5" />
               {isUpdatingPassword ? 'Updating Password...' : 'Update password'}

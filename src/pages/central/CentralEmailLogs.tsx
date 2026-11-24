@@ -215,10 +215,10 @@ export const CentralEmailLogs: React.FC<CentralEmailLogsProps> = ({ defaultDivis
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Mail className="w-6 h-6 text-[#58051E]" />
+              <Mail className="w-6 h-6 text-[#5A0122]" />
               {defaultDivision === 'all' ? 'Emails' : `${DIVISION_LABELS[defaultDivision]} — Email Delivery Logs`}
             </h1>
-            <span className="text-[10px] font-bold bg-[#58051E]/10 text-[#58051E] border border-[#58051E]/20 px-2.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold bg-[#5A0122]/10 text-[#5A0122] border border-[#5A0122]/20 px-2.5 py-0.5 rounded-full">
               {DIVISION_LABELS[defaultDivision]}
             </span>
           </div>
@@ -241,13 +241,13 @@ export const CentralEmailLogs: React.FC<CentralEmailLogsProps> = ({ defaultDivis
             variant="outline"
             className="text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border-slate-200/80"
           >
-            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin text-[#58051E]' : ''}`} /> Refresh
+            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin text-[#5A0122]' : ''}`} /> Refresh
           </Button>
 
           <Button
             size="sm"
             onClick={handleExportCSV}
-            className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold text-white shadow-xs"
+            className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold text-white shadow-xs"
           >
             <Download className="w-3.5 h-3.5 mr-1.5" /> Export Logs CSV
           </Button>
@@ -294,7 +294,7 @@ export const CentralEmailLogs: React.FC<CentralEmailLogsProps> = ({ defaultDivis
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by recipient email, recipient name, subject, or reference ID..."
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#58051E]/40"
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#5A0122]/40"
             />
           </div>
 
@@ -313,7 +313,7 @@ export const CentralEmailLogs: React.FC<CentralEmailLogsProps> = ({ defaultDivis
                   onClick={() => setFilterDivision(tab.id as any)}
                   className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
                     filterDivision === tab.id
-                      ? 'bg-[#58051E] text-white shadow-xs'
+                      ? 'bg-[#5A0122] text-white shadow-xs'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -324,7 +324,7 @@ export const CentralEmailLogs: React.FC<CentralEmailLogsProps> = ({ defaultDivis
           ) : (
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] font-bold text-slate-500">Showing emails for:</span>
-              <span className="px-3 py-1 rounded-lg text-xs font-black bg-[#58051E] text-white">
+              <span className="px-3 py-1 rounded-lg text-xs font-black bg-[#5A0122] text-white">
                 {DIVISION_LABELS[defaultDivision]}
               </span>
             </div>
@@ -393,7 +393,7 @@ export const CentralEmailLogs: React.FC<CentralEmailLogsProps> = ({ defaultDivis
                     <td className="py-3 px-4 max-w-sm">
                       <p className="font-bold text-slate-900 truncate">{log.subject}</p>
                       {log.reference_id && (
-                        <span className="text-[9.5px] font-mono text-[#58051E] bg-[#58051E]/5 px-1.5 py-0.2 rounded border border-[#58051E]/10">
+                        <span className="text-[9.5px] font-mono text-[#5A0122] bg-[#5A0122]/5 px-1.5 py-0.2 rounded border border-[#5A0122]/10">
                           Ref: {log.reference_id}
                         </span>
                       )}
@@ -426,7 +426,7 @@ export const CentralEmailLogs: React.FC<CentralEmailLogsProps> = ({ defaultDivis
                         <button
                           onClick={() => handleResend(log)}
                           disabled={resendingId === log.id}
-                          className="p-1.5 text-slate-400 hover:text-[#58051E] hover:bg-[#58051E]/10 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 text-slate-400 hover:text-[#5A0122] hover:bg-[#5A0122]/10 rounded-lg transition-colors cursor-pointer"
                           title="Re-send Email"
                         >
                           <Send className={`w-3.5 h-3.5 ${resendingId === log.id ? 'animate-spin' : ''}`} />
@@ -499,7 +499,7 @@ export const CentralEmailLogs: React.FC<CentralEmailLogsProps> = ({ defaultDivis
                 <Button
                   size="sm"
                   onClick={() => setSelectedLog(null)}
-                  className="bg-[#58051E] text-white text-xs font-bold"
+                  className="bg-[#5A0122] text-white text-xs font-bold"
                 >
                   Close
                 </Button>

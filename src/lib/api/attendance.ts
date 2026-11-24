@@ -30,7 +30,7 @@ export interface AttendanceContext {
   today: string;
 }
 
-export interface TeamMember { user_id: string; name: string; email: string; role: string; division: string; level: 'staff' | 'admin'; is_me: boolean }
+export interface TeamMember { user_id: string; name: string; email: string; role: string; division: string; level: 'staff' | 'admin'; is_me: boolean; can_decide: boolean }
 
 export interface AttendanceDay {
   id: string; user_id: string; user_name: string; user_email: string; user_role: string; division: string; work_date: string;

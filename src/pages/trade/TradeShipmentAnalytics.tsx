@@ -78,7 +78,7 @@ export const TradeShipmentAnalytics: React.FC = () => {
     <div className="space-y-6 text-left antialiased">
       <div>
         <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-[#58051E]" /> Shipment reports
+          <TrendingUp className="w-5 h-5 text-[#5A0122]" /> Shipment reports
         </h1>
         <p className="text-xs font-semibold text-slate-500 mt-1">Container turnaround, route efficiency and port clearance times.</p>
       </div>
@@ -88,7 +88,7 @@ export const TradeShipmentAnalytics: React.FC = () => {
           { label: 'Total Freight Volume', val: `${totalWeightTonnes} Tonnes`, sub: `${totalWeightKg.toLocaleString()} kg moved`, color: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
           { label: 'Active in Transit', val: `${inTransitCount} Units`, sub: 'Currently at sea or terminal', color: 'text-blue-600 bg-blue-50 border-blue-100' },
           { label: 'Customs Cleared', val: `${clearedCount} Units`, sub: `${totalShipments} Total Booked`, color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
-          { label: 'Active Carrier Lines', val: `${carrierList.length} Lines`, sub: 'Maersk, CMA CGM, Hapag, MSC', color: 'text-[#58051E] bg-[#58051E]/10 border-[#58051E]/20' }
+          { label: 'Active Carrier Lines', val: `${carrierList.length} Lines`, sub: 'Maersk, CMA CGM, Hapag, MSC', color: 'text-[#5A0122] bg-[#5A0122]/10 border-[#5A0122]/20' }
         ].map((kpi, idx) => (
           <Card key={idx} className="p-4 border border-slate-200/80 shadow-xs flex flex-col justify-between">
             <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">{kpi.label}</span>
@@ -102,7 +102,7 @@ export const TradeShipmentAnalytics: React.FC = () => {
         {/* Destination Port Distribution */}
         <Card className="p-6 text-left border border-slate-200/70 shadow-xs space-y-4">
           <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-            <Globe className="w-4 h-4 text-[#58051E]" /> Container Traffic by Destination Port
+            <Globe className="w-4 h-4 text-[#5A0122]" /> Container Traffic by Destination Port
           </h3>
           {loading ? (
             <div className="py-8 text-center text-xs font-semibold text-slate-400">Computing route stats...</div>
@@ -117,7 +117,7 @@ export const TradeShipmentAnalytics: React.FC = () => {
                     <span className="text-slate-900 font-black shrink-0">{bar.count} ({bar.pct}%)</span>
                   </div>
                   <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#58051E] rounded-full transition-all duration-500" style={{ width: `${bar.pct}%` }} />
+                    <div className="h-full bg-[#5A0122] rounded-full transition-all duration-500" style={{ width: `${bar.pct}%` }} />
                   </div>
                 </div>
               ))}
@@ -128,7 +128,7 @@ export const TradeShipmentAnalytics: React.FC = () => {
         {/* Carrier Line Distribution */}
         <Card className="p-6 text-left border border-slate-200/70 shadow-xs space-y-4">
           <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-            <Anchor className="w-4 h-4 text-[#58051E]" /> Ocean Carrier Line Allocation
+            <Anchor className="w-4 h-4 text-[#5A0122]" /> Ocean Carrier Line Allocation
           </h3>
           {loading ? (
             <div className="py-8 text-center text-xs font-semibold text-slate-400">Computing carrier breakdown...</div>

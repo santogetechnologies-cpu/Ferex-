@@ -1,3 +1,4 @@
+import { useTradeStaff } from '../../hooks/useTradeStaff';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDraftState } from '../../hooks/useDraftState';
 import { useLocation } from 'react-router-dom';
@@ -6,7 +7,7 @@ import {
   PackageCheck, Search, Plus, Filter, CheckCircle2,
   Clock, ArrowRight, Eye, Trash2, X, Send,
   Ship, ShieldCheck, DollarSign, Calendar, MapPin,
-  Building2, UserCheck, AlertCircle, RefreshCw
+  Building2, UserCheck, AlertCircle, RefreshCw, ChevronDown
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -28,6 +29,8 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { CapLoader } from '../../components/CapLoader';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
+import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 export const TradeShipments: React.FC = () => {
   const { profile } = useAuth();
@@ -36,6 +39,7 @@ export const TradeShipments: React.FC = () => {
   const [partners, setPartners] = useState<TradeClientPartner[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [filterStage, setFilterStage] = useState<string>('All');
   const [selectedOrder, setSelectedOrder] = useState<TradeOrder | null>(null);
   // The Add Order form and its data survive switching to another tab and coming back.
@@ -43,7 +47,9 @@ export const TradeShipments: React.FC = () => {
   const [toast, setToast] = useState('');
   const [advancingId, setAdvancingId] = useState<string | null>(null);
 
-  const staffList = getTradeStaffOfficers();
+  const [partnerOpen, setPartnerOpen] = useState(false);
+  const [partnerTyped, setPartnerTyped] = useState(false);
+  const staffList = useTradeStaff();
   const userName = profile?.full_name || 'Trade Officer';
 
   const initialForm = {
@@ -76,6 +82,13 @@ export const TradeShipments: React.FC = () => {
   };
 
   const [formData, setFormData, clearFormDraft] = useDraftState('trade_order_form', initialForm);
+
+  // Once the staff list arrives, pick a valid officer if the current one is not on it.
+  useEffect(() => {
+    if (staffList.length && !staffList.some(m => m.name === formData.assigned_staff_name)) {
+      setFormData(f => ({ ...f, assigned_staff_name: staffList[0].name, assigned_staff_email: staffList[0].email }));
+    }
+  }, [staffList]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -217,7 +230,7 @@ export const TradeShipments: React.FC = () => {
     }
   };
 
-  const filteredOrders = orders.filter(o => {
+  const filteredOrders = orders.filter(o => inRange(o.created_at, range)).filter(o => {
     const matchesSearch =
       o.order_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
       o.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -236,7 +249,7 @@ export const TradeShipments: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <PackageCheck className="w-5 h-5 text-[#58051E]" />
+            <PackageCheck className="w-5 h-5 text-[#5A0122]" />
             Orders
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">Every order through its seven stages.</p>
@@ -244,7 +257,7 @@ export const TradeShipments: React.FC = () => {
         <Button
           size="sm"
           onClick={() => setShowCreateModal(true)}
-          className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs cursor-pointer"
+          className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-xs cursor-pointer"
         >
           <Plus className="w-4 h-4 mr-1.5" />
           Log New Order
@@ -267,12 +280,12 @@ export const TradeShipments: React.FC = () => {
                   onClick={() => setFilterStage(filterStage === st ? 'All' : st)}
                   className={`flex-1 p-2.5 rounded-xl border text-center cursor-pointer transition-all ${
                     isActive
-                      ? 'bg-[#58051E] text-white border-[#58051E] shadow-xs'
+                      ? 'bg-[#5A0122] text-white border-[#5A0122] shadow-xs'
                       : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                   }`}
                 >
                   <div className="text-[10px] font-bold uppercase tracking-wide truncate">{st}</div>
-                  <div className={`text-xs font-black mt-0.5 ${isActive ? 'text-amber-300' : 'text-[#58051E]'}`}>
+                  <div className={`text-xs font-black mt-0.5 ${isActive ? 'text-amber-300' : 'text-[#5A0122]'}`}>
                     {count} {count === 1 ? 'Order' : 'Orders'}
                   </div>
                 </div>
@@ -287,6 +300,7 @@ export const TradeShipments: React.FC = () => {
 
       {/* Filters & Search */}
       <Card className="p-3 border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <DateRangeFilter compact label="Booked" value={range} onChange={setRange} />
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
@@ -294,7 +308,7 @@ export const TradeShipments: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by Order #, Client, Commodity, Vessel, Container..."
-            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            className="w-full h-9 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
           />
         </div>
 
@@ -308,17 +322,17 @@ export const TradeShipments: React.FC = () => {
               filterStage === 'All' ? 'bg-slate-900 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
             }`}
           >
-            All
+            All <span className="opacity-70 tabular-nums">({orders.length})</span>
           </button>
           {TRADE_ORDER_STAGES.map(st => (
             <button
               key={st}
               onClick={() => setFilterStage(st)}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                filterStage === st ? 'bg-[#58051E] text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                filterStage === st ? 'bg-[#5A0122] text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
               }`}
             >
-              {st}
+              {st} <span className="opacity-70 tabular-nums">({orders.filter(o => o.stage === st).length})</span>
             </button>
           ))}
         </div>
@@ -338,7 +352,7 @@ export const TradeShipments: React.FC = () => {
           <Button
             size="sm"
             onClick={() => setShowCreateModal(true)}
-            className="mt-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold cursor-pointer"
+            className="mt-4 bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 mr-1" /> Log New Order
           </Button>
@@ -475,7 +489,7 @@ export const TradeShipments: React.FC = () => {
               <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
                 <div>
                   <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-                    <PackageCheck className="w-4 h-4 text-[#58051E]" /> Log New Global Trade Order
+                    <PackageCheck className="w-4 h-4 text-[#5A0122]" /> Log New Global Trade Order
                   </h2>
                   <p className="text-xs text-slate-500 font-semibold">
                     Initiates 7-stage international trade lifecycle and activates document tracking.
@@ -493,7 +507,7 @@ export const TradeShipments: React.FC = () => {
                       required
                       value={formData.order_no}
                       onChange={(e) => setFormData({ ...formData, order_no: e.target.value })}
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -503,7 +517,7 @@ export const TradeShipments: React.FC = () => {
                       value={formData.po_number}
                       onChange={(e) => setFormData({ ...formData, po_number: e.target.value })}
                       placeholder="PO-BALTIC-771"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -511,20 +525,33 @@ export const TradeShipments: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Select Registered Partner / Buyer *</label>
-                    <input
-                      type="text"
-                      list="partner-options"
-                      required
-                      value={formData.client_name}
-                      onChange={(e) => handlePartnerSelect(e.target.value)}
-                      placeholder="e.g. Baltic Grain Sp. z o.o."
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
-                    />
-                    <datalist id="partner-options">
-                      {partners.map(p => (
-                        <option key={p.id} value={p.company_name}>{p.company_name} ({p.country})</option>
-                      ))}
-                    </datalist>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        autoComplete="off"
+                        value={formData.client_name}
+                        onFocus={() => { setPartnerTyped(false); setPartnerOpen(true); }}
+                        onBlur={() => setTimeout(() => setPartnerOpen(false), 150)}
+                        onChange={(e) => { setPartnerTyped(true); setPartnerOpen(true); handlePartnerSelect(e.target.value); }}
+                        placeholder="Choose a registered partner or type a name"
+                        className="w-full h-8.5 pl-3 pr-8 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
+                      />
+                      <button type="button" tabIndex={-1} aria-label="Show all partners" onMouseDown={e => e.preventDefault()} onClick={() => { setPartnerTyped(false); setPartnerOpen(o => !o); }} className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700 cursor-pointer"><ChevronDown className="w-3.5 h-3.5" /></button>
+                      {partnerOpen && (
+                        <ul role="listbox" aria-label="Registered partners" className="absolute z-30 mt-1 w-full max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg py-1">
+                          {/* Every partner is listed whenever the list opens; typing narrows it, picking one never hides the others. */}
+                          {partners.filter(p => !partnerTyped || p.company_name.toLowerCase().includes(formData.client_name.trim().toLowerCase())).map(p => (
+                            <li key={p.id} role="option" aria-selected={p.company_name === formData.client_name}>
+                              <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => { handlePartnerSelect(p.company_name); setPartnerOpen(false); setPartnerTyped(false); }} className={`w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 cursor-pointer ${p.company_name === formData.client_name ? 'font-black text-[#5A0122]' : 'font-semibold text-slate-800'}`}>
+                                {p.company_name} <span className="text-slate-400">({p.country})</span>
+                              </button>
+                            </li>
+                          ))}
+                          {partners.length === 0 && <li className="px-3 py-2 text-xs text-slate-500">No registered partners yet. Type a name to continue.</li>}
+                        </ul>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Client Contact Email</label>
@@ -533,7 +560,7 @@ export const TradeShipments: React.FC = () => {
                       value={formData.client_email}
                       onChange={(e) => setFormData({ ...formData, client_email: e.target.value })}
                       placeholder="e.g. trade@balticgrain.pl"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -547,7 +574,7 @@ export const TradeShipments: React.FC = () => {
                       value={formData.commodity}
                       onChange={(e) => setFormData({ ...formData, commodity: e.target.value })}
                       placeholder="e.g. Milling Wheat Grade A (Non-GMO)"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -557,7 +584,7 @@ export const TradeShipments: React.FC = () => {
                       value={formData.quantity_units}
                       onChange={(e) => setFormData({ ...formData, quantity_units: e.target.value })}
                       placeholder="e.g. 5,000 Metric Tons"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -571,7 +598,7 @@ export const TradeShipments: React.FC = () => {
                       value={formData.total_amount || ''}
                       onChange={(e) => setFormData({ ...formData, total_amount: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
                       placeholder="1450000"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -593,7 +620,7 @@ export const TradeShipments: React.FC = () => {
                       value={formData.advance_percentage !== undefined && formData.advance_percentage !== null ? formData.advance_percentage : ''}
                       onChange={(e) => setFormData({ ...formData, advance_percentage: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
                       placeholder="30"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -607,7 +634,7 @@ export const TradeShipments: React.FC = () => {
                       value={formData.incoterm}
                       onChange={(e) => setFormData({ ...formData, incoterm: e.target.value })}
                       placeholder="Select or enter Incoterms..."
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                     <datalist id="incoterm-options">
                       {TRADE_INCOTERMS.map(i => <option key={i} value={i}>{i}</option>)}
@@ -620,7 +647,7 @@ export const TradeShipments: React.FC = () => {
                       value={formData.lc_reference}
                       onChange={(e) => setFormData({ ...formData, lc_reference: e.target.value })}
                       placeholder="e.g. LC-BNP-PARIS-9021"
-                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-8.5 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -635,7 +662,7 @@ export const TradeShipments: React.FC = () => {
                         value={formData.carrier}
                         onChange={(e) => setFormData({ ...formData, carrier: e.target.value })}
                         placeholder="e.g. MSC, Maersk, Hapag-Lloyd"
-                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
                     <div>
@@ -645,7 +672,7 @@ export const TradeShipments: React.FC = () => {
                         value={formData.vessel_flight}
                         onChange={(e) => setFormData({ ...formData, vessel_flight: e.target.value })}
                         placeholder="e.g. MSC Gülsün"
-                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
                     <div>
@@ -655,7 +682,7 @@ export const TradeShipments: React.FC = () => {
                         value={formData.voyage_no}
                         onChange={(e) => setFormData({ ...formData, voyage_no: e.target.value })}
                         placeholder="VY-2026-088"
-                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
                   </div>
@@ -668,7 +695,7 @@ export const TradeShipments: React.FC = () => {
                         value={formData.origin_port}
                         onChange={(e) => setFormData({ ...formData, origin_port: e.target.value })}
                         placeholder="e.g. Port of Gdansk, Poland"
-                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
                     <div>
@@ -678,7 +705,7 @@ export const TradeShipments: React.FC = () => {
                         value={formData.destination_port}
                         onChange={(e) => setFormData({ ...formData, destination_port: e.target.value })}
                         placeholder="e.g. Port of Nhava Sheva (JNPT), India"
-                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                        className="w-full h-8 px-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                       />
                     </div>
                   </div>
@@ -716,7 +743,7 @@ export const TradeShipments: React.FC = () => {
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowCreateModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white">Create Order & Confirm Stage</Button>
+                  <Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-white">Create Order & Confirm Stage</Button>
                 </div>
               </form>
             </motion.div>
@@ -750,7 +777,7 @@ export const TradeShipments: React.FC = () => {
                 <div className="space-y-2">
                   {(selectedOrder.stage_history || []).map((entry, idx) => (
                     <div key={idx} className="flex items-start gap-2.5 text-xs">
-                      <div className="w-2 h-2 rounded-full bg-[#58051E] mt-1.5 shrink-0" />
+                      <div className="w-2 h-2 rounded-full bg-[#5A0122] mt-1.5 shrink-0" />
                       <div className="flex-1 flex items-center justify-between">
                         <div>
                           <span className="font-black text-slate-900">{entry.stage}</span>

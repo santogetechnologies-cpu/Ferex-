@@ -58,13 +58,13 @@ export const StaffDestinations: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase text-[#58051E] bg-[#58051E]/10 px-2.5 py-0.5 rounded-md border border-[#58051E]/20 flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3 text-[#58051E]" /> EDUCATION DESTINATIONS DESK
+            <span className="text-[10px] font-black uppercase text-[#5A0122] bg-[#5A0122]/10 px-2.5 py-0.5 rounded-md border border-[#5A0122]/20 flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3 text-[#5A0122]" /> EDUCATION DESTINATIONS DESK
             </span>
             <span className="text-[10px] font-bold text-slate-400">● Saved</span>
           </div>
           <h1 className="text-2xl font-black text-slate-900 mt-1 flex items-center gap-2">
-            <Globe className="w-6 h-6 text-[#58051E]" /> Destinations
+            <Globe className="w-6 h-6 text-[#5A0122]" /> Destinations
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">Destination countries, authorities, visa fees and processing times.</p>
         </div>
@@ -77,7 +77,7 @@ export const StaffDestinations: React.FC = () => {
             disabled={loading}
             className="text-xs font-bold border-slate-200 text-slate-700 hover:bg-slate-50"
           >
-            <RotateCcw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin text-[#58051E]' : ''}`} />
+            <RotateCcw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin text-[#5A0122]' : ''}`} />
             Refresh Destinations
           </Button>
         </div>
@@ -93,7 +93,7 @@ export const StaffDestinations: React.FC = () => {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search destinations by country, code, authority..."
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#58051E]"
+              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#5A0122]"
             />
           </div>
           <span className="text-xs font-bold text-slate-500">
@@ -117,7 +117,7 @@ export const StaffDestinations: React.FC = () => {
           <Button
             size="sm"
             onClick={loadData}
-            className="bg-[#58051E] text-white hover:bg-[#430316] font-bold text-xs"
+            className="bg-[#5A0122] text-white hover:bg-[#68092A] font-bold text-xs"
           >
             <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Retry Connection
           </Button>
@@ -176,7 +176,7 @@ export const StaffDestinations: React.FC = () => {
                   </div>
 
                   {dest.badge && (
-                    <span className="text-[9.5px] font-black text-[#58051E] bg-[#58051E]/10 px-2 py-0.5 rounded border border-[#58051E]/20">
+                    <span className="text-[9.5px] font-black text-[#5A0122] bg-[#5A0122]/10 px-2 py-0.5 rounded border border-[#5A0122]/20">
                       {dest.badge}
                     </span>
                   )}
@@ -208,7 +208,7 @@ export const StaffDestinations: React.FC = () => {
                 size="sm"
                 variant="outline"
                 onClick={() => setSelectedDest(dest)}
-                className="w-full text-xs font-bold text-[#58051E] border-[#58051E]/30 hover:bg-[#58051E]/5 mt-2"
+                className="w-full text-xs font-bold text-[#5A0122] border-[#5A0122]/30 hover:bg-[#5A0122]/5 mt-2"
               >
                 <Info className="w-3.5 h-3.5 mr-1.5" />
                 Counselor Advisory Notes

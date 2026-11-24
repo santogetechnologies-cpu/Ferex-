@@ -62,6 +62,7 @@ export const LoginPage: React.FC = () => {
   const [showForgotOverlay, setShowForgotOverlay] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
+  const lastResetAt = React.useRef(0);
   const [forgotError, setForgotError] = useState('');
 
   // First Time Login Password Change Overlay
@@ -269,11 +270,8 @@ export const LoginPage: React.FC = () => {
     }
 
 
-    if (mustChangePassword) {
-      setIsLoading(false);
-      setShowFirstTimeModal(true);
-      return;
-    }
+    // A first sign-in goes straight to the portal; the password can be changed any time from Profile.
+    void mustChangePassword;
 
     try {
       localStorage.setItem('ferex_user', JSON.stringify({
@@ -286,6 +284,13 @@ export const LoginPage: React.FC = () => {
 
     const portalLabel = getPortalLabel(role, cleanEmail);
     const targetRoute = getDashboardRoute(role, cleanEmail);
+    if (targetRoute === '/login') {
+      // A role with no portal must say so; it used to show "Welcome back" and then sit on this page.
+      await supabase.auth.signOut().catch(() => {});
+      setIsLoading(false);
+      setErrorMsg(`Your account role (${role}) is not linked to a portal yet. Please contact the Central Admin.`);
+      return;
+    }
     setSuccessMsg(`Welcome back.`);
     setIsLoading(false);
 
@@ -404,6 +409,10 @@ export const LoginPage: React.FC = () => {
       return;
     }
 
+    // One request a minute, so the form cannot be used to flood someone's inbox.
+    const wait = 60000 - (Date.now() - lastResetAt.current);
+    if (wait > 0) { setForgotError(`Please wait ${Math.ceil(wait / 1000)} seconds before requesting another email.`); return; }
+    lastResetAt.current = Date.now();
     setIsLoading(true);
     const { error } = await resetPassword(forgotEmail.trim());
     setIsLoading(false);
@@ -799,7 +808,7 @@ export const LoginPage: React.FC = () => {
                 <ShieldCheck className="w-10 h-10 text-emerald-500 mx-auto" />
                 <h3 className="text-sm font-black">Check your email</h3>
                 <p className="text-xs font-semibold text-emerald-700">
-                  We have sent password reset instructions to <strong className="underline">{forgotEmail}</strong>.
+                  If an account exists for <strong className="underline">{forgotEmail}</strong>, a password reset email is on its way. The link expires soon and works once.
                 </p>
                 <button
                   onClick={() => {

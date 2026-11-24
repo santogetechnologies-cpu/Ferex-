@@ -208,7 +208,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff 
       <div className="p-6 bg-white text-slate-900 rounded-2xl shadow-xs border border-slate-200/80">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#58051E]/10 rounded-md text-[10px] font-black uppercase text-[#58051E] mb-2">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#5A0122]/10 rounded-md text-[10px] font-black uppercase text-[#5A0122] mb-2">
               <Bell className="w-3.5 h-3.5" /> Communications & Announcements
             </div>
             <h1 className="text-2xl font-black tracking-tight text-slate-900">
@@ -220,7 +220,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff 
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <button
               onClick={() => setShowComposeModal(true)}
-              className="flex items-center gap-1.5 h-9 px-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer"
+              className="flex items-center gap-1.5 h-9 px-4 bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Compose Alert
             </button>
@@ -305,7 +305,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff 
           <div className="bg-white rounded-3xl border border-slate-200/80 p-4 shadow-xs space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-[#58051E]" />
+                <SlidersHorizontal className="w-4 h-4 text-[#5A0122]" />
                 <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Side Channel Filter</h3>
               </div>
               <span className="text-[10px] font-bold text-slate-400">Categories</span>
@@ -332,7 +332,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff 
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-2xl text-xs font-bold transition-all ${
                       isSelected
-                        ? 'bg-[#58051E] text-white shadow-md shadow-[#58051E]/20'
+                        ? 'bg-[#5A0122] text-white shadow-md shadow-[#5A0122]/20'
                         : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
                     }`}
                   >
@@ -364,7 +364,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff 
           <div className="bg-white rounded-3xl border border-slate-200/80 p-4 shadow-xs space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <ExternalLink className="w-4 h-4 text-[#58051E]" />
+                <ExternalLink className="w-4 h-4 text-[#5A0122]" />
                 <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Quick Admin Jumps</h3>
               </div>
             </div>
@@ -382,9 +382,9 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff 
                       <div className={`w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center shrink-0 ${jump.color}`}>
                         <Icon className="w-3.5 h-3.5" />
                       </div>
-                      <span className="group-hover:text-[#58051E] transition-colors">{jump.label}</span>
+                      <span className="group-hover:text-[#5A0122] transition-colors">{jump.label}</span>
                     </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#58051E] group-hover:translate-x-0.5 transition-all" />
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#5A0122] group-hover:translate-x-0.5 transition-all" />
                   </button>
                 );
               })}
@@ -404,7 +404,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff 
                   key={f}
                   onClick={() => setFilter(f)}
                   className={`h-8 px-4 rounded-xl text-xs font-black transition-all ${
-                    filter === f ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200/60'
+                    filter === f ? 'bg-[#5A0122] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200/60'
                   }`}
                 >
                   {f} {f === 'Unread' && unreadCount > 0 ? `(${unreadCount})` : ''}
@@ -417,7 +417,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search notifications..."
-                className="w-full h-8 pl-8 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#58051E]"
+                className="w-full h-8 pl-8 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#5A0122]"
               />
             </div>
           </div>
@@ -438,7 +438,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff 
                     exit={{ opacity: 0, height: 0 }}
                     onClick={() => handleCardClick(n.category)}
                     className={`bg-white border rounded-3xl p-4.5 shadow-2xs hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300 transition-all duration-200 cursor-pointer group ${
-                      !n.read ? 'border-[#58051E]/25 shadow-[#58051E]/5 bg-gradient-to-r from-white via-rose-50/20 to-white' : 'border-slate-200/80'
+                      !n.read ? 'border-[#5A0122]/25 shadow-[#5A0122]/5 bg-gradient-to-r from-white via-rose-50/20 to-white' : 'border-slate-200/80'
                     }`}
                   >
                     <div className="flex items-start gap-3.5">
@@ -450,7 +450,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff 
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-2">
                             <p className={`text-xs sm:text-sm font-extrabold ${!n.read ? 'text-slate-900' : 'text-slate-700'}`}>{n.title}</p>
-                            {!n.read && <span className="w-2 h-2 rounded-full bg-[#58051E] shrink-0 animate-pulse" />}
+                            {!n.read && <span className="w-2 h-2 rounded-full bg-[#5A0122] shrink-0 animate-pulse" />}
                           </div>
 
                           <div className="flex items-center gap-2 shrink-0">
@@ -471,7 +471,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff 
                               e.stopPropagation();
                               handleCardClick(n.category);
                             }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 hover:bg-[#58051E] text-slate-700 hover:text-white rounded-xl text-[11px] font-extrabold transition-all"
+                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 hover:bg-[#5A0122] text-slate-700 hover:text-white rounded-xl text-[11px] font-extrabold transition-all"
                           >
                             <span>Open {categoryConfig.label}</span>
                             <ArrowRight className="w-3.5 h-3.5" />
@@ -539,7 +539,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff 
             >
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-[#58051E] text-white flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-[#5A0122] text-white flex items-center justify-center">
                     <Bell className="w-4 h-4" />
                   </div>
                   <div>
@@ -559,7 +559,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff 
                     required
                     value={targetStudentId}
                     onChange={(e) => setTargetStudentId(e.target.value)}
-                    className="w-full h-10 px-3.5 border border-slate-200 rounded-xl text-slate-900 bg-slate-50 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-10 px-3.5 border border-slate-200 rounded-xl text-slate-900 bg-slate-50 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   >
                     <option value="ALL">Broadcast to All Students</option>
                     {students.map(s => (
@@ -576,7 +576,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff 
                     <select
                       value={newCategory}
                       onChange={(e) => setNewCategory(e.target.value)}
-                      className="w-full h-10 px-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white text-slate-700 focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-10 px-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white text-slate-700 focus:outline-none focus:border-[#5A0122]"
                     >
                       <option value="Applications">Applications</option>
                       <option value="Offer Letter">Offer Letter</option>
@@ -595,7 +595,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff 
                       value={newTitle}
                       onChange={(e) => setNewTitle(e.target.value)}
                       required
-                      className="w-full h-10 px-3 border border-slate-200 rounded-xl text-slate-900 bg-slate-50 focus:bg-white placeholder-slate-400 focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-10 px-3 border border-slate-200 rounded-xl text-slate-900 bg-slate-50 focus:bg-white placeholder-slate-400 focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -608,7 +608,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff 
                     value={newBody}
                     onChange={(e) => setNewBody(e.target.value)}
                     required
-                    className="w-full p-3.5 border border-slate-200 rounded-xl text-slate-900 bg-slate-50 focus:bg-white placeholder-slate-400 focus:outline-none focus:border-[#58051E] resize-none"
+                    className="w-full p-3.5 border border-slate-200 rounded-xl text-slate-900 bg-slate-50 focus:bg-white placeholder-slate-400 focus:outline-none focus:border-[#5A0122] resize-none"
                   />
                 </div>
 
@@ -623,7 +623,7 @@ export const AdminNotifications: React.FC<AdminNotificationsProps> = ({ isStaff 
                   <button
                     type="submit"
                     disabled={isPublishing}
-                    className="h-9 px-5 bg-[#58051E] text-white rounded-xl text-xs font-bold hover:bg-[#430316] shadow-xs"
+                    className="h-9 px-5 bg-[#5A0122] text-white rounded-xl text-xs font-bold hover:bg-[#68092A] shadow-xs"
                   >
                     {isPublishing ? 'Publishing...' : 'Publish Alert'}
                   </button>

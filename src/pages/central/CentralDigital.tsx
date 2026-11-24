@@ -190,7 +190,7 @@ export const CentralDigital: React.FC = () => {
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all whitespace-nowrap ${
-              activeTab === tab.id ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              activeTab === tab.id ? 'bg-[#5A0122] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
             <tab.icon className="w-3.5 h-3.5" />
@@ -222,7 +222,7 @@ export const CentralDigital: React.FC = () => {
                     key={type}
                     onClick={() => setClientTypeFilter(type)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                      clientTypeFilter === type ? 'bg-[#58051E] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      clientTypeFilter === type ? 'bg-[#5A0122] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
                     {type === 'All' ? 'All Clients' : `${type} Clients`}
@@ -366,7 +366,7 @@ export const CentralDigital: React.FC = () => {
                                   setReassignProject(p);
                                   setNewLeadDev(leadDev || (staffList[0]?.name || ''));
                                 }}
-                                className="text-[10px] font-bold text-[#58051E] hover:underline cursor-pointer"
+                                className="text-[10px] font-bold text-[#5A0122] hover:underline cursor-pointer"
                               >
                                 (Reassign)
                               </button>
@@ -512,7 +512,7 @@ export const CentralDigital: React.FC = () => {
                   <Button
                     type="button"
                     size="sm"
-                    className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
+                    className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]"
                     onClick={handleConfirmReassign}
                   >
                     Confirm Reassignment

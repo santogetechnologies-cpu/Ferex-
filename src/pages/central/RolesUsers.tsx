@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShieldCheck, Plus, Search, Trash2, X, CheckCircle2,
   GraduationCap, Globe, Snowflake, Monitor, Crown, Copy, RefreshCw,
-  Users, Briefcase, Truck, Box, UserCheck, Shield, Lock
+  Users, Briefcase, Truck, Box, UserCheck, Shield, Lock, KeyRound
 } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -361,6 +361,13 @@ export const RolesUsers: React.FC = () => {
     showToastMsg('Login details copied to clipboard!');
   };
 
+  // The person gets an email with a one-time link and chooses their own password; Central never sees or sets it again.
+  const sendResetEmail = async (adm: AdminAccount) => {
+    if (!window.confirm(`Email ${adm.email} a link to set a new password?`)) return;
+    const { error } = await supabase.auth.resetPasswordForEmail(adm.email.trim(), { redirectTo: `${window.location.origin}/reset-password` });
+    showToastMsg(error ? `Could not send the email: ${error.message}` : `Password reset email sent to ${adm.email}.`);
+  };
+
   const handleToggleStatus = async (adm: AdminAccount) => {
     const isSelf =
       (user && (user.id === adm.id || user.email?.toLowerCase() === adm.email.toLowerCase())) ||
@@ -470,7 +477,7 @@ export const RolesUsers: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Lock className="w-6 h-6 text-[#58051E]" /> Roles & Users
+            <Lock className="w-6 h-6 text-[#5A0122]" /> Roles & Users
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">Review roles and create logins for your team.</p>
         </div>
@@ -479,7 +486,7 @@ export const RolesUsers: React.FC = () => {
             <Button size="sm" onClick={loadAdmins} className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 flex items-center gap-1.5 cursor-pointer">
               <RefreshCw className="w-3.5 h-3.5" /> Refresh
             </Button>
-            <Button size="sm" onClick={() => setShowAddModal(true)} className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-md flex items-center gap-1.5 cursor-pointer">
+            <Button size="sm" onClick={() => setShowAddModal(true)} className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-md flex items-center gap-1.5 cursor-pointer">
               <Plus className="w-4 h-4" /> Provision User
             </Button>
           </div>
@@ -499,7 +506,7 @@ export const RolesUsers: React.FC = () => {
               onClick={() => setActiveTab(tab.key as any)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                 activeTab === tab.key
-                  ? 'bg-[#58051E] text-white shadow-md'
+                  ? 'bg-[#5A0122] text-white shadow-md'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white'
               }`}
             >
@@ -545,7 +552,7 @@ export const RolesUsers: React.FC = () => {
                   placeholder="Search by name, email, role, division..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]"
                 />
               </div>
               <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none w-full md:w-auto">
@@ -554,7 +561,7 @@ export const RolesUsers: React.FC = () => {
                     key={div}
                     onClick={() => setDivisionFilter(div)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                      divisionFilter === div ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      divisionFilter === div ? 'bg-[#5A0122] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
                     {div}
@@ -641,6 +648,13 @@ export const RolesUsers: React.FC = () => {
                           <td className="py-3.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
                               <button
+                                onClick={() => void sendResetEmail(adm)}
+                                title="Email a password reset link"
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-[#5A0122] hover:bg-slate-100 transition-colors cursor-pointer"
+                              >
+                                <KeyRound className="w-4 h-4" />
+                              </button>
+                              <button
                                 onClick={() => copyCredentials(adm)}
                                 title="Copy Login Credentials"
                                 className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
@@ -690,7 +704,7 @@ export const RolesUsers: React.FC = () => {
       {activeTab === 'roles' && (
         <div className="space-y-5">
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#58051E]/10 text-[#58051E] flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center shrink-0">
               <Shield className="w-4 h-4" />
             </div>
             <div>
@@ -709,7 +723,7 @@ export const RolesUsers: React.FC = () => {
                   <div>
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-[#58051E]">
+                        <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-[#5A0122]">
                           <Icon className="w-4.5 h-4.5" />
                         </div>
                         <div>
@@ -723,7 +737,7 @@ export const RolesUsers: React.FC = () => {
                     </div>
 
                     <div className="mb-3">
-                      <span className="text-[10.5px] font-extrabold uppercase text-[#58051E] tracking-wider block mb-1">
+                      <span className="text-[10.5px] font-extrabold uppercase text-[#5A0122] tracking-wider block mb-1">
                         {role.accessLevel}
                       </span>
                       <p className="text-xs text-slate-600 font-medium leading-relaxed">
@@ -754,7 +768,7 @@ export const RolesUsers: React.FC = () => {
                         [4,5].includes(role.id) ? 'Trade' :
                         [6,7].includes(role.id) ? 'Rimi' : 'Digital'
                       ); }}
-                      className="text-[#58051E] hover:underline cursor-pointer text-xs font-black"
+                      className="text-[#5A0122] hover:underline cursor-pointer text-xs font-black"
                     >
                       View Users →
                     </button>
@@ -778,7 +792,7 @@ export const RolesUsers: React.FC = () => {
             >
               <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
                 <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-xl bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center">
                     <UserCheck className="w-5 h-5" />
                   </div>
                   <div>
@@ -843,7 +857,7 @@ export const RolesUsers: React.FC = () => {
                                   <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
                                     isSelected ? 'bg-white shadow-xs' : 'bg-slate-100 text-slate-600'
                                   }`}>
-                                    <OptIcon className="w-3.5 h-3.5 text-[#58051E]" />
+                                    <OptIcon className="w-3.5 h-3.5 text-[#5A0122]" />
                                   </div>
                                   <div className="min-w-0 flex-1">
                                     <p className="text-xs font-extrabold text-slate-900 leading-tight">{opt.label}</p>
@@ -895,7 +909,7 @@ export const RolesUsers: React.FC = () => {
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowAddModal(false)} className="text-xs font-bold cursor-pointer">
                     Cancel
                   </Button>
-                  <Button type="submit" size="sm" disabled={isSubmitting} className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-md cursor-pointer">
+                  <Button type="submit" size="sm" disabled={isSubmitting} className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-md cursor-pointer">
                     {isSubmitting ? 'Activating...' : 'Activate Login'}
                   </Button>
                 </div>

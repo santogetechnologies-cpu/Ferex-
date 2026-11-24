@@ -63,7 +63,7 @@ export const CentralSupport: React.FC = () => {
         status: d.status || 'Open',
         statusBadge: d.status === 'Resolved' || d.status === 'Closed'
           ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-          : 'bg-[#58051E]/10 text-[#58051E] border-[#58051E]/20',
+          : 'bg-[#5A0122]/10 text-[#5A0122] border-[#5A0122]/20',
         messages: [
           { sender: d.users?.full_name || 'Client', text: d.description, time: 'Initial Message' }
         ]
@@ -189,7 +189,7 @@ export const CentralSupport: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <LifeBuoy className="w-6 h-6 text-[#58051E]" /> Support
+            <LifeBuoy className="w-6 h-6 text-[#5A0122]" /> Support
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">Read, reply to, resolve and reassign tickets from every platform.</p>
         </div>
@@ -197,7 +197,7 @@ export const CentralSupport: React.FC = () => {
           <Button
             size="sm"
             onClick={() => setShowCreateModal(true)}
-            className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
+            className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Create Ticket
           </Button>
@@ -216,7 +216,7 @@ export const CentralSupport: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search ticket ID, student, issue, or staff..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+            className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
           />
         </div>
         <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto">
@@ -224,7 +224,7 @@ export const CentralSupport: React.FC = () => {
             <button
               key={div}
               onClick={() => setSelectedDivision(div)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${selectedDivision === div ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${selectedDivision === div ? 'bg-[#5A0122] text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
               {div}
             </button>
@@ -278,7 +278,7 @@ export const CentralSupport: React.FC = () => {
                 </Button>
                 <Button
                   size="sm"
-                  className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold"
+                  className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold"
                   onClick={() => setSelectedTicket(ticket)}
                 >
                   Reply / Resolve
@@ -320,7 +320,7 @@ export const CentralSupport: React.FC = () => {
                   <Button
                     type="button"
                     size="sm"
-                    className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]"
+                    className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]"
                     onClick={handleConfirmReassign}
                   >
                     Confirm Reassign
@@ -367,12 +367,12 @@ export const CentralSupport: React.FC = () => {
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder="Enter official resolution notes or dispatch advice to client..."
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#58051E]"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
                 <div className="flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setSelectedTicket(null)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]">
                     <Send className="w-3.5 h-3.5 mr-1" /> Send & Mark Resolved
                   </Button>
                 </div>
@@ -401,7 +401,7 @@ export const CentralSupport: React.FC = () => {
             >
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-2xl bg-[#58051E] text-white flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-2xl bg-[#5A0122] text-white flex items-center justify-center">
                     <Plus className="w-5 h-5" />
                   </div>
                   <div>
@@ -434,7 +434,7 @@ export const CentralSupport: React.FC = () => {
                         onClick={() => setNewDivision(div)}
                         className={`py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer text-center ${
                           newDivision === div
-                            ? 'bg-[#58051E] text-white shadow-xs'
+                            ? 'bg-[#5A0122] text-white shadow-xs'
                             : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
@@ -456,7 +456,7 @@ export const CentralSupport: React.FC = () => {
                       value={newStudentName}
                       onChange={(e) => setNewStudentName(e.target.value)}
                       placeholder="e.g. Maria Kowalska / Client Corp"
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                   <div>
@@ -468,7 +468,7 @@ export const CentralSupport: React.FC = () => {
                       value={newEmail}
                       onChange={(e) => setNewEmail(e.target.value)}
                       placeholder="e.g. client@example.com"
-                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                      className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                     />
                   </div>
                 </div>
@@ -540,7 +540,7 @@ export const CentralSupport: React.FC = () => {
                     value={newSubject}
                     onChange={(e) => setNewSubject(e.target.value)}
                     placeholder="Brief headline of the request or problem..."
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -555,7 +555,7 @@ export const CentralSupport: React.FC = () => {
                     value={newDescription}
                     onChange={(e) => setNewDescription(e.target.value)}
                     placeholder="Provide complete background, transaction references, or requirements..."
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E] resize-none leading-relaxed"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122] resize-none leading-relaxed"
                   />
                 </div>
 
@@ -574,7 +574,7 @@ export const CentralSupport: React.FC = () => {
                     type="submit"
                     disabled={isSubmitting}
                     size="sm"
-                    className="bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     <Plus className="w-4 h-4" />
                     {isSubmitting ? 'Creating Ticket...' : 'Create Ticket'}

@@ -2,6 +2,14 @@ import type { SystemFeeConfig } from './api/feeConfig';
 import type { Payment, JourneyStage } from './types';
 import type { CountryFeePackage } from './api/feePackages';
 
+/** GST on top of a base amount when the package is GST-exclusive; otherwise the amount is already the payable price. */
+export const gstFactor = (pkg: Pick<CountryFeePackage, 'gst'>) => pkg.gst?.enabled && pkg.gst.mode === 'exclusive' ? 1 + (Number(pkg.gst.rate) || 0) / 100 : 1;
+/** Tax percentage that applies to the package's fees (0 when GST is switched off). */
+export const packageTaxRate = (pkg: Pick<CountryFeePackage, 'gst' | 'tax_rate_percent'>) => pkg.gst ? (pkg.gst.enabled ? Number(pkg.gst.rate) || 0 : 0) : Number(pkg.tax_rate_percent) || 0;
+/** Payable amount for a base amount: GST added only for exclusive packages. */
+export const payableAmount = (pkg: Pick<CountryFeePackage, 'gst'>, base: number) => Math.round(base * gstFactor(pkg) * 100) / 100;
+
+
 export interface EducationFee {
   id: string;
   title: string;
@@ -76,16 +84,18 @@ export function resolveEducationFee(
  */
 export function packageFees(pkg: CountryFeePackage, base: EducationFee[]): EducationFee[] {
   // Registration is the basic fee for every student: the standard one stays unless the plan overrides it.
+  // The package can leave registration out altogether (included: false); otherwise the standard fee applies unless a custom amount replaces it.
   const reg = pkg.registration_fee;
-  const overridesRegistration = !!reg?.enabled && reg.amount > 0;
-  const standard = base.filter(f => f.id === 'registration' && !overridesRegistration);
+  const includesRegistration = reg?.included !== false;
+  const overridesRegistration = includesRegistration && !!reg?.enabled && reg.amount > 0;
+  const standard = base.filter(f => f.id === 'registration' && includesRegistration && !overridesRegistration);
   const direct = base.filter(f => f.recipient !== 'ferex');
   const out: EducationFee[] = [...standard];
   if (overridesRegistration) {
-    out.push({ id: 'registration', title: 'Advanced Registration Fee', enabled: true, amount: reg!.amount, currency: pkg.currency, recipient: 'ferex', timing: 'before', stage: 3, description: `Registration fee for ${pkg.name}`, package_id: pkg.id, tax_rate_percent: pkg.tax_rate_percent ?? 0 });
+    out.push({ id: 'registration', title: 'Advanced Registration Fee', enabled: true, amount: payableAmount(pkg, reg!.amount), currency: pkg.currency, recipient: 'ferex', timing: 'before', stage: 3, description: `Registration fee for ${pkg.name}`, package_id: pkg.id, tax_rate_percent: packageTaxRate(pkg) });
   }
-  for (const inst of pkg.installments) {
-    out.push({ id: `pkg:${pkg.id}:${inst.id}`, title: inst.title, enabled: true, amount: inst.amount, currency: pkg.currency, recipient: 'ferex', timing: inst.timing, stage: Math.min(12, Math.max(1, inst.stage_trigger)), description: inst.due_description || `${pkg.name} installment`, package_id: pkg.id, tax_rate_percent: inst.tax_rate_percent ?? pkg.tax_rate_percent ?? 0 });
+  for (const inst of pkg.installments.filter(i => i.amount > 0)) {
+    out.push({ id: `pkg:${pkg.id}:${inst.id}`, title: inst.title, enabled: true, amount: payableAmount(pkg, inst.amount), currency: pkg.currency, recipient: 'ferex', timing: inst.timing, stage: Math.min(12, Math.max(1, inst.stage_trigger)), description: inst.due_description || `${pkg.name} installment`, package_id: pkg.id, tax_rate_percent: pkg.gst ? packageTaxRate(pkg) : (inst.tax_rate_percent ?? pkg.tax_rate_percent ?? 0) });
   }
   return [...out, ...direct.filter(f => f.id !== 'registration')];
 }
@@ -171,7 +181,7 @@ export function feeBalance(fee: EducationFee, payments: Payment[]) {
   return { paid, pending, remaining: Math.max(0, cents(fee.amount) - cents(paid)) / 100, payable: Math.max(0, cents(fee.amount) - cents(paid) - cents(pending)) / 100 };
 }
 
-export interface PaymentPart { method: 'Bank Transfer' | 'Cash' | 'UPI' | 'Cheque' | 'Card'; amount: number; reference: string; date: string }
+export interface PaymentPart { method: import('./paymentMethods').PaymentMethod | 'Card'; amount: number; reference: string; date: string }
 export function validatePaymentParts(parts: PaymentPart[], expected: number) {
   if (!Number.isFinite(expected) || expected <= 0 || !parts.length) throw new Error('Enter a positive total and at least one payment entry.');
   if (parts.some(p => !Number.isFinite(p.amount) || p.amount <= 0 || !p.reference.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(p.date))) throw new Error('Every entry needs a positive amount, reference or cash receipt number, and date.');
@@ -190,3 +200,29 @@ export function validateEducationFees(fees: EducationFee[]) {
     if (/university|tuition/i.test(fee.title) && fee.recipient !== 'direct_third_party') throw new Error('University and tuition fees must be paid directly to the institution.');
   }
 }
+
+export type PackagePaymentStatus = 'Registration Pending' | 'Registration Paid' | 'Partially Paid' | 'Payment Completed' | 'Refund Initiated' | 'Refunded';
+
+/** Overall payment standing of a student's fees, derived from the same fee balances the rest of the app uses. */
+export function packagePaymentStatus(fees: EducationFee[], payments: Payment[]): PackagePaymentStatus {
+  const ferex = fees.filter(f => f.recipient === 'ferex' && f.enabled);
+  const refundOf = (s: string) => payments.some(p => p.status === s && ferex.some(f => matchesEducationFee(p, f)));
+  const paidAny = ferex.some(f => feeBalance(f, payments).paid > 0);
+  if (refundOf('Refund Initiated')) return 'Refund Initiated';
+  if (!paidAny && refundOf('Refunded')) return 'Refunded';
+  const reg = ferex.find(f => f.id === 'registration');
+  const rest = ferex.filter(f => f.id !== 'registration');
+  const regPaid = !reg || feeBalance(reg, payments).remaining === 0;
+  if (ferex.length && ferex.every(f => feeBalance(f, payments).remaining === 0)) return 'Payment Completed';
+  if (!regPaid) return paidAny ? 'Partially Paid' : 'Registration Pending';
+  return rest.some(f => feeBalance(f, payments).paid > 0) ? 'Partially Paid' : 'Registration Paid';
+}
+
+export const PAYMENT_STATUS_TONE: Record<PackagePaymentStatus, string> = {
+  'Registration Pending': 'bg-amber-50 text-amber-700 border-amber-200',
+  'Registration Paid': 'bg-sky-50 text-sky-700 border-sky-200',
+  'Partially Paid': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  'Payment Completed': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'Refund Initiated': 'bg-orange-50 text-orange-700 border-orange-200',
+  'Refunded': 'bg-slate-100 text-slate-600 border-slate-200',
+};

@@ -176,7 +176,7 @@ export interface Payment {
   currency: string;                 // always INR
   payment_type?: 'Service Charge' | 'Application Fee' | 'Visa Fee' | 'Counseling Fee' | 'Installment Fee' | 'Registration Fee' | string;
   payment_method?: 'card' | 'UPI' | 'net_banking' | 'wallet' | 'bank_transfer' | string;
-  status: 'Pending' | 'Pending Verification' | 'Paid' | 'Verified' | 'Rejected' | 'Overdue' | 'Cancelled' | 'Refunded' | 'Partial';
+  status: 'Pending' | 'Pending Verification' | 'Paid' | 'Verified' | 'Rejected' | 'Overdue' | 'Cancelled' | 'Refunded' | 'Refund Initiated' | 'Partial';
   milestone_step?: number;          // which journey step (1–12) this payment belongs to
   stage_number?: number;            // 1: Advance, 2: Agency, 3: VFS, 4: University Tuition
   installment_id?: string;          // linked installment id

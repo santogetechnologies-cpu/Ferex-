@@ -75,14 +75,18 @@ export const DigitalDashboard: React.FC = () => {
 
         const [userProjects, allTasks] = await Promise.all([
           getDigitalProjects({
+            staffId: profile?.id,
             staffEmail,
             staffName,
           }),
           getDigitalTasks(),
         ]);
 
-        const assignedTasks = (allTasks || []).filter(
-          t => t.assigned_to === staffName || t.assigned_to_email === staffEmail
+        // Tasks are matched by the person's id (the database also limits what a team member can see to their own work).
+        const me = profile?.id || '';
+        const assignedTasks = (allTasks || []).filter((t: any) =>
+          (me && (t.assigned_staff_id === me || t.assigned_to === me)) ||
+          (staffEmail && String(t.assigned_to_email || '').toLowerCase() === staffEmail.toLowerCase())
         );
 
         setMyProjects(userProjects || []);
@@ -207,7 +211,7 @@ export const DigitalDashboard: React.FC = () => {
                     <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
                       <div>
                         <div className="text-xs font-black text-slate-900 line-clamp-1">{t.title}</div>
-                        <span className="text-[10px] font-semibold text-slate-500">Assigned: {t.assigned_to}</span>
+                        <span className="text-[10px] font-semibold text-slate-500">Assigned: {t.assigned_to_name || t.assigned_to_email || 'Unassigned'}</span>
                       </div>
                       <span className="text-[9px] font-extrabold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 shrink-0 ml-2">
                         {t.priority || 'Medium'}

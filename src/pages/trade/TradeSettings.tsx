@@ -130,12 +130,12 @@ export const TradeSettings: React.FC = () => {
       <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#58051E]/10 text-[#58051E] text-[10px] font-bold uppercase tracking-wider border border-[#58051E]/20">
+            <span className="px-2.5 py-0.5 rounded-full bg-[#5A0122]/10 text-[#5A0122] text-[10px] font-bold uppercase tracking-wider border border-[#5A0122]/20">
               System Configuration
             </span>
           </div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <Settings className="w-5 h-5 text-[#58051E]" />
+            <Settings className="w-5 h-5 text-[#5A0122]" />
             Settings
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1 max-w-2xl">Incoterm defaults, letter of credit rules, ports and notifications.</p>
@@ -154,7 +154,7 @@ export const TradeSettings: React.FC = () => {
             type="button"
             onClick={() => handleSave()}
             disabled={isSaving || loading}
-            className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-[#58051E] hover:bg-[#430316] transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+            className="h-9 px-4 rounded-xl text-xs font-bold text-white bg-[#5A0122] hover:bg-[#68092A] transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
           >
             <Save className="w-3.5 h-3.5" /> {isSaving ? 'Saving...' : 'Save Changes'}
           </button>

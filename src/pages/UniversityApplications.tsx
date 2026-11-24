@@ -96,7 +96,7 @@ export const UniversityApplications: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-1.5 flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-lg bg-[#58051E]/5 text-[#58051E] flex items-center justify-center">
+            <span className="w-8 h-8 rounded-lg bg-[#5A0122]/5 text-[#5A0122] flex items-center justify-center">
               <GraduationCap className="w-5 h-5" />
             </span>
             University Applications
@@ -106,7 +106,7 @@ export const UniversityApplications: React.FC = () => {
 
         <button
           onClick={() => navigate('/student/select-university')}
-          className="flex items-center gap-2 h-9 px-4 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] transition-all shadow-sm self-start md:self-auto"
+          className="flex items-center gap-2 h-9 px-4 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#68092A] transition-all shadow-sm self-start md:self-auto"
         >
           <Plus className="w-4 h-4" /> Apply to University
         </button>
@@ -124,7 +124,7 @@ export const UniversityApplications: React.FC = () => {
           </p>
           <button
             onClick={() => navigate('/student/select-university')}
-            className="inline-flex items-center gap-2 h-9.5 px-5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] transition-all shadow-sm"
+            className="inline-flex items-center gap-2 h-9.5 px-5 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#68092A] transition-all shadow-sm"
           >
             Explore & Select Universities <ArrowRight className="w-4 h-4" />
           </button>
@@ -136,7 +136,7 @@ export const UniversityApplications: React.FC = () => {
               <div>
                 {/* Top Row: Icon & Status */}
                 <div className="flex items-start justify-between gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#58051E]/10 text-[#58051E] font-black flex items-center justify-center text-base shadow-xs shrink-0">
+                  <div className="w-12 h-12 rounded-xl bg-[#5A0122]/10 text-[#5A0122] font-black flex items-center justify-center text-base shadow-xs shrink-0">
                     {app.university_name?.[0] || 'U'}
                   </div>
                   <span className={`text-[9px] uppercase font-extrabold tracking-wider px-2.5 py-1 border rounded-full ${getStatusStyle(app.status)}`}>
@@ -148,7 +148,7 @@ export const UniversityApplications: React.FC = () => {
                 <h3 className="text-base font-extrabold text-slate-900 leading-snug mb-1">
                   {app.university_name || app.universities?.name}
                 </h3>
-                <p className="text-xs font-bold text-[#58051E] mb-5">
+                <p className="text-xs font-bold text-[#5A0122] mb-5">
                   Course Selected: <span className="text-slate-700 font-extrabold">{app.course || app.program_name || 'Selected Program'}</span>
                 </p>
 
@@ -221,12 +221,12 @@ export const UniversityApplications: React.FC = () => {
                 {/* Header */}
                 <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 text-[#58051E] font-black flex items-center justify-center text-sm shadow-xs">
+                    <div className="w-10 h-10 rounded-xl bg-[#5A0122]/10 text-[#5A0122] font-black flex items-center justify-center text-sm shadow-xs">
                       {activeApp.university_name?.[0] || 'U'}
                     </div>
                     <div>
                       <h3 className="text-sm font-extrabold text-slate-900">{activeApp.university_name}</h3>
-                      <p className="text-xs font-semibold text-[#58051E]">{activeApp.program_name}</p>
+                      <p className="text-xs font-semibold text-[#5A0122]">{activeApp.program_name}</p>
                     </div>
                   </div>
 
@@ -330,9 +330,9 @@ export const UniversityApplications: React.FC = () => {
                               name: 'University Document Review',
                               time: activeApp.status === 'Submitted' ? 'In Progress' : 'Completed',
                               icon: !['Submitted', 'Draft'].includes(activeApp.status) ? <Check className="w-4 h-4 stroke-[3]" /> : <span className="text-[10px] font-bold">2</span>,
-                              circleClass: !['Submitted', 'Draft'].includes(activeApp.status) ? 'bg-emerald-500 text-white shadow-xs' : 'bg-[#58051E] text-white shadow-xs',
+                              circleClass: !['Submitted', 'Draft'].includes(activeApp.status) ? 'bg-emerald-500 text-white shadow-xs' : 'bg-[#5A0122] text-white shadow-xs',
                               titleClass: 'text-slate-900 font-extrabold',
-                              timeClass: activeApp.status === 'Submitted' ? 'font-bold text-[#58051E]' : 'font-bold text-slate-400',
+                              timeClass: activeApp.status === 'Submitted' ? 'font-bold text-[#5A0122]' : 'font-bold text-slate-400',
                               lineColor: ['Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status) ? 'bg-emerald-500' : 'bg-slate-100',
                             },
                             {
@@ -343,9 +343,9 @@ export const UniversityApplications: React.FC = () => {
                                 : <span className="text-[10px] font-bold">3</span>,
                               circleClass: ['Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status)
                                 ? 'bg-emerald-500 text-white shadow-xs'
-                                : activeApp.status === 'Under Review' ? 'bg-[#58051E] text-white shadow-xs' : 'bg-slate-100 text-slate-400 border border-slate-200',
+                                : activeApp.status === 'Under Review' ? 'bg-[#5A0122] text-white shadow-xs' : 'bg-slate-100 text-slate-400 border border-slate-200',
                               titleClass: ['Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed', 'Under Review'].includes(activeApp.status) ? 'text-slate-900 font-extrabold' : 'text-slate-400',
-                              timeClass: activeApp.status === 'Under Review' ? 'font-bold text-[#58051E]' : 'font-bold text-slate-400',
+                              timeClass: activeApp.status === 'Under Review' ? 'font-bold text-[#5A0122]' : 'font-bold text-slate-400',
                               lineColor: ['Offer Issued', 'Accepted', 'Final Acceptance Issued', 'Visa Processing', 'Visa Approved', 'Approved', 'Closed'].includes(activeApp.status) ? 'bg-emerald-500' : 'bg-slate-100',
                             },
                             {
@@ -477,7 +477,7 @@ export const UniversityApplications: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => navigate('/student/offers')}
-                      className="text-[11px] font-bold text-[#58051E] hover:underline flex items-center gap-1 pt-0.5 cursor-pointer"
+                      className="text-[11px] font-bold text-[#5A0122] hover:underline flex items-center gap-1 pt-0.5 cursor-pointer"
                     >
                       Go to Offer Letters & Acceptance Hub &rarr;
                     </button>

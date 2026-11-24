@@ -208,7 +208,7 @@ export const DigitalNotifications: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200/80 p-6 md:p-8 shadow-xs">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-[#58051E]/10 rounded-md text-[10px] font-black uppercase text-[#58051E] mb-2">
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-[#5A0122]/10 rounded-md text-[10px] font-black uppercase text-[#5A0122] mb-2">
               <Bell className="w-3.5 h-3.5" /> Digital Agency Activity Feed
             </div>
             <h1 className="text-2xl font-black tracking-tight text-slate-900">
@@ -220,7 +220,7 @@ export const DigitalNotifications: React.FC = () => {
           <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
             <button
               onClick={() => setShowAddModal(true)}
-              className="h-9 px-4 bg-[#58051E] hover:bg-[#430316] text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+              className="h-9 px-4 bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Dispatch Alert
             </button>
@@ -256,7 +256,7 @@ export const DigitalNotifications: React.FC = () => {
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   isSelected
-                    ? 'bg-[#58051E] text-white shadow-xs'
+                    ? 'bg-[#5A0122] text-white shadow-xs'
                     : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
                 }`}
               >
@@ -278,9 +278,9 @@ export const DigitalNotifications: React.FC = () => {
             </button>
             <button
               onClick={() => setFilterTab('unread')}
-              className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${filterTab === 'unread' ? 'bg-white text-[#58051E] shadow-xs' : 'text-slate-500 hover:text-slate-900'}`}
+              className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${filterTab === 'unread' ? 'bg-white text-[#5A0122] shadow-xs' : 'text-slate-500 hover:text-slate-900'}`}
             >
-              Unread {unreadCount > 0 && <span className="w-2 h-2 rounded-full bg-[#58051E]" />}
+              Unread {unreadCount > 0 && <span className="w-2 h-2 rounded-full bg-[#5A0122]" />}
             </button>
           </div>
 
@@ -291,7 +291,7 @@ export const DigitalNotifications: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search notifications..."
-              className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#58051E]"
+              className="w-full h-9 pl-9 pr-3 bg-white border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#5A0122]"
             />
           </div>
         </div>
@@ -331,14 +331,14 @@ export const DigitalNotifications: React.FC = () => {
                     }}
                     className={`p-4 md:p-5 rounded-2xl border transition-all cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group ${
                       !notif.is_read
-                        ? 'bg-white border-[#58051E]/30 shadow-xs ring-1 ring-[#58051E]/10'
+                        ? 'bg-white border-[#5A0122]/30 shadow-xs ring-1 ring-[#5A0122]/10'
                         : 'bg-white/80 hover:bg-white border-slate-200/80 hover:border-slate-300'
                     }`}
                   >
                     <div className="flex items-start gap-3.5 flex-1 min-w-0">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
                         !notif.is_read
-                          ? 'bg-[#58051E]/10 text-[#58051E]'
+                          ? 'bg-[#5A0122]/10 text-[#5A0122]'
                           : 'bg-slate-100 text-slate-500'
                       }`}>
                         <Icon className="w-5 h-5" />
@@ -355,7 +355,7 @@ export const DigitalNotifications: React.FC = () => {
                             {notif.category}
                           </span>
                           {!notif.is_read && (
-                            <span className="w-2 h-2 rounded-full bg-[#58051E]" title="Unread" />
+                            <span className="w-2 h-2 rounded-full bg-[#5A0122]" title="Unread" />
                           )}
                           <span className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
                             <Clock className="w-3 h-3" /> {formatTimeAgo(notif.created_at)}
@@ -379,7 +379,7 @@ export const DigitalNotifications: React.FC = () => {
                             if (!notif.is_read) handleMarkRead(notif.id);
                             navigate(notif.link!);
                           }}
-                          className="h-8 px-3 rounded-lg bg-slate-100 hover:bg-[#58051E] hover:text-white text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                          className="h-8 px-3 rounded-lg bg-slate-100 hover:bg-[#5A0122] hover:text-white text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                         >
                           <span>{notif.actionText || 'Open'}</span>
                           <ArrowUpRight className="w-3.5 h-3.5" />
@@ -431,7 +431,7 @@ export const DigitalNotifications: React.FC = () => {
             >
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-bold">
+                  <div className="w-8 h-8 rounded-lg bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center font-bold">
                     <Sparkles className="w-4 h-4" />
                   </div>
                   <h3 className="text-base font-bold text-slate-900">Broadcast Team Notification</h3>
@@ -450,7 +450,7 @@ export const DigitalNotifications: React.FC = () => {
                     placeholder="e.g. Q4 Client Retainer Milestone Released"
                     value={newAlertForm.title}
                     onChange={(e) => setNewAlertForm({ ...newAlertForm, title: e.target.value })}
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -459,7 +459,7 @@ export const DigitalNotifications: React.FC = () => {
                   <select
                     value={newAlertForm.category}
                     onChange={(e) => setNewAlertForm({ ...newAlertForm, category: e.target.value as any })}
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   >
                     <option value="Projects">Projects & Milestones</option>
                     <option value="Invoices">Billing & Invoices</option>
@@ -475,7 +475,7 @@ export const DigitalNotifications: React.FC = () => {
                   <select
                     value={newAlertForm.link}
                     onChange={(e) => setNewAlertForm({ ...newAlertForm, link: e.target.value })}
-                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full h-9 px-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   >
                     <option value="/digital/projects">/digital/projects</option>
                     <option value="/digital/invoices">/digital/invoices</option>
@@ -492,7 +492,7 @@ export const DigitalNotifications: React.FC = () => {
                     placeholder="Provide details for team members..."
                     value={newAlertForm.description}
                     onChange={(e) => setNewAlertForm({ ...newAlertForm, description: e.target.value })}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]"
                   />
                 </div>
 
@@ -500,7 +500,7 @@ export const DigitalNotifications: React.FC = () => {
                   <Button type="button" variant="outline" size="sm" onClick={() => setShowAddModal(false)}>
                     Cancel
                   </Button>
-                  <Button type="submit" size="sm" className="bg-[#58051E] hover:bg-[#430316] text-white font-bold">
+                  <Button type="submit" size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-white font-bold">
                     Dispatch Alert
                   </Button>
                 </div>

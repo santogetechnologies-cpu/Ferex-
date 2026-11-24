@@ -33,12 +33,12 @@ export const RimiVehicles: React.FC = () => {
         const formatted = data.map((d: any) => ({
           id: d.id ? `TRK-${d.id.slice(0, 4).toUpperCase()}` : 'TRK-101',
           rawId: d.id,
-          regNo: d.vehicle_number || d.vehicle_no || 'MH-12-AZ-0000',
-          model: `${d.capacity_tonnes || d.capacity_metric_tons || 14}-Ton Ultra Cold Reefer`,
-          temp: `${d.current_temp_celsius || -18.0}°C`,
-          tempNum: Number(d.current_temp_celsius) || -18.0,
-          driver: d.driver_name || 'Assigned Driver',
-          phone: d.driver_phone || '+91 98765 43210',
+          regNo: d.vehicle_number || d.vehicle_no || '—',
+          model: `${d.capacity_tonnes || d.capacity_metric_tons || '—'}-Ton Reefer`,
+          temp: d.current_temp_celsius == null ? '—' : `${d.current_temp_celsius}°C`,
+          tempNum: d.current_temp_celsius == null ? -18 : Number(d.current_temp_celsius),
+          driver: d.driver_name || 'Not assigned',
+          phone: d.driver_phone || '—',
           route: d.status === 'On Route' ? 'Active Delivery Route' : 'Stationed Cold Logistics Depot',
           status: d.status || 'Stationed',
         }));
@@ -83,7 +83,7 @@ export const RimiVehicles: React.FC = () => {
         vehicle_number: newVehicle.regNo.trim(),
         vehicle_no: newVehicle.regNo.trim(),
         driver_name: newVehicle.driver.trim() || 'Assigned Driver',
-        driver_phone: newVehicle.driver_phone.trim() || '+91 98765 43210',
+        driver_phone: newVehicle.driver_phone.trim(),
         capacity_tonnes: Number(newVehicle.capacity_tonnes) || 14,
         capacity_metric_tons: Number(newVehicle.capacity_tonnes) || 14,
         current_temp_celsius: Number(newVehicle.temp) || -18.0,
@@ -111,6 +111,9 @@ export const RimiVehicles: React.FC = () => {
   };
 
   const handleDeleteVehicle = async (rawId: string) => {
+    const v = vehicles.find(x => x.rawId === rawId || x.id === rawId);
+    if (v?.status === 'On Route') { showToastMsg('This truck is on a live delivery. Finish or cancel the delivery first.'); return; }
+    if (!window.confirm(`Remove truck ${v?.regNo || v?.id || ''} from the fleet?`)) return;
     try {
       const success = await deleteRimiVehicle(rawId);
       if (success) {
@@ -140,11 +143,11 @@ export const RimiVehicles: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Truck className="w-5 h-5 text-[#58051E]" /> Vehicles
+            <Truck className="w-5 h-5 text-[#5A0122]" /> Vehicles
           </h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">Refrigerated vehicles and drivers.</p>
         </div>
-        <Button size="sm" className="bg-[#58051E] hover:bg-[#430316] text-xs font-bold" onClick={() => { setNewVehicle(emptyVehicle); setShowAddModal(true); }}>
+        <Button size="sm" className="bg-[#5A0122] hover:bg-[#68092A] text-xs font-bold" onClick={() => { setNewVehicle(emptyVehicle); setShowAddModal(true); }}>
           <Plus className="w-4 h-4 mr-1.5" /> Register Reefer Vehicle
         </Button>
       </div>
@@ -152,7 +155,7 @@ export const RimiVehicles: React.FC = () => {
       <Card className="p-4 border border-slate-200/70 shadow-xs flex items-center justify-between">
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search Vehicle #, driver, or model..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#58051E]" />
+          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search Vehicle #, driver, or model..." className="w-full h-9 pl-9 pr-4 bg-slate-100/70 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:border-[#5A0122]" />
         </div>
         <span className="text-xs font-bold text-slate-400">{filteredVehicles.length} Registered Reefer Units</span>
       </Card>
@@ -181,7 +184,7 @@ export const RimiVehicles: React.FC = () => {
                     <span className="flex items-center gap-1 text-blue-600">
                       <Thermometer className="w-4 h-4" /> Reefer Temp:
                     </span>
-                    <span className="text-[#58051E] font-black">{v.temp}</span>
+                    <span className="text-[#5A0122] font-black">{v.temp}</span>
                   </div>
                   <div className="flex items-center justify-between text-slate-500 font-semibold text-[11px] pt-1">
                     <span>Assigned Driver:</span>
@@ -240,7 +243,7 @@ export const RimiVehicles: React.FC = () => {
                 </div>
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#58051E] hover:bg-[#430316]">Register Vehicle</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]">Register Vehicle</Button>
                 </div>
               </form>
             </motion.div>

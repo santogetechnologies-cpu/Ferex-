@@ -6,9 +6,9 @@ export function useVisa(studentId?: string) {
   const [records, setRecords] = useState<VisaTrackingRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  const fetchRecords = useCallback(async () => {
+  const fetchRecords = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await getVisaRecords(studentId);
       setRecords(data || []);
     } catch (err) {
@@ -22,7 +22,7 @@ export function useVisa(studentId?: string) {
     fetchRecords();
 
     // Supabase Realtime Subscription on visa_tracking
-    const channelName = studentId ? `realtime_visa_student_${studentId}` : 'realtime_visa_admin';
+    const channelName = `realtime_visa_${studentId || 'admin'}_${Math.random().toString(36).slice(2, 8)}`;
     const filterStr = studentId ? `student_id=eq.${studentId}` : undefined;
 
     const channel = supabase
@@ -32,16 +32,16 @@ export function useVisa(studentId?: string) {
         {
           event: '*',
           schema: 'public',
-          table: 'visa_tracking',
+          table: 'visa_applications',
           filter: filterStr,
         },
         () => {
-          fetchRecords();
+          void fetchRecords(true);
         }
       )
       .subscribe();
 
-    const handleLocalEvent = () => fetchRecords();
+    const handleLocalEvent = () => { void fetchRecords(true); };
     window.addEventListener('ferex_visa_change', handleLocalEvent);
 
     return () => {
@@ -79,9 +79,9 @@ export function useVisa(studentId?: string) {
     }
 
     window.dispatchEvent(new Event('ferex_visa_change'));
-    await fetchRecords();
+    await fetchRecords(true);
     return updatedObj;
   };
 
-  return { records, loading, refresh: fetchRecords, saveVisaUpdate };
+  return { records, loading, refresh: () => fetchRecords(true), saveVisaUpdate };
 }
