@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileSpreadsheet, Search, Download, Eye, Plus, X, CheckCircle2,
@@ -25,7 +26,8 @@ import { DateRangeFilter } from '../../components/DateRangeFilter';
 import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
 export const TradeInvoices: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [orderParam] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(orderParam.get('order') || '');
   const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [filterStatus, setFilterStatus] = useState('All');
   const [selectedInv, setSelectedInv] = useState<any>(null);

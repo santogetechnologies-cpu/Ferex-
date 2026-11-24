@@ -7,7 +7,8 @@ import { BlockCap } from '../../components/CapLoader';
 import { DateRangeFilter } from '../../components/DateRangeFilter';
 import { ToastNotification } from '../../components/ToastNotification';
 import { getRimiSalesOrders, type RimiSalesOrderRecord } from '../../lib/api/rimi';
-import { orderPaymentLabel, printInvoice } from '../../lib/rimiReceipts';
+import { DocumentPreview } from '../../components/DocumentPreview';
+import { orderPaymentLabel, invoiceHtml } from '../../lib/rimiReceipts';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
 
@@ -22,6 +23,7 @@ export const RimiFinance: React.FC<{ view: 'billing' | 'invoices' }> = ({ view }
   const [range, setRange] = useState<DateRange>(ALL_TIME);
   const [status, setStatus] = useState('All');
   const [q, setQ] = useState('');
+  const [preview, setPreview] = useState<RimiSalesOrderRecord | null>(null);
   const load = useCallback(async () => { try { setOrders((await getRimiSalesOrders()).filter(o => o.order_status !== 'Cancelled')); } catch (e: any) { setToast(e.message); } finally { setLoading(false); } }, []);
   useEffect(() => { void load(); }, [load]);
   useRealtimeTable('rimi_sales_orders', load); useRealtimeTable('rimi_payments', load);
@@ -33,6 +35,7 @@ export const RimiFinance: React.FC<{ view: 'billing' | 'invoices' }> = ({ view }
   return (
     <div className="space-y-5 text-left">
       <ToastNotification message={toast} onClose={() => setToast('')} />
+      {preview && <DocumentPreview title={`Invoice ${preview.order_no}`} html={invoiceHtml(preview)} onClose={() => setPreview(null)} />}
       <PageHeader eyebrow="Rimi Frozen" title={view === 'billing' ? 'Billing' : 'Invoices'} subtitle={view === 'billing' ? 'What each order was billed, what has been collected and what is still due.' : 'One invoice for every sales order. Open it to print or save as PDF.'} />
       <div className="grid sm:grid-cols-3 gap-3">
         {[['Billed', billed, 'text-slate-900'], ['Collected', paid, 'text-emerald-700'], ['Still due', due, 'text-rose-700']].map(([l, v, t]: any) => <div key={l} className="rounded-2xl border border-slate-200/80 bg-white p-4"><p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{l}</p><p className={`text-2xl font-extrabold tabular-nums ${t}`}>{inr(v)}</p></div>)}
@@ -52,7 +55,7 @@ export const RimiFinance: React.FC<{ view: 'billing' | 'invoices' }> = ({ view }
                   <td className="p-3 text-right tabular-nums">{inr(o.total_amount)}</td><td className="p-3 text-right tabular-nums text-emerald-700">{inr(o.paid_amount)}</td><td className="p-3 text-right tabular-nums font-black text-slate-900">{inr(o.balance_amount)}</td>
                   <td className="p-3"><span className={`px-2 py-0.5 rounded-full border text-[10px] font-extrabold ${tone(s)}`}>{s}</span></td>
                   <td className="p-3 text-right whitespace-nowrap">
-                    <Button size="sm" variant="outline" className="h-7 text-[11px] font-bold mr-1.5" onClick={() => { if (!printInvoice(o)) setToast('Allow pop-ups to print the invoice.'); }}><Printer className="w-3 h-3 mr-1" /> Invoice</Button>
+                    <Button size="sm" variant="outline" className="h-7 text-[11px] font-bold mr-1.5" onClick={() => setPreview(o)}><Printer className="w-3 h-3 mr-1" /> Invoice</Button>
                     {Number(o.balance_amount) > 0 && <Link to="/rimi/collections" className="text-[11px] font-bold text-[#5A0122] hover:underline">Collect</Link>}</td></tr>); })}
             </tbody>
           </table>

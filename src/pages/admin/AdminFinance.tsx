@@ -16,7 +16,8 @@ import { PageHeader, EmptyState } from '../../components/Kit';
 import { BlockCap } from '../../components/CapLoader';
 import { DateRangeFilter } from '../../components/DateRangeFilter';
 import { ALL_TIME, inRange, type DateRange } from '../../lib/dateRange';
-import { openReceiptWindow } from '../../lib/receiptPrint';
+import { receiptHtml } from '../../lib/receiptPrint';
+import { DocumentPreview } from '../../components/DocumentPreview';
 import { DivisionExpenses } from '../../components/finance/DivisionExpenses';
 
 type Tab = 'overview' | 'collections' | 'receivables' | 'documents' | 'expenses';
@@ -52,6 +53,7 @@ export const AdminFinance: React.FC = () => {
   const [plans, setPlans] = useState<Record<string, StudentBillingAssignment>>({});
   const [packages, setPackages] = useState<CountryFeePackage[]>([]);
   const [docs, setDocs] = useState<DocRow[]>([]);
+  const [docPreview, setDocPreview] = useState<{ title: string; html: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -150,6 +152,7 @@ export const AdminFinance: React.FC = () => {
       </div>
 
       {tab === 'expenses' && <DivisionExpenses division="education" eyebrow="Ferex Education" />}
+      {docPreview && <DocumentPreview title={docPreview.title} html={docPreview.html} onClose={() => setDocPreview(null)} />}
       {tab !== 'expenses' && <DateRangeFilter value={range} onChange={setRange} label={tab === 'receivables' ? 'Plan started' : tab === 'documents' ? 'Issued' : 'Paid'} />}
 
       {tab === 'expenses' ? null : loading ? <BlockCap /> : tab === 'overview' ? (
@@ -257,7 +260,7 @@ export const AdminFinance: React.FC = () => {
                       <td className="p-3 min-w-0"><b className="text-slate-900 truncate block">{nameOf(d.student_id)}</b><span className="block text-xs text-slate-500 truncate">{d.description}</span></td>
                       <td className="p-3 text-right font-semibold tabular-nums">{money(d.amount, d.currency)}</td>
                       <td className="p-3 text-right text-xs text-slate-500 hidden md:table-cell">{d.tax > 0 ? `${d.tax}%` : '—'}</td>
-                      <td className="p-3 text-right"><button type="button" aria-label={`Print ${d.kind} ${d.no}`} onClick={() => { if (!openReceiptWindow({ receipt_no: d.no, student_name: nameOf(d.student_id), student_email: students.find(x => x.id === d.student_id)?.email, amount: d.amount, currency: d.currency, description: d.description, issued_at: d.at, tax_rate_percent: d.tax })) alert('Allow pop-ups to print.'); }} className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"><Printer className="w-3 h-3" />Print</button></td>
+                      <td className="p-3 text-right"><button type="button" aria-label={`Print ${d.kind} ${d.no}`} onClick={() => setDocPreview({ title: `${d.kind} ${d.no}`, html: receiptHtml({ receipt_no: d.no, student_name: nameOf(d.student_id), student_email: students.find(x => x.id === d.student_id)?.email, amount: d.amount, currency: d.currency, description: d.description, issued_at: d.at, tax_rate_percent: d.tax }) })} className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"><Printer className="w-3 h-3" />Print</button></td>
                     </tr>
                   ))}
                 </tbody>

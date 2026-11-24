@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CreditCard, Search, Plus, CheckCircle2, Clock, Send,
@@ -94,6 +95,16 @@ export const TradePayments: React.FC = () => {
   };
 
   const selectedOrder = orders.find(o => o.order_no === recordForm.order_no);
+
+  // Opened from Billing with ?order=… : go straight to Record Payment for that order (once).
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    const wanted = params.get('order');
+    if (wanted && orders.some(o => o.order_no === wanted)) {
+      handleOrderSelect(wanted); setShowRecordModal(true);
+      const next = new URLSearchParams(params); next.delete('order'); setParams(next, { replace: true });
+    }
+  }, [orders]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleOrderSelect = (orderNo: string) => {
     const ord = orders.find(o => o.order_no === orderNo);

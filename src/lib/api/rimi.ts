@@ -904,28 +904,7 @@ export async function createRimiSalesOrder(order: {
     performed_by: order.assigned_staff_name || 'Sales Staff'
   }).catch(() => {});
 
-  // Delivery job for the dispatch team (non-fatal: the order and stock are already committed).
-  try {
-    const [vehicles, routes] = await Promise.all([getRimiVehicles().catch(() => []), getRimiDeliveryRoutes().catch(() => [])]);
-    const vehicle = vehicles.find(v => v.status === 'Stationed' || v.status === 'Available');
-    const city = customer?.city || '';
-    const route = routes.find(r => (r.destinations || []).some(d => city && d.toLowerCase().includes(city.toLowerCase())) || (city && r.route_name.toLowerCase().includes(city.toLowerCase()))) || routes[0];
-    await createRimiDelivery({
-      order_id: created.id,
-      order_no: created.order_no,
-      customer_name: created.customer_name,
-      destination_city: city,
-      destination_address: created.delivery_address,
-      vehicle_id: vehicle?.id,
-      vehicle_no: vehicle?.vehicle_number || vehicle?.vehicle_no,
-      driver_name: vehicle?.driver_name,
-      driver_phone: vehicle?.driver_phone,
-      route_name: route?.route_name,
-      departure_temp: vehicle ? `${vehicle.current_temp_celsius}°C` : undefined,
-    });
-  } catch (delErr) {
-    console.warn('[RimiAPI] Order saved, but its delivery job could not be created:', delErr);
-  }
+  // Dispatch is never scheduled automatically: the dispatch team picks the truck and the driver under Dispatch Reefer Truck.
 
   if (customer?.email) {
     sendRimiSalesOrderEmail({

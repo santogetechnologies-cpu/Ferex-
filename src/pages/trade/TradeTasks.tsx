@@ -202,11 +202,15 @@ export const TradeTasks: React.FC = () => {
     }
   };
 
+  const statusLabel = (st: string) => st === 'Completed' ? 'Delivered' : st === 'In Progress' ? 'In Process' : st;
+
   const handleStatusToggle = async (task: TradeTask) => {
-    const nextStatus: TaskStatus = task.status === 'Pending' ? 'In Progress' : task.status === 'In Progress' ? 'Completed' : 'Pending';
+    // Pending → In Process → Delivered. Delivered is final: clicking it again changes nothing.
+    if (task.status === 'Completed') { showToastMsg('This task is already Delivered.'); return; }
+    const nextStatus: TaskStatus = task.status === 'Pending' ? 'In Progress' : 'Completed';
     try {
       await updateTradeTaskStatus(task.id, nextStatus);
-      showToastMsg(`Task updated to ${nextStatus}`);
+      showToastMsg(`Task updated to ${statusLabel(nextStatus)}`);
       await loadData();
     } catch (err: any) {
       showToastMsg(`Error: ${err.message}`);
@@ -308,11 +312,11 @@ export const TradeTasks: React.FC = () => {
           <div className="text-xl font-black text-amber-900 mt-1">{counts.pending}</div>
         </Card>
         <Card className="p-3.5 border border-blue-200/80 bg-blue-50/40">
-          <div className="text-[10.5px] font-bold uppercase tracking-wider text-blue-700">In Progress</div>
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-blue-700">In Process</div>
           <div className="text-xl font-black text-blue-900 mt-1">{counts.inProgress}</div>
         </Card>
         <Card className="p-3.5 border border-emerald-200/80 bg-emerald-50/40">
-          <div className="text-[10.5px] font-bold uppercase tracking-wider text-emerald-700">Completed</div>
+          <div className="text-[10.5px] font-bold uppercase tracking-wider text-emerald-700">Delivered</div>
           <div className="text-xl font-black text-emerald-900 mt-1">{counts.completed}</div>
         </Card>
       </div>
@@ -336,8 +340,8 @@ export const TradeTasks: React.FC = () => {
           {[
             { key: 'All', label: 'All', count: counts.all },
             { key: 'Pending', label: 'Pending', count: counts.pending },
-            { key: 'In Progress', label: 'In Progress', count: counts.inProgress },
-            { key: 'Completed', label: 'Completed', count: counts.completed }
+            { key: 'In Progress', label: 'In Process', count: counts.inProgress },
+            { key: 'Completed', label: 'Delivered', count: counts.completed }
           ].map(st => (
             <button
               key={st.key}
@@ -394,14 +398,15 @@ export const TradeTasks: React.FC = () => {
                     onClick={() => handleStatusToggle(task)}
                     className={`px-2.5 py-1 rounded-full text-[10.5px] font-black cursor-pointer transition-all shrink-0 ${
                       task.status === 'Completed'
-                        ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                        ? 'bg-emerald-100 text-emerald-800 cursor-default'
                         : task.status === 'In Progress'
                         ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
                         : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
                     }`}
-                    title="Click to advance status"
+                    title={task.status === 'Completed' ? 'Delivered' : 'Click to advance status'}
+                    aria-disabled={task.status === 'Completed'}
                   >
-                    {task.status}
+                    {statusLabel(task.status)}
                   </button>
                 </div>
 
@@ -428,13 +433,13 @@ export const TradeTasks: React.FC = () => {
 
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-slate-400 font-mono">Due: {task.due_date}</span>
-                  <button
+                  {canAddStaff && <button
                     onClick={() => setReassigningTask(task)}
                     className="p-1 text-slate-400 hover:text-slate-700 rounded cursor-pointer"
                     title="Reassign Staff"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
-                  </button>
+                  </button>}
                   <button
                     onClick={() => handleDelete(task.id, task.title)}
                     className="p-1 text-slate-400 hover:text-rose-600 rounded cursor-pointer"

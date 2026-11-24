@@ -99,7 +99,10 @@ export const RimiDeliveries: React.FC = () => {
     e.preventDefault();
     if (!newDel.order_id) { showToastMsg('Choose the sales order to dispatch.'); return; }
     if (!newDel.vehicle_no) { showToastMsg('Choose the reefer truck.'); return; }
-    if (!newDel.driver_name.trim()) { showToastMsg('Enter the driver name.'); return; }
+    if (!newDel.driver_name.trim()) { showToastMsg('Choose the driver for this truck.'); return; }
+    const driverBusy = deliveries.some(d => liveTrip(d) && (d.driver_name || '').trim().toLowerCase() === newDel.driver_name.trim().toLowerCase());
+    if (driverBusy && !window.confirm(`${newDel.driver_name.trim()} is already on a live trip. Assign them to this dispatch as well?`)) return;
+    if (!window.confirm(`Dispatch truck ${newDel.vehicle_no} with driver ${newDel.driver_name.trim()}?`)) return;
 
     try {
       const ord = orders.find(o => o.id === newDel.order_id);
@@ -140,6 +143,14 @@ export const RimiDeliveries: React.FC = () => {
 
   // Only orders that can still go out and are not already on a live delivery, and trucks that are free.
   const dispatchable = orders.filter(o => !['Cancelled', 'Delivered'].includes(o.order_status) && !deliveries.some(d => d.order_id === o.id && !['Delivered', 'Returned', 'Failed'].includes(d.delivery_status)));
+  // Drivers come from the fleet and past trips. A driver is only ever assigned by choosing them here.
+  const liveTrip = (d: RimiDeliveryRecord) => !['Delivered', 'Returned', 'Failed'].includes(d.delivery_status);
+  const drivers = (() => {
+    const m = new Map<string, { name: string; phone: string; busy: boolean }>();
+    [...vehicles.map(v => ({ name: v.driver_name, phone: v.driver_phone || '' })), ...deliveries.map(d => ({ name: d.driver_name, phone: d.driver_phone || '' }))]
+      .forEach(x => { const n = (x.name || '').trim(); if (n && n.toLowerCase() !== 'unassigned' && !m.has(n.toLowerCase())) m.set(n.toLowerCase(), { name: n, phone: x.phone, busy: deliveries.some(d => liveTrip(d) && (d.driver_name || '').trim().toLowerCase() === n.toLowerCase()) }); });
+    return [...m.values()].sort((a, b) => a.name.localeCompare(b.name));
+  })();
   const freeTrucks = vehicles.filter(v => ['Stationed', 'Available'].includes(v.status));
 
   // A trip is "mine" when I am the assigned driver: by my login, my phone number or my name.
@@ -334,12 +345,9 @@ export const RimiDeliveries: React.FC = () => {
                     <select
                       value={newDel.vehicle_no}
                       onChange={(e) => {
-                        const v = vehicles.find(veh => veh.vehicle_no === e.target.value);
                         setNewDel({
                           ...newDel,
-                          vehicle_no: e.target.value,
-                          driver_name: v?.driver_name || newDel.driver_name,
-                          driver_phone: v?.driver_phone || newDel.driver_phone
+                          vehicle_no: e.target.value
                         });
                       }}
                       className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
@@ -364,15 +372,24 @@ export const RimiDeliveries: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Driver Name *</label>
-                    <input
-                      type="text"
+                    <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Driver for this truck *</label>
+                    <select
                       required
-                      value={newDel.driver_name}
-                      onChange={(e) => setNewDel({ ...newDel, driver_name: e.target.value })}
-                      placeholder="e.g. Anand Kumar"
-                      className="w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
-                    />
+                      aria-label="Driver"
+                      value={drivers.some(d => d.name === newDel.driver_name) ? newDel.driver_name : (newDel.driver_name === '' ? '' : '__other')}
+                      onChange={(e) => {
+                        const d = drivers.find(x => x.name === e.target.value);
+                        setNewDel({ ...newDel, driver_name: e.target.value === '__other' ? ' ' : e.target.value, driver_phone: d?.phone || '' });
+                      }}
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none"
+                    >
+                      <option value="">Select a driver…</option>
+                      {drivers.map(d => <option key={d.name} value={d.name}>{d.name}{d.busy ? ' (on a live trip)' : ''}</option>)}
+                      <option value="__other">Someone else…</option>
+                    </select>
+                    {newDel.driver_name !== '' && !drivers.some(d => d.name === newDel.driver_name) && (
+                      <input type="text" required aria-label="Driver name" value={newDel.driver_name.trim() === '' ? '' : newDel.driver_name} onChange={(e) => setNewDel({ ...newDel, driver_name: e.target.value || ' ' })} placeholder="Driver's full name" className="mt-1.5 w-full h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none" />
+                    )}
                   </div>
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Driver Phone</label>
@@ -407,7 +424,7 @@ export const RimiDeliveries: React.FC = () => {
 
                 <div className="pt-3 flex gap-2">
                   <Button type="button" variant="outline" size="sm" className="flex-1 text-xs font-bold" onClick={() => setShowAddModal(false)}>Cancel</Button>
-                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]">Dispatch Reefer Vehicle</Button>
+                  <Button type="submit" size="sm" className="flex-1 text-xs font-bold bg-[#5A0122] hover:bg-[#68092A]">Confirm &amp; Dispatch</Button>
                 </div>
               </form>
             </motion.div>

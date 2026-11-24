@@ -231,6 +231,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
 
   const menuItems = [
     { name: 'Dashboard', path: '/student/dashboard', icon: Home, badge: null, hasUpdate: false },
+    { name: 'My Journey', path: '/student/journey-tracker', icon: Milestone, badge: hasUnreadJourney ? 'ROADMAP' : null, hasUpdate: hasUnreadJourney },
     {
       name: 'Service Agreement',
       path: '/student/agreement',
@@ -238,16 +239,15 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
       badge: !hasSignedAgreement ? 'SIGN' : null,
       hasUpdate: !hasSignedAgreement,
     },
-    { name: 'My Journey', path: '/student/journey-tracker', icon: Milestone, badge: hasUnreadJourney ? 'ROADMAP' : null, hasUpdate: hasUnreadJourney },
+    { name: 'Payments', path: '/student/payments', icon: CreditCard, badge: hasUnreadPayment ? 'DUE' : null, hasUpdate: hasUnreadPayment },
+    { name: 'Documents', path: '/student/documents', icon: Folder, badge: null, hasUpdate: false },
     { name: 'Universities', path: '/student/select-university', icon: Target, badge: null, hasUpdate: false },
     { name: 'Applications', path: '/student/applications', icon: GraduationCap, badge: null, hasUpdate: false },
     { name: 'Offer Letters', path: '/student/offers', icon: FileText, badge: hasUnreadOffer ? 'OFFER' : null, hasUpdate: hasUnreadOffer },
-    { name: 'Documents', path: '/student/documents', icon: Folder, badge: null, hasUpdate: false },
-    { name: 'Payments', path: '/student/payments', icon: CreditCard, badge: hasUnreadPayment ? 'DUE' : null, hasUpdate: hasUnreadPayment },
+    { name: 'Invoices', path: '/student/invoices', icon: FileSpreadsheet, badge: null, hasUpdate: false },
     { name: 'Receipts', path: '/student/receipts', icon: Receipt, badge: null, hasUpdate: false },
     { name: 'Visa', path: '/student/visa-tracker', icon: ShieldCheck, badge: hasUnreadVisa ? 'VFS' : null, hasUpdate: hasUnreadVisa },
     { name: 'Pre-Departure', path: '/student/pre-departure', icon: Plane, badge: null, hasUpdate: false },
-    { name: 'Invoices', path: '/student/invoices', icon: FileSpreadsheet, badge: null, hasUpdate: false },
     { name: 'Meetings', path: '/student/meetings', icon: Calendar, badge: null, hasUpdate: false },
     { name: 'Chat', path: '/student/chat', icon: MessageCircle, badge: null, hasUpdate: false },
     { name: 'Notifications', path: '/student/notifications', icon: Bell, badge: unreadCount > 0 ? String(unreadCount) : null, hasUpdate: unreadCount > 0 },
