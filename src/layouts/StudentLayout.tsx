@@ -245,9 +245,9 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
     { name: 'Documents', path: '/student/documents', icon: Folder, badge: null, hasUpdate: false },
     { name: 'Payments', path: '/student/payments', icon: CreditCard, badge: hasUnreadPayment ? 'DUE' : null, hasUpdate: hasUnreadPayment },
     { name: 'Receipts', path: '/student/receipts', icon: Receipt, badge: null, hasUpdate: false },
+    { name: 'Invoices', path: '/student/invoices', icon: FileSpreadsheet, badge: null, hasUpdate: false },
     { name: 'Visa', path: '/student/visa-tracker', icon: ShieldCheck, badge: hasUnreadVisa ? 'VFS' : null, hasUpdate: hasUnreadVisa },
     { name: 'Pre-Departure', path: '/student/pre-departure', icon: Plane, badge: null, hasUpdate: false },
-    { name: 'Invoices', path: '/student/invoices', icon: FileSpreadsheet, badge: null, hasUpdate: false },
     { name: 'Meetings', path: '/student/meetings', icon: Calendar, badge: null, hasUpdate: false },
     { name: 'Chat', path: '/student/chat', icon: MessageCircle, badge: null, hasUpdate: false },
     { name: 'Notifications', path: '/student/notifications', icon: Bell, badge: unreadCount > 0 ? String(unreadCount) : null, hasUpdate: unreadCount > 0 },
@@ -286,16 +286,38 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
     return () => window.removeEventListener('ferex_application_change', fetchStudentApps);
   }, [effectiveStudentId]);
 
-  // Global keyboard shortcut (⌘K / Ctrl+K / Escape) & click-outside
+  // Global keyboard shortcut (⌘Q / Ctrl+Q / ⌘K / Ctrl+K / Escape) & click-outside
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+      const isQ =
+        e.key?.toLowerCase() === 'q' ||
+        e.code === 'KeyQ' ||
+        e.keyCode === 81 ||
+        (e as any).which === 81;
+      const isK =
+        e.key?.toLowerCase() === 'k' ||
+        e.code === 'KeyK' ||
+        e.keyCode === 75 ||
+        (e as any).which === 75;
+
+      if (isCtrlOrCmd && (isQ || isK)) {
         e.preventDefault();
+        e.stopPropagation();
         setShowProfileDropdown(false);
         setShowNotifications(false);
         setIsSearchOpen(true);
-        setTimeout(() => searchInputRef.current?.focus(), 30);
-      } else if (e.key === 'Escape') {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+          searchInputRef.current.select();
+        }
+        setTimeout(() => {
+          if (searchInputRef.current) {
+            searchInputRef.current.focus();
+            searchInputRef.current.select();
+          }
+        }, 10);
+      } else if (e.key === 'Escape' || e.code === 'Escape' || e.keyCode === 27) {
         setIsSearchOpen(false);
         searchInputRef.current?.blur();
       }
@@ -307,11 +329,15 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
       }
     };
 
-    window.addEventListener('keydown', handleGlobalKeyDown);
+    window.addEventListener('keydown', handleGlobalKeyDown, true);
+    document.addEventListener('keydown', handleGlobalKeyDown, true);
     window.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      window.removeEventListener('keydown', handleGlobalKeyDown);
+      window.removeEventListener('keydown', handleGlobalKeyDown, true);
+      document.removeEventListener('keydown', handleGlobalKeyDown, true);
       window.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
@@ -586,6 +612,18 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+    const isQ =
+      e.key?.toLowerCase() === 'q' ||
+      e.code === 'KeyQ' ||
+      e.keyCode === 81 ||
+      (e as any).which === 81;
+    if (isCtrlOrCmd && isQ) {
+      e.preventDefault();
+      setIsSearchOpen(true);
+      searchInputRef.current?.select();
+      return;
+    }
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setActiveSearchIndex(prev => (prev + 1 < searchResults.length ? prev + 1 : 0));
@@ -779,7 +817,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                 }}
                 onKeyDown={handleSearchKeyDown}
                 placeholder="Search portal..."
-                className="w-full h-8.5 pl-8.5 pr-8 bg-slate-50 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-[#58051E]/40 dark:focus:border-rose-400 focus:ring-2 focus:ring-[#58051E]/5 transition-all"
+                className="w-full h-9.5 pl-8.5 pr-8 bg-slate-50 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-[#58051E]/40 dark:focus:border-rose-400 focus:ring-2 focus:ring-[#58051E]/5 transition-all"
               />
               {searchQuery ? (
                 <button
@@ -795,14 +833,20 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                 </button>
               ) : (
                 <kbd
-                  onClick={() => {
-                    searchInputRef.current?.focus();
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowProfileDropdown(false);
+                    setShowNotifications(false);
                     setIsSearchOpen(true);
+                    if (searchInputRef.current) {
+                      searchInputRef.current.focus();
+                      searchInputRef.current.select();
+                    }
                   }}
                   className="absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-0.2 text-[9px] font-bold text-slate-400 dark:text-slate-400 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded select-none cursor-pointer"
-                  title="Press ⌘K or Ctrl+K to search"
+                  title="Press ⌘Q or Ctrl+Q to search"
                 >
-                  ⌘K
+                  ⌘Q
                 </kbd>
               )}
 
@@ -900,7 +944,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                   setShowNotifications(!showNotifications);
                   setShowProfileDropdown(false);
                 }}
-                className="relative p-2 rounded-xl border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer"
+                className="relative w-9.5 h-9.5 flex items-center justify-center rounded-xl border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer shrink-0"
                 aria-label="Notifications"
               >
                 <Bell size={18} />
@@ -956,7 +1000,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
             </div>
 
             {/* Dark Mode / Light Mode Switcher */}
-            <ThemeToggle size="sm" />
+            <ThemeToggle size="md" className="!w-9.5 !h-9.5 shrink-0" />
 
             {/* Profile Dropdown Trigger */}
             <div className="relative" onClick={(e) => e.stopPropagation()}>
@@ -965,7 +1009,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                   setShowProfileDropdown(!showProfileDropdown);
                   setShowNotifications(false);
                 }}
-                className="flex items-center gap-2.5 h-9.5 px-3 rounded-xl border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors select-none group"
+                className="flex items-center gap-2.5 h-9.5 px-3 rounded-xl border border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors select-none group shrink-0"
               >
                 <div className="relative">
                   {profilePhoto ? (

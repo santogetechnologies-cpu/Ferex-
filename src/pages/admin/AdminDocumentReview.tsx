@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Search, Eye, CheckCircle2, X, RefreshCw, FileText, AlertCircle, Clock, UploadCloud, ChevronLeft, Users, FilePlus2, Globe,
+  Search, Eye, CheckCircle2, X, RefreshCw, RotateCcw, XCircle, FileText, AlertCircle, Clock, UploadCloud, ChevronLeft, Users, FilePlus2, Globe,
 } from 'lucide-react';
 import { useDocuments } from '../../hooks/useDocuments';
 import { useApplications } from '../../hooks/useApplications';
@@ -45,7 +45,7 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
   const { profile, user } = useAuth();
   const myEmail = (profile?.email || user?.email || '').toLowerCase().trim();
   const myName = (profile?.full_name || '').toLowerCase().trim();
-  const { documents: dbDocs, loading, changeStatus, addDoc } = useDocuments();
+  const { documents: dbDocs, loading, changeStatus, addDoc, replaceDoc } = useDocuments();
   const { applications } = useApplications();
 
   const [requirements, setRequirements] = useState<DocumentRequirement[]>([]);
@@ -131,6 +131,14 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
     } catch (e) { flash((e as Error).message); } finally { setBusy(''); }
   };
 
+  const reject = async (d: StudentDocument) => {
+    setBusy(d.id);
+    try {
+      await changeStatus(d.id, 'Rejected' as any, d.reviewer_notes || 'Document rejected', user?.id);
+      flash(`Rejected. ${students[d.student_id]?.full_name || 'The student'} has been notified.`);
+    } catch (e) { flash((e as Error).message); } finally { setBusy(''); }
+  };
+
   const sendAsk = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!asking) return;
@@ -143,8 +151,13 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
   const saveUpload = async (r: UploadDone) => {
     if (!current) return;
     const base = { file_name: r.fileName, file_url: r.path, file_size: r.size, doc_type: (upload?.req?.document_type || 'Other') as any, requirement_id: upload?.req?.id, requirement_name: upload?.req?.document_name };
-    await addDoc({ student_id: current.id, ...base });
-    flash(`${r.title} uploaded for ${current.name}.`);
+    if (upload?.replaceId) {
+      await replaceDoc(upload.replaceId, base);
+      flash(`${r.title} replaced for ${current.name}.`);
+    } else {
+      await addDoc({ student_id: current.id, ...base });
+      flash(`${r.title} uploaded for ${current.name}.`);
+    }
   };
 
   const viewerFooter = viewing?.doc && (
@@ -167,7 +180,8 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
         <Pill s={n} />
         <button type="button" className={btnGhost} onClick={() => open(d)}><Eye className="w-3.5 h-3.5" />View</button>
         {n !== 'Approved' && n !== 'Needs action' && <button type="button" className={btnPrimary} disabled={busy === d.id} onClick={() => approve(d)}><CheckCircle2 className="w-3.5 h-3.5" />Approve</button>}
-        {n !== 'Needs action' && <button type="button" className={btnGhost} onClick={() => { setAsking(d); setNote(d.reviewer_notes || ''); }}>Ask re-upload</button>}
+        {n !== 'Needs action' && <button type="button" className={btnGhost} onClick={() => { setAsking(d); setNote(d.reviewer_notes || ''); }}><RotateCcw className="w-3.5 h-3.5" />Ask re-upload</button>}
+        <button type="button" className={btnGhost} disabled={busy === d.id} onClick={() => reject(d)}><XCircle className="w-3.5 h-3.5" />Reject</button>
       </div>
     );
   };
@@ -175,54 +189,30 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
   const detail = current && (() => {
     const linked = new Set(current.dossier.results.map(r => r.doc?.id).filter(Boolean));
     const extra = current.docs.filter(d => !linked.has(d.id));
+    const displayList = extra.length > 0 ? extra : current.docs;
     return (
-      <div className="space-y-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <button type="button" onClick={() => setSelected(null)} className="lg:hidden text-xs font-bold text-slate-500 inline-flex items-center gap-1 mb-2 cursor-pointer"><ChevronLeft className="w-3.5 h-3.5" />All students</button>
-            <h2 className="text-lg font-extrabold text-slate-900 truncate">{current.name}</h2>
-            <p className="text-xs text-slate-500 flex items-center gap-2 flex-wrap">{current.email}{current.country && <span className="inline-flex items-center gap-1"><Globe className="w-3 h-3" />{current.country}</span>}</p>
-          </div>
-          <button type="button" className={btnPrimary} onClick={() => setUpload({})}><UploadCloud className="w-3.5 h-3.5" />Upload for student</button>
+      <div className="space-y-4">
+        <button type="button" onClick={() => setSelected(null)} className="lg:hidden text-xs font-bold text-slate-500 inline-flex items-center gap-1 mb-2 cursor-pointer"><ChevronLeft className="w-3.5 h-3.5" />All students</button>
+
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <h3 className="text-sm font-bold text-slate-900">Other files</h3>
+          <span className="text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-200/80 px-2.5 py-0.5 rounded-full">{displayList.length} {displayList.length === 1 ? 'file' : 'files'}</span>
         </div>
 
-        {current.pct !== null && (
-          <div className="rounded-xl bg-slate-50 border border-slate-200/70 p-3.5 space-y-1.5">
-            <div className="flex justify-between text-xs font-bold text-slate-700"><span>Required documents uploaded</span><span className="tabular-nums">{current.pct}%</span></div>
-            <div className="h-2 rounded-full bg-slate-200 overflow-hidden"><div className="h-full bg-[#58051E] rounded-full transition-all" style={{ width: `${current.pct}%` }} /></div>
-          </div>
-        )}
-
-        <section className="space-y-2">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Required documents{current.country ? ` for ${current.country}` : ''}</h3>
-          {current.dossier.results.length === 0 ? <p className="text-xs text-slate-500 rounded-xl border border-dashed border-slate-300 p-4">No checklist is set for {current.country || 'this student yet'}. Set it under Settings → Document requirements. Their files are listed below.</p> : (
-            <ul className="rounded-2xl border border-slate-200/80 bg-white divide-y divide-slate-100">
-              {current.dossier.results.map(({ requirement: r, status, doc }) => (
-                <li key={r.id} className="p-3.5 flex flex-col md:flex-row md:items-center gap-2.5 justify-between">
-                  <div className="min-w-0"><p className="text-sm font-semibold text-slate-900">{r.document_name}{!r.is_required && <span className="ml-2 text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">Optional</span>}</p>
-                    {doc ? <p className="text-[11px] text-slate-500 truncate">{[doc.file_name, doc.file_size, dateOf(doc.uploaded_at)].filter(Boolean).join(' · ')}</p> : <p className="text-[11px] text-slate-400">Nothing uploaded yet</p>}
-                    {doc?.reviewer_notes && norm(doc.status) === 'Needs action' && <p className="text-[11px] text-rose-700 mt-0.5">Asked: {doc.reviewer_notes}</p>}
-                  </div>
-                  {doc ? fileActions(doc, r) : <div className="flex items-center gap-2"><Pill s="Missing" /><button type="button" className={btnPrimary} onClick={() => setUpload({ req: r })}><FilePlus2 className="w-3.5 h-3.5" />Upload</button></div>}
-                  {status === 'Missing' ? null : null}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        {extra.length > 0 && (
-          <section className="space-y-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Other files</h3>
-            <ul className="rounded-2xl border border-slate-200/80 bg-white divide-y divide-slate-100">
-              {extra.map(d => (
-                <li key={d.id} className="p-3.5 flex flex-col md:flex-row md:items-center gap-2.5 justify-between">
-                  <div className="min-w-0"><p className="text-sm font-semibold text-slate-900 truncate">{d.file_name}</p><p className="text-[11px] text-slate-500">{[d.doc_type, d.file_size, dateOf(d.uploaded_at)].filter(Boolean).join(' · ')}</p></div>
-                  {fileActions(d)}
-                </li>
-              ))}
-            </ul>
-          </section>
+        {displayList.length === 0 ? (
+          <p className="text-xs text-slate-400 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center">No other files uploaded yet.</p>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {displayList.map(d => (
+              <li key={d.id} className="py-3 flex flex-col md:flex-row md:items-center gap-2.5 justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 truncate">{d.file_name}</p>
+                  <p className="text-[11px] text-slate-500">{[d.doc_type, d.file_size, dateOf(d.uploaded_at)].filter(Boolean).join(' · ')}</p>
+                </div>
+                {fileActions(d)}
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     );
@@ -251,7 +241,6 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
                   <button type="button" onClick={() => setSelected(r.id)} className={`w-full text-left rounded-xl border p-3 transition cursor-pointer ${selected === r.id ? 'border-[#58051E] bg-[#58051E]/[0.04] ring-1 ring-[#58051E]/20' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
                     <div className="flex items-center justify-between gap-2"><p className="text-sm font-bold text-slate-900 truncate">{r.name}</p>{r.toReview > 0 && <span className="text-[10px] font-bold bg-amber-100 text-amber-800 rounded-full px-2 py-0.5 shrink-0">{r.toReview} to review</span>}</div>
                     <p className="text-[11px] text-slate-500 truncate">{r.country || 'No country yet'} · {r.docs.length} {r.docs.length === 1 ? 'file' : 'files'}</p>
-                    {r.pct !== null && <div className="mt-2 h-1.5 rounded-full bg-slate-100 overflow-hidden"><div className="h-full bg-[#58051E]/80" style={{ width: `${r.pct}%` }} /></div>}
                   </button>
                 </li>
               ))}
@@ -259,7 +248,7 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
           )}
         </aside>
 
-        <main className={`${selected ? '' : 'hidden lg:block'} rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 min-h-[320px]`}>
+        <main className={`${selected ? '' : 'hidden lg:block'} rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 h-fit`}>
           {detail || <EmptyState icon={FileText} title="Pick a student" hint="Choose a student on the left to see their checklist and files." />}
         </main>
       </div>

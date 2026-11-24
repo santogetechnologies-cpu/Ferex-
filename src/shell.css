@@ -72,7 +72,7 @@
 /* ── Top bar ───────────────────────────────────────────────── */
 .fx-topbar { background: transparent !important; border-bottom: none !important; backdrop-filter: none !important; min-height: 4.25rem; }
 .fx-topbar input[type='text'], .fx-topbar input[type='search'] {
-  background: var(--sh-glass) !important; border: 1px solid var(--sh-edge) !important; border-radius: 999px !important; height: 2.6rem !important;
+  background: var(--sh-glass) !important; border: 1px solid var(--sh-edge) !important; border-radius: 999px !important; height: 2.375rem !important;
   box-shadow: var(--sh-shadow); backdrop-filter: blur(14px);
 }
 .fx-topbar input:focus { border-color: #9B1F57 !important; box-shadow: 0 0 0 4px rgba(155, 31, 87, 0.14) !important; }

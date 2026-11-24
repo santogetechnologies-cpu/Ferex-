@@ -9,14 +9,14 @@ import { CapLoader } from './CapLoader';
 export const PageHeader: React.FC<{ title: string; subtitle?: string; eyebrow?: string; actions?: React.ReactNode; className?: string }> = ({ title, subtitle, eyebrow, actions, className }) => {
   const welcome = /^Welcome back/i.test(title);
   return (
-    <header className={cn('fx-ph flex flex-wrap items-end justify-between gap-4', className)}>
-      <div className="min-w-0">
+    <header className={cn('fx-ph flex flex-wrap items-end justify-between gap-4 max-w-full', className)}>
+      <div className="min-w-0 max-w-full">
         {eyebrow && <p className="fx-ph-eyebrow mb-2">{eyebrow}</p>}
         <h1 className="font-extrabold text-slate-900 dark:text-white">{title}{welcome && <> <span className="fx-hand" aria-hidden>👋</span></>}</h1>
         {subtitle && <p className="fx-ph-sub font-medium">{subtitle}</p>}
         <div className="fx-ph-bar" aria-hidden />
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2.5 shrink-0 max-w-full">{actions}</div>}
     </header>
   );
 };

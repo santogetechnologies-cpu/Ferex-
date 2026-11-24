@@ -241,10 +241,10 @@ export const StudentDashboard: React.FC = () => {
         eyebrow="Student portal"
         title={`Welcome back, ${(studentName || '').split(' ')[0] || 'there'}`}
         subtitle="Your applications, documents, payments and visa in one place."
-        actions={<>
-          <Button size="md" onClick={() => handleQuickAction('/student/select-university')}>Browse universities <ArrowRight className="w-4 h-4 ml-1.5" /></Button>
-          <Button size="md" variant="outline" onClick={() => handleQuickAction('/student/journey-tracker')}>My journey</Button>
-        </>}
+        actions={<div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+          <Button size="md" className="rounded-full shadow-xs shrink-0" onClick={() => handleQuickAction('/student/select-university')}>Browse universities <ArrowRight className="w-4 h-4 ml-1.5" /></Button>
+          <Button size="md" variant="secondary" className="rounded-full bg-white/95 dark:bg-slate-800/95 border-slate-200/90 dark:border-slate-700 shadow-2xs hover:bg-white dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100 shrink-0" onClick={() => handleQuickAction('/student/journey-tracker')}>My journey</Button>
+        </div>}
       />
 
       {(!isAgreementDone || !targetCountry) && (
