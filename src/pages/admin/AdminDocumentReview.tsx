@@ -62,7 +62,7 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
   const [toast, setToast] = useState('');
 
   useEffect(() => {
-    const load = () => { getAllDocumentRequirements().then(setRequirements).catch(() => {}); };
+    const load = () => { getAllDocumentRequirements().then(setRequirements).catch(() => { }); };
     load();
     window.addEventListener('ferex_doc_requirements_change', load);
     return () => window.removeEventListener('ferex_doc_requirements_change', load);
@@ -74,7 +74,7 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
         const map: Record<string, StudentInfo> = {};
         (list || []).forEach(s => { if (s.id) map[s.id] = { full_name: s.full_name || s.name || s.email?.split('@')[0] || 'Student', email: s.email || '', assigned_counselor: s.assigned_counselor || '', target_country: s.target_country || '' }; });
         setStudents(map);
-      }).catch(() => {});
+      }).catch(() => { });
     };
     load();
     window.addEventListener('ferex_students_change', load);
@@ -205,27 +205,6 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
       <div className="space-y-4">
         <button type="button" onClick={() => setSelected(null)} className="lg:hidden text-xs font-bold text-slate-500 inline-flex items-center gap-1 mb-2 cursor-pointer"><ChevronLeft className="w-3.5 h-3.5" />All students</button>
 
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <h3 className="text-sm font-bold text-slate-900">Other files</h3>
-          <span className="text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-200/80 px-2.5 py-0.5 rounded-full">{displayList.length} {displayList.length === 1 ? 'file' : 'files'}</span>
-        </div>
-
-<<<<<<< HEAD
-        {displayList.length === 0 ? (
-          <p className="text-xs text-slate-400 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center">No other files uploaded yet.</p>
-        ) : (
-          <ul className="divide-y divide-slate-100">
-            {displayList.map(d => (
-              <li key={d.id} className="py-3 flex flex-col md:flex-row md:items-center gap-2.5 justify-between">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-900 truncate">{d.file_name}</p>
-                  <p className="text-[11px] text-slate-500">{[d.doc_type, d.file_size, dateOf(d.uploaded_at)].filter(Boolean).join(' · ')}</p>
-                </div>
-                {fileActions(d)}
-              </li>
-            ))}
-          </ul>
-=======
         {current.pct !== null && (
           <div className="rounded-xl bg-slate-50 border border-slate-200/70 p-3.5 space-y-1.5">
             <div className="flex justify-between text-xs font-bold text-slate-700"><span>Required documents uploaded</span><span className="tabular-nums">{current.pct}%</span></div>
@@ -263,63 +242,59 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
               ))}
             </ul>
           </section>
->>>>>>> 3e28d86d4dc824b1580a3355cad955464ac5bb3f
         )}
       </div>
     );
   })();
 
-  return (
-    <div className="space-y-5 text-left">
-      <ToastNotification message={toast} onClose={() => setToast('')} />
-      <PageHeader
-        eyebrow="Ferex Education"
-        title="Documents"
-        subtitle={isStaff ? 'Review your students’ documents, approve them or ask for a new upload.' : 'Review student documents, approve them, ask for a new upload, or upload on a student’s behalf.'}
-        actions={<span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 ring-1 ring-inset ring-amber-600/20 rounded-full px-3 py-1.5"><Clock className="w-3.5 h-3.5" />{totalToReview} to review</span>}
-      />
+return (
+  <div className="space-y-5 text-left">
+    <ToastNotification message={toast} onClose={() => setToast('')} />
+    <PageHeader
+      eyebrow="Ferex Education"
+      title="Documents"
+      subtitle={isStaff ? 'Review your students’ documents, approve them or ask for a new upload.' : 'Review student documents, approve them, ask for a new upload, or upload on a student’s behalf.'}
+      actions={<span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 ring-1 ring-inset ring-amber-600/20 rounded-full px-3 py-1.5"><Clock className="w-3.5 h-3.5" />{totalToReview} to review</span>}
+    />
 
-      <div className="grid lg:grid-cols-[320px_minmax(0,1fr)] gap-5 items-start">
-        <aside className={`${selected ? 'hidden lg:block' : ''} space-y-3`}>
-          <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search students" className="w-full h-10 pl-9 pr-3" /></div>
-          <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer"><input type="checkbox" checked={queueOnly} onChange={e => setQueueOnly(e.target.checked)} className="w-4 h-4 accent-[#5A0122]" />Only students with files to review</label>
-          {loading ? <BlockCap /> : visible.length === 0 ? (
-            <EmptyState icon={Users} title={rows.length ? 'No students match' : isStaff ? 'No students assigned to you' : 'No students yet'} hint={rows.length ? 'Clear the search or the review filter.' : 'Students appear here once they register.'} />
-          ) : (
-            <ul className="space-y-2 max-h-[70vh] overflow-y-auto pr-1">
-              {visible.map(r => (
-                <li key={r.id}>
-                  <button type="button" onClick={() => setSelected(r.id)} className={`w-full text-left rounded-xl border p-3 transition cursor-pointer ${selected === r.id ? 'border-[#5A0122] bg-[#5A0122]/[0.04] ring-1 ring-[#5A0122]/20' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
-                    <div className="flex items-center justify-between gap-2"><p className="text-sm font-bold text-slate-900 truncate">{r.name}</p>{r.toReview > 0 && <span className="text-[10px] font-bold bg-amber-100 text-amber-800 rounded-full px-2 py-0.5 shrink-0">{r.toReview} to review</span>}</div>
-                    <p className="text-[11px] text-slate-500 truncate">{r.country || 'No country yet'} · {r.docs.length} {r.docs.length === 1 ? 'file' : 'files'}</p>
-<<<<<<< HEAD
-=======
+    <div className="grid lg:grid-cols-[320px_minmax(0,1fr)] gap-5 items-start">
+      <aside className={`${selected ? 'hidden lg:block' : ''} space-y-3`}>
+        <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search students" className="w-full h-10 pl-9 pr-3" /></div>
+        <label className="flex items-center gap-2 text-xs font-semibold text-slate-600 cursor-pointer"><input type="checkbox" checked={queueOnly} onChange={e => setQueueOnly(e.target.checked)} className="w-4 h-4 accent-[#5A0122]" />Only students with files to review</label>
+        {loading ? <BlockCap /> : visible.length === 0 ? (
+          <EmptyState icon={Users} title={rows.length ? 'No students match' : isStaff ? 'No students assigned to you' : 'No students yet'} hint={rows.length ? 'Clear the search or the review filter.' : 'Students appear here once they register.'} />
+        ) : (
+          <ul className="space-y-2 max-h-[70vh] overflow-y-auto pr-1">
+            {visible.map(r => (
+              <li key={r.id}>
+                <button type="button" onClick={() => setSelected(r.id)} className={`w-full text-left rounded-xl border p-3 transition cursor-pointer ${selected === r.id ? 'border-[#5A0122] bg-[#5A0122]/[0.04] ring-1 ring-[#5A0122]/20' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                  <div className="flex items-center justify-between gap-2"><p className="text-sm font-bold text-slate-900 truncate">{r.name}</p>{r.toReview > 0 && <span className="text-[10px] font-bold bg-amber-100 text-amber-800 rounded-full px-2 py-0.5 shrink-0">{r.toReview} to review</span>}</div>
+                  <p className="text-[11px] text-slate-500 truncate">{r.country || 'No country yet'} · {r.docs.length} {r.docs.length === 1 ? 'file' : 'files'}</p>
                     {r.pct !== null && <div className="mt-2 h-1.5 rounded-full bg-slate-100 overflow-hidden"><div className="h-full bg-[#5A0122]/80" style={{ width: `${r.pct}%` }} /></div>}
->>>>>>> 3e28d86d4dc824b1580a3355cad955464ac5bb3f
-                  </button>
-                </li>
+                  </button >
+                </li >
               ))}
-            </ul>
+            </ul >
           )}
-        </aside>
+        </aside >
 
-        <main className={`${selected ? '' : 'hidden lg:block'} rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 h-fit`}>
-          {detail || <EmptyState icon={FileText} title="Pick a student" hint="Choose a student on the left to see their checklist and files." />}
-        </main>
-      </div>
+  <main className={`${selected ? '' : 'hidden lg:block'} rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 h-fit`}>
+    {detail || <EmptyState icon={FileText} title="Pick a student" hint="Choose a student on the left to see their checklist and files." />}
+  </main>
+      </div >
 
-      {asking && (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true" aria-label="Ask for a new upload">
-          <div className="absolute inset-0 bg-slate-900/50" onClick={() => setAsking(null)} />
-          <form onSubmit={sendAsk} className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-3 shadow-2xl">
-            <div className="flex items-start justify-between gap-3"><div><h3 className="text-base font-bold text-slate-900">Ask for a new upload</h3><p className="text-xs text-slate-500 mt-0.5 truncate">{asking.file_name}</p></div><button type="button" aria-label="Close" onClick={() => setAsking(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 cursor-pointer"><X className="w-4 h-4" /></button></div>
-            <label className="block"><span className="block text-xs font-semibold text-slate-600 mb-1">What should the student fix?</span>
-              <textarea autoFocus rows={3} value={note} onChange={e => setNote(e.target.value)} className="w-full px-3 py-2" placeholder="e.g. The scan is blurry. Please upload a clear colour copy of pages 1 and 2." /></label>
-            <p className="text-[11px] text-slate-500 flex items-start gap-1.5"><AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />The student is notified and sees this message next to the document.</p>
-            <div className="flex justify-end gap-2"><button type="button" className={btnGhost} onClick={() => setAsking(null)}>Cancel</button><button type="submit" className={btnPrimary} disabled={busy === asking.id}>{busy === asking.id ? 'Sending…' : 'Send request'}</button></div>
-          </form>
-        </div>
-      )}
+  { asking && (
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true" aria-label="Ask for a new upload">
+      <div className="absolute inset-0 bg-slate-900/50" onClick={() => setAsking(null)} />
+      <form onSubmit={sendAsk} className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 space-y-3 shadow-2xl">
+        <div className="flex items-start justify-between gap-3"><div><h3 className="text-base font-bold text-slate-900">Ask for a new upload</h3><p className="text-xs text-slate-500 mt-0.5 truncate">{asking.file_name}</p></div><button type="button" aria-label="Close" onClick={() => setAsking(null)} className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 cursor-pointer"><X className="w-4 h-4" /></button></div>
+        <label className="block"><span className="block text-xs font-semibold text-slate-600 mb-1">What should the student fix?</span>
+          <textarea autoFocus rows={3} value={note} onChange={e => setNote(e.target.value)} className="w-full px-3 py-2" placeholder="e.g. The scan is blurry. Please upload a clear colour copy of pages 1 and 2." /></label>
+        <p className="text-[11px] text-slate-500 flex items-start gap-1.5"><AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />The student is notified and sees this message next to the document.</p>
+        <div className="flex justify-end gap-2"><button type="button" className={btnGhost} onClick={() => setAsking(null)}>Cancel</button><button type="submit" className={btnPrimary} disabled={busy === asking.id}>{busy === asking.id ? 'Sending…' : 'Send request'}</button></div>
+      </form>
+    </div>
+  )}
 
       <DocumentUploadDialog
         open={!!upload && !!current}
@@ -331,7 +306,7 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
         onUploaded={saveUpload}
       />
       <DocumentViewer doc={viewing} onClose={() => setViewing(null)} footer={viewerFooter} />
-    </div>
+    </div >
   );
 };
 

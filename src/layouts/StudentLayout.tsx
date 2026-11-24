@@ -111,7 +111,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
               searchEmail = parsed.email;
             }
           }
-        } catch (e) {}
+        } catch (e) { }
       }
 
       if (!searchId && !searchEmail) return;
@@ -136,7 +136,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
             email: profile.email || user?.email || searchEmail || '',
           });
         }
-      } catch (e) {}
+      } catch (e) { }
     };
 
     loadLiveStudent();
@@ -192,7 +192,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
       setVisitedRoutes(prev => {
         if (prev[location.pathname]) return prev;
         const updated = { ...prev, [location.pathname]: true };
-        try { localStorage.setItem(key, JSON.stringify(updated)); } catch {}
+        try { localStorage.setItem(key, JSON.stringify(updated)); } catch { }
         return updated;
       });
     }
@@ -244,7 +244,6 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
     { name: 'Universities', path: '/student/select-university', icon: Target, badge: null, hasUpdate: false },
     { name: 'Applications', path: '/student/applications', icon: GraduationCap, badge: null, hasUpdate: false },
     { name: 'Offer Letters', path: '/student/offers', icon: FileText, badge: hasUnreadOffer ? 'OFFER' : null, hasUpdate: hasUnreadOffer },
-    { name: 'Invoices', path: '/student/invoices', icon: FileSpreadsheet, badge: null, hasUpdate: false },
     { name: 'Receipts', path: '/student/receipts', icon: Receipt, badge: null, hasUpdate: false },
     { name: 'Invoices', path: '/student/invoices', icon: FileSpreadsheet, badge: null, hasUpdate: false },
     { name: 'Visa', path: '/student/visa-tracker', icon: ShieldCheck, badge: hasUnreadVisa ? 'VFS' : null, hasUpdate: hasUnreadVisa },
@@ -271,7 +270,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
           setStudentApps(data);
           return;
         }
-      } catch {}
+      } catch { }
       try {
         const raw = localStorage.getItem('ferex_applications_backup');
         if (raw) {
@@ -280,7 +279,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
             setStudentApps(parsed.filter((a: any) => a.student_id === effectiveStudentId));
           }
         }
-      } catch {}
+      } catch { }
     };
     fetchStudentApps();
     window.addEventListener('ferex_application_change', fetchStudentApps);
@@ -351,224 +350,224 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
     icon: any;
     keywords: string[];
   }[] = [
-    {
-      id: 'page-dashboard',
-      title: 'Student Dashboard',
-      subtitle: 'Overview, quick metrics, announcements & next steps',
-      path: '/student/dashboard',
-      category: 'Page',
-      icon: Home,
-      keywords: ['dashboard', 'home', 'overview', 'summary', 'status', 'metrics'],
-    },
-    {
-      id: 'page-agreement',
-      title: 'Service Agreement',
-      subtitle: 'Review & sign your educational consultancy contract',
-      path: '/student/agreement',
-      category: 'Page',
-      icon: FileCheck,
-      keywords: ['agreement', 'service agreement', 'sign', 'contract', 'legal', 'terms'],
-    },
-    {
-      id: 'page-journey',
-      title: 'My Journey',
-      subtitle: 'Step-by-step roadmap from admission to campus arrival',
-      path: '/student/journey-tracker',
-      category: 'Page',
-      icon: Milestone,
-      keywords: ['journey', 'tracker', 'roadmap', 'milestones', 'stages', 'timeline', 'progress'],
-    },
-    {
-      id: 'page-select-uni',
-      title: 'Universities',
-      subtitle: 'Browse accredited partner universities & academic programs',
-      path: '/student/select-university',
-      category: 'Page',
-      icon: Target,
-      keywords: ['select university', 'browse', 'universities', 'programs', 'degrees', 'courses', 'europe', 'medicine', 'engineering'],
-    },
-    {
-      id: 'page-applications',
-      title: 'Applications',
-      subtitle: 'Track submitted applications, timelines & admission reviews',
-      path: '/student/applications',
-      category: 'Page',
-      icon: GraduationCap,
-      keywords: ['applications', 'university applications', 'apply', 'submitted', 'review', 'withdraw', 'track timeline', 'admission'],
-    },
-    {
-      id: 'page-offers',
-      title: 'Offer Letters & Acceptance',
-      subtitle: 'Download official admission offer letters & accept seats',
-      path: '/student/offers',
-      category: 'Page',
-      icon: FileText,
-      keywords: ['offers', 'offer letter', 'acceptance', 'admission letter', 'download offer', 'accept offer'],
-    },
-    {
-      id: 'page-documents',
-      title: 'Compliance Documents Vault',
-      subtitle: 'Upload mandatory passports, academic records & legalizations',
-      path: '/student/documents',
-      category: 'Page',
-      icon: Folder,
-      keywords: ['documents', 'docs', 'vault', 'upload document', 'compliance', 'checklist', 'files'],
-    },
-    {
-      id: 'page-payments',
-      title: 'Payments & Tuition Fees',
-      subtitle: 'Pay tuition, agency fees, installment plans & billing',
-      path: '/student/payments',
-      category: 'Financial',
-      icon: CreditCard,
-      keywords: ['payments', 'tuition', 'fees', 'pay fees', 'installment', 'agency fee', 'billing', 'stripe', 'bank transfer'],
-    },
-    {
-      id: 'page-receipts',
-      title: 'Official Receipts',
-      subtitle: 'Download payment receipts, transaction proofs & vouchers',
-      path: '/student/receipts',
-      category: 'Financial',
-      icon: Receipt,
-      keywords: ['receipts', 'receipt', 'voucher', 'payment proof', 'paid', 'transaction'],
-    },
-    {
-      id: 'page-visa',
-      title: 'Visa',
-      subtitle: 'Schengen National D-Visa appointment, filing & stamping',
-      path: '/student/visa-tracker',
-      category: 'Page',
-      icon: ShieldCheck,
-      keywords: ['visa', 'vfs', 'schengen', 'd-visa', 'embassy', 'visa appointment', 'visa tracking', 'stamped'],
-    },
-    {
-      id: 'page-predeparture',
-      title: 'Pre-Departure Guide',
-      subtitle: 'Flight booking, packing checklists, housing & arrival guidance',
-      path: '/student/pre-departure',
-      category: 'Page',
-      icon: Plane,
-      keywords: ['pre-departure', 'travel', 'flight', 'housing', 'packing', 'arrival', 'airport'],
-    },
-    {
-      id: 'page-invoices',
-      title: 'Invoices & Fee Statements',
-      subtitle: 'View detailed itemized fee invoices & payment statuses',
-      path: '/student/invoices',
-      category: 'Financial',
-      icon: FileSpreadsheet,
-      keywords: ['invoices', 'invoice', 'statement', 'charges', 'bills'],
-    },
-    {
-      id: 'page-meetings',
-      title: 'Meetings & Video Calls',
-      subtitle: 'Schedule 1-on-1 counseling calls & video consultations',
-      path: '/student/meetings',
-      category: 'Page',
-      icon: Calendar,
-      keywords: ['meetings', 'counseling', 'book call', 'video consultation', 'google meet', 'schedule appointment'],
-    },
-    {
-      id: 'page-chat',
-      title: 'Counselor Direct Chat',
-      subtitle: 'Real-time messaging with your dedicated student advisor',
-      path: '/student/chat',
-      category: 'Page',
-      icon: MessageCircle,
-      keywords: ['chat', 'counselor chat', 'messages', 'advisor', 'inbox', 'talk to counselor'],
-    },
-    {
-      id: 'page-tickets',
-      title: 'Support Tickets Helpdesk',
-      subtitle: 'Submit support inquiries, report issues & get rapid help',
-      path: '/student/support',
-      category: 'Page',
-      icon: LifeBuoy,
-      keywords: ['support', 'tickets', 'helpdesk', 'inquiry', 'help', 'report issue'],
-    },
-    {
-      id: 'page-profile',
-      title: 'My Profile & Account',
-      subtitle: 'Manage personal details, contact info & passport profile',
-      path: '/student/profile',
-      category: 'Page',
-      icon: User,
-      keywords: ['profile', 'account', 'personal info', 'settings', 'passport number', 'email', 'phone'],
-    },
-    {
-      id: 'page-notifications',
-      title: 'Notifications Hub',
-      subtitle: 'View all recent admission updates, status changes & alerts',
-      path: '/student/notifications',
-      category: 'Page',
-      icon: Bell,
-      keywords: ['notifications', 'alerts', 'announcements', 'updates', 'bell'],
-    },
-    // Specific Compliance Checklist Documents
-    {
-      id: 'doc-passport',
-      title: 'Passport (Valid min. 18 months)',
-      subtitle: 'Upload color biometric scan of all passport pages',
-      path: '/student/documents',
-      category: 'Document',
-      icon: Folder,
-      keywords: ['passport', 'biometric', 'id', 'identification', 'upload passport'],
-    },
-    {
-      id: 'doc-diploma',
-      title: 'Academic Diplomas & Marksheets',
-      subtitle: 'Upload high school certificates or bachelor transcripts',
-      path: '/student/documents',
-      category: 'Document',
-      icon: Folder,
-      keywords: ['diploma', 'academic', 'marksheet', 'transcript', 'degree', '10th', '12th'],
-    },
-    {
-      id: 'doc-apostille',
-      title: 'Apostille / Legalization Attestation',
-      subtitle: 'Upload MEA Apostille stamp on original certificates',
-      path: '/student/documents',
-      category: 'Document',
-      icon: Folder,
-      keywords: ['apostille', 'attestation', 'mea', 'stamp', 'legalization'],
-    },
-    {
-      id: 'doc-recognition',
-      title: 'Legalization Recognition Certificate',
-      subtitle: 'Higher education qualification recognition confirmation',
-      path: '/student/documents',
-      category: 'Document',
-      icon: Folder,
-      keywords: ['recognition', 'kuratorium', 'nawa', 'legalization recognition'],
-    },
-    {
-      id: 'doc-moi',
-      title: 'Medium of Instruction (MOI) / English',
-      subtitle: 'Official MOI certificate or IELTS / TOEFL score card',
-      path: '/student/documents',
-      category: 'Document',
-      icon: Folder,
-      keywords: ['moi', 'medium of instruction', 'english', 'ielts', 'toefl', 'language proficiency'],
-    },
-    {
-      id: 'doc-bank',
-      title: 'Bank Solvency & Sponsor Affidavit',
-      subtitle: '6-month bank statement & notarized sponsor affidavit',
-      path: '/student/documents',
-      category: 'Document',
-      icon: Folder,
-      keywords: ['bank', 'solvency', 'statement', 'funds', 'sponsor', 'affidavit', 'financial proof'],
-    },
-    {
-      id: 'doc-insurance',
-      title: 'Schengen International Health Insurance',
-      subtitle: 'Min. €30,000 medical coverage policy across Schengen states',
-      path: '/student/documents',
-      category: 'Document',
-      icon: Folder,
-      keywords: ['insurance', 'health insurance', 'schengen insurance', 'medical coverage'],
-    },
-  ];
+      {
+        id: 'page-dashboard',
+        title: 'Student Dashboard',
+        subtitle: 'Overview, quick metrics, announcements & next steps',
+        path: '/student/dashboard',
+        category: 'Page',
+        icon: Home,
+        keywords: ['dashboard', 'home', 'overview', 'summary', 'status', 'metrics'],
+      },
+      {
+        id: 'page-agreement',
+        title: 'Service Agreement',
+        subtitle: 'Review & sign your educational consultancy contract',
+        path: '/student/agreement',
+        category: 'Page',
+        icon: FileCheck,
+        keywords: ['agreement', 'service agreement', 'sign', 'contract', 'legal', 'terms'],
+      },
+      {
+        id: 'page-journey',
+        title: 'My Journey',
+        subtitle: 'Step-by-step roadmap from admission to campus arrival',
+        path: '/student/journey-tracker',
+        category: 'Page',
+        icon: Milestone,
+        keywords: ['journey', 'tracker', 'roadmap', 'milestones', 'stages', 'timeline', 'progress'],
+      },
+      {
+        id: 'page-select-uni',
+        title: 'Universities',
+        subtitle: 'Browse accredited partner universities & academic programs',
+        path: '/student/select-university',
+        category: 'Page',
+        icon: Target,
+        keywords: ['select university', 'browse', 'universities', 'programs', 'degrees', 'courses', 'europe', 'medicine', 'engineering'],
+      },
+      {
+        id: 'page-applications',
+        title: 'Applications',
+        subtitle: 'Track submitted applications, timelines & admission reviews',
+        path: '/student/applications',
+        category: 'Page',
+        icon: GraduationCap,
+        keywords: ['applications', 'university applications', 'apply', 'submitted', 'review', 'withdraw', 'track timeline', 'admission'],
+      },
+      {
+        id: 'page-offers',
+        title: 'Offer Letters & Acceptance',
+        subtitle: 'Download official admission offer letters & accept seats',
+        path: '/student/offers',
+        category: 'Page',
+        icon: FileText,
+        keywords: ['offers', 'offer letter', 'acceptance', 'admission letter', 'download offer', 'accept offer'],
+      },
+      {
+        id: 'page-documents',
+        title: 'Compliance Documents Vault',
+        subtitle: 'Upload mandatory passports, academic records & legalizations',
+        path: '/student/documents',
+        category: 'Page',
+        icon: Folder,
+        keywords: ['documents', 'docs', 'vault', 'upload document', 'compliance', 'checklist', 'files'],
+      },
+      {
+        id: 'page-payments',
+        title: 'Payments & Tuition Fees',
+        subtitle: 'Pay tuition, agency fees, installment plans & billing',
+        path: '/student/payments',
+        category: 'Financial',
+        icon: CreditCard,
+        keywords: ['payments', 'tuition', 'fees', 'pay fees', 'installment', 'agency fee', 'billing', 'stripe', 'bank transfer'],
+      },
+      {
+        id: 'page-receipts',
+        title: 'Official Receipts',
+        subtitle: 'Download payment receipts, transaction proofs & vouchers',
+        path: '/student/receipts',
+        category: 'Financial',
+        icon: Receipt,
+        keywords: ['receipts', 'receipt', 'voucher', 'payment proof', 'paid', 'transaction'],
+      },
+      {
+        id: 'page-visa',
+        title: 'Visa',
+        subtitle: 'Schengen National D-Visa appointment, filing & stamping',
+        path: '/student/visa-tracker',
+        category: 'Page',
+        icon: ShieldCheck,
+        keywords: ['visa', 'vfs', 'schengen', 'd-visa', 'embassy', 'visa appointment', 'visa tracking', 'stamped'],
+      },
+      {
+        id: 'page-predeparture',
+        title: 'Pre-Departure Guide',
+        subtitle: 'Flight booking, packing checklists, housing & arrival guidance',
+        path: '/student/pre-departure',
+        category: 'Page',
+        icon: Plane,
+        keywords: ['pre-departure', 'travel', 'flight', 'housing', 'packing', 'arrival', 'airport'],
+      },
+      {
+        id: 'page-invoices',
+        title: 'Invoices & Fee Statements',
+        subtitle: 'View detailed itemized fee invoices & payment statuses',
+        path: '/student/invoices',
+        category: 'Financial',
+        icon: FileSpreadsheet,
+        keywords: ['invoices', 'invoice', 'statement', 'charges', 'bills'],
+      },
+      {
+        id: 'page-meetings',
+        title: 'Meetings & Video Calls',
+        subtitle: 'Schedule 1-on-1 counseling calls & video consultations',
+        path: '/student/meetings',
+        category: 'Page',
+        icon: Calendar,
+        keywords: ['meetings', 'counseling', 'book call', 'video consultation', 'google meet', 'schedule appointment'],
+      },
+      {
+        id: 'page-chat',
+        title: 'Counselor Direct Chat',
+        subtitle: 'Real-time messaging with your dedicated student advisor',
+        path: '/student/chat',
+        category: 'Page',
+        icon: MessageCircle,
+        keywords: ['chat', 'counselor chat', 'messages', 'advisor', 'inbox', 'talk to counselor'],
+      },
+      {
+        id: 'page-tickets',
+        title: 'Support Tickets Helpdesk',
+        subtitle: 'Submit support inquiries, report issues & get rapid help',
+        path: '/student/support',
+        category: 'Page',
+        icon: LifeBuoy,
+        keywords: ['support', 'tickets', 'helpdesk', 'inquiry', 'help', 'report issue'],
+      },
+      {
+        id: 'page-profile',
+        title: 'My Profile & Account',
+        subtitle: 'Manage personal details, contact info & passport profile',
+        path: '/student/profile',
+        category: 'Page',
+        icon: User,
+        keywords: ['profile', 'account', 'personal info', 'settings', 'passport number', 'email', 'phone'],
+      },
+      {
+        id: 'page-notifications',
+        title: 'Notifications Hub',
+        subtitle: 'View all recent admission updates, status changes & alerts',
+        path: '/student/notifications',
+        category: 'Page',
+        icon: Bell,
+        keywords: ['notifications', 'alerts', 'announcements', 'updates', 'bell'],
+      },
+      // Specific Compliance Checklist Documents
+      {
+        id: 'doc-passport',
+        title: 'Passport (Valid min. 18 months)',
+        subtitle: 'Upload color biometric scan of all passport pages',
+        path: '/student/documents',
+        category: 'Document',
+        icon: Folder,
+        keywords: ['passport', 'biometric', 'id', 'identification', 'upload passport'],
+      },
+      {
+        id: 'doc-diploma',
+        title: 'Academic Diplomas & Marksheets',
+        subtitle: 'Upload high school certificates or bachelor transcripts',
+        path: '/student/documents',
+        category: 'Document',
+        icon: Folder,
+        keywords: ['diploma', 'academic', 'marksheet', 'transcript', 'degree', '10th', '12th'],
+      },
+      {
+        id: 'doc-apostille',
+        title: 'Apostille / Legalization Attestation',
+        subtitle: 'Upload MEA Apostille stamp on original certificates',
+        path: '/student/documents',
+        category: 'Document',
+        icon: Folder,
+        keywords: ['apostille', 'attestation', 'mea', 'stamp', 'legalization'],
+      },
+      {
+        id: 'doc-recognition',
+        title: 'Legalization Recognition Certificate',
+        subtitle: 'Higher education qualification recognition confirmation',
+        path: '/student/documents',
+        category: 'Document',
+        icon: Folder,
+        keywords: ['recognition', 'kuratorium', 'nawa', 'legalization recognition'],
+      },
+      {
+        id: 'doc-moi',
+        title: 'Medium of Instruction (MOI) / English',
+        subtitle: 'Official MOI certificate or IELTS / TOEFL score card',
+        path: '/student/documents',
+        category: 'Document',
+        icon: Folder,
+        keywords: ['moi', 'medium of instruction', 'english', 'ielts', 'toefl', 'language proficiency'],
+      },
+      {
+        id: 'doc-bank',
+        title: 'Bank Solvency & Sponsor Affidavit',
+        subtitle: '6-month bank statement & notarized sponsor affidavit',
+        path: '/student/documents',
+        category: 'Document',
+        icon: Folder,
+        keywords: ['bank', 'solvency', 'statement', 'funds', 'sponsor', 'affidavit', 'financial proof'],
+      },
+      {
+        id: 'doc-insurance',
+        title: 'Schengen International Health Insurance',
+        subtitle: 'Min. €30,000 medical coverage policy across Schengen states',
+        path: '/student/documents',
+        category: 'Document',
+        icon: Folder,
+        keywords: ['insurance', 'health insurance', 'schengen insurance', 'medical coverage'],
+      },
+    ];
 
   const allSearchItems = useMemo(() => {
     const dynamicApps = (studentApps || []).map((app: any, idx: number) => ({
@@ -650,7 +649,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
       localStorage.removeItem('ferex_role');
       localStorage.removeItem('ferex_staff_demo_session');
       sessionStorage.clear();
-    } catch (e) {}
+    } catch (e) { }
     window.location.href = '/login';
   };
 
@@ -818,11 +817,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                 }}
                 onKeyDown={handleSearchKeyDown}
                 placeholder="Search portal..."
-<<<<<<< HEAD
                 className="w-full h-9.5 pl-8.5 pr-8 bg-slate-50 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-[#58051E]/40 dark:focus:border-rose-400 focus:ring-2 focus:ring-[#58051E]/5 transition-all"
-=======
-                className="w-full h-8.5 pl-8.5 pr-8 bg-slate-50 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-[#5A0122]/40 dark:focus:border-rose-400 focus:ring-2 focus:ring-[#5A0122]/5 transition-all"
->>>>>>> 3e28d86d4dc824b1580a3355cad955464ac5bb3f
               />
               {searchQuery ? (
                 <button
@@ -890,18 +885,16 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({ children }) => {
                               key={item.id}
                               onClick={() => handleSelectSearchResult(item)}
                               onMouseEnter={() => setActiveSearchIndex(idx)}
-                              className={`p-2 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition-colors ${
-                                isSelected
-                                  ? 'bg-[#5A0122]/5 dark:bg-[#5A0122]/20 text-[#5A0122] dark:text-rose-300'
-                                  : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-200'
-                              }`}
+                              className={`p-2 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition-colors ${isSelected
+                                ? 'bg-[#5A0122]/5 dark:bg-[#5A0122]/20 text-[#5A0122] dark:text-rose-300'
+                                : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-200'
+                                }`}
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
-                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                                  isSelected
-                                    ? 'bg-[#5A0122] text-white shadow-xs'
-                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-                                }`}>
+                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isSelected
+                                  ? 'bg-[#5A0122] text-white shadow-xs'
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                                  }`}>
                                   <Icon className="w-3.5 h-3.5" />
                                 </div>
                                 <div className="min-w-0">
