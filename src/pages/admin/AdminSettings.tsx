@@ -140,8 +140,11 @@ export const AdminSettings: React.FC = () => {
   const handleSaveWhatsApp = async () => {
     setIsSavingWhatsApp(true);
     try {
-      await saveWhatsAppConfig(whatsappConfig);
-      saved.current.wa = JSON.stringify(whatsappConfig);
+      // With Meta nothing secret is stored in the database: the server reads its own secrets.
+      const toSave = whatsappConfig.provider === 'meta' ? { ...whatsappConfig, apiKey: '', phoneNumberId: '', instanceId: '' } : whatsappConfig;
+      await saveWhatsAppConfig(toSave);
+      setWhatsappConfig(toSave);
+      saved.current.wa = JSON.stringify(toSave);
       showToast('WhatsApp settings saved. New enquiries use them immediately.');
     } catch (err: any) {
       showToast(`Not saved: ${err.message}`);
@@ -153,7 +156,8 @@ export const AdminSettings: React.FC = () => {
   const missing = (() => {
     const c = whatsappConfig;
     const id = c.phoneNumberId || c.instanceId;
-    if (c.provider === 'meta') return [!c.apiKey && 'access token', !id && 'phone number ID'].filter(Boolean) as string[];
+    // Meta: the access token and phone number ID live in the server's secure secrets, not in this screen.
+    if (c.provider === 'meta') return [] as string[];
     if (c.provider === 'ultramsg') return [!c.apiKey && 'token', !id && 'instance ID'].filter(Boolean) as string[];
     if (c.provider === 'twilio') return [!id && 'account SID', !c.apiKey && 'auth token', !c.senderNumber && 'sender number'].filter(Boolean) as string[];
     return [!c.webhookUrl && 'webhook URL'].filter(Boolean) as string[];
@@ -558,6 +562,9 @@ export const AdminSettings: React.FC = () => {
               </div>
 
               {/* API Credentials */}
+              {whatsappConfig.provider === 'meta' ? (
+                <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs font-semibold text-emerald-800">The access token and phone number ID are stored securely on the server, so there is nothing to enter here. Use the test below to confirm the connection.</p>
+              ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1.5">
@@ -589,6 +596,7 @@ export const AdminSettings: React.FC = () => {
                   />
                 </div>
               </div>
+              )}
 
               {/* Webhook URL (if selected) */}
               {whatsappConfig.provider === 'webhook' && (
