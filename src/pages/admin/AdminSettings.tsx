@@ -614,6 +614,26 @@ export const AdminSettings: React.FC = () => {
                 </div>
               )}
 
+              {whatsappConfig.provider === 'meta' && (
+                <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 space-y-3">
+                  <div>
+                    <p className="text-xs font-black text-slate-900">Approved WhatsApp template for new enquiries</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">WhatsApp only delivers plain text to someone who messaged you in the last 24 hours. A new enquirer has not, so the greeting must go out as a template approved in WhatsApp Manager. Leave the name empty to send plain text (it will only reach people who wrote to you first).</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1.5">Template name</label>
+                      <input type="text" aria-label="WhatsApp template name" value={whatsappConfig.welcome_template_name || ''} onChange={(e) => setWhatsappConfig({ ...whatsappConfig, welcome_template_name: e.target.value.trim() })} placeholder="enquiry_welcome" className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1.5">Language code</label>
+                      <input type="text" aria-label="WhatsApp template language" value={whatsappConfig.welcome_template_language || ''} onChange={(e) => setWhatsappConfig({ ...whatsappConfig, welcome_template_language: e.target.value.trim() })} placeholder="en" className="w-full h-10 px-3.5 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900" />
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-500">The template body must use <span className="font-mono">{'{{1}}'}</span> for the student's name and <span className="font-mono">{'{{2}}'}</span> for the country.</p>
+                </div>
+              )}
+
               {/* Welcome Message Template */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">

@@ -139,6 +139,9 @@ export interface WhatsAppConfig {
   senderNumber: string;
   webhookUrl?: string;
   welcome_message_template: string;
+  /** Name and language of the approved WhatsApp template used for new enquiries. {{1}} = student name, {{2}} = country. */
+  welcome_template_name?: string;
+  welcome_template_language?: string;
 }
 
 export interface CounselorPerformanceMetric {
@@ -867,8 +870,11 @@ export async function sendLeadWhatsAppWelcome(lead: EducationLead, customMessage
       .replace(/{student_name}/g, lead.name || 'Student').replace(/{country}/g, lead.preferred_country || 'Europe').replace(/{degree}/g, lead.degree_level || '')
       .replace(/{counselor_name}/g, lead.assigned_counselor_name || 'our admissions counselor').replace(/{counselor_phone}/g, cfg.senderNumber || '').replace(/{portal_url}/g, portalUrl);
   }
+  // A lead who has not written to us recently can only be reached with the approved template.
+  const cfgForTpl = !customMessage || resend ? await getWhatsAppConfig().catch(() => null) : null;
+  const template = cfgForTpl?.welcome_template_name ? { name: cfgForTpl.welcome_template_name, language: cfgForTpl.welcome_template_language || 'en', variables: [lead.name || 'Student', lead.preferred_country || 'Europe'] } : undefined;
   const res = customMessage
-    ? await callGateway({ action: 'custom', leadId: lead.id, phone: lead.phone, message: customMessage })
+    ? await callGateway({ action: 'custom', leadId: lead.id, phone: lead.phone, message: customMessage, template })
     : await callGateway({ action: 'lead', leadId: lead.id, portalUrl });
   if (typeof window !== 'undefined') window.dispatchEvent(new Event('ferex_education_leads_change'));
   return res;
