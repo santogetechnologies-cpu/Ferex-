@@ -40,9 +40,9 @@ const btnGhost = 'h-8 px-3 rounded-lg border border-slate-200 text-xs font-bold 
 
 interface StudentInfo { full_name: string; email: string; assigned_counselor?: string; target_country?: string }
 
-export interface AdminDocumentReviewProps { isStaff?: boolean }
+export interface AdminDocumentReviewProps { isStaff?: boolean; /** Opens on the verification queue: students with documents still waiting to be checked. */ verificationQueue?: boolean }
 
-export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaff = false }) => {
+export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaff = false, verificationQueue = false }) => {
   const { profile, user } = useAuth();
   const myEmail = (profile?.email || user?.email || '').toLowerCase().trim();
   const myName = (profile?.full_name || '').toLowerCase().trim();
@@ -52,7 +52,7 @@ export const AdminDocumentReview: React.FC<AdminDocumentReviewProps> = ({ isStaf
   const [requirements, setRequirements] = useState<DocumentRequirement[]>([]);
   const [students, setStudents] = useState<Record<string, StudentInfo>>({});
   const [search, setSearch] = useState('');
-  const [queueOnly, setQueueOnly] = useState(false);
+  const [queueOnly, setQueueOnly] = useState(verificationQueue);
   const [selected, setSelected] = useState<string | null>(null);
   const [viewing, setViewing] = useState<(ViewerDoc & { doc?: StudentDocument }) | null>(null);
   const [upload, setUpload] = useState<{ req?: DocumentRequirement; replaceId?: string } | null>(null);

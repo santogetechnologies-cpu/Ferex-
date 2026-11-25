@@ -340,6 +340,7 @@ function App() {
           <Route path="/admin/offers" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminApplications initialFilter="Offer Issued" /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/offer-letters" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminApplications initialFilter="Offer Issued" /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/documents" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminDocumentReview /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/document-verification" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminDocumentReview key="verification" verificationQueue /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/document-review" element={<Navigate to="/admin/documents" replace />} />
           <Route path="/admin/document-config" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminDocumentConfig /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/legalization" element={<ProtectedRoute allowedRoles={ADMIN_ROLES}><AdminLayout><AdminNawaTracker /></AdminLayout></ProtectedRoute>} />

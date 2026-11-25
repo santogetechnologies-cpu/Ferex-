@@ -333,7 +333,7 @@ export const JourneyTracker: React.FC = () => {
       status: depRecord?.insurance_purchased ? 'completed' : (isVisaApproved ? 'current' : 'upcoming'),
       desc: 'European health and emergency repatriation coverage active.',
       actionLabel: 'Policy Certificate',
-      actionRoute: '/student/documents',
+      actionRoute: '/student/pre-departure?focus=insurance',
     },
     {
       id: 't5',
@@ -369,7 +369,7 @@ export const JourneyTracker: React.FC = () => {
       status: 'upcoming',
       desc: 'Dean office orientation, formal registration and student ID.',
       actionLabel: 'Campus Checklist',
-      actionRoute: '/student/pre-departure',
+      actionRoute: '/student/pre-departure?focus=registration',
     },
     {
       id: 't9',
@@ -378,7 +378,7 @@ export const JourneyTracker: React.FC = () => {
       status: 'upcoming',
       desc: 'Local SIM, bank account setup, and TRC legal assistance.',
       actionLabel: 'Welfare Coordinator',
-      actionRoute: '/student/pre-departure',
+      actionRoute: '/student/pre-departure?focus=settlement',
     },
   ];
 

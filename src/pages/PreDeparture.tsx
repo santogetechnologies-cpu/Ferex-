@@ -16,7 +16,10 @@ import { supabase } from '../lib/supabase';
 import { getPreDepartureRecords, savePreDepartureRecord } from '../lib/api/preDeparture';
 import type { PreDepartureRecord } from '../lib/api/preDeparture';
 import { canAccessPage, checkPaymentStage } from '../lib/paymentUnlock';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { getDocumentsForStudent } from '../lib/api/documents';
+import { DocumentViewer, type ViewerDoc } from '../components/DocumentViewer';
+import type { StudentDocument } from '../lib/types';
 import { CapLoader } from '../components/CapLoader';
 
 export const PreDeparture: React.FC = () => {
@@ -29,7 +32,23 @@ export const PreDeparture: React.FC = () => {
 
   const [depRecord, setDepRecord] = useState<PreDepartureRecord | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'checklist' | 'dorm' | 'contacts'>('overview');
+  const [params] = useSearchParams();
+  // Opened from My Journey (?focus=insurance | registration | settlement): go straight to that item and its files.
+  const FOCUS: Record<string, { item: string; label: string; match: RegExp; empty: string }> = {
+    insurance: { item: 'c4', label: 'Travel insurance', match: /insur|policy/i, empty: 'No insurance policy has been uploaded yet. Your counselor will add it here once the policy is issued.' },
+    registration: { item: 'c8', label: 'University registration', match: /regist|enrol|student id|orientation/i, empty: 'No registration files yet. They appear here after you report to the university.' },
+    settlement: { item: 'c9', label: 'Settlement & TRC', match: /trc|residen|permit|settle/i, empty: 'No TRC or settlement files yet. Your welfare coordinator will share them here after arrival.' },
+  };
+  const focus = FOCUS[params.get('focus') || ''];
+  const [activeTab, setActiveTab] = useState<'overview' | 'checklist' | 'dorm' | 'contacts'>(focus ? 'checklist' : 'overview');
+  const [focusDocs, setFocusDocs] = useState<StudentDocument[] | null>(null);
+  const [viewing, setViewing] = useState<ViewerDoc | null>(null);
+  useEffect(() => {
+    if (!focus || !activeStudentId) { setFocusDocs(null); return; }
+    let live = true;
+    getDocumentsForStudent(activeStudentId).then(list => { if (live) setFocusDocs(list.filter(d => focus.match.test(`${d.file_name} ${d.requirement_name || ''} ${d.doc_type}`))); }).catch(() => { if (live) setFocusDocs([]); });
+    return () => { live = false; };
+  }, [params, activeStudentId]); // eslint-disable-line react-hooks/exhaustive-deps
   const [checkedMap, setCheckedMap] = useState<Record<string, boolean>>(() => {
     if (!activeStudentId) return {};
     try {
@@ -175,6 +194,7 @@ export const PreDeparture: React.FC = () => {
 
   return (
     <div className="space-y-6 text-left relative min-h-[600px] pb-10">
+      <DocumentViewer doc={viewing} onClose={() => setViewing(null)} />
       {/* Header */}
       <div className="p-6 md:p-8 bg-white text-slate-900 rounded-2xl shadow-xs border border-slate-200/80 relative overflow-hidden">
         <div className="relative z-10 max-w-2xl">
@@ -408,14 +428,27 @@ export const PreDeparture: React.FC = () => {
                   </span>
                 </div>
 
+                {focus && (
+                  <div className="rounded-2xl border border-[#5A0122]/20 bg-[#5A0122]/5 p-4 space-y-2" aria-label={`${focus.label} files`}>
+                    <p className="text-xs font-black text-slate-900">{focus.label}: your files</p>
+                    {focusDocs === null ? <p className="text-xs text-slate-500">Loading…</p> : focusDocs.length === 0 ? <p className="text-xs font-semibold text-slate-600">{focus.empty}</p> : (
+                      <ul className="divide-y divide-slate-200/70 bg-white rounded-xl border border-slate-200">
+                        {focusDocs.map(d => <li key={d.id} className="flex items-center justify-between gap-3 px-3 py-2 text-xs"><span className="font-semibold text-slate-800 truncate">{d.file_name}<span className="block text-[11px] text-slate-500 font-medium">{d.status}</span></span><button type="button" onClick={() => setViewing({ name: d.file_name, url: d.file_url })} className="font-bold text-[#5A0122] hover:underline cursor-pointer shrink-0">View</button></li>)}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
                 <div className="space-y-2.5">
                   {checklistItems.map((item) => {
                     const done = isItemDone(item);
                     return (
                       <div
                         key={item.id}
+                        id={`check-${item.id}`}
+                        ref={el => { if (el && focus?.item === item.id) setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 150); }}
                         onClick={() => toggleCheck(item.id)}
-                        className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-bold transition-all cursor-pointer ${
+                        className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-bold transition-all cursor-pointer ${focus?.item === item.id ? 'ring-2 ring-[#5A0122]' : ''} ${
                           done
                             ? 'bg-emerald-50/80 text-emerald-950 border-emerald-200/90'
                             : 'bg-slate-50 text-slate-600 border-slate-200/80 hover:bg-slate-100'
