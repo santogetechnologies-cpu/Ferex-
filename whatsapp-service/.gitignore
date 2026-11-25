@@ -1,0 +1,7 @@
+node_modules/
+.env
+*.sqlite
+*.sqlite-*
+out/*
+!out/.gitkeep
+data/recipients.csv

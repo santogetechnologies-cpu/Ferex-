@@ -1,0 +1,20 @@
+{
+  "name": "ferex-whatsapp-service",
+  "version": "1.0.0",
+  "description": "WhatsApp Business Cloud API integration for Ferex Ventures: template/text sending, bulk sending, webhook receiver",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/server.js",
+    "send:test": "node src/cli.js send-template",
+    "bulk": "node src/cli.js bulk",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.5.0",
+    "csv-parse": "^5.5.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1"
+  }
+}
