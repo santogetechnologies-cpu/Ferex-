@@ -25,7 +25,7 @@ const digits = (phone: string) => {
   return p.replace(/\D/g, "");
 };
 
-async function dispatch(cfg: any, to: string, text: string): Promise<{ ok: boolean; provider: string; error?: string; id?: string }> {
+async function dispatch(cfg: any, to: string, text: string, tpl?: { name: string; language: string; variables?: string[] }): Promise<{ ok: boolean; provider: string; error?: string; id?: string }> {
   const provider: string = cfg?.provider || "meta";
   const apiKey: string = cfg?.apiKey || Deno.env.get("WHATSAPP_API_KEY") || "";
   const phoneNumberId: string = cfg?.phoneNumberId || Deno.env.get("WHATSAPP_PHONE_NUMBER_ID") || "";
@@ -34,12 +34,19 @@ async function dispatch(cfg: any, to: string, text: string): Promise<{ ok: boole
   try {
     if (provider === "meta") {
       if (!apiKey || !phoneNumberId) return { ok: false, provider, error: "Meta needs an access token and a phone number ID." };
-      const r = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
+      // A business-started conversation needs an approved template; free text only works within 24 h of the customer's last message.
+      const payload = tpl?.name
+        ? { messaging_product: "whatsapp", recipient_type: "individual", to, type: "template", template: { name: tpl.name, language: { code: tpl.language || "en" }, ...(tpl.variables?.length ? { components: [{ type: "body", parameters: tpl.variables.map(v => ({ type: "text", text: String(v) })) }] } : {}) } }
+        : { messaging_product: "whatsapp", recipient_type: "individual", to, type: "text", text: { preview_url: false, body: text } };
+      const r = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", to, type: "text", text: { preview_url: false, body: text } }),
+        body: JSON.stringify(payload),
       });
       const d = await r.json().catch(() => ({}));
-      return r.ok && !d.error ? { ok: true, provider, id: d.messages?.[0]?.id } : { ok: false, provider, error: d.error?.message || `Meta returned ${r.status}` };
+      if (r.ok && !d.error) return { ok: true, provider, id: d.messages?.[0]?.id };
+      const code = d.error?.code;
+      const hint = code === 131047 ? " Free text only works within 24 hours of the customer's last message: use an approved template." : code === 132001 ? " That template name or language is not approved." : code === 190 ? " The access token is invalid or expired: update WHATSAPP_API_KEY." : code === 131030 ? " The number is not on the allowed test list yet (Meta API Setup, To)." : "";
+      return { ok: false, provider, error: `${d.error?.message || `Meta returned ${r.status}`}${hint}` };
     }
     if (provider === "ultramsg") {
       if (!apiKey || !instanceId) return { ok: false, provider, error: "UltraMsg needs a token and an instance ID." };
@@ -111,7 +118,8 @@ Deno.serve(async (req) => {
       const text = String(saved.welcome_message_template || "Hello {student_name}! Thank you for your enquiry about {country}. Our counselor will contact you shortly.")
         .replaceAll("{student_name}", lead.name || "Student").replaceAll("{country}", lead.preferred_country || "Europe").replaceAll("{degree}", lead.degree_level || "")
         .replaceAll("{counselor_name}", lead.assigned_counselor_name || "our admissions counselor").replaceAll("{counselor_phone}", saved.senderNumber || "").replaceAll("{portal_url}", body.portalUrl || "");
-      const res = await dispatch(saved, digits(lead.phone), text);
+      const welcomeTpl = saved.welcome_template_name ? { name: String(saved.welcome_template_name), language: String(saved.welcome_template_language || "en"), variables: [lead.name || "Student", lead.preferred_country || "Europe"] } : undefined;
+      const res = await dispatch(saved, digits(lead.phone), text, welcomeTpl);
       const now = new Date().toISOString();
       if (res.ok) await db.from("education_leads").update({ whatsapp_sent: true, whatsapp_sent_at: now, updated_at: now }).eq("id", lead.id);
       await db.from("education_lead_activities").insert({
@@ -125,9 +133,10 @@ Deno.serve(async (req) => {
 
     // ── Staff only from here ──
     if (!staffName) return json({ success: false, error: "Sign in as staff to send WhatsApp messages." }, 403);
-    if (!body.phone || !body.message) return json({ success: false, error: "A phone number and a message are required." }, 400);
+    if (!body.phone || !(body.message || body.template?.name)) return json({ success: false, error: "A phone number and a message (or a template name) are required." }, 400);
     const cfg = action === "test" && body.config ? { ...saved, ...body.config } : saved;
-    const res = await dispatch(cfg, digits(body.phone), String(body.message));
+    const tpl = body.template?.name ? { name: String(body.template.name), language: String(body.template.language || "en"), variables: Array.isArray(body.template.variables) ? body.template.variables.map(String) : [] } : undefined;
+    const res = await dispatch(cfg, digits(body.phone), String(body.message || ""), tpl);
     if (body.leadId) {
       const now = new Date().toISOString();
       if (res.ok) await db.from("education_leads").update({ whatsapp_sent: true, whatsapp_sent_at: now, updated_at: now }).eq("id", body.leadId);
