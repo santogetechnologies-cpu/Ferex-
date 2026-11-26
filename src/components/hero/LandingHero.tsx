@@ -9,8 +9,8 @@ const rise = (delay: number) => ({ initial: { opacity: 0, y: 26 }, animate: { op
 
 const EuMark: React.FC<{ size?: number }> = ({ size = 28 }) => (
   <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden>
-    <circle cx="20" cy="20" r="20" fill="#5A0122" />
-    {Array.from({ length: 12 }).map((_, i) => { const a = (i / 12) * Math.PI * 2; return <circle key={i} cx={20 + 11 * Math.cos(a)} cy={20 + 11 * Math.sin(a)} r="1.7" fill="#FFFFFF" />; })}
+    <circle cx="20" cy="20" r="20" fill="#1D3C98" />
+    {Array.from({ length: 12 }).map((_, i) => { const a = (i / 12) * Math.PI * 2; return <circle key={i} cx={20 + 11 * Math.cos(a)} cy={20 + 11 * Math.sin(a)} r="1.7" fill="#F6C453" />; })}
   </svg>
 );
 

@@ -9,9 +9,9 @@
   --fx-glow-a: rgba(90, 1, 34, 0.07); --fx-glow-b: rgba(255, 255, 255, 0.95); --fx-glow-c: rgba(104, 9, 42, 0.06);
   --fx-frame-fill-1: rgba(255, 255, 255, 0.78); --fx-frame-fill-2: rgba(255, 255, 255, 0.30);
   --fx-frame-stroke: rgba(255, 255, 255, 0.95); --fx-frame-edge: rgba(90, 1, 34, 0.20);
-  --fx-line: rgba(90, 1, 34, 0.55); --fx-star: #FFFFFF; --fx-lm: rgba(90, 1, 34, 0.78);
+  --fx-line: rgba(90, 1, 34, 0.55); --fx-star: #F6C453; --fx-lm: rgba(90, 1, 34, 0.78);
   --fx-rb-1: #5A0122; --fx-rb-2: #68092A; --fx-rb-3: #E5E5E5; --fx-rb-4: #FFFFFF; --fx-rb-shadow: rgba(90, 1, 34, 0.35);
-  --fx-eu-1: #5A0122; --fx-eu-2: #3E0017; --fx-eu-3: #68092A;
+  --fx-eu-1: #1D3C98; --fx-eu-2: #0B2565; --fx-eu-3: #5B7BE0;
   --fx-particle: rgba(104, 9, 42, 0.45);
   color: var(--fx-text);
 }
