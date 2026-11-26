@@ -36,7 +36,7 @@ const Morph: React.FC<{ v: string[]; dur: string; still: boolean }> = ({ v, dur,
 const Wave: React.FC<{ still: boolean }> = ({ still }) => (
   <svg viewBox="0 0 1000 340" preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 w-full h-[44%]" aria-hidden>
     <defs>
-      <linearGradient id="fxwC" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stopColor="var(--fx-rb-4)" stopOpacity="0" /><stop offset="0.35" stopColor="var(--fx-rb-4)" /><stop offset="1" stopColor="#E9CF9C" /></linearGradient>
+      <linearGradient id="fxwC" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stopColor="var(--fx-rb-4)" stopOpacity="0" /><stop offset="0.35" stopColor="var(--fx-rb-4)" /><stop offset="1" stopColor="#FFFFFF" /></linearGradient>
       <linearGradient id="fxwM" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="var(--fx-rb-3)" stopOpacity="0" /><stop offset="0.18" stopColor="var(--fx-rb-2)" /><stop offset="0.6" stopColor="var(--fx-rb-1)" /><stop offset="1" stopColor="var(--fx-rb-2)" /></linearGradient>
       <linearGradient id="fxwR" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="var(--fx-rb-2)" stopOpacity="0" /><stop offset="0.5" stopColor="var(--fx-rb-3)" stopOpacity="0.85" /><stop offset="1" stopColor="var(--fx-rb-2)" stopOpacity="0.9" /></linearGradient>
       <linearGradient id="fxwH" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#fff" stopOpacity="0" /><stop offset="0.5" stopColor="#fff" stopOpacity="0.7" /><stop offset="1" stopColor="#fff" stopOpacity="0.1" /></linearGradient>

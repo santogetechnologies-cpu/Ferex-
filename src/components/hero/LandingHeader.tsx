@@ -28,7 +28,7 @@ const ThemeSwitch: React.FC = () => {
     <button type="button" className="fx-icon-btn" onClick={toggleTheme} aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'} aria-pressed={isDark}>
       <AnimatePresence mode="wait" initial={false}>
         <motion.span key={isDark ? 'moon' : 'sun'} initial={{ rotate: -80, scale: 0.4, opacity: 0 }} animate={{ rotate: 0, scale: 1, opacity: 1 }} exit={{ rotate: 80, scale: 0.4, opacity: 0 }} transition={{ duration: 0.28 }} className="grid place-items-center">
-          {isDark ? <Moon className="w-[18px] h-[18px]" /> : <Sun className="w-[18px] h-[18px] text-amber-500" />}
+          {isDark ? <Moon className="w-[18px] h-[18px]" /> : <Sun className="w-[18px] h-[18px] text-[#5A0122]" />}
         </motion.span>
       </AnimatePresence>
     </button>

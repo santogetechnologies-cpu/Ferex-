@@ -371,7 +371,7 @@ export const FerexLandingPage: React.FC = () => {
   ];
 
   return (
-    <div className="fx fx-page min-h-screen text-[#1F2937] font-sans selection:bg-[#570229] selection:text-white">
+    <div className="fx fx-page min-h-screen text-[#262626] font-sans selection:bg-[#5A0122] selection:text-white">
       <LandingHeader
         signedIn={Boolean(session && user)}
         countries={availableCountries}
@@ -387,7 +387,7 @@ export const FerexLandingPage: React.FC = () => {
       <LandingHero onApply={() => navigate('/study-abroad')} onCalculate={() => scrollToSection('calculator')} onBadge={() => scrollToSection('destinations')} />
 
       {/* 4. ABOUT US SECTION (MATCHING USER'S ATTACHED SCREENSHOT MODEL WITH SEAMLESS IMAGE BLEND) */}
-      <section id="about" className="py-16 lg:py-20 bg-white border-b border-[#ECE7EA]">
+      <section id="about" className="py-16 lg:py-20 bg-white border-b border-[#E5E5E5]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           
           {/* Main 3-Column Layout: Left Text, Center Campus Image, Right Feature List */}
@@ -396,22 +396,22 @@ export const FerexLandingPage: React.FC = () => {
             {/* Left Column: Headline, Description & Our Mission CTA */}
             <div className="lg:col-span-4 space-y-5 text-left">
               <div className="space-y-1.5">
-                <span className="text-xs font-black uppercase tracking-widest text-[#8C1D4F] block">
+                <span className="text-xs font-black uppercase tracking-widest text-[#5A0122] block">
                   ABOUT FEREX
                 </span>
-                <h2 className="text-3xl sm:text-4xl lg:text-[40px] font-serif font-black text-[#1F2937] leading-[1.18]">
+                <h2 className="text-3xl sm:text-4xl lg:text-[40px] font-serif font-black text-[#262626] leading-[1.18]">
                   Empowering Learners, Building Better Futures
                 </h2>
               </div>
 
-              <p className="text-sm text-[#6B7280] font-normal leading-relaxed">
+              <p className="text-sm text-[#737373] font-normal leading-relaxed">
                 At Ferex Education, we believe that education is more than just learning — it’s a journey of self-discovery, skill-building and endless possibilities.
               </p>
 
               <div>
                 <button
                   onClick={() => setIsMissionModalOpen(true)}
-                  className="h-11 px-7 rounded-full bg-[#570229] hover:bg-[#6F0335] text-white text-xs sm:text-sm font-bold transition-all shadow-md shadow-[#570229]/20 inline-flex items-center gap-2 cursor-pointer active:scale-98"
+                  className="h-11 px-7 rounded-full bg-[#5A0122] hover:bg-[#68092A] text-white text-xs sm:text-sm font-bold transition-all shadow-md shadow-[#5A0122]/20 inline-flex items-center gap-2 cursor-pointer active:scale-98"
                 >
                   Our Mission <ArrowRight className="w-4 h-4" />
                 </button>
@@ -434,14 +434,14 @@ export const FerexLandingPage: React.FC = () => {
               
               {/* Feature 1: Expert Instructors */}
               <div className="flex items-center gap-3.5 group">
-                <div className="w-12 h-12 rounded-full bg-[#F7F4F2] border border-[#ECE7EA] group-hover:bg-[#E9D7DF] text-[#570229] flex items-center justify-center shrink-0 transition-colors">
+                <div className="w-12 h-12 rounded-full bg-[#FAFAFA] border border-[#E5E5E5] group-hover:bg-[#E5E5E5] text-[#5A0122] flex items-center justify-center shrink-0 transition-colors">
                   <User className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div>
-                  <h4 className="text-sm sm:text-base font-bold text-[#1F2937] leading-tight">
+                  <h4 className="text-sm sm:text-base font-bold text-[#262626] leading-tight">
                     Expert Instructors
                   </h4>
-                  <p className="text-xs text-[#6B7280] font-medium mt-0.5">
+                  <p className="text-xs text-[#737373] font-medium mt-0.5">
                     Learn from industry professionals
                   </p>
                 </div>
@@ -449,14 +449,14 @@ export const FerexLandingPage: React.FC = () => {
 
               {/* Feature 2: Flexible Learning */}
               <div className="flex items-center gap-3.5 group">
-                <div className="w-12 h-12 rounded-full bg-[#F7F4F2] border border-[#ECE7EA] group-hover:bg-[#E9D7DF] text-[#570229] flex items-center justify-center shrink-0 transition-colors">
+                <div className="w-12 h-12 rounded-full bg-[#FAFAFA] border border-[#E5E5E5] group-hover:bg-[#E5E5E5] text-[#5A0122] flex items-center justify-center shrink-0 transition-colors">
                   <Clock className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div>
-                  <h4 className="text-sm sm:text-base font-bold text-[#1F2937] leading-tight">
+                  <h4 className="text-sm sm:text-base font-bold text-[#262626] leading-tight">
                     Flexible Learning
                   </h4>
-                  <p className="text-xs text-[#6B7280] font-medium mt-0.5">
+                  <p className="text-xs text-[#737373] font-medium mt-0.5">
                     Study at your own pace
                   </p>
                 </div>
@@ -464,14 +464,14 @@ export const FerexLandingPage: React.FC = () => {
 
               {/* Feature 3: Career Support */}
               <div className="flex items-center gap-3.5 group">
-                <div className="w-12 h-12 rounded-full bg-[#F7F4F2] border border-[#ECE7EA] group-hover:bg-[#E9D7DF] text-[#570229] flex items-center justify-center shrink-0 transition-colors">
+                <div className="w-12 h-12 rounded-full bg-[#FAFAFA] border border-[#E5E5E5] group-hover:bg-[#E5E5E5] text-[#5A0122] flex items-center justify-center shrink-0 transition-colors">
                   <Briefcase className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div>
-                  <h4 className="text-sm sm:text-base font-bold text-[#1F2937] leading-tight">
+                  <h4 className="text-sm sm:text-base font-bold text-[#262626] leading-tight">
                     Career Support
                   </h4>
-                  <p className="text-xs text-[#6B7280] font-medium mt-0.5">
+                  <p className="text-xs text-[#737373] font-medium mt-0.5">
                     Get placed with top companies
                   </p>
                 </div>
@@ -479,14 +479,14 @@ export const FerexLandingPage: React.FC = () => {
 
               {/* Feature 4: Global Community */}
               <div className="flex items-center gap-3.5 group">
-                <div className="w-12 h-12 rounded-full bg-[#F7F4F2] border border-[#ECE7EA] group-hover:bg-[#E9D7DF] text-[#570229] flex items-center justify-center shrink-0 transition-colors">
+                <div className="w-12 h-12 rounded-full bg-[#FAFAFA] border border-[#E5E5E5] group-hover:bg-[#E5E5E5] text-[#5A0122] flex items-center justify-center shrink-0 transition-colors">
                   <Globe className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div>
-                  <h4 className="text-sm sm:text-base font-bold text-[#1F2937] leading-tight">
+                  <h4 className="text-sm sm:text-base font-bold text-[#262626] leading-tight">
                     Global Community
                   </h4>
-                  <p className="text-xs text-[#6B7280] font-medium mt-0.5">
+                  <p className="text-xs text-[#737373] font-medium mt-0.5">
                     Connect. Learn. Grow.
                   </p>
                 </div>
@@ -497,16 +497,16 @@ export const FerexLandingPage: React.FC = () => {
           </div>
 
           {/* Bottom Card: "A trusted education partner for 100+ students worldwide" */}
-          <div className="bg-[#F7F4F2] rounded-2xl border border-[#ECE7EA] p-6 sm:p-7 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="bg-[#FAFAFA] rounded-2xl border border-[#E5E5E5] p-6 sm:p-7 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-left space-y-1">
-              <span className="text-xs sm:text-sm font-semibold text-[#6B7280] block">
+              <span className="text-xs sm:text-sm font-semibold text-[#737373] block">
                 A trusted education partner for
               </span>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl sm:text-3xl font-serif font-black text-[#570229]">
+                <span className="text-2xl sm:text-3xl font-serif font-black text-[#5A0122]">
                   100+
                 </span>
-                <span className="text-sm sm:text-base font-bold text-[#1F2937]">
+                <span className="text-sm sm:text-base font-bold text-[#262626]">
                   students worldwide
                 </span>
               </div>
@@ -514,7 +514,7 @@ export const FerexLandingPage: React.FC = () => {
 
             <button
               onClick={() => scrollToSection('universities')}
-              className="w-11 h-11 rounded-full bg-white border border-[#ECE7EA] hover:bg-[#570229] hover:text-white text-[#570229] flex items-center justify-center shadow-xs transition-all cursor-pointer group shrink-0"
+              className="w-11 h-11 rounded-full bg-white border border-[#E5E5E5] hover:bg-[#5A0122] hover:text-white text-[#5A0122] flex items-center justify-center shadow-xs transition-all cursor-pointer group shrink-0"
               title="Explore Partner Universities"
             >
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -525,17 +525,17 @@ export const FerexLandingPage: React.FC = () => {
       </section>
 
       {/* 5. SCHENGEN DESTINATION HIGHLIGHTS */}
-      <section id="destinations" className="py-16 lg:py-20 bg-white border-b border-[#ECE7EA]">
+      <section id="destinations" className="py-16 lg:py-20 bg-white border-b border-[#E5E5E5]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           
           <div className="text-center max-w-3xl mx-auto space-y-2">
-            <span className="text-xs font-black uppercase tracking-widest text-[#8C1D4F]">
+            <span className="text-xs font-black uppercase tracking-widest text-[#5A0122]">
               European Study Corridors
             </span>
-            <h2 className="text-3xl sm:text-4xl font-serif font-black text-[#1F2937]">
+            <h2 className="text-3xl sm:text-4xl font-serif font-black text-[#262626]">
               Top Study Destinations Across Europe
             </h2>
-            <p className="text-sm text-[#6B7280] font-medium">
+            <p className="text-sm text-[#737373] font-medium">
               Explore leading Schengen member nations with globally accredited bachelor, master, and medicine degrees taught entirely in English.
             </p>
           </div>
@@ -544,42 +544,42 @@ export const FerexLandingPage: React.FC = () => {
             {(showAllCountries ? destinationStats : destinationStats.slice(0, 6)).map((dest) => (
               <div
                 key={dest.country}
-                className="bg-white rounded-2xl p-6 border border-[#ECE7EA] hover:border-[#570229]/40 hover:shadow-lg transition-all flex flex-col justify-between space-y-6 group text-left"
+                className="bg-white rounded-2xl p-6 border border-[#E5E5E5] hover:border-[#5A0122]/40 hover:shadow-lg transition-all flex flex-col justify-between space-y-6 group text-left"
               >
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-3xl">{dest.meta.flag}</span>
                     <span className="flex items-center gap-1.5">
                       {isFeaturedCountry(destinations, dest.country) && (
-                        <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300">★ Featured</span>
+                        <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-neutral-100 text-[#5A0122] border border-neutral-300">★ Featured</span>
                       )}
-                      <span className="text-[10px] font-black px-3 py-1 rounded-full bg-[#E9D7DF] text-[#570229] border border-[#C85A7C]/20">
+                      <span className="text-[10px] font-black px-3 py-1 rounded-full bg-[#E5E5E5] text-[#5A0122] border border-[#68092A]/20">
                         {dest.meta.schengen}
                       </span>
                     </span>
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-serif font-black text-[#1F2937] group-hover:text-[#570229] transition-colors">
+                    <h3 className="text-lg font-serif font-black text-[#262626] group-hover:text-[#5A0122] transition-colors">
                       Study in {dest.country}
                     </h3>
-                    <p className="text-xs text-[#6B7280] font-bold mt-0.5">
+                    <p className="text-xs text-[#737373] font-bold mt-0.5">
                       {dest.count} Accredited Partner Universities
                     </p>
                   </div>
 
-                  <div className="space-y-2 pt-2 border-t border-[#ECE7EA] text-xs">
+                  <div className="space-y-2 pt-2 border-t border-[#E5E5E5] text-xs">
                     <div className="flex justify-between items-center py-1">
-                      <span className="text-[#6B7280] font-semibold">Tuition Starting From:</span>
-                      <span className="font-bold text-[#1F2937]">{dest.minFee > 0 ? `€${dest.minFee.toLocaleString()} / yr` : 'On request'}</span>
+                      <span className="text-[#737373] font-semibold">Tuition Starting From:</span>
+                      <span className="font-bold text-[#262626]">{dest.minFee > 0 ? `€${dest.minFee.toLocaleString()} / yr` : 'On request'}</span>
                     </div>
                     <div className="flex justify-between items-center py-1">
-                      <span className="text-[#6B7280] font-semibold">Monthly Living Cost:</span>
-                      <span className="font-bold text-[#1F2937]">{dest.meta.avgLiving}</span>
+                      <span className="text-[#737373] font-semibold">Monthly Living Cost:</span>
+                      <span className="font-bold text-[#262626]">{dest.meta.avgLiving}</span>
                     </div>
                     <div className="flex justify-between items-center py-1">
-                      <span className="text-[#6B7280] font-semibold">Post-Study Stay-Back:</span>
-                      <span className="font-bold text-[#0F9D58]">{dest.meta.stayBack}</span>
+                      <span className="text-[#737373] font-semibold">Post-Study Stay-Back:</span>
+                      <span className="font-bold text-[#5A0122]">{dest.meta.stayBack}</span>
                     </div>
                   </div>
                 </div>
@@ -589,7 +589,7 @@ export const FerexLandingPage: React.FC = () => {
                     setSelectedCountryFilter(dest.country);
                     scrollToSection('universities');
                   }}
-                  className="w-full h-10 rounded-xl bg-[#F7F4F2] hover:bg-[#570229] text-[#1F2937] hover:text-white text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full h-10 rounded-xl bg-[#FAFAFA] hover:bg-[#5A0122] text-[#262626] hover:text-white text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   View {dest.country} Universities <ArrowUpRight className="w-3.5 h-3.5" />
                 </button>
@@ -598,7 +598,7 @@ export const FerexLandingPage: React.FC = () => {
           </div>
           {destinationStats.length > 6 && (
             <div className="text-center">
-              <button onClick={() => setShowAllCountries(v => !v)} className="h-10 px-6 rounded-xl border border-[#ECE7EA] text-xs font-black text-[#570229] hover:bg-[#F7F4F2] cursor-pointer">
+              <button onClick={() => setShowAllCountries(v => !v)} className="h-10 px-6 rounded-xl border border-[#E5E5E5] text-xs font-black text-[#5A0122] hover:bg-[#FAFAFA] cursor-pointer">
                 {showAllCountries ? 'Show fewer countries' : `Show all ${destinationStats.length} countries`}
               </button>
             </div>
@@ -608,22 +608,22 @@ export const FerexLandingPage: React.FC = () => {
       </section>
 
       {/* 6. MULTI-CURRENCY TUITION & LIVING COST CALCULATOR */}
-      <section id="calculator" className="py-16 lg:py-20 bg-white border-b border-[#ECE7EA]">
+      <section id="calculator" className="py-16 lg:py-20 bg-white border-b border-[#E5E5E5]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           
           <div className="text-center max-w-3xl mx-auto space-y-2">
-            <span className="text-xs font-black uppercase tracking-widest text-[#8C1D4F]">
+            <span className="text-xs font-black uppercase tracking-widest text-[#5A0122]">
               100% Transparent Financials
             </span>
-            <h2 className="text-3xl sm:text-4xl font-serif font-black text-[#1F2937]">
+            <h2 className="text-3xl sm:text-4xl font-serif font-black text-[#262626]">
               Interactive European Study Cost Estimator
             </h2>
-            <p className="text-sm text-[#6B7280] font-medium">
+            <p className="text-sm text-[#737373] font-medium">
               Calculate your complete 1st-year budget including university tuition, official academic legalization, visa filing fees, and monthly living costs.
             </p>
           </div>
 
-          <div className="bg-[#F7F4F2] rounded-3xl border border-[#ECE7EA] p-6 md:p-9 shadow-xs">
+          <div className="bg-[#FAFAFA] rounded-3xl border border-[#E5E5E5] p-6 md:p-9 shadow-xs">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               
               {/* Left Form Inputs */}
@@ -631,13 +631,13 @@ export const FerexLandingPage: React.FC = () => {
                 
                 {/* Destination Selector */}
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-[#6B7280] mb-1.5">
+                  <label className="block text-xs font-black uppercase tracking-wider text-[#737373] mb-1.5">
                     Select Target European Country
                   </label>
                   <select
                     value={calcCountry}
                     onChange={(e) => setCalcCountry(e.target.value)}
-                    className="w-full h-11 px-3.5 bg-white border border-[#ECE7EA] rounded-xl text-xs font-bold text-[#1F2937] focus:outline-none focus:border-[#570229]"
+                    className="w-full h-11 px-3.5 bg-white border border-[#E5E5E5] rounded-xl text-xs font-bold text-[#262626] focus:outline-none focus:border-[#5A0122]"
                   >
                     {availableCountries.map(c => (
                       <option key={c} value={c}>{c}</option>
@@ -647,12 +647,12 @@ export const FerexLandingPage: React.FC = () => {
 
                 {/* University Selector */}
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-[#6B7280] mb-1.5">
+                  <label className="block text-xs font-black uppercase tracking-wider text-[#737373] mb-1.5">
                     Select European Partner University
                   </label>
                   {universitiesInCalcCountry.length === 0 ? (
-                    <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-left">
-                      <p className="text-xs text-amber-800 font-bold">
+                    <div className="p-3 bg-neutral-50 border border-neutral-300 rounded-xl text-left">
+                      <p className="text-xs text-neutral-700 font-bold">
                         No universities available for {calcCountry || 'this country'}.
                       </p>
                     </div>
@@ -660,7 +660,7 @@ export const FerexLandingPage: React.FC = () => {
                     <select
                       value={calcUniId}
                       onChange={(e) => setCalcUniId(e.target.value)}
-                      className="w-full h-11 px-3.5 bg-white border border-[#ECE7EA] rounded-xl text-xs font-bold text-[#1F2937] focus:outline-none focus:border-[#570229]"
+                      className="w-full h-11 px-3.5 bg-white border border-[#E5E5E5] rounded-xl text-xs font-bold text-[#262626] focus:outline-none focus:border-[#5A0122]"
                     >
                       {universitiesInCalcCountry.map(u => (
                         <option key={u.id} value={u.id}>{u.name} ({u.city || u.country})</option>
@@ -671,7 +671,7 @@ export const FerexLandingPage: React.FC = () => {
 
                 {/* Accommodation Preference */}
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-[#6B7280] mb-1.5">
+                  <label className="block text-xs font-black uppercase tracking-wider text-[#737373] mb-1.5">
                     Accommodation Type
                   </label>
                   <div className="grid grid-cols-2 gap-3">
@@ -680,8 +680,8 @@ export const FerexLandingPage: React.FC = () => {
                       onClick={() => setCalcAccomOption('dorm')}
                       className={`h-11 rounded-xl text-xs font-black transition-all cursor-pointer ${
                         calcAccomOption === 'dorm'
-                          ? 'bg-[#570229] text-white shadow-xs'
-                          : 'bg-white border border-[#ECE7EA] text-[#1F2937] hover:bg-[#F7F4F2]'
+                          ? 'bg-[#5A0122] text-white shadow-xs'
+                          : 'bg-white border border-[#E5E5E5] text-[#262626] hover:bg-[#FAFAFA]'
                       }`}
                     >
                       University Dorm (~€380/mo)
@@ -691,8 +691,8 @@ export const FerexLandingPage: React.FC = () => {
                       onClick={() => setCalcAccomOption('private')}
                       className={`h-11 rounded-xl text-xs font-black transition-all cursor-pointer ${
                         calcAccomOption === 'private'
-                          ? 'bg-[#570229] text-white shadow-xs'
-                          : 'bg-white border border-[#ECE7EA] text-[#1F2937] hover:bg-[#F7F4F2]'
+                          ? 'bg-[#5A0122] text-white shadow-xs'
+                          : 'bg-white border border-[#E5E5E5] text-[#262626] hover:bg-[#FAFAFA]'
                       }`}
                     >
                       Private Studio (~€550/mo)
@@ -702,7 +702,7 @@ export const FerexLandingPage: React.FC = () => {
 
                 {/* Currency Switcher */}
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider text-[#6B7280] mb-1.5">
+                  <label className="block text-xs font-black uppercase tracking-wider text-[#737373] mb-1.5">
                     Display Currency
                   </label>
                   <div className="flex items-center gap-2">
@@ -713,8 +713,8 @@ export const FerexLandingPage: React.FC = () => {
                         onClick={() => setCalcCurrency(curr)}
                         className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
                           calcCurrency === curr
-                            ? 'bg-[#570229] text-white shadow-xs'
-                            : 'bg-white border border-[#ECE7EA] text-[#6B7280] hover:bg-slate-50'
+                            ? 'bg-[#5A0122] text-white shadow-xs'
+                            : 'bg-white border border-[#E5E5E5] text-[#737373] hover:bg-slate-50'
                         }`}
                       >
                         {curr === 'EUR' ? '€ EUR' : curr === 'INR' ? '₹ INR' : '$ USD'}
@@ -727,53 +727,53 @@ export const FerexLandingPage: React.FC = () => {
 
               {/* Right Output Budget Breakdown Card */}
               <div className="lg:col-span-6">
-                <div className="rounded-2xl bg-white border border-[#ECE7EA] p-6 sm:p-7 shadow-xs space-y-5 text-left">
+                <div className="rounded-2xl bg-white border border-[#E5E5E5] p-6 sm:p-7 shadow-xs space-y-5 text-left">
                   
-                  <div className="flex items-center justify-between border-b border-[#ECE7EA] pb-3.5">
+                  <div className="flex items-center justify-between border-b border-[#E5E5E5] pb-3.5">
                     <div>
-                      <h4 className="text-base font-serif font-black text-[#1F2937]">
+                      <h4 className="text-base font-serif font-black text-[#262626]">
                         1st Year Complete Budget Summary
                       </h4>
-                      <p className="text-xs text-[#6B7280] font-semibold">
+                      <p className="text-xs text-[#737373] font-semibold">
                         {selectedCalcUni?.name || 'Selected European University'}
                       </p>
                     </div>
-                    <span className="text-xs font-bold text-[#570229] bg-[#E9D7DF] px-2.5 py-1 rounded-lg">
+                    <span className="text-xs font-bold text-[#5A0122] bg-[#E5E5E5] px-2.5 py-1 rounded-lg">
                       {calcCurrency}
                     </span>
                   </div>
 
                   <div className="space-y-2.5 text-xs">
                     <div className="flex justify-between items-center py-0.5">
-                      <span className="text-[#6B7280] font-medium">Annual University Tuition:</span>
-                      <span className="font-bold text-[#1F2937]">{convertCurrency(calcValues.tuitionEUR, calcValues.tuitionINR)}</span>
+                      <span className="text-[#737373] font-medium">Annual University Tuition:</span>
+                      <span className="font-bold text-[#262626]">{convertCurrency(calcValues.tuitionEUR, calcValues.tuitionINR)}</span>
                     </div>
 
                     {calcValues.legalizationRequired && (
                       <div className="flex justify-between items-center py-0.5">
-                        <span className="text-[#6B7280] font-medium">Government & MEA Apostille Legalization:</span>
-                        <span className="font-bold text-[#1F2937]">{convertCurrency(calcValues.legalizationEUR, calcValues.legalizationINR)}</span>
+                        <span className="text-[#737373] font-medium">Government & MEA Apostille Legalization:</span>
+                        <span className="font-bold text-[#262626]">{convertCurrency(calcValues.legalizationEUR, calcValues.legalizationINR)}</span>
                       </div>
                     )}
 
                     <div className="flex justify-between items-center py-0.5">
-                      <span className="text-[#6B7280] font-medium">VFS Visa Fee & Consular Insurance:</span>
-                      <span className="font-bold text-[#1F2937]">{convertCurrency(calcValues.vfsEUR, calcValues.vfsINR)}</span>
+                      <span className="text-[#737373] font-medium">VFS Visa Fee & Consular Insurance:</span>
+                      <span className="font-bold text-[#262626]">{convertCurrency(calcValues.vfsEUR, calcValues.vfsINR)}</span>
                     </div>
 
                     <div className="flex justify-between items-center py-0.5">
-                      <span className="text-[#6B7280] font-medium">Estimated Annual Living Cost (12 mos):</span>
-                      <span className="font-bold text-[#1F2937]">{convertCurrency(calcValues.livingMonthlyEUR * 12, calcValues.livingMonthlyINR * 12)}</span>
+                      <span className="text-[#737373] font-medium">Estimated Annual Living Cost (12 mos):</span>
+                      <span className="font-bold text-[#262626]">{convertCurrency(calcValues.livingMonthlyEUR * 12, calcValues.livingMonthlyINR * 12)}</span>
                     </div>
 
-                    <div className="pt-3.5 border-t border-[#ECE7EA] flex justify-between items-baseline">
+                    <div className="pt-3.5 border-t border-[#E5E5E5] flex justify-between items-baseline">
                       <div>
-                        <span className="text-xs font-black uppercase text-[#6B7280] block">Total 1st Year Outlay</span>
-                        <span className="text-2xl sm:text-3xl font-serif font-black text-[#570229]">
+                        <span className="text-xs font-black uppercase text-[#737373] block">Total 1st Year Outlay</span>
+                        <span className="text-2xl sm:text-3xl font-serif font-black text-[#5A0122]">
                           {convertCurrency(calcValues.totalFirstYearEUR, calcValues.totalFirstYearINR)}
                         </span>
                       </div>
-                      <span className="text-[11px] font-bold text-[#0F9D58] bg-[#0F9D58]/10 px-2 py-1 rounded-md border border-[#0F9D58]/20">
+                      <span className="text-[11px] font-bold text-[#5A0122] bg-[#5A0122]/10 px-2 py-1 rounded-md border border-[#5A0122]/20">
                         Zero Hidden Fees
                       </span>
                     </div>
@@ -781,7 +781,7 @@ export const FerexLandingPage: React.FC = () => {
 
                   <button
                     onClick={() => goToLogin('signup', selectedCalcUni?.name)}
-                    className="w-full h-11 rounded-xl bg-[#570229] hover:bg-[#6F0335] text-white text-xs font-black transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full h-11 rounded-xl bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-black transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     Apply with this Cost Estimate <ArrowRight className="w-3.5 h-3.5" />
                   </button>
@@ -796,35 +796,35 @@ export const FerexLandingPage: React.FC = () => {
       </section>
 
       {/* 7. PARTNER UNIVERSITIES DIRECTORY */}
-      <section id="universities" className="py-16 lg:py-20 bg-white border-b border-[#ECE7EA]">
+      <section id="universities" className="py-16 lg:py-20 bg-white border-b border-[#E5E5E5]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 text-left">
             <div className="space-y-1.5 max-w-2xl">
-              <span className="text-xs font-black uppercase tracking-widest text-[#8C1D4F]">
+              <span className="text-xs font-black uppercase tracking-widest text-[#5A0122]">
                 Direct Partner Directory
               </span>
-              <h2 className="text-3xl sm:text-4xl font-serif font-black text-[#1F2937]">
+              <h2 className="text-3xl sm:text-4xl font-serif font-black text-[#262626]">
                 Explore Accredited European Partner Universities
               </h2>
-              <p className="text-sm text-[#6B7280] font-medium">
+              <p className="text-sm text-[#737373] font-medium">
                 Browse verified public and private European institutions with English-medium degree programs and guaranteed offer letter processing.
               </p>
             </div>
 
             {/* Quick Country Filter Pills */}
-            <div className="flex items-center gap-1.5 bg-[#F7F4F2] p-1.5 rounded-2xl border border-[#ECE7EA] overflow-x-auto">
+            <div className="flex items-center gap-1.5 bg-[#FAFAFA] p-1.5 rounded-2xl border border-[#E5E5E5] overflow-x-auto">
               {['All', ...availableCountries].map(c => (
                 <button
                   key={c}
                   onClick={() => setSelectedCountryFilter(c)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer whitespace-nowrap ${
                     selectedCountryFilter === c
-                      ? 'bg-[#570229] text-white shadow-xs'
-                      : 'text-[#6B7280] hover:text-[#1F2937] hover:bg-white'
+                      ? 'bg-[#5A0122] text-white shadow-xs'
+                      : 'text-[#737373] hover:text-[#262626] hover:bg-white'
                   }`}
                 >
-                  {c !== 'All' && isFeaturedCountry(destinations, c) && <span className="text-amber-400 mr-1">★</span>}{c}
+                  {c !== 'All' && isFeaturedCountry(destinations, c) && <span className="text-[#5A0122] mr-1">★</span>}{c}
                   <span className="ml-1.5 opacity-60 font-bold">{c === 'All' ? universities.filter(u => (u.country || '').toLowerCase().trim() !== 'india').length : universities.filter(u => u.country?.trim().toLowerCase() === c.toLowerCase()).length}</span>
                 </button>
               ))}
@@ -833,13 +833,13 @@ export const FerexLandingPage: React.FC = () => {
 
           {/* Search Input Bar */}
           <div className="relative max-w-md">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7280]" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#737373]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search university name, city, or discipline..."
-              className="w-full h-11 pl-10 pr-4 bg-white border border-[#ECE7EA] rounded-xl text-xs font-semibold text-[#1F2937] focus:outline-none focus:border-[#570229]"
+              className="w-full h-11 pl-10 pr-4 bg-white border border-[#E5E5E5] rounded-xl text-xs font-semibold text-[#262626] focus:outline-none focus:border-[#5A0122]"
             />
           </div>
 
@@ -849,24 +849,24 @@ export const FerexLandingPage: React.FC = () => {
               filteredUniversities.map((uni) => (
                 <div
                   key={uni.id}
-                  className="bg-white rounded-2xl border border-[#ECE7EA] hover:border-[#570229]/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden group text-left"
+                  className="bg-white rounded-2xl border border-[#E5E5E5] hover:border-[#5A0122]/40 hover:shadow-lg transition-all flex flex-col justify-between overflow-hidden group text-left"
                 >
                   <div>
                     {/* University Campus Image Banner */}
                     <div className="h-44 relative overflow-hidden bg-gradient-to-br from-slate-800 to-slate-950">
                       <UniversityImage src={uni.banner_image_url || uni.image_url} name={uni.name} country={uni.country} className="group-hover:scale-105 transition-transform duration-500" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#1F2937]/90 via-[#1F2937]/25 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#262626]/90 via-[#262626]/25 to-transparent" />
 
-                      <span className="absolute top-3 left-3 text-[10px] font-black uppercase tracking-wider text-[#570229] bg-white/95 px-2.5 py-0.5 rounded-full border border-white/50 shadow-xs">
+                      <span className="absolute top-3 left-3 text-[10px] font-black uppercase tracking-wider text-[#5A0122] bg-white/95 px-2.5 py-0.5 rounded-full border border-white/50 shadow-xs">
                         {uni.country}
                       </span>
 
-                      <span className="absolute top-3 right-3 text-[10px] font-black bg-[#570229] text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-300/30 shadow-xs">
+                      <span className="absolute top-3 right-3 text-[10px] font-black bg-[#5A0122] text-white px-2.5 py-0.5 rounded-full border border-white/30 shadow-xs">
                         {uni.badge || 'Accredited Partner'}
                       </span>
 
                       <div className="absolute bottom-2.5 left-3.5 right-3.5">
-                        <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-amber-300 bg-black/60 px-2 py-0.5 rounded">
+                        <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-white bg-black/60 px-2 py-0.5 rounded">
                           {uni.category || 'Higher Education'}
                         </span>
                       </div>
@@ -874,28 +874,28 @@ export const FerexLandingPage: React.FC = () => {
 
                     <div className="p-5 space-y-3.5">
                       <div>
-                        <h3 className="text-base font-serif font-black text-[#1F2937] group-hover:text-[#570229] transition-colors leading-tight line-clamp-1">
+                        <h3 className="text-base font-serif font-black text-[#262626] group-hover:text-[#5A0122] transition-colors leading-tight line-clamp-1">
                           {uni.name}
                         </h3>
-                        <p className="text-xs text-[#6B7280] font-semibold mt-1 flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5 text-[#8C1D4F] shrink-0" /> {uni.city ? `${uni.city}, ` : ''}{uni.country}
+                        <p className="text-xs text-[#737373] font-semibold mt-1 flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-[#5A0122] shrink-0" /> {uni.city ? `${uni.city}, ` : ''}{uni.country}
                         </p>
                       </div>
 
-                      <div className="p-3.5 rounded-xl bg-[#F7F4F2] border border-[#ECE7EA] space-y-2 text-xs">
+                      <div className="p-3.5 rounded-xl bg-[#FAFAFA] border border-[#E5E5E5] space-y-2 text-xs">
                         <div className="flex justify-between items-center">
-                          <span className="text-[#6B7280] font-semibold">Tuition Range:</span>
-                          <span className="font-black text-[#1F2937]">{formatFeeEURandINR(uni.tuition_range || uni.university_fee)}</span>
+                          <span className="text-[#737373] font-semibold">Tuition Range:</span>
+                          <span className="font-black text-[#262626]">{formatFeeEURandINR(uni.tuition_range || uni.university_fee)}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-[#6B7280] font-semibold">Flagship Intakes:</span>
-                          <span className="font-bold text-[#1F2937]">
+                          <span className="text-[#737373] font-semibold">Flagship Intakes:</span>
+                          <span className="font-bold text-[#262626]">
                             {Array.isArray(uni.intakes) ? uni.intakes.join(' • ') : (uni.intakes || (uni as any).intake || 'Ask admissions')}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-[#6B7280] font-semibold">Legalization & Visa:</span>
-                          <span className="font-bold text-[#0F9D58]">Supported by FEREX</span>
+                          <span className="text-[#737373] font-semibold">Legalization & Visa:</span>
+                          <span className="font-bold text-[#5A0122]">Supported by FEREX</span>
                         </div>
                       </div>
                     </div>
@@ -904,7 +904,7 @@ export const FerexLandingPage: React.FC = () => {
                   <div className="p-5 pt-0">
                     <button
                       onClick={() => goToLogin('signup', uni.name)}
-                      className="w-full h-10 rounded-xl bg-[#570229] hover:bg-[#6F0335] text-white text-xs font-black transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full h-10 rounded-xl bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-black transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       Apply to {uni.name.split(' ')[0]} <ArrowRight className="w-3.5 h-3.5" />
                     </button>
@@ -912,10 +912,10 @@ export const FerexLandingPage: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div className="col-span-full py-12 text-center bg-white rounded-2xl border border-[#ECE7EA] p-8 space-y-4">
-                <Building2 className="w-10 h-10 text-[#6B7280] mx-auto" />
-                <h4 className="text-base font-bold text-[#1F2937]">No partner universities match your filter criteria</h4>
-                <p className="text-xs text-[#6B7280]">
+              <div className="col-span-full py-12 text-center bg-white rounded-2xl border border-[#E5E5E5] p-8 space-y-4">
+                <Building2 className="w-10 h-10 text-[#737373] mx-auto" />
+                <h4 className="text-base font-bold text-[#262626]">No partner universities match your filter criteria</h4>
+                <p className="text-xs text-[#737373]">
                   {universities.length > 0 
                     ? `${universities.length} universities are loaded in the database, but none match current filters (Country: ${selectedCountryFilter} | Category: ${activeCategory} | Search: "${searchQuery || 'None'}").`
                     : 'No universities currently active in the database.'}
@@ -928,7 +928,7 @@ export const FerexLandingPage: React.FC = () => {
                         setActiveCategory('All');
                         setSearchQuery('');
                       }}
-                      className="px-5 py-2.5 bg-[#570229] hover:bg-[#6F0335] text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer inline-flex items-center gap-2"
+                      className="px-5 py-2.5 bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer inline-flex items-center gap-2"
                     >
                       Reset All Filters
                     </button>
@@ -942,17 +942,17 @@ export const FerexLandingPage: React.FC = () => {
       </section>
 
       {/* 8. STEP-BY-STEP ADMISSIONS & VISA ROADMAP */}
-      <section id="roadmap" className="py-16 lg:py-20 bg-white border-b border-[#ECE7EA]">
+      <section id="roadmap" className="py-16 lg:py-20 bg-white border-b border-[#E5E5E5]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           
           <div className="text-center max-w-3xl mx-auto space-y-2">
-            <span className="text-xs font-black uppercase tracking-widest text-[#8C1D4F]">
+            <span className="text-xs font-black uppercase tracking-widest text-[#5A0122]">
               From Application to Campus Arrival
             </span>
-            <h2 className="text-3xl sm:text-4xl font-serif font-black text-[#1F2937]">
+            <h2 className="text-3xl sm:text-4xl font-serif font-black text-[#262626]">
               The 7-Stage Schengen Admissions Journey
             </h2>
-            <p className="text-sm text-[#6B7280] font-medium">
+            <p className="text-sm text-[#737373] font-medium">
               FEREX manages every stage of your European study trajectory with real-time portal tracking, document legalization, and consular mock interviews.
             </p>
           </div>
@@ -961,15 +961,15 @@ export const FerexLandingPage: React.FC = () => {
             {roadmapSteps.slice(0, 4).map((step) => (
               <div
                 key={step.num}
-                className="bg-[#F7F4F2] rounded-2xl p-6 border border-[#ECE7EA] hover:border-[#570229]/40 hover:shadow-md transition-all space-y-3.5"
+                className="bg-[#FAFAFA] rounded-2xl p-6 border border-[#E5E5E5] hover:border-[#5A0122]/40 hover:shadow-md transition-all space-y-3.5"
               >
-                <div className="w-9 h-9 rounded-xl bg-[#570229] text-white font-black text-xs flex items-center justify-center shadow-xs">
+                <div className="w-9 h-9 rounded-xl bg-[#5A0122] text-white font-black text-xs flex items-center justify-center shadow-xs">
                   0{step.num}
                 </div>
-                <h4 className="text-base font-serif font-black text-[#1F2937]">
+                <h4 className="text-base font-serif font-black text-[#262626]">
                   {step.title}
                 </h4>
-                <p className="text-xs text-[#6B7280] leading-relaxed font-medium">
+                <p className="text-xs text-[#737373] leading-relaxed font-medium">
                   {step.desc}
                 </p>
               </div>
@@ -980,15 +980,15 @@ export const FerexLandingPage: React.FC = () => {
             {roadmapSteps.slice(4).map((step) => (
               <div
                 key={step.num}
-                className="bg-[#F7F4F2] rounded-2xl p-6 border border-[#ECE7EA] hover:border-[#570229]/40 hover:shadow-md transition-all space-y-3.5"
+                className="bg-[#FAFAFA] rounded-2xl p-6 border border-[#E5E5E5] hover:border-[#5A0122]/40 hover:shadow-md transition-all space-y-3.5"
               >
-                <div className="w-9 h-9 rounded-xl bg-[#570229] text-white font-black text-xs flex items-center justify-center shadow-xs">
+                <div className="w-9 h-9 rounded-xl bg-[#5A0122] text-white font-black text-xs flex items-center justify-center shadow-xs">
                   0{step.num}
                 </div>
-                <h4 className="text-base font-serif font-black text-[#1F2937]">
+                <h4 className="text-base font-serif font-black text-[#262626]">
                   {step.title}
                 </h4>
-                <p className="text-xs text-[#6B7280] leading-relaxed font-medium">
+                <p className="text-xs text-[#737373] leading-relaxed font-medium">
                   {step.desc}
                 </p>
               </div>
@@ -999,17 +999,17 @@ export const FerexLandingPage: React.FC = () => {
       </section>
 
       {/* 9. STUDENT SUCCESS STORIES / TESTIMONIALS */}
-      <section className="py-16 lg:py-20 bg-white border-b border-[#ECE7EA]">
+      <section className="py-16 lg:py-20 bg-white border-b border-[#E5E5E5]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           
           <div className="text-center max-w-3xl mx-auto space-y-2">
-            <span className="text-xs font-black uppercase tracking-widest text-[#8C1D4F]">
+            <span className="text-xs font-black uppercase tracking-widest text-[#5A0122]">
               Student Success
             </span>
-            <h2 className="text-3xl sm:text-4xl font-serif font-black text-[#1F2937]">
+            <h2 className="text-3xl sm:text-4xl font-serif font-black text-[#262626]">
               Voices of FEREX Scholars in Europe
             </h2>
-            <p className="text-sm text-[#6B7280] font-medium">
+            <p className="text-sm text-[#737373] font-medium">
               Real international students sharing their journey from initial counseling to settling in Warsaw, Krakow, and Berlin.
             </p>
           </div>
@@ -1018,28 +1018,28 @@ export const FerexLandingPage: React.FC = () => {
             {testimonials.map((item, idx) => (
               <div
                 key={idx}
-                className="bg-[#F7F4F2] rounded-2xl p-6 border border-[#ECE7EA] shadow-xs flex flex-col justify-between space-y-5 hover:shadow-sm transition-shadow"
+                className="bg-[#FAFAFA] rounded-2xl p-6 border border-[#E5E5E5] shadow-xs flex flex-col justify-between space-y-5 hover:shadow-sm transition-shadow"
               >
                 <div className="space-y-3">
                   {/* Rating Stars */}
-                  <div className="flex items-center gap-1 text-[#F59E0B]">
+                  <div className="flex items-center gap-1 text-[#5A0122]">
                     {[...Array(item.rating)].map((_, i) => (
-                      <Star key={i} className="w-3.5 h-3.5 fill-[#F59E0B]" />
+                      <Star key={i} className="w-3.5 h-3.5 fill-[#5A0122]" />
                     ))}
                   </div>
-                  <p className="text-xs sm:text-sm text-[#6B7280] italic leading-relaxed">
+                  <p className="text-xs sm:text-sm text-[#737373] italic leading-relaxed">
                     "{item.comment}"
                   </p>
                 </div>
 
-                <div className="pt-3.5 border-t border-[#ECE7EA] flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#E9D7DF] text-[#570229] font-black text-xs flex items-center justify-center shrink-0">
+                <div className="pt-3.5 border-t border-[#E5E5E5] flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-[#E5E5E5] text-[#5A0122] font-black text-xs flex items-center justify-center shrink-0">
                     {item.name.charAt(0)}
                   </div>
                   <div>
-                    <h5 className="text-xs font-bold text-[#1F2937]">{item.name}</h5>
-                    <p className="text-[11px] text-[#8C1D4F] font-semibold">{item.course}</p>
-                    <p className="text-[10px] text-[#6B7280]">{item.uni}</p>
+                    <h5 className="text-xs font-bold text-[#262626]">{item.name}</h5>
+                    <p className="text-[11px] text-[#5A0122] font-semibold">{item.course}</p>
+                    <p className="text-[10px] text-[#737373]">{item.uni}</p>
                   </div>
                 </div>
               </div>
@@ -1050,17 +1050,17 @@ export const FerexLandingPage: React.FC = () => {
       </section>
 
       {/* 10. ADMISSIONS FAQ ACCORDION */}
-      <section id="faq" className="py-16 lg:py-20 bg-white border-b border-[#ECE7EA]">
+      <section id="faq" className="py-16 lg:py-20 bg-white border-b border-[#E5E5E5]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           
           <div className="text-center space-y-2">
-            <span className="text-xs font-black uppercase tracking-widest text-[#8C1D4F]">
+            <span className="text-xs font-black uppercase tracking-widest text-[#5A0122]">
               Got Questions?
             </span>
-            <h2 className="text-3xl sm:text-4xl font-serif font-black text-[#1F2937]">
+            <h2 className="text-3xl sm:text-4xl font-serif font-black text-[#262626]">
               Frequently Asked Admissions Questions
             </h2>
-            <p className="text-sm text-[#6B7280] font-medium">
+            <p className="text-sm text-[#737373] font-medium">
               Everything you need to know about European university eligibility, fees, academic legalization authentication, and visa procedures.
             </p>
           </div>
@@ -1069,17 +1069,17 @@ export const FerexLandingPage: React.FC = () => {
             {faqs.map((faq, idx) => (
               <div
                 key={idx}
-                className="bg-[#F7F4F2] rounded-xl border border-[#ECE7EA] overflow-hidden"
+                className="bg-[#FAFAFA] rounded-xl border border-[#E5E5E5] overflow-hidden"
               >
                 <button
                   onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}
-                  className="w-full p-4.5 text-left flex items-center justify-between gap-4 font-bold text-[#1F2937] hover:text-[#570229] transition-colors cursor-pointer text-sm"
+                  className="w-full p-4.5 text-left flex items-center justify-between gap-4 font-bold text-[#262626] hover:text-[#5A0122] transition-colors cursor-pointer text-sm"
                 >
                   <span>{faq.q}</span>
-                  <ChevronDown className={`w-4 h-4 text-[#6B7280] shrink-0 transition-transform ${activeFaq === idx ? 'rotate-180 text-[#570229]' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 text-[#737373] shrink-0 transition-transform ${activeFaq === idx ? 'rotate-180 text-[#5A0122]' : ''}`} />
                 </button>
                 {activeFaq === idx && (
-                  <div className="px-4.5 pb-4.5 text-xs text-[#6B7280] leading-relaxed font-medium border-t border-[#ECE7EA] pt-3">
+                  <div className="px-4.5 pb-4.5 text-xs text-[#737373] leading-relaxed font-medium border-t border-[#E5E5E5] pt-3">
                     {faq.a}
                   </div>
                 )}
@@ -1090,8 +1090,8 @@ export const FerexLandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 11. BOTTOM CALL TO ACTION BANNER (DEEP ROYAL MAROON #570229) */}
-      <section className="py-14 bg-[#570229] text-white relative overflow-hidden">
+      {/* 11. BOTTOM CALL TO ACTION BANNER (DEEP ROYAL MAROON #5A0122) */}
+      <section className="py-14 bg-gradient-to-br from-[#5A0122] to-[#68092A] text-white relative overflow-hidden">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-5">
           <Logo variant="white" size="lg" className="mx-auto" />
           <h2 className="text-3xl sm:text-4xl font-serif font-black text-white leading-tight">
@@ -1103,49 +1103,49 @@ export const FerexLandingPage: React.FC = () => {
           <div className="pt-2">
             <button
               onClick={() => goToLogin('signup')}
-              className="h-12 px-8 rounded-xl bg-white hover:bg-[#F7F4F2] text-[#570229] text-sm font-black transition-all shadow-xl flex items-center gap-2 mx-auto cursor-pointer"
+              className="h-12 px-8 rounded-xl bg-white hover:bg-[#FAFAFA] text-[#5A0122] text-sm font-black transition-all shadow-xl flex items-center gap-2 mx-auto cursor-pointer"
             >
-              Start Free Application Today <ArrowRight className="w-4 h-4 text-[#570229]" />
+              Start Free Application Today <ArrowRight className="w-4 h-4 text-[#5A0122]" />
             </button>
           </div>
         </div>
       </section>
 
       {/* 12. CLEAN LUXURY FOOTER WITH PHONEPE GATEWAY COMPLIANCE */}
-      <footer className="bg-white border-t border-[#ECE7EA] py-12 text-[#6B7280] text-xs text-left">
+      <footer className="bg-white border-t border-[#E5E5E5] py-12 text-[#737373] text-xs text-left">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8 pb-8 border-b border-[#ECE7EA]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8 pb-8 border-b border-[#E5E5E5]">
             
             {/* Column 1: Brand Info */}
             <div className="space-y-3">
-              <Logo size="sm" color="#570229" />
-              <p className="text-[#6B7280] font-medium leading-relaxed">
+              <Logo size="sm" color="#5A0122" />
+              <p className="text-[#737373] font-medium leading-relaxed">
                 FEREX Global Education is the official European higher education admissions division of Santoge Technologies.
               </p>
-              <div className="pt-1 text-[11px] text-[#8C1D4F] font-bold flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-[#570229]" />
+              <div className="pt-1 text-[11px] text-[#5A0122] font-bold flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-[#5A0122]" />
                 <span>Authorized European Higher Education Admissions</span>
               </div>
             </div>
 
             {/* Column 2: Corporate Headquarters */}
             <div className="space-y-2">
-              <h5 className="font-bold text-[#1F2937] uppercase text-[11px] tracking-wider flex items-center gap-1.5">
-                <Building2 className="w-3.5 h-3.5 text-[#570229]" /> Corporate Headquarters
+              <h5 className="font-bold text-[#262626] uppercase text-[11px] tracking-wider flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-[#5A0122]" /> Corporate Headquarters
               </h5>
-              <p className="text-[#6B7280] font-medium leading-relaxed">
+              <p className="text-[#737373] font-medium leading-relaxed">
                 ■ 12/640 Thachukuzhi, Companipady Road,<br />
                 Nellikuzhy PO, Kothamangalam,<br />
                 Kerala - 686 691, India
               </p>
               <div className="space-y-1.5 pt-1 text-[11px]">
-                <div className="flex items-center gap-1.5 text-[#4B5563]">
-                  <Phone className="w-3.5 h-3.5 text-[#570229] shrink-0" />
+                <div className="flex items-center gap-1.5 text-[#525252]">
+                  <Phone className="w-3.5 h-3.5 text-[#5A0122] shrink-0" />
                   <span className="font-semibold">+91 95448 85077, +44 78678 67779</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[#4B5563]">
-                  <Mail className="w-3.5 h-3.5 text-[#570229] shrink-0" />
-                  <a href="mailto:ferexventuresoffice@gmail.com" className="font-semibold hover:text-[#570229] transition-colors">
+                <div className="flex items-center gap-1.5 text-[#525252]">
+                  <Mail className="w-3.5 h-3.5 text-[#5A0122] shrink-0" />
+                  <a href="mailto:ferexventuresoffice@gmail.com" className="font-semibold hover:text-[#5A0122] transition-colors">
                     ferexventuresoffice@gmail.com
                   </a>
                 </div>
@@ -1154,31 +1154,31 @@ export const FerexLandingPage: React.FC = () => {
 
             {/* Column 3: Legal & PhonePe Compliance */}
             <div className="space-y-2">
-              <h5 className="font-bold text-[#1F2937] uppercase text-[11px] tracking-wider flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#570229]" /> Gateway Policies & Trust
+              <h5 className="font-bold text-[#262626] uppercase text-[11px] tracking-wider flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#5A0122]" /> Gateway Policies & Trust
               </h5>
-              <div className="space-y-2 font-medium text-[#4B5563]">
+              <div className="space-y-2 font-medium text-[#525252]">
                 <button
                   onClick={() => setLegalModal('terms')}
-                  className="block text-left hover:text-[#570229] transition-colors cursor-pointer hover:underline"
+                  className="block text-left hover:text-[#5A0122] transition-colors cursor-pointer hover:underline"
                 >
                   Terms & Conditions
                 </button>
                 <button
                   onClick={() => setLegalModal('privacy')}
-                  className="block text-left hover:text-[#570229] transition-colors cursor-pointer hover:underline"
+                  className="block text-left hover:text-[#5A0122] transition-colors cursor-pointer hover:underline"
                 >
                   Privacy Policy
                 </button>
                 <button
                   onClick={() => setLegalModal('refund')}
-                  className="block text-left hover:text-[#570229] transition-colors cursor-pointer hover:underline"
+                  className="block text-left hover:text-[#5A0122] transition-colors cursor-pointer hover:underline"
                 >
                   Refund & Cancellation Policy
                 </button>
                 <button
                   onClick={() => setLegalModal('contact')}
-                  className="block text-left hover:text-[#570229] transition-colors cursor-pointer hover:underline"
+                  className="block text-left hover:text-[#5A0122] transition-colors cursor-pointer hover:underline"
                 >
                   Contact Us
                 </button>
@@ -1187,24 +1187,24 @@ export const FerexLandingPage: React.FC = () => {
 
             {/* Column 4: Group Portals */}
             <div className="space-y-2">
-              <h5 className="font-bold text-[#1F2937] uppercase text-[11px] tracking-wider">Group Portals</h5>
-              <div className="space-y-1.5 font-semibold text-[#1F2937]">
-                <Link to="/login" className="block hover:text-[#570229] transition-colors">Ferex Education Portal</Link>
-                <Link to="/trade/dashboard" className="block hover:text-[#570229] transition-colors">Global Trade ERP</Link>
-                <Link to="/rimi/dashboard" className="block hover:text-[#570229] transition-colors">Rimi Frozen FMCG</Link>
-                <Link to="/digital/dashboard" className="block hover:text-[#570229] transition-colors">Ferex Digital Agency</Link>
+              <h5 className="font-bold text-[#262626] uppercase text-[11px] tracking-wider">Group Portals</h5>
+              <div className="space-y-1.5 font-semibold text-[#262626]">
+                <Link to="/login" className="block hover:text-[#5A0122] transition-colors">Ferex Education Portal</Link>
+                <Link to="/trade/dashboard" className="block hover:text-[#5A0122] transition-colors">Global Trade ERP</Link>
+                <Link to="/rimi/dashboard" className="block hover:text-[#5A0122] transition-colors">Rimi Frozen FMCG</Link>
+                <Link to="/digital/dashboard" className="block hover:text-[#5A0122] transition-colors">Ferex Digital Agency</Link>
               </div>
             </div>
 
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[#6B7280] font-medium">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[#737373] font-medium">
             <span>© {new Date().getFullYear()} FEREX Education Group (Santoge Technologies). All rights reserved.</span>
             <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-              <button onClick={() => setLegalModal('terms')} className="hover:text-[#1F2937] cursor-pointer">Terms & Conditions</button>
-              <button onClick={() => setLegalModal('privacy')} className="hover:text-[#1F2937] cursor-pointer">Privacy Policy</button>
-              <button onClick={() => setLegalModal('refund')} className="hover:text-[#1F2937] cursor-pointer">Refund & Cancellation</button>
-              <button onClick={() => setLegalModal('contact')} className="hover:text-[#1F2937] cursor-pointer">Contact Us</button>
+              <button onClick={() => setLegalModal('terms')} className="hover:text-[#262626] cursor-pointer">Terms & Conditions</button>
+              <button onClick={() => setLegalModal('privacy')} className="hover:text-[#262626] cursor-pointer">Privacy Policy</button>
+              <button onClick={() => setLegalModal('refund')} className="hover:text-[#262626] cursor-pointer">Refund & Cancellation</button>
+              <button onClick={() => setLegalModal('contact')} className="hover:text-[#262626] cursor-pointer">Contact Us</button>
             </div>
           </div>
         </div>
@@ -1213,38 +1213,38 @@ export const FerexLandingPage: React.FC = () => {
       {/* MISSION MODAL */}
       {isMissionModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-[#ECE7EA] text-left relative">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-[#E5E5E5] text-left relative">
             <button
               onClick={() => setIsMissionModalOpen(false)}
-              className="absolute top-5 right-5 p-2 rounded-full hover:bg-[#F7F4F2] text-[#6B7280] hover:text-[#1F2937] transition-colors cursor-pointer"
+              className="absolute top-5 right-5 p-2 rounded-full hover:bg-[#FAFAFA] text-[#737373] hover:text-[#262626] transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div className="space-y-2">
-              <span className="text-xs font-black uppercase tracking-wider text-[#8C1D4F]">
+              <span className="text-xs font-black uppercase tracking-wider text-[#5A0122]">
                 FEREX EDUCATION MISSION
               </span>
-              <h3 className="text-2xl font-serif font-black text-[#1F2937]">
+              <h3 className="text-2xl font-serif font-black text-[#262626]">
                 Democratizing World-Class European Higher Education
               </h3>
             </div>
 
-            <p className="text-sm text-[#6B7280] leading-relaxed">
+            <p className="text-sm text-[#737373] leading-relaxed">
               Our mission is to bridge ambitious global students directly with accredited European universities without extortionate agent fees or opaque processing. We empower future leaders through accessible tuition, institutional transparency, and dedicated ground support in Europe.
             </p>
 
-            <div className="space-y-3 pt-2 border-t border-[#ECE7EA]">
-              <div className="flex items-start gap-3 text-xs text-[#1F2937] font-semibold">
-                <Check className="w-4 h-4 text-[#0F9D58] shrink-0 mt-0.5" />
+            <div className="space-y-3 pt-2 border-t border-[#E5E5E5]">
+              <div className="flex items-start gap-3 text-xs text-[#262626] font-semibold">
+                <Check className="w-4 h-4 text-[#5A0122] shrink-0 mt-0.5" />
                 <span>100% Direct institutional partnership agreements with European universities</span>
               </div>
-              <div className="flex items-start gap-3 text-xs text-[#1F2937] font-semibold">
-                <Check className="w-4 h-4 text-[#0F9D58] shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 text-xs text-[#262626] font-semibold">
+                <Check className="w-4 h-4 text-[#5A0122] shrink-0 mt-0.5" />
                 <span>Zero hidden agency markups — tuition is deposited directly to universities</span>
               </div>
-              <div className="flex items-start gap-3 text-xs text-[#1F2937] font-semibold">
-                <Check className="w-4 h-4 text-[#0F9D58] shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 text-xs text-[#262626] font-semibold">
+                <Check className="w-4 h-4 text-[#5A0122] shrink-0 mt-0.5" />
                 <span>Comprehensive on-arrival support including TRC filing, dorms, and bank setup</span>
               </div>
             </div>
@@ -1255,7 +1255,7 @@ export const FerexLandingPage: React.FC = () => {
                   setIsMissionModalOpen(false);
                   goToLogin('signup');
                 }}
-                className="w-full h-11 rounded-xl bg-[#570229] hover:bg-[#6F0335] text-white text-xs font-black transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full h-11 rounded-xl bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-black transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
                 Begin Your Application Journey <ArrowRight className="w-4 h-4" />
               </button>
@@ -1267,32 +1267,32 @@ export const FerexLandingPage: React.FC = () => {
       {/* LEGAL / PHONEPE COMPLIANCE MODALS */}
       {legalModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-[#ECE7EA] text-left relative my-auto animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-[#E5E5E5] text-left relative my-auto animate-in fade-in zoom-in duration-200">
             
             {/* Modal Header */}
-            <div className="p-6 border-b border-[#ECE7EA] flex items-center justify-between sticky top-0 bg-white rounded-t-3xl z-10">
+            <div className="p-6 border-b border-[#E5E5E5] flex items-center justify-between sticky top-0 bg-white rounded-t-3xl z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#570229]/10 flex items-center justify-center text-[#570229]">
+                <div className="w-10 h-10 rounded-xl bg-[#5A0122]/10 flex items-center justify-center text-[#5A0122]">
                   {legalModal === 'terms' && <FileText className="w-5 h-5" />}
                   {legalModal === 'privacy' && <ShieldCheck className="w-5 h-5" />}
                   {legalModal === 'refund' && <RotateCcw className="w-5 h-5" />}
                   {legalModal === 'contact' && <Phone className="w-5 h-5" />}
                 </div>
                 <div>
-                  <h3 className="text-xl font-serif font-black text-[#1F2937]">
+                  <h3 className="text-xl font-serif font-black text-[#262626]">
                     {legalModal === 'terms' && 'Terms & Conditions'}
                     {legalModal === 'privacy' && 'Privacy Policy'}
                     {legalModal === 'refund' && 'Refund & Cancellation Policy'}
                     {legalModal === 'contact' && 'Contact Us'}
                   </h3>
-                  <p className="text-xs text-[#6B7280]">
+                  <p className="text-xs text-[#737373]">
                     FEREX Global Education (Santoge Technologies)
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setLegalModal(null)}
-                className="p-2 rounded-full hover:bg-[#F7F4F2] text-[#6B7280] hover:text-[#1F2937] transition-colors cursor-pointer"
+                className="p-2 rounded-full hover:bg-[#FAFAFA] text-[#737373] hover:text-[#262626] transition-colors cursor-pointer"
                 title="Close"
               >
                 <X className="w-5 h-5" />
@@ -1300,32 +1300,32 @@ export const FerexLandingPage: React.FC = () => {
             </div>
 
             {/* Modal Scrollable Content */}
-            <div className="p-6 sm:p-8 space-y-6 overflow-y-auto text-xs sm:text-sm text-[#4B5563] leading-relaxed">
+            <div className="p-6 sm:p-8 space-y-6 overflow-y-auto text-xs sm:text-sm text-[#525252] leading-relaxed">
               
               {/* TERMS & CONDITIONS */}
               {legalModal === 'terms' && (
                 <div className="space-y-5">
-                  <div className="p-4 rounded-xl bg-[#F7F4F2] border border-[#ECE7EA] text-xs space-y-1">
-                    <p className="font-bold text-[#1F2937]">Last Updated: September 2026</p>
+                  <div className="p-4 rounded-xl bg-[#FAFAFA] border border-[#E5E5E5] text-xs space-y-1">
+                    <p className="font-bold text-[#262626]">Last Updated: September 2026</p>
                     <p>Operated by FEREX Education Division, Santoge Technologies.</p>
                   </div>
 
                   <section className="space-y-2">
-                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">1. Acceptance of Terms</h4>
+                    <h4 className="text-sm font-bold text-[#262626] uppercase tracking-wider">1. Acceptance of Terms</h4>
                     <p>
                       By accessing the FEREX Global Education portal, initiating student registration, or paying any administrative or processing fees, you agree to be bound by these Terms and Conditions. If you do not agree with any portion of these terms, please do not use our services.
                     </p>
                   </section>
 
                   <section className="space-y-2">
-                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">2. Scope of Educational Services</h4>
+                    <h4 className="text-sm font-bold text-[#262626] uppercase tracking-wider">2. Scope of Educational Services</h4>
                     <p>
                       FEREX provides end-to-end academic advisory, university admissions processing, document legalization & Apostille guidance, VFS visa filing documentation, and post-arrival settlement support for accredited European universities (Poland, Germany, UK, Czech Republic, Italy, Spain, Switzerland, etc.).
                     </p>
                   </section>
 
                   <section className="space-y-2">
-                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">3. Fee Schedule & Applicable Taxes</h4>
+                    <h4 className="text-sm font-bold text-[#262626] uppercase tracking-wider">3. Fee Schedule & Applicable Taxes</h4>
                     <p>
                       All service invoices issued by FEREX for Advanced Registration and Agency Processing are subject to standard applicable taxes (18% Goods & Services Tax - CGST 9% + SGST 9%, SAC 9983). 
                     </p>
@@ -1335,21 +1335,21 @@ export const FerexLandingPage: React.FC = () => {
                   </section>
 
                   <section className="space-y-2">
-                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">4. Student Obligations & Document Integrity</h4>
+                    <h4 className="text-sm font-bold text-[#262626] uppercase tracking-wider">4. Student Obligations & Document Integrity</h4>
                     <p>
                       The applicant represents and warrants that all academic transcripts, certificates, identity proofs, and personal declarations submitted through the platform are 100% authentic. Any submission of forged or misleading records will result in immediate termination of the application without refund and mandatory reporting to relevant authorities.
                     </p>
                   </section>
 
                   <section className="space-y-2">
-                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">5. Admissions Decisions & Visa Issuance</h4>
+                    <h4 className="text-sm font-bold text-[#262626] uppercase tracking-wider">5. Admissions Decisions & Visa Issuance</h4>
                     <p>
                       While FEREX guarantees verified file presentation and high acceptance rates through direct university agreements, official admissions decisions rest solely with university academic senates, and visa decisions rest exclusively with the respective Consulates & Embassies.
                     </p>
                   </section>
 
                   <section className="space-y-2">
-                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">6. Governing Law & Jurisdiction</h4>
+                    <h4 className="text-sm font-bold text-[#262626] uppercase tracking-wider">6. Governing Law & Jurisdiction</h4>
                     <p>
                       These terms shall be governed by and construed in accordance with the laws of India. Any disputes arising out of or related to our services shall be subject to the exclusive jurisdiction of the competent courts in Kerala, India.
                     </p>
@@ -1360,13 +1360,13 @@ export const FerexLandingPage: React.FC = () => {
               {/* PRIVACY POLICY */}
               {legalModal === 'privacy' && (
                 <div className="space-y-5">
-                  <div className="p-4 rounded-xl bg-[#F7F4F2] border border-[#ECE7EA] text-xs space-y-1">
-                    <p className="font-bold text-[#1F2937]">Privacy Commitment & Data Protection</p>
+                  <div className="p-4 rounded-xl bg-[#FAFAFA] border border-[#E5E5E5] text-xs space-y-1">
+                    <p className="font-bold text-[#262626]">Privacy Commitment & Data Protection</p>
                     <p>Compliant with Information Technology Act (India) & GDPR Data Safeguards.</p>
                   </div>
 
                   <section className="space-y-2">
-                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">1. Information We Collect</h4>
+                    <h4 className="text-sm font-bold text-[#262626] uppercase tracking-wider">1. Information We Collect</h4>
                     <p>To process your academic applications, we collect:</p>
                     <ul className="list-disc pl-5 space-y-1 text-xs">
                       <li>Personal Identifiers: Full Name, Date of Birth, Nationality, Passport Number, Email, Phone Number.</li>
@@ -1376,31 +1376,31 @@ export const FerexLandingPage: React.FC = () => {
                   </section>
 
                   <section className="space-y-2">
-                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">2. How We Use Your Information</h4>
+                    <h4 className="text-sm font-bold text-[#262626] uppercase tracking-wider">2. How We Use Your Information</h4>
                     <p>
                       Your data is utilized strictly for evaluating eligibility, submitting formal admission files to foreign universities, facilitating sworn translations and Apostille legalization, and keeping you updated on visa milestones.
                     </p>
                   </section>
 
                   <section className="space-y-2">
-                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">3. Third-Party Sharing & Safeguards</h4>
+                    <h4 className="text-sm font-bold text-[#262626] uppercase tracking-wider">3. Third-Party Sharing & Safeguards</h4>
                     <p>
                       We DO NOT sell, rent, or trade your personal data. Data is shared exclusively with accredited destination universities, official embassy/consulate portals (VFS Global), and government education ministries solely for fulfilling your study abroad application.
                     </p>
                   </section>
 
                   <section className="space-y-2">
-                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">4. Data Security & Retention</h4>
+                    <h4 className="text-sm font-bold text-[#262626] uppercase tracking-wider">4. Data Security & Retention</h4>
                     <p>
                       All files and sensitive student documents uploaded to FEREX are encrypted using 256-bit SSL protocols in secure cloud storage. Data is retained for the duration of the admission cycle and compliance requirements.
                     </p>
                   </section>
 
                   <section className="space-y-2">
-                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">5. Privacy Grievance Contact</h4>
+                    <h4 className="text-sm font-bold text-[#262626] uppercase tracking-wider">5. Privacy Grievance Contact</h4>
                     <p>
                       For data correction, deletion, or privacy queries, contact our Data Protection Officer at: <br />
-                      <strong className="text-[#1F2937]">Email:</strong> ferexventuresoffice@gmail.com
+                      <strong className="text-[#262626]">Email:</strong> ferexventuresoffice@gmail.com
                     </p>
                   </section>
                 </div>
@@ -1409,20 +1409,20 @@ export const FerexLandingPage: React.FC = () => {
               {/* REFUND & CANCELLATION POLICY */}
               {legalModal === 'refund' && (
                 <div className="space-y-5">
-                  <div className="p-4 rounded-xl bg-[#F7F4F2] border border-[#ECE7EA] text-xs space-y-1">
-                    <p className="font-bold text-[#1F2937]">Transparent Refund & Cancellation Policy</p>
+                  <div className="p-4 rounded-xl bg-[#FAFAFA] border border-[#E5E5E5] text-xs space-y-1">
+                    <p className="font-bold text-[#262626]">Transparent Refund & Cancellation Policy</p>
                     <p>Clear milestones and automated gateway settlement guidelines.</p>
                   </div>
 
                   <section className="space-y-2">
-                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">1. Cancellation Window</h4>
+                    <h4 className="text-sm font-bold text-[#262626] uppercase tracking-wider">1. Cancellation Window</h4>
                     <p>
                       Applicants may request cancellation of their intake application within 48 hours of initial registration before their application file is formally submitted to the university admissions senate.
                     </p>
                   </section>
 
                   <section className="space-y-2">
-                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">2. Advance Registration Fee Refund Terms</h4>
+                    <h4 className="text-sm font-bold text-[#262626] uppercase tracking-wider">2. Advance Registration Fee Refund Terms</h4>
                     <ul className="list-disc pl-5 space-y-1 text-xs">
                       <li>
                         <strong>University Rejection / Quota Closure:</strong> If an application is rejected by the partner university due to institutional quota closure, 100% of the advance registration deposit is fully refundable or transferable to an alternative European university.
@@ -1434,24 +1434,24 @@ export const FerexLandingPage: React.FC = () => {
                   </section>
 
                   <section className="space-y-2">
-                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">3. Visa Refusal Clause</h4>
+                    <h4 className="text-sm font-bold text-[#262626] uppercase tracking-wider">3. Visa Refusal Clause</h4>
                     <p>
                       In the rare event of an official visa refusal by the Embassy/Consulate (not resulting from forged documents or fraudulent declarations), tuition fees paid to universities are refunded directly by the university as per their standard refund bylaws. FEREX provides full assistance in claiming tuition refunds from university finance departments.
                     </p>
                   </section>
 
                   <section className="space-y-2">
-                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">4. Refund Processing Timelines & Mode</h4>
+                    <h4 className="text-sm font-bold text-[#262626] uppercase tracking-wider">4. Refund Processing Timelines & Mode</h4>
                     <p>
                       Approved refunds are initiated within 2 business days and credited back to the original payment source (Credit/Debit Card, UPI, Net Banking) via PhonePe / payment gateway within <strong>5 to 7 working days</strong>.
                     </p>
                   </section>
 
                   <section className="space-y-2">
-                    <h4 className="text-sm font-bold text-[#1F2937] uppercase tracking-wider">5. Refund Request Procedure</h4>
+                    <h4 className="text-sm font-bold text-[#262626] uppercase tracking-wider">5. Refund Request Procedure</h4>
                     <p>
                       To request a refund or cancellation, email your invoice receipt, student ID, and bank details to: <br />
-                      <strong className="text-[#1F2937]">ferexventuresoffice@gmail.com</strong> with the subject line <em>"Refund Request - [Student Name / App ID]"</em>.
+                      <strong className="text-[#262626]">ferexventuresoffice@gmail.com</strong> with the subject line <em>"Refund Request - [Student Name / App ID]"</em>.
                     </p>
                   </section>
                 </div>
@@ -1460,9 +1460,9 @@ export const FerexLandingPage: React.FC = () => {
               {/* CONTACT US (PHONEPE MANDATORY REQUIREMENT) */}
               {legalModal === 'contact' && (
                 <div className="space-y-6">
-                  <div className="p-4 rounded-xl bg-[#570229]/5 border border-[#570229]/15 text-xs">
-                    <p className="font-bold text-[#570229] text-sm mb-1">Official Business & Support Information</p>
-                    <p className="text-[#6B7280]">
+                  <div className="p-4 rounded-xl bg-[#5A0122]/5 border border-[#5A0122]/15 text-xs">
+                    <p className="font-bold text-[#5A0122] text-sm mb-1">Official Business & Support Information</p>
+                    <p className="text-[#737373]">
                       We are here to assist prospective students, university partners, and parents with all inquiries regarding European higher education admissions.
                     </p>
                   </div>
@@ -1470,12 +1470,12 @@ export const FerexLandingPage: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     
                     {/* Address Box */}
-                    <div className="p-4 rounded-2xl bg-[#F7F4F2] border border-[#ECE7EA] space-y-2">
-                      <div className="flex items-center gap-2 text-[#570229] font-bold text-xs uppercase tracking-wider">
+                    <div className="p-4 rounded-2xl bg-[#FAFAFA] border border-[#E5E5E5] space-y-2">
+                      <div className="flex items-center gap-2 text-[#5A0122] font-bold text-xs uppercase tracking-wider">
                         <Building2 className="w-4 h-4" />
                         <span>Physical Office Address</span>
                       </div>
-                      <p className="text-xs text-[#1F2937] font-semibold leading-relaxed">
+                      <p className="text-xs text-[#262626] font-semibold leading-relaxed">
                         12/640 Thachukuzhi,<br />
                         Companipady Road, Nellikuzhy PO,<br />
                         Kothamangalam, Kerala - 686 691, India
@@ -1483,58 +1483,58 @@ export const FerexLandingPage: React.FC = () => {
                     </div>
 
                     {/* Contact Numbers Box */}
-                    <div className="p-4 rounded-2xl bg-[#F7F4F2] border border-[#ECE7EA] space-y-2">
-                      <div className="flex items-center gap-2 text-[#570229] font-bold text-xs uppercase tracking-wider">
+                    <div className="p-4 rounded-2xl bg-[#FAFAFA] border border-[#E5E5E5] space-y-2">
+                      <div className="flex items-center gap-2 text-[#5A0122] font-bold text-xs uppercase tracking-wider">
                         <Phone className="w-4 h-4" />
                         <span>Telephone / Helpline</span>
                       </div>
                       <div className="space-y-1 text-xs">
-                        <p className="font-semibold text-[#1F2937]">
-                          India: <a href="tel:+919544885077" className="text-[#570229] hover:underline">+91 95448 85077</a>
+                        <p className="font-semibold text-[#262626]">
+                          India: <a href="tel:+919544885077" className="text-[#5A0122] hover:underline">+91 95448 85077</a>
                         </p>
-                        <p className="font-semibold text-[#1F2937]">
-                          UK: <a href="tel:+447867867779" className="text-[#570229] hover:underline">+44 78678 67779</a>
+                        <p className="font-semibold text-[#262626]">
+                          UK: <a href="tel:+447867867779" className="text-[#5A0122] hover:underline">+44 78678 67779</a>
                         </p>
                       </div>
                     </div>
 
                     {/* Email Box */}
-                    <div className="p-4 rounded-2xl bg-[#F7F4F2] border border-[#ECE7EA] space-y-2">
-                      <div className="flex items-center gap-2 text-[#570229] font-bold text-xs uppercase tracking-wider">
+                    <div className="p-4 rounded-2xl bg-[#FAFAFA] border border-[#E5E5E5] space-y-2">
+                      <div className="flex items-center gap-2 text-[#5A0122] font-bold text-xs uppercase tracking-wider">
                         <Mail className="w-4 h-4" />
                         <span>Business & Support Email</span>
                       </div>
-                      <p className="text-xs font-semibold text-[#1F2937]">
-                        <a href="mailto:ferexventuresoffice@gmail.com" className="text-[#570229] hover:underline break-all">
+                      <p className="text-xs font-semibold text-[#262626]">
+                        <a href="mailto:ferexventuresoffice@gmail.com" className="text-[#5A0122] hover:underline break-all">
                           ferexventuresoffice@gmail.com
                         </a>
                       </p>
-                      <p className="text-[11px] text-[#6B7280]">Response SLA: Within 24 Business Hours</p>
+                      <p className="text-[11px] text-[#737373]">Response SLA: Within 24 Business Hours</p>
                     </div>
 
                     {/* Operational Working Hours */}
-                    <div className="p-4 rounded-2xl bg-[#F7F4F2] border border-[#ECE7EA] space-y-2">
-                      <div className="flex items-center gap-2 text-[#570229] font-bold text-xs uppercase tracking-wider">
+                    <div className="p-4 rounded-2xl bg-[#FAFAFA] border border-[#E5E5E5] space-y-2">
+                      <div className="flex items-center gap-2 text-[#5A0122] font-bold text-xs uppercase tracking-wider">
                         <Clock className="w-4 h-4" />
                         <span>Operating Hours</span>
                       </div>
-                      <p className="text-xs font-semibold text-[#1F2937]">
+                      <p className="text-xs font-semibold text-[#262626]">
                         Monday – Saturday:<br />
                         09:00 AM – 06:00 PM IST
                       </p>
-                      <p className="text-[11px] text-[#6B7280]">Sunday: Closed</p>
+                      <p className="text-[11px] text-[#737373]">Sunday: Closed</p>
                     </div>
 
                   </div>
 
-                  <div className="p-4 rounded-xl bg-white border border-[#ECE7EA] shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                  <div className="p-4 rounded-xl bg-white border border-[#E5E5E5] shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
                     <div>
-                      <span className="font-bold text-[#1F2937]">Legal Operating Entity: </span>
-                      <span className="text-[#6B7280]">FEREX Global Education (Santoge Technologies)</span>
+                      <span className="font-bold text-[#262626]">Legal Operating Entity: </span>
+                      <span className="text-[#737373]">FEREX Global Education (Santoge Technologies)</span>
                     </div>
                     <a
                       href="mailto:ferexventuresoffice@gmail.com"
-                      className="px-4 py-2 rounded-xl bg-[#570229] hover:bg-[#6F0335] text-white font-bold transition-all shrink-0"
+                      className="px-4 py-2 rounded-xl bg-[#5A0122] hover:bg-[#68092A] text-white font-bold transition-all shrink-0"
                     >
                       Send Message
                     </a>
@@ -1545,10 +1545,10 @@ export const FerexLandingPage: React.FC = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-[#ECE7EA] bg-[#F7F4F2] rounded-b-3xl flex justify-end">
+            <div className="p-4 border-t border-[#E5E5E5] bg-[#FAFAFA] rounded-b-3xl flex justify-end">
               <button
                 onClick={() => setLegalModal(null)}
-                className="px-6 py-2.5 rounded-xl bg-[#570229] hover:bg-[#6F0335] text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                className="px-6 py-2.5 rounded-xl bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
               >
                 Close
               </button>
