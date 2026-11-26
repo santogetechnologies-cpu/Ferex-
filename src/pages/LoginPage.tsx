@@ -14,8 +14,8 @@ import { getAdminSupabaseClient } from '../lib/adminAuthClient';
 import { sendStudentWelcomeEmail } from '../lib/api/email';
 import { CapLoader } from '../components/CapLoader';
 
-const fieldCls = 'h-12 lg:h-14 rounded-2xl bg-white/80 border-slate-200 text-sm font-medium focus:bg-white';
-const labelCls = 'text-sm font-bold text-slate-800 mb-1.5';
+const fieldCls = 'h-12 rounded-xl bg-white border-neutral-300 text-sm font-medium focus:border-[#5A0122]';
+const labelCls = 'text-sm font-semibold text-neutral-800 mb-1.5';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -427,13 +427,11 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="relative overflow-hidden w-full text-left">
-      <style>{`@keyframes login-shimmer{0%{transform:translateX(-130%)}60%,100%{transform:translateX(260%)}} .login-cta::after{content:"";position:absolute;inset:0;width:35%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);animation:login-shimmer 3.4s ease-in-out infinite}`}</style>
-
       {/* Top Header Link */}
       <div className="mb-4 sm:mb-5 flex items-center justify-between">
         <button
           onClick={() => navigate('/')}
-          className="group inline-flex items-center gap-2 text-sm font-bold text-[#6B0F36] hover:text-[#8C1D4F] transition-colors cursor-pointer"
+          className="group inline-flex items-center gap-2 text-sm font-bold text-[#5A0122] hover:text-[#5A0122] transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" /> Back to Home
         </button>
@@ -451,7 +449,7 @@ export const LoginPage: React.FC = () => {
             className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xl space-y-4"
           >
             <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-xl bg-[#58051E]/10 text-[#58051E] flex items-center justify-center font-bold">
+              <div className="w-10 h-10 rounded-xl bg-[#5A0122]/10 text-[#5A0122] flex items-center justify-center font-bold">
                 <KeyRound className="w-5 h-5" />
               </div>
               <div>
@@ -463,8 +461,8 @@ export const LoginPage: React.FC = () => {
             </div>
 
             {changePassError && (
-              <div className="p-3 bg-red-50 border border-red-200/80 rounded-xl text-xs font-bold text-red-700 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+              <div className="p-3 bg-white border border-[#5A0122]/40 rounded-xl text-xs font-semibold text-[#5A0122] flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-[#5A0122] shrink-0" />
                 {changePassError}
               </div>
             )}
@@ -497,7 +495,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isChangingPass}
-                className="w-full h-11 bg-[#58051E] text-white rounded-xl text-xs font-black hover:bg-[#430316] transition-colors shadow-md disabled:opacity-50 mt-2 cursor-pointer"
+                className="w-full h-11 bg-gradient-to-r from-[#5A0122] to-[#68092A] text-white rounded-xl text-xs font-bold hover:brightness-110 transition disabled:opacity-50 mt-2 cursor-pointer"
               >
                 {isChangingPass ? 'Updating Password...' : 'Save New Password & Return to Login'}
               </button>
@@ -515,13 +513,13 @@ export const LoginPage: React.FC = () => {
             {/* Header with Tab Switcher */}
             <div className="text-center sm:text-left mb-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
-                <div className="p-1.5 bg-white/70 rounded-full flex items-center gap-1 border border-white shadow-[inset_0_1px_3px_rgba(107,15,54,0.08)] w-full sm:w-auto">
+                <div className="p-1 bg-neutral-100 rounded-xl flex items-center gap-1 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={switchToSignIn}
-                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${authMode === 'signin'
-                        ? 'bg-gradient-to-r from-[#8C1D4F] to-[#570229] text-white shadow-[0_8px_18px_-8px_rgba(87,2,41,0.7)]'
-                        : 'text-slate-700 hover:text-[#6B0F36] hover:bg-white/80'
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-all cursor-pointer ${authMode === 'signin'
+                        ? 'bg-gradient-to-r from-[#5A0122] to-[#68092A] text-white'
+                        : 'text-neutral-600 hover:text-[#5A0122]'
                       }`}
                   >
                     <LogIn className="w-4 h-4" /> Sign In
@@ -529,9 +527,9 @@ export const LoginPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={switchToSignUp}
-                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${authMode === 'signup'
-                        ? 'bg-gradient-to-r from-[#8C1D4F] to-[#570229] text-white shadow-[0_8px_18px_-8px_rgba(87,2,41,0.7)]'
-                        : 'text-slate-700 hover:text-[#6B0F36] hover:bg-white/80'
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-all cursor-pointer ${authMode === 'signup'
+                        ? 'bg-gradient-to-r from-[#5A0122] to-[#68092A] text-white'
+                        : 'text-neutral-600 hover:text-[#5A0122]'
                       }`}
                   >
                     <UserPlus className="w-4 h-4" /> <span className="sm:hidden">Create account</span><span className="hidden sm:inline">Create Student Account</span>
@@ -540,13 +538,13 @@ export const LoginPage: React.FC = () => {
               </div>
 
               {prefilledUni && authMode === 'signup' && (
-                <div className="mb-2.5 p-2 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-xs font-bold flex items-center gap-2">
-                  <span className="text-amber-600">Selected University:</span>
+                <div className="mb-2.5 p-2 bg-neutral-50 rounded-xl border border-neutral-200 text-neutral-800 text-xs font-semibold flex items-center gap-2">
+                  <span className="text-neutral-500">Selected University:</span>
                   <span className="underline">{prefilledUni}</span>
                 </div>
               )}
 
-              <h2 className="text-3xl sm:text-[2.1rem] font-black text-[#6B0F36] tracking-tight mb-1.5 leading-tight">
+              <h2 className="text-3xl sm:text-[2.1rem] font-black text-[#5A0122] tracking-tight mb-1.5 leading-tight">
                 {authMode === 'signin' ? 'Sign in to your portal' : 'Create your student account'}
               </h2>
               <p className="text-sm font-medium text-slate-600">
@@ -563,9 +561,9 @@ export const LoginPage: React.FC = () => {
                   initial={{ opacity: 0, y: -8, height: 0 }}
                   animate={{ opacity: 1, y: 0, height: 'auto' }}
                   exit={{ opacity: 0, y: -8, height: 0 }}
-                  className="mb-3 p-3 rounded-xl bg-red-50/90 border border-red-200/80 text-red-700 text-xs font-medium flex items-center gap-2.5 shadow-xs"
+                  className="mb-3 p-3 rounded-xl bg-white border border-[#5A0122]/40 text-[#5A0122] text-xs font-medium flex items-center gap-2.5"
                 >
-                  <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                  <AlertCircle className="w-4 h-4 text-[#5A0122] shrink-0" />
                   <span>{errorMsg}</span>
                 </motion.div>
               )}
@@ -578,9 +576,9 @@ export const LoginPage: React.FC = () => {
                   initial={{ opacity: 0, y: -8, height: 0 }}
                   animate={{ opacity: 1, y: 0, height: 'auto' }}
                   exit={{ opacity: 0, y: -8, height: 0 }}
-                  className="mb-3 p-3 rounded-xl bg-emerald-50/90 border border-emerald-200/80 text-emerald-700 text-xs font-medium flex items-center gap-2.5 shadow-xs"
+                  className="mb-3 p-3 rounded-xl bg-neutral-50 border border-neutral-200 text-neutral-700 text-xs font-medium flex items-center gap-2.5"
                 >
-                  <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <ShieldCheck className="w-4 h-4 text-neutral-500 shrink-0" />
                   <span>{successMsg}</span>
                 </motion.div>
               )}
@@ -595,7 +593,7 @@ export const LoginPage: React.FC = () => {
                 labelClassName={labelCls}
                   label="Email address"
                   type="email"
-                  leftIcon={<Mail className="w-[18px] h-[18px] text-[#8C1D4F]" />}
+                  leftIcon={<Mail className="w-[18px] h-[18px] text-[#5A0122]" />}
                   placeholder="you@example.com"
                   value={signInEmail}
                   onChange={(e) => setSignInEmail(e.target.value)}
@@ -609,7 +607,7 @@ export const LoginPage: React.FC = () => {
                 labelClassName={labelCls}
                   label="Password"
                   type="password"
-                  leftIcon={<Lock className="w-[18px] h-[18px] text-[#8C1D4F]" />}
+                  leftIcon={<Lock className="w-[18px] h-[18px] text-[#5A0122]" />}
                   placeholder="••••••••"
                   value={signInPassword}
                   onChange={(e) => setSignInPassword(e.target.value)}
@@ -630,7 +628,7 @@ export const LoginPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowForgotOverlay(true)}
-                    className="text-sm font-bold text-[#6B0F36] hover:text-[#8C1D4F] hover:underline focus:outline-none cursor-pointer"
+                    className="text-sm font-bold text-[#5A0122] hover:text-[#5A0122] hover:underline focus:outline-none cursor-pointer"
                     tabIndex={0}
                   >
                     Forgot password?
@@ -641,7 +639,7 @@ export const LoginPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="login-cta relative overflow-hidden w-full h-14 bg-gradient-to-r from-[#8C1D4F] via-[#6B0F36] to-[#4a0220] text-white font-bold text-base rounded-full shadow-[0_16px_34px_-14px_rgba(87,2,41,0.85)] transition-transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 disabled:opacity-60 mt-4 cursor-pointer"
+                  className="w-full h-12 bg-gradient-to-r from-[#5A0122] to-[#68092A] text-white font-semibold text-base rounded-xl hover:brightness-110 transition disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {isLoading ? (
                     <span className="flex items-center gap-2">
@@ -721,7 +719,7 @@ export const LoginPage: React.FC = () => {
                     onChange={(checked) => setAgreeTerms(checked)}
                     disabled={isLoading}
                   />
-                  {errors.terms && <p className="text-[11px] font-bold text-red-600 mt-1">{errors.terms}</p>}
+                  {errors.terms && <p className="text-[11px] font-bold text-[#5A0122] mt-1">{errors.terms}</p>}
                 </div>
 
                 {/* Document Processing & Academic Legalization Consent Card */}
@@ -733,7 +731,7 @@ export const LoginPage: React.FC = () => {
                       checked={agreeConsent}
                       onChange={(e) => setAgreeConsent(e.target.checked)}
                       disabled={isLoading}
-                      className="w-4 h-4 mt-0.5 rounded accent-[#58051E] text-[#58051E] cursor-pointer"
+                      className="w-4 h-4 mt-0.5 rounded accent-[#5A0122] text-[#5A0122] cursor-pointer"
                     />
                     <label htmlFor="agreeConsentBox" className="text-xs font-medium text-slate-700 leading-snug cursor-pointer">
                       I consent to FEREX Education processing my academic transcripts, passport, and financial documents for Country Academic Legalization, University Admissions, and VFS Visa Filing.
@@ -744,18 +742,18 @@ export const LoginPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setShowConsentModal(true)}
-                      className="text-xs font-semibold text-[#58051E] hover:underline flex items-center gap-1 cursor-pointer"
+                      className="text-xs font-semibold text-[#5A0122] hover:underline flex items-center gap-1 cursor-pointer"
                     >
-                      <FileText className="w-3.5 h-3.5 text-[#58051E]" />
+                      <FileText className="w-3.5 h-3.5 text-[#5A0122]" />
                       <span>Review Consent Agreement</span>
                     </button>
-                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                    <span className="text-[10px] font-semibold text-neutral-700 bg-neutral-100 border border-neutral-200 px-2 py-0.5 rounded">
                       GDPR Compliant
                     </span>
                   </div>
 
                   {errors.consent && (
-                    <p className="text-[11px] font-bold text-red-600 pl-6">{errors.consent}</p>
+                    <p className="text-[11px] font-bold text-[#5A0122] pl-6">{errors.consent}</p>
                   )}
                 </div>
 
@@ -763,7 +761,7 @@ export const LoginPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="login-cta relative overflow-hidden w-full h-14 bg-gradient-to-r from-[#8C1D4F] via-[#6B0F36] to-[#4a0220] text-white font-bold text-base rounded-full shadow-[0_16px_34px_-14px_rgba(87,2,41,0.85)] transition-transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2.5 disabled:opacity-60 mt-4 cursor-pointer"
+                  className="w-full h-12 bg-gradient-to-r from-[#5A0122] to-[#68092A] text-white font-semibold text-base rounded-xl hover:brightness-110 transition disabled:opacity-60 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {isLoading ? (
                     <span className="flex items-center gap-2">
@@ -782,7 +780,7 @@ export const LoginPage: React.FC = () => {
 
             {/* Footer */}
             <div className="mt-6 pt-4 border-t border-slate-200/70 flex items-center justify-center gap-2 text-sm text-slate-700 font-semibold">
-              <Lock className="w-[18px] h-[18px] text-[#8C1D4F]" /> Secure sign-in
+              <Lock className="w-[18px] h-[18px] text-[#5A0122]" /> Secure sign-in
             </div>
           </motion.div>
         ) : (
@@ -804,10 +802,10 @@ export const LoginPage: React.FC = () => {
             </div>
 
             {forgotSent ? (
-              <div className="p-6 rounded-2xl bg-emerald-50/90 border border-emerald-200/80 text-emerald-800 text-center space-y-4">
-                <ShieldCheck className="w-10 h-10 text-emerald-500 mx-auto" />
+              <div className="p-6 rounded-2xl bg-neutral-50 border border-neutral-200 text-neutral-800 text-center space-y-4">
+                <ShieldCheck className="w-10 h-10 text-neutral-500 mx-auto" />
                 <h3 className="text-sm font-black">Check your email</h3>
-                <p className="text-xs font-semibold text-emerald-700">
+                <p className="text-xs font-semibold text-neutral-600">
                   If an account exists for <strong className="underline">{forgotEmail}</strong>, a password reset email is on its way. The link expires soon and works once.
                 </p>
                 <button
@@ -815,7 +813,7 @@ export const LoginPage: React.FC = () => {
                     setShowForgotOverlay(false);
                     setForgotSent(false);
                   }}
-                  className="mt-2 text-xs font-bold text-[#58051E] hover:underline block mx-auto cursor-pointer"
+                  className="mt-2 text-xs font-bold text-[#5A0122] hover:underline block mx-auto cursor-pointer"
                 >
                   Return to Sign In
                 </button>
@@ -823,8 +821,8 @@ export const LoginPage: React.FC = () => {
             ) : (
               <form onSubmit={handleForgotSubmit} className="space-y-5">
                 {forgotError && (
-                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                  <div className="p-3 bg-white border border-[#5A0122]/40 text-[#5A0122] text-xs font-semibold rounded-xl flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-[#5A0122] shrink-0" />
                     {forgotError}
                   </div>
                 )}
@@ -834,7 +832,7 @@ export const LoginPage: React.FC = () => {
                 labelClassName={labelCls}
                   label="Email address"
                   type="email"
-                  leftIcon={<Mail className="w-[18px] h-[18px] text-[#8C1D4F]" />}
+                  leftIcon={<Mail className="w-[18px] h-[18px] text-[#5A0122]" />}
                   placeholder="you@example.com"
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
@@ -852,7 +850,7 @@ export const LoginPage: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="h-10 px-5 bg-[#58051E] text-white text-xs font-bold rounded-xl hover:bg-[#430316] transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+                    className="h-10 px-5 bg-[#5A0122] text-white text-xs font-bold rounded-xl hover:bg-[#5A0122] transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
                   >
                     Send Reset Link
                   </button>
@@ -883,7 +881,7 @@ export const LoginPage: React.FC = () => {
               {/* Modal Header */}
               <div className="flex items-start justify-between border-b border-slate-100 pb-4 mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-[#58051E] text-amber-300 flex items-center justify-center font-bold shadow-md shrink-0">
+                  <div className="w-10 h-10 rounded-2xl bg-[#5A0122] text-white flex items-center justify-center font-bold shadow-md shrink-0">
                     <FileCheck className="w-5 h-5" />
                   </div>
                   <div>
@@ -908,7 +906,7 @@ export const LoginPage: React.FC = () => {
               <div className="space-y-4 text-xs text-slate-700 leading-relaxed">
                 <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5">
                   <div className="font-black text-slate-900 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-[#58051E] text-white text-[10px] flex items-center justify-center font-bold">1</span>
+                    <span className="w-5 h-5 rounded-full bg-[#5A0122] text-white text-[10px] flex items-center justify-center font-bold">1</span>
                     Collection & Storage of Sensitive Documentation
                   </div>
                   <p className="text-[11.5px] text-slate-600 pl-6.5">
@@ -918,7 +916,7 @@ export const LoginPage: React.FC = () => {
 
                 <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5">
                   <div className="font-black text-slate-900 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-[#58051E] text-white text-[10px] flex items-center justify-center font-bold">2</span>
+                    <span className="w-5 h-5 rounded-full bg-[#5A0122] text-white text-[10px] flex items-center justify-center font-bold">2</span>
                     Academic Legalization & University Representation Authorization
                   </div>
                   <p className="text-[11.5px] text-slate-600 pl-6.5">
@@ -928,7 +926,7 @@ export const LoginPage: React.FC = () => {
 
                 <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5">
                   <div className="font-black text-slate-900 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-[#58051E] text-white text-[10px] flex items-center justify-center font-bold">3</span>
+                    <span className="w-5 h-5 rounded-full bg-[#5A0122] text-white text-[10px] flex items-center justify-center font-bold">3</span>
                     Document Authenticity & Anti-Fraud Guarantee
                   </div>
                   <p className="text-[11.5px] text-slate-600 pl-6.5">
@@ -938,7 +936,7 @@ export const LoginPage: React.FC = () => {
 
                 <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5">
                   <div className="font-black text-slate-900 flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-[#58051E] text-white text-[10px] flex items-center justify-center font-bold">4</span>
+                    <span className="w-5 h-5 rounded-full bg-[#5A0122] text-white text-[10px] flex items-center justify-center font-bold">4</span>
                     GDPR Confidentiality & Non-Disclosure
                   </div>
                   <p className="text-[11.5px] text-slate-600 pl-6.5">
@@ -963,9 +961,9 @@ export const LoginPage: React.FC = () => {
                     setAgreeConsent(true);
                     setShowConsentModal(false);
                   }}
-                  className="w-full sm:w-auto h-10 px-6 bg-[#58051E] hover:bg-[#430316] text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                  className="w-full sm:w-auto h-10 px-6 bg-[#5A0122] hover:bg-[#5A0122] text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-md cursor-pointer"
                 >
-                  <Check className="w-4 h-4 text-amber-300" />
+                  <Check className="w-4 h-4 text-white" />
                   <span>I Understand & Accept Consent Terms</span>
                 </button>
               </div>
