@@ -634,7 +634,11 @@ export const AdminSettings: React.FC = () => {
                 </div>
               )}
 
-              {/* Welcome Message Template */}
+              {/* Welcome Message Template: with Meta and an approved template, the template text is what gets sent, so this box is not shown. */}
+              {whatsappConfig.provider === 'meta' && whatsappConfig.welcome_template_name ? (
+                <p className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-semibold text-slate-600">New enquiries receive the approved template <span className="font-mono text-slate-900">{whatsappConfig.welcome_template_name}</span>. Its wording is managed in WhatsApp Manager, so there is no message text to edit here.</p>
+              ) : (
+              <>
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
@@ -655,6 +659,9 @@ export const AdminSettings: React.FC = () => {
                   className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-[#5A0122] leading-relaxed"
                 />
               </div>
+
+              </>
+              )}
 
               {waLoadError && <p role="alert" className="text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-3">{waLoadError}. Only education admins can see and change the gateway keys.</p>}
               {waDirty && <p className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3">You have unsaved changes. The test below uses these values; new enquiries use them only after you save.</p>}
