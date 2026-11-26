@@ -233,12 +233,7 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
         .lead-cta::after { content:''; position:absolute; inset:0; width:40%; background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent); animation: lead-shimmer 3.2s ease-in-out infinite; }
       `}</style>
 
-      {/* soft background: clipped so it can never widen the page */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        <div className="absolute -top-32 -left-24 w-[28rem] h-[28rem] rounded-full bg-neutral-100/80 blur-3xl" style={{ animation: 'lead-float 9s ease-in-out infinite' }} />
-        <div className="absolute top-1/3 -right-32 w-[30rem] h-[30rem] rounded-full bg-neutral-100/60 blur-3xl" style={{ animation: 'lead-float 11s ease-in-out infinite 1s' }} />
-        <div className="absolute -bottom-40 left-1/4 w-[32rem] h-[32rem] rounded-full bg-[#5A0122]/5 blur-3xl" style={{ animation: 'lead-float 13s ease-in-out infinite 2s' }} />
-      </div>
+      {/* pure white background: no tinted glows */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
         <Swoosh className="absolute top-0 right-0 w-36 sm:w-[22rem] lg:w-[34rem] h-14 sm:h-40 lg:h-56" />
         <Swoosh flip className="absolute bottom-0 right-0 w-40 sm:w-[26rem] lg:w-[38rem] h-10 sm:h-36 lg:h-52 opacity-95" />
@@ -289,7 +284,7 @@ export const StudyAbroadLeadLandingPage: React.FC = () => {
 
           {/* Form card */}
           <motion.div initial={{ opacity: 0, y: 40, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.8, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="relative rounded-[1.75rem] sm:rounded-[2rem] bg-white/95 backdrop-blur border border-white shadow-[0_30px_80px_-30px_rgba(87,2,41,0.45)] p-4 sm:p-6">
+            className="relative rounded-[1.75rem] sm:rounded-[2rem] bg-white border border-neutral-200 shadow-[0_30px_80px_-30px_rgba(87,2,41,0.45)] p-4 sm:p-6">
             <AnimatePresence mode="wait">
               {done ? (
                 <motion.div key="done" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="py-10 text-center space-y-4" role="status">

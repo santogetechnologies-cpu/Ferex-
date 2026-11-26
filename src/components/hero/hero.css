@@ -1,16 +1,16 @@
 /* Design tokens for the landing header and hero. Light = ivory & burgundy, dark = cinematic midnight. */
 .fx {
   --fx-bg: #FFFFFF; --fx-surface: #FFFFFF; --fx-text: #262626; --fx-muted: #737373;
-  --fx-burgundy: #5A0122; --fx-accent: #68092A; --fx-rose: #EDEDED; --fx-lav: #F5F5F5;
+  --fx-burgundy: #5A0122; --fx-accent: #68092A; --fx-rose: #FFFFFF; --fx-lav: #FFFFFF;
   --fx-border: rgba(38, 38, 38, 0.10); --fx-glass: rgba(255, 255, 255, 0.66); --fx-glass-border: rgba(255, 255, 255, 0.9);
   --fx-shadow: 0 24px 60px -28px rgba(90, 1, 34, 0.30);
   --fx-em: linear-gradient(100deg, #5A0122 0%, #68092A 100%);
   --fx-btn: linear-gradient(135deg, #5A0122 0%, #68092A 100%);
-  --fx-glow-a: rgba(90, 1, 34, 0.07); --fx-glow-b: rgba(245, 245, 245, 0.95); --fx-glow-c: rgba(104, 9, 42, 0.06);
-  --fx-frame-fill-1: rgba(255, 255, 255, 0.78); --fx-frame-fill-2: rgba(245, 245, 245, 0.30);
+  --fx-glow-a: rgba(90, 1, 34, 0.07); --fx-glow-b: rgba(255, 255, 255, 0.95); --fx-glow-c: rgba(104, 9, 42, 0.06);
+  --fx-frame-fill-1: rgba(255, 255, 255, 0.78); --fx-frame-fill-2: rgba(255, 255, 255, 0.30);
   --fx-frame-stroke: rgba(255, 255, 255, 0.95); --fx-frame-edge: rgba(90, 1, 34, 0.20);
   --fx-line: rgba(90, 1, 34, 0.55); --fx-star: #FFFFFF; --fx-lm: rgba(90, 1, 34, 0.78);
-  --fx-rb-1: #5A0122; --fx-rb-2: #68092A; --fx-rb-3: #E5E5E5; --fx-rb-4: #F5F5F5; --fx-rb-shadow: rgba(90, 1, 34, 0.35);
+  --fx-rb-1: #5A0122; --fx-rb-2: #68092A; --fx-rb-3: #E5E5E5; --fx-rb-4: #FFFFFF; --fx-rb-shadow: rgba(90, 1, 34, 0.35);
   --fx-eu-1: #5A0122; --fx-eu-2: #3E0017; --fx-eu-3: #68092A;
   --fx-particle: rgba(104, 9, 42, 0.45);
   color: var(--fx-text);

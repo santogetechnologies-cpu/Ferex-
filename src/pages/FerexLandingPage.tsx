@@ -434,7 +434,7 @@ export const FerexLandingPage: React.FC = () => {
               
               {/* Feature 1: Expert Instructors */}
               <div className="flex items-center gap-3.5 group">
-                <div className="w-12 h-12 rounded-full bg-[#FAFAFA] border border-[#E5E5E5] group-hover:bg-[#E5E5E5] text-[#5A0122] flex items-center justify-center shrink-0 transition-colors">
+                <div className="w-12 h-12 rounded-full bg-[#FFFFFF] border border-[#E5E5E5] group-hover:bg-[#E5E5E5] text-[#5A0122] flex items-center justify-center shrink-0 transition-colors">
                   <User className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div>
@@ -449,7 +449,7 @@ export const FerexLandingPage: React.FC = () => {
 
               {/* Feature 2: Flexible Learning */}
               <div className="flex items-center gap-3.5 group">
-                <div className="w-12 h-12 rounded-full bg-[#FAFAFA] border border-[#E5E5E5] group-hover:bg-[#E5E5E5] text-[#5A0122] flex items-center justify-center shrink-0 transition-colors">
+                <div className="w-12 h-12 rounded-full bg-[#FFFFFF] border border-[#E5E5E5] group-hover:bg-[#E5E5E5] text-[#5A0122] flex items-center justify-center shrink-0 transition-colors">
                   <Clock className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div>
@@ -464,7 +464,7 @@ export const FerexLandingPage: React.FC = () => {
 
               {/* Feature 3: Career Support */}
               <div className="flex items-center gap-3.5 group">
-                <div className="w-12 h-12 rounded-full bg-[#FAFAFA] border border-[#E5E5E5] group-hover:bg-[#E5E5E5] text-[#5A0122] flex items-center justify-center shrink-0 transition-colors">
+                <div className="w-12 h-12 rounded-full bg-[#FFFFFF] border border-[#E5E5E5] group-hover:bg-[#E5E5E5] text-[#5A0122] flex items-center justify-center shrink-0 transition-colors">
                   <Briefcase className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div>
@@ -479,7 +479,7 @@ export const FerexLandingPage: React.FC = () => {
 
               {/* Feature 4: Global Community */}
               <div className="flex items-center gap-3.5 group">
-                <div className="w-12 h-12 rounded-full bg-[#FAFAFA] border border-[#E5E5E5] group-hover:bg-[#E5E5E5] text-[#5A0122] flex items-center justify-center shrink-0 transition-colors">
+                <div className="w-12 h-12 rounded-full bg-[#FFFFFF] border border-[#E5E5E5] group-hover:bg-[#E5E5E5] text-[#5A0122] flex items-center justify-center shrink-0 transition-colors">
                   <Globe className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div>
@@ -497,7 +497,7 @@ export const FerexLandingPage: React.FC = () => {
           </div>
 
           {/* Bottom Card: "A trusted education partner for 100+ students worldwide" */}
-          <div className="bg-[#FAFAFA] rounded-2xl border border-[#E5E5E5] p-6 sm:p-7 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="bg-[#FFFFFF] rounded-2xl border border-[#E5E5E5] p-6 sm:p-7 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-left space-y-1">
               <span className="text-xs sm:text-sm font-semibold text-[#737373] block">
                 A trusted education partner for
@@ -589,7 +589,7 @@ export const FerexLandingPage: React.FC = () => {
                     setSelectedCountryFilter(dest.country);
                     scrollToSection('universities');
                   }}
-                  className="w-full h-10 rounded-xl bg-[#FAFAFA] hover:bg-[#5A0122] text-[#262626] hover:text-white text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full h-10 rounded-xl bg-[#FFFFFF] hover:bg-[#5A0122] text-[#262626] hover:text-white text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   View {dest.country} Universities <ArrowUpRight className="w-3.5 h-3.5" />
                 </button>
@@ -598,7 +598,7 @@ export const FerexLandingPage: React.FC = () => {
           </div>
           {destinationStats.length > 6 && (
             <div className="text-center">
-              <button onClick={() => setShowAllCountries(v => !v)} className="h-10 px-6 rounded-xl border border-[#E5E5E5] text-xs font-black text-[#5A0122] hover:bg-[#FAFAFA] cursor-pointer">
+              <button onClick={() => setShowAllCountries(v => !v)} className="h-10 px-6 rounded-xl border border-[#E5E5E5] text-xs font-black text-[#5A0122] hover:bg-[#FFFFFF] cursor-pointer">
                 {showAllCountries ? 'Show fewer countries' : `Show all ${destinationStats.length} countries`}
               </button>
             </div>
@@ -623,7 +623,7 @@ export const FerexLandingPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="bg-[#FAFAFA] rounded-3xl border border-[#E5E5E5] p-6 md:p-9 shadow-xs">
+          <div className="bg-[#FFFFFF] rounded-3xl border border-[#E5E5E5] p-6 md:p-9 shadow-xs">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               
               {/* Left Form Inputs */}
@@ -681,7 +681,7 @@ export const FerexLandingPage: React.FC = () => {
                       className={`h-11 rounded-xl text-xs font-black transition-all cursor-pointer ${
                         calcAccomOption === 'dorm'
                           ? 'bg-[#5A0122] text-white shadow-xs'
-                          : 'bg-white border border-[#E5E5E5] text-[#262626] hover:bg-[#FAFAFA]'
+                          : 'bg-white border border-[#E5E5E5] text-[#262626] hover:bg-[#FFFFFF]'
                       }`}
                     >
                       University Dorm (~€380/mo)
@@ -692,7 +692,7 @@ export const FerexLandingPage: React.FC = () => {
                       className={`h-11 rounded-xl text-xs font-black transition-all cursor-pointer ${
                         calcAccomOption === 'private'
                           ? 'bg-[#5A0122] text-white shadow-xs'
-                          : 'bg-white border border-[#E5E5E5] text-[#262626] hover:bg-[#FAFAFA]'
+                          : 'bg-white border border-[#E5E5E5] text-[#262626] hover:bg-[#FFFFFF]'
                       }`}
                     >
                       Private Studio (~€550/mo)
@@ -813,7 +813,7 @@ export const FerexLandingPage: React.FC = () => {
             </div>
 
             {/* Quick Country Filter Pills */}
-            <div className="flex items-center gap-1.5 bg-[#FAFAFA] p-1.5 rounded-2xl border border-[#E5E5E5] overflow-x-auto">
+            <div className="flex items-center gap-1.5 bg-[#FFFFFF] p-1.5 rounded-2xl border border-[#E5E5E5] overflow-x-auto">
               {['All', ...availableCountries].map(c => (
                 <button
                   key={c}
@@ -882,7 +882,7 @@ export const FerexLandingPage: React.FC = () => {
                         </p>
                       </div>
 
-                      <div className="p-3.5 rounded-xl bg-[#FAFAFA] border border-[#E5E5E5] space-y-2 text-xs">
+                      <div className="p-3.5 rounded-xl bg-[#FFFFFF] border border-[#E5E5E5] space-y-2 text-xs">
                         <div className="flex justify-between items-center">
                           <span className="text-[#737373] font-semibold">Tuition Range:</span>
                           <span className="font-black text-[#262626]">{formatFeeEURandINR(uni.tuition_range || uni.university_fee)}</span>
@@ -961,7 +961,7 @@ export const FerexLandingPage: React.FC = () => {
             {roadmapSteps.slice(0, 4).map((step) => (
               <div
                 key={step.num}
-                className="bg-[#FAFAFA] rounded-2xl p-6 border border-[#E5E5E5] hover:border-[#5A0122]/40 hover:shadow-md transition-all space-y-3.5"
+                className="bg-[#FFFFFF] rounded-2xl p-6 border border-[#E5E5E5] hover:border-[#5A0122]/40 hover:shadow-md transition-all space-y-3.5"
               >
                 <div className="w-9 h-9 rounded-xl bg-[#5A0122] text-white font-black text-xs flex items-center justify-center shadow-xs">
                   0{step.num}
@@ -980,7 +980,7 @@ export const FerexLandingPage: React.FC = () => {
             {roadmapSteps.slice(4).map((step) => (
               <div
                 key={step.num}
-                className="bg-[#FAFAFA] rounded-2xl p-6 border border-[#E5E5E5] hover:border-[#5A0122]/40 hover:shadow-md transition-all space-y-3.5"
+                className="bg-[#FFFFFF] rounded-2xl p-6 border border-[#E5E5E5] hover:border-[#5A0122]/40 hover:shadow-md transition-all space-y-3.5"
               >
                 <div className="w-9 h-9 rounded-xl bg-[#5A0122] text-white font-black text-xs flex items-center justify-center shadow-xs">
                   0{step.num}
@@ -1018,7 +1018,7 @@ export const FerexLandingPage: React.FC = () => {
             {testimonials.map((item, idx) => (
               <div
                 key={idx}
-                className="bg-[#FAFAFA] rounded-2xl p-6 border border-[#E5E5E5] shadow-xs flex flex-col justify-between space-y-5 hover:shadow-sm transition-shadow"
+                className="bg-[#FFFFFF] rounded-2xl p-6 border border-[#E5E5E5] shadow-xs flex flex-col justify-between space-y-5 hover:shadow-sm transition-shadow"
               >
                 <div className="space-y-3">
                   {/* Rating Stars */}
@@ -1069,7 +1069,7 @@ export const FerexLandingPage: React.FC = () => {
             {faqs.map((faq, idx) => (
               <div
                 key={idx}
-                className="bg-[#FAFAFA] rounded-xl border border-[#E5E5E5] overflow-hidden"
+                className="bg-[#FFFFFF] rounded-xl border border-[#E5E5E5] overflow-hidden"
               >
                 <button
                   onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}
@@ -1103,7 +1103,7 @@ export const FerexLandingPage: React.FC = () => {
           <div className="pt-2">
             <button
               onClick={() => goToLogin('signup')}
-              className="h-12 px-8 rounded-xl bg-white hover:bg-[#FAFAFA] text-[#5A0122] text-sm font-black transition-all shadow-xl flex items-center gap-2 mx-auto cursor-pointer"
+              className="h-12 px-8 rounded-xl bg-white hover:bg-[#FFFFFF] text-[#5A0122] text-sm font-black transition-all shadow-xl flex items-center gap-2 mx-auto cursor-pointer"
             >
               Start Free Application Today <ArrowRight className="w-4 h-4 text-[#5A0122]" />
             </button>
@@ -1216,7 +1216,7 @@ export const FerexLandingPage: React.FC = () => {
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-[#E5E5E5] text-left relative">
             <button
               onClick={() => setIsMissionModalOpen(false)}
-              className="absolute top-5 right-5 p-2 rounded-full hover:bg-[#FAFAFA] text-[#737373] hover:text-[#262626] transition-colors cursor-pointer"
+              className="absolute top-5 right-5 p-2 rounded-full hover:bg-[#FFFFFF] text-[#737373] hover:text-[#262626] transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1292,7 +1292,7 @@ export const FerexLandingPage: React.FC = () => {
               </div>
               <button
                 onClick={() => setLegalModal(null)}
-                className="p-2 rounded-full hover:bg-[#FAFAFA] text-[#737373] hover:text-[#262626] transition-colors cursor-pointer"
+                className="p-2 rounded-full hover:bg-[#FFFFFF] text-[#737373] hover:text-[#262626] transition-colors cursor-pointer"
                 title="Close"
               >
                 <X className="w-5 h-5" />
@@ -1305,7 +1305,7 @@ export const FerexLandingPage: React.FC = () => {
               {/* TERMS & CONDITIONS */}
               {legalModal === 'terms' && (
                 <div className="space-y-5">
-                  <div className="p-4 rounded-xl bg-[#FAFAFA] border border-[#E5E5E5] text-xs space-y-1">
+                  <div className="p-4 rounded-xl bg-[#FFFFFF] border border-[#E5E5E5] text-xs space-y-1">
                     <p className="font-bold text-[#262626]">Last Updated: September 2026</p>
                     <p>Operated by FEREX Education Division, Santoge Technologies.</p>
                   </div>
@@ -1360,7 +1360,7 @@ export const FerexLandingPage: React.FC = () => {
               {/* PRIVACY POLICY */}
               {legalModal === 'privacy' && (
                 <div className="space-y-5">
-                  <div className="p-4 rounded-xl bg-[#FAFAFA] border border-[#E5E5E5] text-xs space-y-1">
+                  <div className="p-4 rounded-xl bg-[#FFFFFF] border border-[#E5E5E5] text-xs space-y-1">
                     <p className="font-bold text-[#262626]">Privacy Commitment & Data Protection</p>
                     <p>Compliant with Information Technology Act (India) & GDPR Data Safeguards.</p>
                   </div>
@@ -1409,7 +1409,7 @@ export const FerexLandingPage: React.FC = () => {
               {/* REFUND & CANCELLATION POLICY */}
               {legalModal === 'refund' && (
                 <div className="space-y-5">
-                  <div className="p-4 rounded-xl bg-[#FAFAFA] border border-[#E5E5E5] text-xs space-y-1">
+                  <div className="p-4 rounded-xl bg-[#FFFFFF] border border-[#E5E5E5] text-xs space-y-1">
                     <p className="font-bold text-[#262626]">Transparent Refund & Cancellation Policy</p>
                     <p>Clear milestones and automated gateway settlement guidelines.</p>
                   </div>
@@ -1470,7 +1470,7 @@ export const FerexLandingPage: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     
                     {/* Address Box */}
-                    <div className="p-4 rounded-2xl bg-[#FAFAFA] border border-[#E5E5E5] space-y-2">
+                    <div className="p-4 rounded-2xl bg-[#FFFFFF] border border-[#E5E5E5] space-y-2">
                       <div className="flex items-center gap-2 text-[#5A0122] font-bold text-xs uppercase tracking-wider">
                         <Building2 className="w-4 h-4" />
                         <span>Physical Office Address</span>
@@ -1483,7 +1483,7 @@ export const FerexLandingPage: React.FC = () => {
                     </div>
 
                     {/* Contact Numbers Box */}
-                    <div className="p-4 rounded-2xl bg-[#FAFAFA] border border-[#E5E5E5] space-y-2">
+                    <div className="p-4 rounded-2xl bg-[#FFFFFF] border border-[#E5E5E5] space-y-2">
                       <div className="flex items-center gap-2 text-[#5A0122] font-bold text-xs uppercase tracking-wider">
                         <Phone className="w-4 h-4" />
                         <span>Telephone / Helpline</span>
@@ -1499,7 +1499,7 @@ export const FerexLandingPage: React.FC = () => {
                     </div>
 
                     {/* Email Box */}
-                    <div className="p-4 rounded-2xl bg-[#FAFAFA] border border-[#E5E5E5] space-y-2">
+                    <div className="p-4 rounded-2xl bg-[#FFFFFF] border border-[#E5E5E5] space-y-2">
                       <div className="flex items-center gap-2 text-[#5A0122] font-bold text-xs uppercase tracking-wider">
                         <Mail className="w-4 h-4" />
                         <span>Business & Support Email</span>
@@ -1513,7 +1513,7 @@ export const FerexLandingPage: React.FC = () => {
                     </div>
 
                     {/* Operational Working Hours */}
-                    <div className="p-4 rounded-2xl bg-[#FAFAFA] border border-[#E5E5E5] space-y-2">
+                    <div className="p-4 rounded-2xl bg-[#FFFFFF] border border-[#E5E5E5] space-y-2">
                       <div className="flex items-center gap-2 text-[#5A0122] font-bold text-xs uppercase tracking-wider">
                         <Clock className="w-4 h-4" />
                         <span>Operating Hours</span>
@@ -1545,7 +1545,7 @@ export const FerexLandingPage: React.FC = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-[#E5E5E5] bg-[#FAFAFA] rounded-b-3xl flex justify-end">
+            <div className="p-4 border-t border-[#E5E5E5] bg-[#FFFFFF] rounded-b-3xl flex justify-end">
               <button
                 onClick={() => setLegalModal(null)}
                 className="px-6 py-2.5 rounded-xl bg-[#5A0122] hover:bg-[#68092A] text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
