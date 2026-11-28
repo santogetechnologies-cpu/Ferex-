@@ -41,7 +41,7 @@ export const LandingHero: React.FC<{ onApply: () => void; onCalculate: () => voi
             <motion.span className="inline-block fx-em" {...rise(0.5)}>Europe</motion.span>
             <motion.span className="inline-block" {...rise(0.6)}>&nbsp;with</motion.span>
           </span>
-          <motion.span className="block whitespace-nowrap" {...rise(0.7)}>Expert <span className="fx-em">Admission</span> &amp;</motion.span>
+          <motion.span className="block whitespace-nowrap" {...rise(0.7)}>Expert <span className="fx-em">Admission</span> <span style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', system-ui, sans-serif", fontWeight: 700, fontStyle: 'normal', fontSize: '0.86em', letterSpacing: 0 }} aria-label="and">&amp;</span></motion.span>
           <motion.span className="block whitespace-nowrap relative w-fit mx-auto lg:mx-0" {...rise(0.8)}>
             Visa Support
             <svg aria-hidden viewBox="0 0 220 24" className="absolute left-full top-[62%] ml-2 w-24 sm:w-36 hidden sm:block overflow-visible">
@@ -52,7 +52,7 @@ export const LandingHero: React.FC<{ onApply: () => void; onCalculate: () => voi
         </h1>
 
         <motion.p className="mt-6 text-base sm:text-lg leading-[1.65] fx-muted max-w-[38rem] mx-auto lg:mx-0" {...rise(0.95)}>
-          Direct university applications across <strong className="font-bold" style={{ color: 'var(--fx-text)' }}>Poland, Germany, Czechia, Italy, Spain &amp; France</strong>. End-to-end academic guidance, document verification, and 1-on-1 consular visa mock interviews.
+          Direct university applications across <strong className="font-bold fx-em">Poland</strong>, <strong className="font-bold fx-em">UK</strong> and other countries. End-to-end academic guidance, document verification, and 1-on-1 consular visa mock interviews.
         </motion.p>
 
         <motion.div className="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-3.5" {...rise(1.1)}>
